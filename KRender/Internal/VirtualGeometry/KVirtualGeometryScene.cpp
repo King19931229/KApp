@@ -695,6 +695,9 @@ bool KVirtualGeometryScene::Execute(IKCommandBufferPtr primaryBuffer)
 			}
 			primaryBuffer->EndDebugMarker();
 		}
+
+		primaryBuffer->TransitionIndirect(m_IndirectDrawBuffer);
+		primaryBuffer->TransitionIndirect(m_IndirectMeshBuffer);
 	}
 	primaryBuffer->EndDebugMarker();
 	return true;

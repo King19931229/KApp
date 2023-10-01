@@ -654,7 +654,7 @@ void KDeferredRenderer::EmptyAO(IKCommandBufferPtr primaryBuffer)
 	primaryBuffer->SetViewport(m_EmptyAORenderPass->GetViewPort());
 
 	primaryBuffer->EndRenderPass();
-	primaryBuffer->Translate(KRenderGlobal::GBuffer.GetAOTarget()->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+	primaryBuffer->Transition(KRenderGlobal::GBuffer.GetAOTarget()->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 	primaryBuffer->EndDebugMarker();
 }
 
@@ -687,7 +687,7 @@ void KDeferredRenderer::SkyPass(IKCommandBufferPtr primaryBuffer)
 
 void KDeferredRenderer::CopySceneColorToFinal(IKCommandBufferPtr primaryBuffer)
 {
-	primaryBuffer->Translate(KRenderGlobal::GBuffer.GetSceneColor()->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+	primaryBuffer->Transition(KRenderGlobal::GBuffer.GetSceneColor()->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 
 	primaryBuffer->BeginDebugMarker(GDeferredRenderStageDescription[DRS_STATE_COPY_SCENE_COLOR].debugMarker, glm::vec4(1));
 	primaryBuffer->BeginRenderPass(m_RenderPass[DRS_STATE_COPY_SCENE_COLOR], SUBPASS_CONTENTS_INLINE);
@@ -704,7 +704,7 @@ void KDeferredRenderer::CopySceneColorToFinal(IKCommandBufferPtr primaryBuffer)
 	primaryBuffer->EndRenderPass();
 	primaryBuffer->EndDebugMarker();
 
-	primaryBuffer->Translate(KRenderGlobal::GBuffer.GetSceneColor()->GetFrameBuffer(), PIPELINE_STAGE_FRAGMENT_SHADER, PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_COLOR_ATTACHMENT);
+	primaryBuffer->Transition(KRenderGlobal::GBuffer.GetSceneColor()->GetFrameBuffer(), PIPELINE_STAGE_FRAGMENT_SHADER, PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_COLOR_ATTACHMENT);
 }
 
 void KDeferredRenderer::PrePass(KMultithreadingRenderContext& renderContext, const std::vector<IKEntity*>& cullRes)

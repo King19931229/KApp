@@ -455,7 +455,7 @@ bool KPostProcessManager::Execute(unsigned int chainImageIndex, IKSwapChain* swa
 			primaryCommandBuffer->EndRenderPass();
 			primaryCommandBuffer->EndDebugMarker();
 
-			primaryCommandBuffer->Translate(pass->GetRenderTarget()->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+			primaryCommandBuffer->Transition(pass->GetRenderTarget()->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 		}
 	});
 

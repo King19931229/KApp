@@ -779,29 +779,47 @@ bool KVulkanCommandBuffer::ResetQuery(IKQueryPtr query)
 	return false;
 }
 
-bool KVulkanCommandBuffer::Translate(IKFrameBufferPtr buf, PipelineStages srcStages, PipelineStages dstStages, ImageLayout oldLayout, ImageLayout newLayout)
+bool KVulkanCommandBuffer::TransitionIndirect(IKStorageBufferPtr buf)
 {
+	VkCommandBuffer commandBuffer = GetVkHandle();
 	if (buf)
 	{
-		return buf->Translate(this, nullptr, nullptr, 0, buf->GetMipmaps(), srcStages, dstStages, oldLayout, newLayout);
+		KVulkanStorageBuffer* storageBuffer = static_cast<KVulkanStorageBuffer*>(buf.get());
+		VkBuffer indirectBuf = storageBuffer->GetVulkanHandle();
+		VkDeviceSize indirectSize = storageBuffer->GetBufferSize();
+
+		KVulkanInitializer::TransitionBufferCmdBuffer(indirectBuf, indirectSize,
+			VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT,
+			VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_INDIRECT_COMMAND_READ_BIT, commandBuffer);
+
+		return true;
 	}
 	return false;
 }
 
-bool KVulkanCommandBuffer::TranslateOwnership(IKFrameBufferPtr buf, IKQueuePtr srcQueue, IKQueuePtr dstQueue, PipelineStages srcStages, PipelineStages dstStages, ImageLayout oldLayout, ImageLayout newLayout)
+bool KVulkanCommandBuffer::Transition(IKFrameBufferPtr buf, PipelineStages srcStages, PipelineStages dstStages, ImageLayout oldLayout, ImageLayout newLayout)
 {
 	if (buf)
 	{
-		return buf->Translate(this, srcQueue.get(), dstQueue.get(), 0, buf->GetMipmaps(), srcStages, dstStages, oldLayout, newLayout);
+		return buf->Transition(this, nullptr, nullptr, 0, buf->GetMipmaps(), srcStages, dstStages, oldLayout, newLayout);
 	}
 	return false;
 }
 
-bool KVulkanCommandBuffer::TranslateMipmap(IKFrameBufferPtr buf, uint32_t mipmap, PipelineStages srcStages, PipelineStages dstStages, ImageLayout oldLayout, ImageLayout newLayout)
+bool KVulkanCommandBuffer::TransitionOwnership(IKFrameBufferPtr buf, IKQueuePtr srcQueue, IKQueuePtr dstQueue, PipelineStages srcStages, PipelineStages dstStages, ImageLayout oldLayout, ImageLayout newLayout)
 {
 	if (buf)
 	{
-		return buf->Translate(this, nullptr, nullptr, mipmap, 1, srcStages, dstStages, oldLayout, newLayout);
+		return buf->Transition(this, srcQueue.get(), dstQueue.get(), 0, buf->GetMipmaps(), srcStages, dstStages, oldLayout, newLayout);
+	}
+	return false;
+}
+
+bool KVulkanCommandBuffer::TransitionMipmap(IKFrameBufferPtr buf, uint32_t mipmap, PipelineStages srcStages, PipelineStages dstStages, ImageLayout oldLayout, ImageLayout newLayout)
+{
+	if (buf)
+	{
+		return buf->Transition(this, nullptr, nullptr, mipmap, 1, srcStages, dstStages, oldLayout, newLayout);
 	}
 	return false;
 }

@@ -104,8 +104,8 @@ bool KHiZBuffer::Resize(uint32_t width, uint32_t height)
 	IKCommandBufferPtr primaryBuffer = KRenderGlobal::CommandPool->Request(CBL_PRIMARY);
 
 	primaryBuffer->BeginPrimary();
-	primaryBuffer->Translate(m_HiZMinBuffer->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
-	primaryBuffer->Translate(m_HiZMaxBuffer->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+	primaryBuffer->Transition(m_HiZMinBuffer->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+	primaryBuffer->Transition(m_HiZMaxBuffer->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 	primaryBuffer->End();
 	primaryBuffer->Flush();
 
@@ -253,7 +253,7 @@ bool KHiZBuffer::Construct(IKCommandBufferPtr primaryBuffer)
 
 			primaryBuffer->EndRenderPass();
 			primaryBuffer->EndDebugMarker();
-			primaryBuffer->TranslateMipmap(m_HiZMinBuffer->GetFrameBuffer(), i, PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+			primaryBuffer->TransitionMipmap(m_HiZMinBuffer->GetFrameBuffer(), i, PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 		}
 		else
 		{
@@ -289,7 +289,7 @@ bool KHiZBuffer::Construct(IKCommandBufferPtr primaryBuffer)
 
 			primaryBuffer->EndRenderPass();
 			primaryBuffer->EndDebugMarker();
-			primaryBuffer->TranslateMipmap(m_HiZMinBuffer->GetFrameBuffer(), i, PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+			primaryBuffer->TransitionMipmap(m_HiZMinBuffer->GetFrameBuffer(), i, PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 		}
 	}
 	primaryBuffer->EndDebugMarker();
@@ -341,7 +341,7 @@ bool KHiZBuffer::Construct(IKCommandBufferPtr primaryBuffer)
 
 			primaryBuffer->EndRenderPass();
 			primaryBuffer->EndDebugMarker();
-			primaryBuffer->TranslateMipmap(m_HiZMaxBuffer->GetFrameBuffer(), i, PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+			primaryBuffer->TransitionMipmap(m_HiZMaxBuffer->GetFrameBuffer(), i, PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 		}
 		else
 		{
@@ -377,7 +377,7 @@ bool KHiZBuffer::Construct(IKCommandBufferPtr primaryBuffer)
 
 			primaryBuffer->EndRenderPass();
 			primaryBuffer->EndDebugMarker();
-			primaryBuffer->TranslateMipmap(m_HiZMaxBuffer->GetFrameBuffer(), i, PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+			primaryBuffer->TransitionMipmap(m_HiZMaxBuffer->GetFrameBuffer(), i, PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 		}
 	}
 	primaryBuffer->EndDebugMarker();

@@ -137,7 +137,7 @@ void KCascadedShadowMap::ExecuteCasterUpdate(KMultithreadingRenderContext& rende
 			primaryBuffer->EndRenderPass();
 			primaryBuffer->EndDebugMarker();
 
-			primaryBuffer->Translate(shadowTarget->GetFrameBuffer(), PIPELINE_STAGE_LATE_FRAGMENT_TESTS, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+			primaryBuffer->Transition(shadowTarget->GetFrameBuffer(), PIPELINE_STAGE_LATE_FRAGMENT_TESTS, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 		}
 		KRenderGlobal::Statistics.UpdateRenderStageStatistics(RENDER_STAGE_NAME[0], m_Statistics[1]);
 		m_StaticShouldUpdate = false;
@@ -171,7 +171,7 @@ void KCascadedShadowMap::ExecuteCasterUpdate(KMultithreadingRenderContext& rende
 			primaryBuffer->EndRenderPass();
 			primaryBuffer->EndDebugMarker();
 
-			primaryBuffer->Translate(shadowTarget->GetFrameBuffer(), PIPELINE_STAGE_LATE_FRAGMENT_TESTS, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+			primaryBuffer->Transition(shadowTarget->GetFrameBuffer(), PIPELINE_STAGE_LATE_FRAGMENT_TESTS, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 		}
 		KRenderGlobal::Statistics.UpdateRenderStageStatistics(RENDER_STAGE_NAME[0], m_Statistics[0]);
 	}
@@ -334,7 +334,7 @@ void KCascadedShadowMap::ExecuteMaskUpdate(IKCommandBufferPtr commandBuffer, std
 		}
 		commandBuffer->EndDebugMarker();
 
-		commandBuffer->Translate(maskTarget->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+		commandBuffer->Transition(maskTarget->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 	}
 
 	// Dynamic mask update
@@ -360,7 +360,7 @@ void KCascadedShadowMap::ExecuteMaskUpdate(IKCommandBufferPtr commandBuffer, std
 		}
 		commandBuffer->EndDebugMarker();
 
-		commandBuffer->Translate(maskTarget->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+		commandBuffer->Transition(maskTarget->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 	}
 
 	// Mask combine
@@ -386,7 +386,7 @@ void KCascadedShadowMap::ExecuteMaskUpdate(IKCommandBufferPtr commandBuffer, std
 		}
 		commandBuffer->EndDebugMarker();
 
-		commandBuffer->Translate(maskTarget->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+		commandBuffer->Transition(maskTarget->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 	}
 }
 

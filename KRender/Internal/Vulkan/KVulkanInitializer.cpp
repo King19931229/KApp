@@ -547,6 +547,39 @@ namespace KVulkanInitializer
 		EndSingleTimeCommand(KVulkanGlobal::graphicsCommandPool, commandBuffer);
 	}
 
+	void TransitionBufferCmdBuffer(VkBuffer buffer, VkDeviceSize size,
+		VkPipelineStageFlags srcStages, VkPipelineStageFlags dstStages,
+		VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask, VkCommandBuffer commandBuffer)
+	{
+		VkBufferMemoryBarrier bufMemBarrier = { VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER };
+		bufMemBarrier.size = size;
+		bufMemBarrier.buffer = buffer;
+		bufMemBarrier.offset = 0;
+
+		bufMemBarrier.srcAccessMask = srcAccessMask;
+		bufMemBarrier.dstAccessMask = dstAccessMask;
+
+		bufMemBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		bufMemBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+
+		VkPipelineStageFlags srcStageFlags = srcStages;
+		VkPipelineStageFlags dstStageFlags = dstStages;
+
+		vkCmdPipelineBarrier(commandBuffer, srcStageFlags, dstStageFlags, VK_DEPENDENCY_DEVICE_GROUP_BIT, 0, nullptr, 1, &bufMemBarrier, 0, nullptr);
+	}
+
+	void TransitionBuffer(VkBuffer buffer, VkDeviceSize size,
+		VkPipelineStageFlags srcStages, VkPipelineStageFlags dstStages,
+		VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask)
+	{
+		VkCommandBuffer commandBuffer;
+		BeginSingleTimeCommand(KVulkanGlobal::graphicsCommandPool, commandBuffer);
+		TransitionBufferCmdBuffer(buffer, size,
+			srcStages, dstStages,
+			srcAccessMask, dstAccessMask, commandBuffer);
+		EndSingleTimeCommand(KVulkanGlobal::graphicsCommandPool, commandBuffer);
+	}
+
 	void TransitionImageLayout(VkImage image, VkFormat format,
 		uint32_t baseLayer, uint32_t layers,
 		uint32_t baseMipLevel, uint32_t mipLevels,

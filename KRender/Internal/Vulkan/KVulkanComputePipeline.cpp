@@ -671,23 +671,9 @@ bool KVulkanComputePipeline::ExecuteIndirect(IKCommandBufferPtr primaryBuffer, I
 		VkDeviceSize indirectSize = storageBuffer->GetBufferSize();
 
 		// Setup the indirect buffer barrier
-		{
-			VkBufferMemoryBarrier bufMemBarrier = { VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER };
-			bufMemBarrier.size = indirectSize;
-			bufMemBarrier.buffer = indirectBuf;
-			bufMemBarrier.offset = 0;
-
-			bufMemBarrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
-			bufMemBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_INDIRECT_COMMAND_READ_BIT;
-
-			bufMemBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-			bufMemBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-
-			VkPipelineStageFlags srcStageFlags = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
-			VkPipelineStageFlags dstStageFlags = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT | VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT;
-
-			vkCmdPipelineBarrier(cmdBuf, srcStageFlags, dstStageFlags, VK_DEPENDENCY_DEVICE_GROUP_BIT, 0, nullptr, 1, &bufMemBarrier, 0, nullptr);
-		}
+		KVulkanInitializer::TransitionBufferCmdBuffer(indirectBuf, indirectSize,
+			VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT,
+			VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_INDIRECT_COMMAND_READ_BIT, cmdBuf);
 
 		vkCmdDispatchIndirect(cmdBuf, indirectBuf, 0);
 

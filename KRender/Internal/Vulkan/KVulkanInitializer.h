@@ -102,6 +102,14 @@ namespace KVulkanInitializer
 
 	void ZeroVkImage(VkImage image, VkImageLayout imageLayout, uint32_t baseLayer, uint32_t layers, uint32_t baseMipLevel, uint32_t mipLevels);
 
+	void TransitionBufferCmdBuffer(VkBuffer buffer, VkDeviceSize size,
+		VkPipelineStageFlags srcStages, VkPipelineStageFlags dstStages,
+		VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask, VkCommandBuffer commandBuffer);
+
+	void TransitionBuffer(VkBuffer buffer, VkDeviceSize size,
+		VkPipelineStageFlags srcStages, VkPipelineStageFlags dstStages,
+		VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask);
+
 	void TransitionImageLayout(VkImage image, VkFormat format,
 		uint32_t baseLayer, uint32_t layers,
 		uint32_t baseMipLevel, uint32_t mipLevels,

@@ -525,7 +525,7 @@ bool KVulkanFrameBuffer::SetDebugName(const char* name)
 	return false;
 }
 
-bool KVulkanFrameBuffer::TranslateLayoutImpl(VkCommandBuffer cmdBuffer, uint32_t srcQueueFamilyIndex, uint32_t dstQueueFamilyIndex, uint32_t baseMip, uint32_t numMip, VkPipelineStageFlags srcStages, VkPipelineStageFlags dstStages, VkImageLayout oldLayout, VkImageLayout newLayout)
+bool KVulkanFrameBuffer::TransitionLayoutImpl(VkCommandBuffer cmdBuffer, uint32_t srcQueueFamilyIndex, uint32_t dstQueueFamilyIndex, uint32_t baseMip, uint32_t numMip, VkPipelineStageFlags srcStages, VkPipelineStageFlags dstStages, VkImageLayout oldLayout, VkImageLayout newLayout)
 {
 	KVulkanInitializer::TransitionImageLayoutCmdBuffer(m_Image, m_Format,
 		0,
@@ -544,7 +544,7 @@ bool KVulkanFrameBuffer::TranslateLayoutImpl(VkCommandBuffer cmdBuffer, uint32_t
 	return true;
 }
 
-bool KVulkanFrameBuffer::Translate(IKCommandBuffer* cmd, IKQueue* srcQueue, IKQueue* dstQueue, uint32_t baseMip, uint32_t numMip, PipelineStages srcStages, PipelineStages dstStages, ImageLayout oldLayout, ImageLayout newLayout)
+bool KVulkanFrameBuffer::Transition(IKCommandBuffer* cmd, IKQueue* srcQueue, IKQueue* dstQueue, uint32_t baseMip, uint32_t numMip, PipelineStages srcStages, PipelineStages dstStages, ImageLayout oldLayout, ImageLayout newLayout)
 {
 	if (cmd)
 	{
@@ -573,7 +573,7 @@ bool KVulkanFrameBuffer::Translate(IKCommandBuffer* cmd, IKQueue* srcQueue, IKQu
 			dstQueueFamilyIndex = ((KVulkanQueue*)dstQueue)->GetQueueFamilyIndex();
 		}
 
-		TranslateLayoutImpl(vkCmdBuffer, srcQueueFamilyIndex, dstQueueFamilyIndex, baseMip, numMip, vkSrcStageFlags, vkDstStageFlags, vkOldLayout, vkNewLayout);
+		TransitionLayoutImpl(vkCmdBuffer, srcQueueFamilyIndex, dstQueueFamilyIndex, baseMip, numMip, vkSrcStageFlags, vkDstStageFlags, vkOldLayout, vkNewLayout);
 		return true;
 	}
 	return false;

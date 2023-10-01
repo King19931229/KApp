@@ -1353,7 +1353,7 @@ bool KVoxilzer::UpdateLightingResult(IKCommandBufferPtr primaryBuffer)
 		primaryBuffer->EndRenderPass();
 		primaryBuffer->EndDebugMarker();
 
-		primaryBuffer->Translate(m_LightPassTarget->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+		primaryBuffer->Transition(m_LightPassTarget->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 	}
 
 	return true;
@@ -1405,7 +1405,7 @@ bool KVoxilzer::UpdateOctreRayTestResult(IKCommandBufferPtr primaryBuffer)
 		primaryBuffer->EndRenderPass();
 		primaryBuffer->EndDebugMarker();
 
-		primaryBuffer->Translate(m_OctreeRayTestTarget->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+		primaryBuffer->Transition(m_OctreeRayTestTarget->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 	}
 	return true;
 }
@@ -1426,7 +1426,7 @@ bool KVoxilzer::UpdateFrame(IKCommandBufferPtr primaryBuffer)
 		primaryBuffer->SetViewport(m_LightPassRenderPass->GetViewPort());
 		primaryBuffer->EndRenderPass();
 		primaryBuffer->EndDebugMarker();
-		primaryBuffer->Translate(m_LightPassTarget->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+		primaryBuffer->Transition(m_LightPassTarget->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 	}
 	return result;
 }

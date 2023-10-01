@@ -179,25 +179,6 @@ bool KRenderer::Render(uint32_t chainImageIndex)
 
 		KRenderGlobal::CascadedShadowMap.UpdateCasters(multithreadRenderContext);
 	}
-	
-	KRenderGlobal::RayTraceManager.Execute(commandBuffer);
-
-	if (KRenderGlobal::UsingGIMethod == KRenderGlobal::SVO_GI)
-	{
-		KRenderGlobal::Voxilzer.UpdateVoxel(commandBuffer);
-		KRenderGlobal::Voxilzer.UpdateFrame(commandBuffer);
-	}
-
-	if (KRenderGlobal::UsingGIMethod == KRenderGlobal::CLIPMAP_GI)
-	{
-		KRenderGlobal::ClipmapVoxilzer.UpdateVoxel(commandBuffer);
-		KRenderGlobal::ClipmapVoxilzer.UpdateFrame(commandBuffer);
-	}
-
-	KRenderGlobal::HiZOcclusion.Execute(commandBuffer, cullRes);
-
-	// TODO
-	KRenderGlobal::VirtualGeometryManager.Execute(commandBuffer);
 
 	commandBuffer->End();
 	m_Shadow.queue->Submit(commandBuffer, {}, {}, nullptr);
@@ -206,6 +187,24 @@ bool KRenderer::Render(uint32_t chainImageIndex)
 	commandBuffer = m_PreGraphics.pool->Request(CBL_PRIMARY);
 	commandBuffer->BeginPrimary();
 	{
+		KRenderGlobal::RayTraceManager.Execute(commandBuffer);
+
+		if (KRenderGlobal::UsingGIMethod == KRenderGlobal::SVO_GI)
+		{
+			KRenderGlobal::Voxilzer.UpdateVoxel(commandBuffer);
+			KRenderGlobal::Voxilzer.UpdateFrame(commandBuffer);
+		}
+
+		if (KRenderGlobal::UsingGIMethod == KRenderGlobal::CLIPMAP_GI)
+		{
+			KRenderGlobal::ClipmapVoxilzer.UpdateVoxel(commandBuffer);
+			KRenderGlobal::ClipmapVoxilzer.UpdateFrame(commandBuffer);
+		}
+
+		KRenderGlobal::HiZOcclusion.Execute(commandBuffer, cullRes);
+
+		KRenderGlobal::VirtualGeometryManager.Execute(commandBuffer);
+
 		KMultithreadingRenderContext multithreadRenderContext;
 		multithreadRenderContext.primaryBuffer = commandBuffer;
 		multithreadRenderContext.threadCommandPools = m_PreGraphics.threadPools;
@@ -215,8 +214,8 @@ bool KRenderer::Render(uint32_t chainImageIndex)
 		KRenderGlobal::DeferredRenderer.PrePass(multithreadRenderContext, cullRes);
 		KRenderGlobal::DeferredRenderer.BasePass(multithreadRenderContext, cullRes);
 
-		KRenderGlobal::GBuffer.TranslateColor(commandBuffer, m_PreGraphics.queue, m_PreGraphics.queue, PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
-		KRenderGlobal::GBuffer.TranslateDepthStencil(commandBuffer, m_PreGraphics.queue, m_PreGraphics.queue, PIPELINE_STAGE_LATE_FRAGMENT_TESTS, PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+		KRenderGlobal::GBuffer.TransitionColor(commandBuffer, m_PreGraphics.queue, m_PreGraphics.queue, PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+		KRenderGlobal::GBuffer.TransitionDepthStencil(commandBuffer, m_PreGraphics.queue, m_PreGraphics.queue, PIPELINE_STAGE_LATE_FRAGMENT_TESTS, PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 
 		// KRenderGlobal::FrameGraph.Compile();
 		// KRenderGlobal::FrameGraph.Execute(m_PreGraphics.buffer, chainImageIndex);
@@ -229,9 +228,9 @@ bool KRenderer::Render(uint32_t chainImageIndex)
 
 		if (m_EnableAsyncCompute)
 		{
-			KRenderGlobal::GBuffer.TranslateColor(commandBuffer, m_PreGraphics.queue, m_Compute.queue, PIPELINE_STAGE_COMPUTE_SHADER, PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_GENERAL);
-			KRenderGlobal::GBuffer.TranslateDepthStencil(commandBuffer, m_PreGraphics.queue, m_Compute.queue, PIPELINE_STAGE_COMPUTE_SHADER, PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_GENERAL);
-			KRenderGlobal::GBuffer.TranslateAO(commandBuffer, m_PreGraphics.queue, m_Compute.queue, PIPELINE_STAGE_FRAGMENT_SHADER, PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_GENERAL);
+			KRenderGlobal::GBuffer.TransitionColor(commandBuffer, m_PreGraphics.queue, m_Compute.queue, PIPELINE_STAGE_COMPUTE_SHADER, PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_GENERAL);
+			KRenderGlobal::GBuffer.TransitionDepthStencil(commandBuffer, m_PreGraphics.queue, m_Compute.queue, PIPELINE_STAGE_COMPUTE_SHADER, PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_GENERAL);
+			KRenderGlobal::GBuffer.TransitionAO(commandBuffer, m_PreGraphics.queue, m_Compute.queue, PIPELINE_STAGE_FRAGMENT_SHADER, PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_GENERAL);
 		}
 	}
 	commandBuffer->End();
@@ -241,15 +240,15 @@ bool KRenderer::Render(uint32_t chainImageIndex)
 	commandBuffer = m_Compute.pool->Request(CBL_PRIMARY);
 	commandBuffer->BeginPrimary();
 	{
-		KRenderGlobal::GBuffer.TranslateColor(commandBuffer, m_PreGraphics.queue, m_Compute.queue, PIPELINE_STAGE_COMPUTE_SHADER, PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_GENERAL);
-		KRenderGlobal::GBuffer.TranslateDepthStencil(commandBuffer, m_PreGraphics.queue, m_Compute.queue, PIPELINE_STAGE_COMPUTE_SHADER, PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_GENERAL);
-		KRenderGlobal::GBuffer.TranslateAO(commandBuffer, m_PreGraphics.queue, m_Compute.queue, PIPELINE_STAGE_COMPUTE_SHADER, PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_GENERAL);
+		KRenderGlobal::GBuffer.TransitionColor(commandBuffer, m_PreGraphics.queue, m_Compute.queue, PIPELINE_STAGE_COMPUTE_SHADER, PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_GENERAL);
+		KRenderGlobal::GBuffer.TransitionDepthStencil(commandBuffer, m_PreGraphics.queue, m_Compute.queue, PIPELINE_STAGE_COMPUTE_SHADER, PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_GENERAL);
+		KRenderGlobal::GBuffer.TransitionAO(commandBuffer, m_PreGraphics.queue, m_Compute.queue, PIPELINE_STAGE_COMPUTE_SHADER, PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_GENERAL);
 
 		KRenderGlobal::RTAO.Execute(commandBuffer, m_PreGraphics.queue, m_Compute.queue);
 
-		KRenderGlobal::GBuffer.TranslateAO(commandBuffer, m_Compute.queue, m_PostGraphics.queue, PIPELINE_STAGE_COMPUTE_SHADER, PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_GENERAL, IMAGE_LAYOUT_SHADER_READ_ONLY);
-		KRenderGlobal::GBuffer.TranslateColor(commandBuffer, m_Compute.queue, m_PostGraphics.queue, PIPELINE_STAGE_COMPUTE_SHADER, PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_GENERAL, IMAGE_LAYOUT_SHADER_READ_ONLY);
-		KRenderGlobal::GBuffer.TranslateDepthStencil(commandBuffer, m_Compute.queue, m_PostGraphics.queue, PIPELINE_STAGE_COMPUTE_SHADER, PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_GENERAL, IMAGE_LAYOUT_SHADER_READ_ONLY);
+		KRenderGlobal::GBuffer.TransitionAO(commandBuffer, m_Compute.queue, m_PostGraphics.queue, PIPELINE_STAGE_COMPUTE_SHADER, PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_GENERAL, IMAGE_LAYOUT_SHADER_READ_ONLY);
+		KRenderGlobal::GBuffer.TransitionColor(commandBuffer, m_Compute.queue, m_PostGraphics.queue, PIPELINE_STAGE_COMPUTE_SHADER, PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_GENERAL, IMAGE_LAYOUT_SHADER_READ_ONLY);
+		KRenderGlobal::GBuffer.TransitionDepthStencil(commandBuffer, m_Compute.queue, m_PostGraphics.queue, PIPELINE_STAGE_COMPUTE_SHADER, PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_GENERAL, IMAGE_LAYOUT_SHADER_READ_ONLY);
 	}
 
 	commandBuffer->End();
@@ -263,9 +262,9 @@ bool KRenderer::Render(uint32_t chainImageIndex)
 
 		if (m_EnableAsyncCompute)
 		{
-			KRenderGlobal::GBuffer.TranslateAO(commandBuffer, m_Compute.queue, m_PostGraphics.queue, PIPELINE_STAGE_COMPUTE_SHADER, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_GENERAL, IMAGE_LAYOUT_SHADER_READ_ONLY);
-			KRenderGlobal::GBuffer.TranslateColor(commandBuffer, m_Compute.queue, m_PostGraphics.queue, PIPELINE_STAGE_COMPUTE_SHADER, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_GENERAL, IMAGE_LAYOUT_SHADER_READ_ONLY);
-			KRenderGlobal::GBuffer.TranslateDepthStencil(commandBuffer, m_Compute.queue, m_PostGraphics.queue, PIPELINE_STAGE_COMPUTE_SHADER, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_GENERAL, IMAGE_LAYOUT_SHADER_READ_ONLY);
+			KRenderGlobal::GBuffer.TransitionAO(commandBuffer, m_Compute.queue, m_PostGraphics.queue, PIPELINE_STAGE_COMPUTE_SHADER, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_GENERAL, IMAGE_LAYOUT_SHADER_READ_ONLY);
+			KRenderGlobal::GBuffer.TransitionColor(commandBuffer, m_Compute.queue, m_PostGraphics.queue, PIPELINE_STAGE_COMPUTE_SHADER, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_GENERAL, IMAGE_LAYOUT_SHADER_READ_ONLY);
+			KRenderGlobal::GBuffer.TransitionDepthStencil(commandBuffer, m_Compute.queue, m_PostGraphics.queue, PIPELINE_STAGE_COMPUTE_SHADER, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_GENERAL, IMAGE_LAYOUT_SHADER_READ_ONLY);
 		}
 
 		KRenderGlobal::HiZBuffer.Construct(commandBuffer);
@@ -275,8 +274,8 @@ bool KRenderer::Render(uint32_t chainImageIndex)
 		KRenderGlobal::DeferredRenderer.DeferredLighting(commandBuffer);
 
 		// 转换 GBufferRT 到 Attachment
-		KRenderGlobal::GBuffer.TranslateColor(commandBuffer, m_PostGraphics.queue, m_PostGraphics.queue, PIPELINE_STAGE_FRAGMENT_SHADER, PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_COLOR_ATTACHMENT);
-		KRenderGlobal::GBuffer.TranslateDepthStencil(commandBuffer, m_PostGraphics.queue, m_PostGraphics.queue, PIPELINE_STAGE_FRAGMENT_SHADER, PIPELINE_STAGE_EARLY_FRAGMENT_TESTS, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT);
+		KRenderGlobal::GBuffer.TransitionColor(commandBuffer, m_PostGraphics.queue, m_PostGraphics.queue, PIPELINE_STAGE_FRAGMENT_SHADER, PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_COLOR_ATTACHMENT);
+		KRenderGlobal::GBuffer.TransitionDepthStencil(commandBuffer, m_PostGraphics.queue, m_PostGraphics.queue, PIPELINE_STAGE_FRAGMENT_SHADER, PIPELINE_STAGE_EARLY_FRAGMENT_TESTS, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT);
 
 		KMultithreadingRenderContext multithreadRenderContext;
 		multithreadRenderContext.primaryBuffer = commandBuffer;
@@ -300,13 +299,13 @@ bool KRenderer::Render(uint32_t chainImageIndex)
 			IKRenderTargetPtr offscreenTarget = ((KPostProcessPass*)KRenderGlobal::PostProcessManager.GetStartPointPass().get())->GetRenderTarget();
 			IKRenderPassPtr renderPass = ((KPostProcessPass*)KRenderGlobal::PostProcessManager.GetStartPointPass().get())->GetRenderPass();
 
-			commandBuffer->Translate(KRenderGlobal::DeferredRenderer.GetFinal()->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+			commandBuffer->Transition(KRenderGlobal::DeferredRenderer.GetFinal()->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 
 			KRenderGlobal::DeferredRenderer.DrawFinalResult(renderPass, commandBuffer);
 
-			commandBuffer->Translate(offscreenTarget->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+			commandBuffer->Transition(offscreenTarget->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 
-			commandBuffer->Translate(KRenderGlobal::DeferredRenderer.GetFinal()->GetFrameBuffer(), PIPELINE_STAGE_FRAGMENT_SHADER, PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_COLOR_ATTACHMENT);
+			commandBuffer->Transition(KRenderGlobal::DeferredRenderer.GetFinal()->GetFrameBuffer(), PIPELINE_STAGE_FRAGMENT_SHADER, PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_COLOR_ATTACHMENT);
 		}
 
 		KRenderGlobal::PostProcessManager.Execute(chainImageIndex, m_SwapChain, m_UIOverlay, commandBuffer);
