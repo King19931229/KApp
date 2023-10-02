@@ -1,6 +1,10 @@
 #include "vg_default_binding.h"
 #include "vg_define.h"
 
+#ifndef INSTANCE_CULL_MODE
+#	define INSTANCE_CULL_MODE INSTANCE_CULL_NONE
+#endif
+
 layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 void main()
 {
@@ -11,4 +15,11 @@ void main()
 	QueueState[0].clusterWriteOffset = 0;
 	QueueState[0].visibleClusterNum = 0;
 	QueueState[0].binningWriteOffset = 0;
+
+#if INSTANCE_CULL_MODE == INSTANCE_CULL_MAIN
+	PostCullIndirectArgs[0] = 0;
+	PostCullIndirectArgs[1] = 0;
+	PostCullIndirectArgs[2] = 0;
+	PostCullIndirectArgs[3] = 0;
+#endif
 }

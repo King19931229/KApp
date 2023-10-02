@@ -44,7 +44,8 @@ struct IKVirtualGeometryScene
 	virtual ~IKVirtualGeometryScene() {}
 	virtual bool Init(IKRenderScene* scene, const KCamera* camera) = 0;
 	virtual bool UnInit() = 0;
-	virtual bool Execute(IKCommandBufferPtr primaryBuffer) = 0;
+	virtual bool ExecuteMain(IKCommandBufferPtr primaryBuffer) = 0;
+	virtual bool ExecutePost(IKCommandBufferPtr primaryBuffer) = 0;
 	virtual bool BasePass(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer) = 0;
 	virtual bool DebugRender(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer) = 0;
 };

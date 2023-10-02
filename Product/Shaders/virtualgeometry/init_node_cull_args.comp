@@ -8,7 +8,7 @@ void main()
 
 	IndirectArgs[0] = (numNode * BVH_MAX_NODES + VG_GROUP_SIZE - 1) / VG_GROUP_SIZE;
 	IndirectArgs[1] = 1;
-	IndirectArgs[1] = 1;
+	IndirectArgs[2] = 1;
 
 	QueueState[0].nodeReadOffset = QueueState[0].nodePrevWriteOffset;
 	memoryBarrier(); barrier();

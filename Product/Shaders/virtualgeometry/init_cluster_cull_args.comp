@@ -8,5 +8,5 @@ void main()
 
 	IndirectArgs[0] = (numCluster + VG_GROUP_SIZE - 1) / VG_GROUP_SIZE;
 	IndirectArgs[1] = 1;
-	IndirectArgs[1] = 1;
+	IndirectArgs[2] = 1;
 }

@@ -451,11 +451,20 @@ bool KVirtualGeometryManager::RemoveVirtualGeometryScene(IKVirtualGeometrySceneP
 	return true;
 }
 
-bool KVirtualGeometryManager::Execute(IKCommandBufferPtr primaryBuffer)
+bool KVirtualGeometryManager::ExecuteMain(IKCommandBufferPtr primaryBuffer)
 {
 	for (IKVirtualGeometryScenePtr scene : m_Scenes)
 	{
-		scene->Execute(primaryBuffer);
+		scene->ExecuteMain(primaryBuffer);
+	}
+	return true;
+}
+
+bool KVirtualGeometryManager::ExecutePost(IKCommandBufferPtr primaryBuffer)
+{
+	for (IKVirtualGeometryScenePtr scene : m_Scenes)
+	{
+		scene->ExecutePost(primaryBuffer);
 	}
 	return true;
 }

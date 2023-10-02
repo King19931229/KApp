@@ -47,7 +47,8 @@ public:
 	void RemoveCallFunc(DeferredRenderStage stage, RenderPassCallFuncType* func);
 	
 	void PrePass(KMultithreadingRenderContext& renderContext, const std::vector<IKEntity*>& cullRes);
-	void BasePass(KMultithreadingRenderContext& renderContext, const std::vector<IKEntity*>& cullRes);
+	void MainBasePass(KMultithreadingRenderContext& renderContext, const std::vector<IKEntity*>& cullRes);
+	void PostBasePass(KMultithreadingRenderContext& renderContext);
 	void DeferredLighting(IKCommandBufferPtr primaryBuffer);
 	void ForwardOpaque(KMultithreadingRenderContext& renderContext, const std::vector<IKEntity*>& cullRes);
 	void ForwardTransprant(IKCommandBufferPtr primaryBuffer, const std::vector<IKEntity*>& cullRes);

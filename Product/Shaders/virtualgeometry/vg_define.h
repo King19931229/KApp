@@ -16,6 +16,10 @@
 #define INDIRECT_MESH_ARGS_OFFSET 0
 #define USE_INSTANCE_CENTER_CULL 1
 
+#define INSTANCE_CULL_NONE 0
+#define INSTANCE_CULL_MAIN 1
+#define INSTANCE_CULL_POST 2
+
 // Match with KVirtualGeometryInstance
 struct InstanceStruct
 {
@@ -221,6 +225,14 @@ layout (std430, binding = BINDING_BINNING_DATA) coherent buffer BinningDataBuffe
 
 layout (std430, binding = BINDING_BINNING_HEADER) coherent buffer BinningHeaderBuffer {
 	uvec4 BinningHeader[];
+};
+
+layout (std430, binding = BINDING_MAIN_CULL_RESULT) coherent buffer MainCullResultBuffer {
+	uint MainCullResult[];
+};
+
+layout (std430, binding = BINDING_POST_CULL_INDIRECT_ARGS) coherent buffer PostCullIndirectArgsBuffer {
+	uint PostCullIndirectArgs[];
 };
 
 uvec4 PackCandidateNode(CandidateNode node)

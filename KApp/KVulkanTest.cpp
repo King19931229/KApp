@@ -39,7 +39,7 @@ void InitQEM(IKEnginePtr engine)
 		{ "Models/glTF-Sample-Models/2.0/SciFiHelmet/glTF/SciFiHelmet.gltf", ".gltf", 100.0f }
 	};
 
-#if 1
+#if 0
 	static IKEntityPtr entity = nullptr;
 
 	static KMeshRawData userData;
@@ -378,7 +378,7 @@ void InitQEM(IKEnginePtr engine)
 			{
 				for (uint32_t j = 0; j < 30; ++j)
 				{
-					for (uint32_t k = 0; k < 1; ++k)
+					for (uint32_t k = 0; k < 30; ++k)
 					{
 						IKEntityPtr entity = KECS::EntityManager->CreateEntity();
 						IKComponentBase* component = nullptr;
@@ -402,7 +402,6 @@ void InitQEM(IKEnginePtr engine)
 				}
 			}
 		}
-
 		for (size_t i = 0; i < entites.size() / 2; ++i)
 		{
 			scene->Remove(entites[i].get());

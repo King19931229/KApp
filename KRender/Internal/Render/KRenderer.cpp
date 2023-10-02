@@ -203,16 +203,21 @@ bool KRenderer::Render(uint32_t chainImageIndex)
 
 		KRenderGlobal::HiZOcclusion.Execute(commandBuffer, cullRes);
 
-		KRenderGlobal::VirtualGeometryManager.Execute(commandBuffer);
-
 		KMultithreadingRenderContext multithreadRenderContext;
 		multithreadRenderContext.primaryBuffer = commandBuffer;
 		multithreadRenderContext.threadCommandPools = m_PreGraphics.threadPools;
 		multithreadRenderContext.enableMultithreading = m_EnableMultithreadRender;
 		multithreadRenderContext.threadPool = &m_ThreadPool;
 
+		KRenderGlobal::VirtualGeometryManager.ExecuteMain(commandBuffer);
 		KRenderGlobal::DeferredRenderer.PrePass(multithreadRenderContext, cullRes);
-		KRenderGlobal::DeferredRenderer.BasePass(multithreadRenderContext, cullRes);
+		KRenderGlobal::DeferredRenderer.MainBasePass(multithreadRenderContext, cullRes);
+
+		KRenderGlobal::GBuffer.TransitionDepthStencil(commandBuffer, m_PreGraphics.queue, m_PreGraphics.queue, PIPELINE_STAGE_LATE_FRAGMENT_TESTS, PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+		KRenderGlobal::HiZBuffer.Construct(commandBuffer);
+		KRenderGlobal::VirtualGeometryManager.ExecutePost(commandBuffer);
+		KRenderGlobal::GBuffer.TransitionDepthStencil(commandBuffer, m_PreGraphics.queue, m_PreGraphics.queue, PIPELINE_STAGE_COMPUTE_SHADER, PIPELINE_STAGE_EARLY_FRAGMENT_TESTS, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT);
+		KRenderGlobal::DeferredRenderer.PostBasePass(multithreadRenderContext);
 
 		KRenderGlobal::GBuffer.TransitionColor(commandBuffer, m_PreGraphics.queue, m_PreGraphics.queue, PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 		KRenderGlobal::GBuffer.TransitionDepthStencil(commandBuffer, m_PreGraphics.queue, m_PreGraphics.queue, PIPELINE_STAGE_LATE_FRAGMENT_TESTS, PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
@@ -417,7 +422,7 @@ bool KRenderer::Init(const KRendererInitContext& initContext)
 		KRenderGlobal::DepthOfField.DebugRender(renderPass, primaryBuffer);
 	};
 
-	KRenderGlobal::DeferredRenderer.AddCallFunc(DRS_STAGE_BASE_PASS, &m_BasePassCallFunc);
+	KRenderGlobal::DeferredRenderer.AddCallFunc(DRS_STAGE_MAIN_BASE_PASS, &m_BasePassCallFunc);
 	KRenderGlobal::DeferredRenderer.AddCallFunc(DRS_STATE_DEBUG_OBJECT, &m_DebugCallFunc);
 	KRenderGlobal::DeferredRenderer.AddCallFunc(DRS_STATE_FOREGROUND, &m_ForegroundCallFunc);
 
@@ -476,7 +481,7 @@ bool KRenderer::UnInit()
 {
 	KRenderGlobal::RenderDevice->Wait();
 
-	KRenderGlobal::DeferredRenderer.RemoveCallFunc(DRS_STAGE_BASE_PASS, &m_BasePassCallFunc);
+	KRenderGlobal::DeferredRenderer.RemoveCallFunc(DRS_STAGE_MAIN_BASE_PASS, &m_BasePassCallFunc);
 	KRenderGlobal::DeferredRenderer.RemoveCallFunc(DRS_STATE_DEBUG_OBJECT, &m_DebugCallFunc);
 	KRenderGlobal::DeferredRenderer.RemoveCallFunc(DRS_STATE_FOREGROUND, &m_ForegroundCallFunc);
 

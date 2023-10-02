@@ -28,20 +28,29 @@ protected:
 		BINDING_CANDIDATE_NODE_BATCH,
 		BINDING_CANDIDATE_CLUSTER_BATCH,
 		BINDING_SELECTED_CLUSTER_BATCH,
+
 		BINDING_INDIRECT_ARGS,
+
 		BINDING_EXTRA_DEBUG_INFO,
+
 		BINDING_INDIRECT_DRAW_ARGS,
 		BINDING_INDIRECT_MESH_ARGS,
+
 		BINDING_CLUSTER_VERTEX_BUFFER,
 		BINDING_CLUSTER_INDEX_BUFFER,
 		BINDING_CLUSTER_MATERIAL_BUFFER,
 		BINDING_BINNING_DATA,
 		BINDING_BINNING_HEADER,
-		BINDING_MATERIAL_DATA
+		BINDING_MATERIAL_DATA,
+		BINDING_HIZ_BUFFER,
+		BINDING_MAIN_CULL_RESULT,
+		BINDING_POST_CULL_INDIRECT_ARGS
 	};
 
 	static constexpr char* VIRTUAL_GEOMETRY_SCENE_GLOBAL_DATA = "VirtualGeometrySceneGlobalData";
 	static constexpr char* VIRTUAL_GEOMETRY_SCENE_INSTANCE_DATA = "VirtualGeometrySceneInstanceData";
+	static constexpr char* VIRTUAL_GEOMETRY_SCENE_MAIN_CULL_RESULT = "VirtualGeometrySceneMainCullResult";
+	static constexpr char* VIRTUAL_GEOMETRY_SCENE_POST_CULL_INDIRECT_ARGS = "VirtualGeometryScenePostCullIndirectArgs";
 	static constexpr char* VIRTUAL_GEOMETRY_SCENE_QUEUE_STATE = "VirtualGeometrySceneQueueState";
 	static constexpr char* VIRTUAL_GEOMETRY_SCENE_CANDIDATE_NODE = "VirtualGeometrySceneCandidateNode";
 	static constexpr char* VIRTUAL_GEOMETRY_SCENE_CANDIDATE_CLUSTER = "VirtualGeometrySceneCandidateCluster";
@@ -77,6 +86,14 @@ protected:
 		BINNIING_PIPELINE_COUNT
 	};
 
+	enum InstanceCull
+	{
+		INSTANCE_CULL_NONE,
+		INSTANCE_CULL_MAIN,
+		INSTANCE_CULL_POST,
+		INSTANCE_CULL_COUNT
+	};
+
 	KShaderRef m_BasePassVertexShader;
 	KShaderRef m_BasePassMeshShader;
 
@@ -90,16 +107,23 @@ protected:
 	IKStorageBufferPtr m_QueueStateBuffer;
 	IKStorageBufferPtr m_CandidateNodeBuffer;
 	IKStorageBufferPtr m_CandidateClusterBuffer;
+
 	IKStorageBufferPtr m_IndirectAgrsBuffer;
+
 	IKStorageBufferPtr m_SelectedClusterBuffer;
 	IKStorageBufferPtr m_ExtraDebugBuffer;
+
 	IKStorageBufferPtr m_IndirectDrawBuffer;
 	IKStorageBufferPtr m_IndirectMeshBuffer;
+
 	IKStorageBufferPtr m_BinningDataBuffer;
 	IKStorageBufferPtr m_BinningHeaderBuffer;
+	IKStorageBufferPtr m_MainCullResultBuffer;
 
-	IKComputePipelinePtr m_InitQueueStatePipeline;
-	IKComputePipelinePtr m_InstanceCullPipeline;
+	IKStorageBufferPtr m_PostCullIndirectArgsBuffer;
+
+	IKComputePipelinePtr m_InitQueueStatePipeline[INSTANCE_CULL_COUNT];
+	IKComputePipelinePtr m_InstanceCullPipeline[INSTANCE_CULL_COUNT];
 	IKComputePipelinePtr m_InitNodeCullArgsPipeline;
 	IKComputePipelinePtr m_InitClusterCullArgsPipeline;
 	IKComputePipelinePtr m_NodeCullPipeline;
@@ -129,6 +153,8 @@ protected:
 	bool AddInstance(IKEntity* entity, const glm::mat4& transform, KVirtualGeometryResourceRef resource);
 	bool TransformInstance(IKEntity* entity, const glm::mat4& transform);
 	bool RemoveInstance(IKEntity* entity);
+
+	bool Execute(IKCommandBufferPtr primaryBuffer, InstanceCull cullMode);
 public:
 	KVirtualGeometryScene();
 	~KVirtualGeometryScene();
@@ -136,7 +162,8 @@ public:
 	bool Init(IKRenderScene* scene, const KCamera* camera) override;
 	bool UnInit() override;
 
-	bool Execute(IKCommandBufferPtr primaryBuffer) override;
+	bool ExecuteMain(IKCommandBufferPtr primaryBuffer) override;
+	bool ExecutePost(IKCommandBufferPtr primaryBuffer) override;
 
 	bool BasePass(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer) override;
 	bool DebugRender(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer) override;

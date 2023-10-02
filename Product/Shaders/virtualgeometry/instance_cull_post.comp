@@ -1,0 +1,2 @@
+#define INSTANCE_CULL_MODE INSTANCE_CULL_POST
+#include "instance_cull.comp"

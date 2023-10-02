@@ -70,8 +70,8 @@ bool KHiZOcclusion::Resize()
 bool KHiZOcclusion::Init()
 {
 	KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "shading/quad.vert", m_QuadVS, false);
-	KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "shading/hiz_occlusion_prepare.frag", m_PrepareCullFS, false);
-	KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "shading/hiz_occlusion_execute.frag", m_ExecuteCullFS, false);
+	KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "hiz/hiz_occlusion_prepare.frag", m_PrepareCullFS, false);
+	KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "hiz/hiz_occlusion_execute.frag", m_ExecuteCullFS, false);
 
 	KSamplerDescription desc;
 	desc.minFilter = FM_NEAREST;

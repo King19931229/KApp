@@ -507,7 +507,7 @@ bool KMaterialSubMesh::GetRenderCommand(RenderStage stage, KRenderCommand& comma
 	{
 		const KVertexData* vertexData = m_SubMesh->m_pVertexData;
 		const KIndexData* indexData = &m_SubMesh->m_IndexData;
-		const KMeshData* meshData = &m_SubMesh->m_MeshData;
+		// const KMeshData* meshData = &m_SubMesh->m_MeshData;
 		const IKMaterialTextureBinding* textureBinding = m_Material ? m_Material->GetTextureBinding().get() : nullptr;
 		const bool& indexDraw = m_SubMesh->m_IndexDraw;
 
@@ -516,7 +516,7 @@ bool KMaterialSubMesh::GetRenderCommand(RenderStage stage, KRenderCommand& comma
 
 		command.vertexData = vertexData;
 		command.indexData = indexData;
-		command.meshData = meshData;
+		// command.meshData = meshData;
 		command.textureBinding = textureBinding;
 		command.pipeline = pipeline;
 		command.indexDraw = indexDraw;

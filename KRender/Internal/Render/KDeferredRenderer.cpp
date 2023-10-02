@@ -108,17 +108,18 @@ void KDeferredRenderer::RecreateRenderPass(uint32_t width, uint32_t height)
 		IKRenderPassPtr& renderPass = m_RenderPass[idx];
 		EnsureRenderPass(renderPass);
 
-		if (idx == DRS_STAGE_BASE_PASS)
+		if (idx == DRS_STAGE_MAIN_BASE_PASS || idx == DRS_STAGE_POST_BASE_PASS)
 		{
+			LoadOperation loadOp = (idx == DRS_STAGE_MAIN_BASE_PASS) ? LO_CLEAR : LO_LOAD;
 			for (uint32_t gbuffer = GBUFFER_TARGET0; gbuffer < GBUFFER_TARGET_COUNT; ++gbuffer)
 			{
 				renderPass->SetColorAttachment(gbuffer, KRenderGlobal::GBuffer.GetGBufferTarget((GBufferTarget)gbuffer)->GetFrameBuffer());
-				renderPass->SetOpColor(0, LO_CLEAR, SO_STORE);
+				renderPass->SetOpColor(gbuffer, loadOp, SO_STORE);
 				renderPass->SetClearColor(gbuffer, { 0.0f, 0.0f, 0.0f, 0.0f });
 			}
 			renderPass->SetDepthStencilAttachment(KRenderGlobal::GBuffer.GetDepthStencilTarget()->GetFrameBuffer());
 			renderPass->SetClearDepthStencil({ 1.0f, 0 });
-			renderPass->SetOpDepthStencil(LO_CLEAR, SO_STORE, LO_CLEAR, SO_STORE);
+			renderPass->SetOpDepthStencil(loadOp, SO_STORE, loadOp, SO_STORE);
 			ASSERT_RESULT(renderPass->Init());
 		}
 
@@ -342,7 +343,7 @@ void KDeferredRenderer::RecreatePipeline()
 
 void KDeferredRenderer::BuildMaterialSubMeshInstance(DeferredRenderStage renderStage, const std::vector<IKEntity*>& cullRes, std::vector<KMaterialSubMeshInstance>& instances)
 {
-	if (renderStage == DRS_STAGE_BASE_PASS)
+	if (renderStage == DRS_STAGE_MAIN_BASE_PASS)
 	{
 		KRenderUtil::CalculateInstancesByMaterial(cullRes, instances);
 	}
@@ -711,9 +712,14 @@ void KDeferredRenderer::PrePass(KMultithreadingRenderContext& renderContext, con
 {
 }
 
-void KDeferredRenderer::BasePass(KMultithreadingRenderContext& renderContext, const std::vector<IKEntity*>& cullRes)
+void KDeferredRenderer::MainBasePass(KMultithreadingRenderContext& renderContext, const std::vector<IKEntity*>& cullRes)
 {
-	BuildRenderCommand(renderContext, DRS_STAGE_BASE_PASS, cullRes);
+	BuildRenderCommand(renderContext, DRS_STAGE_MAIN_BASE_PASS, cullRes);
+}
+
+void KDeferredRenderer::PostBasePass(KMultithreadingRenderContext& renderContext)
+{
+	BuildRenderCommand(renderContext, DRS_STAGE_POST_BASE_PASS, {});
 }
 
 void KDeferredRenderer::ForwardOpaque(KMultithreadingRenderContext& renderContext, const std::vector<IKEntity*>& cullRes)

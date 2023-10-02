@@ -118,17 +118,6 @@ void ProcessNodeBatch(uint groupIndex, uint batchStart, uint batchSize)
 			candidateCluster.clusterIndex = clusterStart + i;
 			StoreCandidateCluster(clusterWriteOffset + i, candidateCluster);
 		}
-
-		// if (subgroupElect())
-		// {
-		// 	clusterNum = 2048;
-		// }
-		// clusterNum = subgroupBroadcastFirst(clusterNum);
-
-		// ExtraDebugInfo[clusterWriteOffset][0] = gl_SubgroupInvocationID;
-		// ExtraDebugInfo[clusterWriteOffset][1] = int(subgroupElect());
-		// ExtraDebugInfo[clusterWriteOffset][2] = clusterNum;
-		// ExtraDebugInfo[clusterWriteOffset][3] = subgroupExclusiveAdd(clusterNum);
 	}
 }
 

@@ -9,8 +9,6 @@
 #	define CLIP_NEAR_Z -1
 #endif
 
-#define SUPPORT_GATHER 0
-
 struct FrustumCullData
 {
 	vec3	rectMin;

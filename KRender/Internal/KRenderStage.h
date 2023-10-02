@@ -40,7 +40,8 @@ enum RenderStage
 enum DeferredRenderStage
 {
 	DRS_STAGE_PRE_PASS,
-	DRS_STAGE_BASE_PASS,
+	DRS_STAGE_MAIN_BASE_PASS,
+	DRS_STAGE_POST_BASE_PASS,
 
 	DRS_STAGE_DEFERRED_LIGHTING,
 	DRS_STAGE_FORWARD_OPAQUE,
@@ -65,7 +66,8 @@ struct KDeferredRenderStageDescription
 constexpr KDeferredRenderStageDescription GDeferredRenderStageDescription[DRS_STAGE_COUNT] =
 {
 	{DRS_STAGE_PRE_PASS, RENDER_STAGE_PRE_Z, RENDER_STAGE_PRE_Z_INSTANCE, "PrePass"},
-	{DRS_STAGE_BASE_PASS, RENDER_STAGE_BASEPASS, RENDER_STAGE_BASEPASS_INSTANCE, "BasePass"},
+	{DRS_STAGE_MAIN_BASE_PASS, RENDER_STAGE_BASEPASS, RENDER_STAGE_BASEPASS_INSTANCE, "MainBasePass"},
+	{DRS_STAGE_POST_BASE_PASS, RENDER_STAGE_BASEPASS, RENDER_STAGE_BASEPASS_INSTANCE, "PostBasePass" },
 	{DRS_STAGE_DEFERRED_LIGHTING, RENDER_STAGE_UNKNOWN, RENDER_STAGE_UNKNOWN, "LightingPass"},
 	{DRS_STAGE_FORWARD_OPAQUE, RENDER_STAGE_OPAQUE, RENDER_STAGE_UNKNOWN, "ForwardOpaquePass"},
 	{DRS_STAGE_FORWARD_TRANSPRANT, RENDER_STAGE_TRANSPRANT, RENDER_STAGE_UNKNOWN, "ForwardTransprantPass"},
@@ -154,7 +156,8 @@ constexpr DeferredRenderDebugDescription GDeferredRenderDebugDescription[DRD_COU
 };
 
 static_assert(GDeferredRenderStageDescription[DRS_STAGE_PRE_PASS].stage == DRS_STAGE_PRE_PASS, "check");
-static_assert(GDeferredRenderStageDescription[DRS_STAGE_BASE_PASS].stage == DRS_STAGE_BASE_PASS, "check");
+static_assert(GDeferredRenderStageDescription[DRS_STAGE_MAIN_BASE_PASS].stage == DRS_STAGE_MAIN_BASE_PASS, "check");
+static_assert(GDeferredRenderStageDescription[DRS_STAGE_POST_BASE_PASS].stage == DRS_STAGE_POST_BASE_PASS, "check");
 static_assert(GDeferredRenderStageDescription[DRS_STAGE_DEFERRED_LIGHTING].stage == DRS_STAGE_DEFERRED_LIGHTING, "check");
 static_assert(GDeferredRenderStageDescription[DRS_STAGE_FORWARD_TRANSPRANT].stage == DRS_STAGE_FORWARD_TRANSPRANT, "check");
 static_assert(GDeferredRenderStageDescription[DRS_STAGE_FORWARD_OPAQUE].stage == DRS_STAGE_FORWARD_OPAQUE, "check");

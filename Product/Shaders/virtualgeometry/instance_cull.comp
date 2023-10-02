@@ -3,10 +3,21 @@
 #include "culling.h"
 #include "wave.h"
 
+#ifndef INSTANCE_CULL_MODE
+#	define INSTANCE_CULL_MODE INSTANCE_CULL_NONE
+#else
+layout(binding = BINDING_HIZ_BUFFER) uniform sampler2D hiZTex;
+#include "hiz/hiz_culling.h"
+#endif
+
 layout(local_size_x = VG_GROUP_SIZE, local_size_y = 1, local_size_z = 1) in;
 void main()
 {
+#if INSTANCE_CULL_MODE != INSTANCE_CULL_POST
 	uint instanceId = gl_GlobalInvocationID.x;
+#else
+	uint instanceId = MainCullResult[gl_GlobalInvocationID.x];
+#endif
 
 	if (instanceId < numInstance)
 	{
@@ -18,6 +29,22 @@ void main()
 
 		FrustumCullData cullData = BoxCullFrustumGeneral(boundCenter.xyz, boundHalfExtend.xyz, localToWorld, worldToClip, true, false);
 
+#if INSTANCE_CULL_MODE == INSTANCE_CULL_MAIN || INSTANCE_CULL_MODE == INSTANCE_CULL_POST
+		if (cullData.bIsVisible)
+		{
+			ivec2 hzbSize = textureSize(hiZTex, 0);
+			ScreenRect rect = GetScreenRect(ivec4(0, 0, hzbSize * 2), cullData, 4);
+			cullData.bIsVisible = IsVisibleHZB(rect, hzbSize, true);
+		}
+#if INSTANCE_CULL_MODE == INSTANCE_CULL_MAIN
+		else
+		{
+			uint offset = atomicAdd(PostCullIndirectArgs[3], 1);
+			MainCullResult[offset] = instanceId;
+			PostCullIndirectArgs[0] = atomicMax(PostCullIndirectArgs[0], (offset + VG_GROUP_SIZE - 1) / VG_GROUP_SIZE);
+		}
+#endif
+#endif
 		if (cullData.bIsVisible)
 		{
 			uint nodeWriteOffset = 0;
