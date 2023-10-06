@@ -145,7 +145,7 @@ uniform GlobalData
 };
 
 // Match with KVirtualGeometryMaterial
-layout (binding = BINDING_MATEIRAL_DATA)
+layout (binding = BINDING_MATERIAL_DATA)
 uniform MaterialData_DYN_UNIFORM
 {
  	uvec4 misc3;

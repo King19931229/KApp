@@ -1,40 +1,6 @@
 #ifndef _RTAO_DEFINE_H_
 #define _RTAO_DEFINE_H_
 
-#define BINDING_GBUFFER_RT0 0
-#define BINDING_GBUFFER_RT1 1
-
-#define BINDING_AS 2
-#define BINDING_CAMERA 3
-#define BINDING_UNIFORM 4
-
-#define BINDING_LOCAL_MEAN_VARIANCE_INPUT 5
-#define BINDING_LOCAL_MEAN_VARIANCE_OUTPUT 6
-
-#define BINDING_PREV_AO 7
-#define BINDING_CUR_AO 8
-
-#define BINDING_PREV_HITDISTANCE 9
-#define BINDING_CUR_HITDISTANCE 10
-
-#define BINDING_PREV_NORMAL_DEPTH 11
-#define BINDING_CUR_NORMAL_DEPTH 12
-
-#define BINDING_PREV_SQARED_MEAN 13
-#define BINDING_CUR_SQARED_MEAN 14
-
-#define BINDING_PREV_TSPP 15
-#define BINDING_CUR_TSPP 16
-
-#define BINDING_REPROJECTED 17
-
-#define BINDING_VARIANCE 18
-#define BINDING_BLUR_STRENGTH 19
-
-#define BINDING_ATROUS_AO 20
-
-#define BINDING_COMPOSED 21
-
 #include "sampling.h"
 
 vec4 GetNormalWeights(in vec3 normal, in vec3 sampleNormal[4], float sigma, float sigmaExponent)

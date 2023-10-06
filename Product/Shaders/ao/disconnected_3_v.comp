@@ -1,2 +1,0 @@
-#define GAUSSIAN_KERNEL_7X7
-#include "disconnected.comp"

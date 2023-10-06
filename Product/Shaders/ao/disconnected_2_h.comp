@@ -1,3 +1,0 @@
-#define GAUSSIAN_KERNEL_5X5
-#define HORIZONTAL
-#include "disconnected.comp"

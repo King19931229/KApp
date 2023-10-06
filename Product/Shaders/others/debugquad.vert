@@ -9,10 +9,10 @@ out gl_PerVertex
 };
 
 layout(binding = BINDING_OBJECT)
-uniform Clip
+uniform Clip_DYN_UNIFORM
 {
 	mat4 matrix;
-}clip;
+} clip;
 
 void main() 
 {

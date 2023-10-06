@@ -1,4 +1,3 @@
-#include "vg_basepass_binding.h"
 #include "vg_define.h"
 
 #extension GL_EXT_mesh_shader : require
