@@ -3,7 +3,7 @@
 layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 void main()
 {
-	uint numCluster = min(QueueState[0].clusterWriteOffset, MAX_CANDIDATE_CLUSTER) - min(QueueState[0].clusterReadOffset, MAX_CANDIDATE_CLUSTER);
+	uint numCluster = min(QueueState[QUEUE_STATE_INDEX].clusterWriteOffset, MAX_CANDIDATE_CLUSTER) - min(QueueState[QUEUE_STATE_INDEX].clusterReadOffset, MAX_CANDIDATE_CLUSTER);
 
 	IndirectArgs[0] = (numCluster + VG_GROUP_SIZE - 1) / VG_GROUP_SIZE;
 	IndirectArgs[1] = 1;

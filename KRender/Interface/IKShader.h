@@ -204,6 +204,20 @@ struct IKShader : public IKResource
 	virtual bool Reload() = 0;
 };
 
+struct KShaderCompileEnvironment
+{
+	KShaderCompileEnvironment* parentEnv;
+	std::vector<IKShader::MacroPair> macros;
+	std::vector<IKShader::IncludeSource> includes;
+	bool enableSourceDebug;
+
+	KShaderCompileEnvironment()
+	{
+		parentEnv = nullptr;
+		enableSourceDebug = true;
+	}
+};
+
 typedef KReferenceHolder<IKShaderPtr> KShaderRef;
 
 // TODO 弄个KBaseShader

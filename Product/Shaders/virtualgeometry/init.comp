@@ -1,21 +1,20 @@
 #include "vg_define.h"
 
-#ifndef INSTANCE_CULL_MODE
-#	define INSTANCE_CULL_MODE INSTANCE_CULL_NONE
-#endif
-
 layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 void main()
 {
-	QueueState[0].nodeReadOffset = 0;
-	QueueState[0].nodePrevWriteOffset = 0;
-	QueueState[0].nodeWriteOffset = 0;
-	QueueState[0].clusterReadOffset = 0;
-	QueueState[0].clusterWriteOffset = 0;
-	QueueState[0].visibleClusterNum = 0;
-	QueueState[0].binningWriteOffset = 0;
-
 #if INSTANCE_CULL_MODE == INSTANCE_CULL_MAIN
+	for(uint i = 0; i < 2; ++i)
+	{
+		QueueState[i].nodeReadOffset = 0;
+		QueueState[i].nodePrevWriteOffset = 0;
+		QueueState[i].nodeWriteOffset = 0;
+		QueueState[i].clusterReadOffset = 0;
+		QueueState[i].clusterWriteOffset = 0;
+		QueueState[i].visibleClusterNum = 0;
+		QueueState[i].binningWriteOffset = 0;
+	}
+
 	PostCullIndirectArgs[0] = 0;
 	PostCullIndirectArgs[1] = 0;
 	PostCullIndirectArgs[2] = 0;

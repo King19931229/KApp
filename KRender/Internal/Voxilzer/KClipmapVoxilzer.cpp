@@ -1011,7 +1011,7 @@ void KClipmapVoxilzer::SetupVoxelPipeline()
 	m_ClearRegionPipeline->BindUniformBuffer(SHADER_BINDING_VOXEL_CLIPMAP, voxelBuffer);
 	m_ClearRegionPipeline->BindDynamicUniformBuffer(SHADER_BINDING_OBJECT);
 
-	m_ClearRegionPipeline->Init("voxel/clipmap/lighting/clear_region.comp");
+	m_ClearRegionPipeline->Init("voxel/clipmap/lighting/clear_region.comp", KShaderCompileEnvironment());
 
 	IKSamplerPtr csmSampler = KRenderGlobal::CascadedShadowMap.GetSampler();
 
@@ -1023,7 +1023,7 @@ void KClipmapVoxilzer::SetupVoxelPipeline()
 	m_ClearRadiancePipeline->BindUniformBuffer(SHADER_BINDING_VOXEL_CLIPMAP, voxelBuffer);
 	m_ClearRadiancePipeline->BindStorageImage(VOXEL_CLIPMAP_BINDING_RADIANCE, m_VoxelRadiance->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_OUT, 0, false);
 	m_ClearRadiancePipeline->BindDynamicUniformBuffer(SHADER_BINDING_OBJECT);
-	m_ClearRadiancePipeline->Init("voxel/clipmap/lighting/clear_radiance.comp");
+	m_ClearRadiancePipeline->Init("voxel/clipmap/lighting/clear_radiance.comp", KShaderCompileEnvironment());
 
 	// Inject Radiance
 	m_InjectRadiancePipeline->BindUniformBuffer(SHADER_BINDING_GLOBAL, globalBuffer);
@@ -1046,7 +1046,7 @@ void KClipmapVoxilzer::SetupVoxelPipeline()
 	m_InjectRadiancePipeline->BindUniformBuffer(SHADER_BINDING_CAMERA, cameraBuffer);
 	m_InjectRadiancePipeline->BindUniformBuffer(SHADER_BINDING_STATIC_CASCADED_SHADOW, shadowBuffer);
 
-	m_InjectRadiancePipeline->Init("voxel/clipmap/lighting/inject_radiance.comp");
+	m_InjectRadiancePipeline->Init("voxel/clipmap/lighting/inject_radiance.comp", KShaderCompileEnvironment());
 
 	// Inject Propagation
 	m_InjectPropagationPipeline->BindUniformBuffer(SHADER_BINDING_GLOBAL, globalBuffer);
@@ -1060,25 +1060,25 @@ void KClipmapVoxilzer::SetupVoxelPipeline()
 	m_InjectPropagationPipeline->BindSampler(VOXEL_CLIPMAP_BINDING_RADIANCE2, m_VoxelRadiance->GetFrameBuffer(), m_LinearSampler, false);
 	m_InjectPropagationPipeline->BindDynamicUniformBuffer(SHADER_BINDING_OBJECT);
 
-	m_InjectPropagationPipeline->Init("voxel/clipmap/lighting/inject_propagation.comp");
+	m_InjectPropagationPipeline->Init("voxel/clipmap/lighting/inject_propagation.comp", KShaderCompileEnvironment());
 
 	// DownSample Visibility
 	m_DownSampleVisibilityPipeline->BindUniformBuffer(SHADER_BINDING_VOXEL_CLIPMAP, voxelBuffer);
 	m_DownSampleVisibilityPipeline->BindStorageImage(VOXEL_CLIPMAP_BINDING_VISIBILITY, m_VoxelVisibility->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, 0, false);
 	m_DownSampleVisibilityPipeline->BindDynamicUniformBuffer(SHADER_BINDING_OBJECT);
-	m_DownSampleVisibilityPipeline->Init("voxel/clipmap/lighting/downsample_visibility.comp");
+	m_DownSampleVisibilityPipeline->Init("voxel/clipmap/lighting/downsample_visibility.comp", KShaderCompileEnvironment());
 
 	// DownSample Visibility
 	m_DownSampleRadiancePipeline->BindUniformBuffer(SHADER_BINDING_VOXEL_CLIPMAP, voxelBuffer);
 	m_DownSampleRadiancePipeline->BindStorageImage(VOXEL_CLIPMAP_BINDING_RADIANCE, m_VoxelRadiance->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, 0, false);
 	m_DownSampleRadiancePipeline->BindDynamicUniformBuffer(SHADER_BINDING_OBJECT);
-	m_DownSampleRadiancePipeline->Init("voxel/clipmap/lighting/downsample_radiance.comp");
+	m_DownSampleRadiancePipeline->Init("voxel/clipmap/lighting/downsample_radiance.comp", KShaderCompileEnvironment());
 
 	// WrapBorder
 	m_WrapRadianceBorderPipeline->BindUniformBuffer(SHADER_BINDING_VOXEL_CLIPMAP, voxelBuffer);
 	m_WrapRadianceBorderPipeline->BindStorageImage(VOXEL_CLIPMAP_BINDING_RADIANCE, m_VoxelRadiance->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, 0, false);
 	m_WrapRadianceBorderPipeline->BindDynamicUniformBuffer(SHADER_BINDING_OBJECT);
-	m_WrapRadianceBorderPipeline->Init("voxel/clipmap/lighting/wrap_border_radiance.comp");
+	m_WrapRadianceBorderPipeline->Init("voxel/clipmap/lighting/wrap_border_radiance.comp", KShaderCompileEnvironment());
 
 	commandBuffer = KRenderGlobal::CommandPool->Request(CBL_PRIMARY);
 	commandBuffer->BeginPrimary();

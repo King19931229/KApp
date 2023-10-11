@@ -294,8 +294,10 @@
     <ClCompile Include="KRenderMain.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="Interface\KConstantBinding.inl" />
+    <None Include="Interface\KShaderBinding.inl" />
     <None Include="Interface\KVertexSemantic.inl" />
+    <None Include="Internal\Object\KRTAOBinding.inl" />
+    <None Include="Internal\VirtualGeometry\KVirtualGeomertyBinding.inl" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{CF39F7A8-164C-4E82-9CC0-6308AE16C1D6}</ProjectGuid>

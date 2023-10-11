@@ -1,2 +1,0 @@
-#define INSTANCE_CULL_MODE INSTANCE_CULL_MAIN
-#include "init.comp"

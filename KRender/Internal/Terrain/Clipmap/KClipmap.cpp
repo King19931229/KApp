@@ -379,7 +379,7 @@ void KClipmapLevel::InitializePipeline()
 		comp->BindStorageImage(BINDING_IMAGE_IN, updateTexture->GetFrameBuffer(), EF_R32G32_FLOAT, COMPUTE_RESOURCE_IN, 0, true);
 		comp->BindStorageImage(BINDING_IMAGE_OUT, m_TextureTarget->GetFrameBuffer(), EF_R32G32_FLOAT, COMPUTE_RESOURCE_OUT, 0, true);
 		comp->BindDynamicUniformBuffer(SHADER_BINDING_OBJECT);
-		comp->Init("terrain/clip_update.comp");
+		comp->Init("terrain/clip_update.comp", KShaderCompileEnvironment());
 	}
 }
 

@@ -6,7 +6,7 @@ void main()
 	uint globalIndex = gl_GlobalInvocationID.x;
 	if (globalIndex == 0)
 	{
-		IndirectArgs[0] = (QueueState[0].visibleClusterNum + VG_GROUP_SIZE - 1) / VG_GROUP_SIZE;
+		IndirectArgs[0] = (QueueState[QUEUE_STATE_INDEX].visibleClusterNum + VG_GROUP_SIZE - 1) / VG_GROUP_SIZE;
 		IndirectArgs[1] = 1;
 		IndirectArgs[2] = 1;
 	}

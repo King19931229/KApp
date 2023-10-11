@@ -11,40 +11,18 @@ class KVirtualGeometryScene : public IKVirtualGeometryScene
 protected:
 	enum
 	{
+#define VIRTUAL_GEOMETRY_BINDING(SEMANTIC) BINDING_##SEMANTIC,
+#include "KVirtualGeomertyBinding.inl"
+#undef VIRTUAL_GEOMETRY_BINDING
+	};
+
+	enum
+	{
 		MAX_CANDIDATE_NODE = 1024 * 1024,
 		MAX_CANDIDATE_CLUSTERS = 1024 * 1024 * 4,
 
 		VG_GROUP_SIZE = 64,
-		VG_MESH_SHADER_GROUP_SIZE = 128,
-
-		BINDING_GLOBAL_DATA = 0,
-		BINDING_RESOURCE,
-		BINDING_QUEUE_STATE,
-		BINDING_INSTANCE_DATA,
-		BINDING_HIERARCHY,
-		BINDING_CLUSTER_BATCH,
-		BINDING_CLUSTER_STORAGE_VERTEX,
-		BINDING_CLUSTER_STORAGE_INDEX,
-		BINDING_CANDIDATE_NODE_BATCH,
-		BINDING_CANDIDATE_CLUSTER_BATCH,
-		BINDING_SELECTED_CLUSTER_BATCH,
-
-		BINDING_INDIRECT_ARGS,
-
-		BINDING_EXTRA_DEBUG_INFO,
-
-		BINDING_INDIRECT_DRAW_ARGS,
-		BINDING_INDIRECT_MESH_ARGS,
-
-		BINDING_CLUSTER_VERTEX_BUFFER,
-		BINDING_CLUSTER_INDEX_BUFFER,
-		BINDING_CLUSTER_MATERIAL_BUFFER,
-		BINDING_BINNING_DATA,
-		BINDING_BINNING_HEADER,
-		BINDING_MATERIAL_DATA,
-		BINDING_HIZ_BUFFER,
-		BINDING_MAIN_CULL_RESULT,
-		BINDING_POST_CULL_INDIRECT_ARGS
+		VG_MESH_SHADER_GROUP_SIZE = 128
 	};
 
 	static constexpr char* VIRTUAL_GEOMETRY_SCENE_GLOBAL_DATA = "VirtualGeometrySceneGlobalData";
@@ -101,6 +79,9 @@ protected:
 	std::vector<IKPipelinePtr> m_BinningPipelines[BINNIING_PIPELINE_COUNT];
 	std::vector<KShaderRef> m_BasePassFragmentShaders[BINNIING_PIPELINE_COUNT];
 
+	KShaderCompileEnvironment m_DefaultBindingEnv;
+	KShaderCompileEnvironment m_BasepassBindingEnv;
+
 	IKUniformBufferPtr m_GlobalDataBuffer;
 
 	IKStorageBufferPtr m_InstanceDataBuffer;
@@ -124,15 +105,15 @@ protected:
 
 	IKComputePipelinePtr m_InitQueueStatePipeline[INSTANCE_CULL_COUNT];
 	IKComputePipelinePtr m_InstanceCullPipeline[INSTANCE_CULL_COUNT];
-	IKComputePipelinePtr m_InitNodeCullArgsPipeline;
-	IKComputePipelinePtr m_InitClusterCullArgsPipeline;
-	IKComputePipelinePtr m_NodeCullPipeline;
-	IKComputePipelinePtr m_ClusterCullPipeline;
-	IKComputePipelinePtr m_CalcDrawArgsPipeline;
-	IKComputePipelinePtr m_InitBinningPipline;
-	IKComputePipelinePtr m_BinningClassifyPipline;
-	IKComputePipelinePtr m_BinningAllocatePipline;
-	IKComputePipelinePtr m_BinningScatterPipline;
+	IKComputePipelinePtr m_InitNodeCullArgsPipeline[INSTANCE_CULL_COUNT];
+	IKComputePipelinePtr m_InitClusterCullArgsPipeline[INSTANCE_CULL_COUNT];
+	IKComputePipelinePtr m_NodeCullPipeline[INSTANCE_CULL_COUNT];
+	IKComputePipelinePtr m_ClusterCullPipeline[INSTANCE_CULL_COUNT];
+	IKComputePipelinePtr m_CalcDrawArgsPipeline[INSTANCE_CULL_COUNT];
+	IKComputePipelinePtr m_InitBinningPipline[INSTANCE_CULL_COUNT];
+	IKComputePipelinePtr m_BinningClassifyPipline[INSTANCE_CULL_COUNT];
+	IKComputePipelinePtr m_BinningAllocatePipline[INSTANCE_CULL_COUNT];
+	IKComputePipelinePtr m_BinningScatterPipline[INSTANCE_CULL_COUNT];
 
 	glm::mat4 m_PrevViewProj;
 

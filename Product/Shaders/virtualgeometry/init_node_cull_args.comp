@@ -3,13 +3,13 @@
 layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 void main()
 {
-	uint numNode = min(QueueState[0].nodeWriteOffset, MAX_CANDIDATE_NODE) - min(QueueState[0].nodeReadOffset, MAX_CANDIDATE_NODE);
+	uint numNode = min(QueueState[QUEUE_STATE_INDEX].nodeWriteOffset, MAX_CANDIDATE_NODE) - min(QueueState[QUEUE_STATE_INDEX].nodeReadOffset, MAX_CANDIDATE_NODE);
 
 	IndirectArgs[0] = (numNode * BVH_MAX_NODES + VG_GROUP_SIZE - 1) / VG_GROUP_SIZE;
 	IndirectArgs[1] = 1;
 	IndirectArgs[2] = 1;
 
-	QueueState[0].nodeReadOffset = QueueState[0].nodePrevWriteOffset;
+	QueueState[QUEUE_STATE_INDEX].nodeReadOffset = QueueState[QUEUE_STATE_INDEX].nodePrevWriteOffset;
 	memoryBarrier(); barrier();
-	QueueState[0].nodePrevWriteOffset = QueueState[0].nodeWriteOffset;
+	QueueState[QUEUE_STATE_INDEX].nodePrevWriteOffset = QueueState[QUEUE_STATE_INDEX].nodeWriteOffset;
 }

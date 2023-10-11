@@ -273,11 +273,11 @@ bool KPrefilerCubeMap::AllocateTempResource(IKRenderDevice* renderDevice, uint32
 
 	m_SHProductPipeline->BindStorageBuffer(SH_BINDING_COEFFICIENT, m_SHCoffBuffer, COMPUTE_RESOURCE_OUT, true);
 	m_SHProductPipeline->BindStorageImage(SH_BINDING_CUBEMAP, m_SrcCubeMap->GetFrameBuffer(), EF_R16G16B16A16_FLOAT, COMPUTE_RESOURCE_IN, 0, true);
-	m_SHProductPipeline->Init("pbr/sh_product.comp");
+	m_SHProductPipeline->Init("pbr/sh_product.comp", KShaderCompileEnvironment());
 
 	m_SHConstructPipeline->BindStorageBuffer(SH_BINDING_COEFFICIENT, m_SHCoffBuffer, COMPUTE_RESOURCE_IN, true);
 	m_SHConstructPipeline->BindStorageImage(SH_BINDING_CUBEMAP, m_SHConstructCubeMap->GetFrameBuffer(), EF_R16G16B16A16_FLOAT, COMPUTE_RESOURCE_OUT, 0, true);
-	m_SHConstructPipeline->Init("pbr/sh_construct.comp");
+	m_SHConstructPipeline->Init("pbr/sh_construct.comp", KShaderCompileEnvironment());
 
 	return true;
 }

@@ -9,7 +9,7 @@ void main()
 	{
 		uint binningIndex = globalIndex;
 		uint binningBatchNum = BinningHeader[binningIndex].x;
-		WAVE_INTERLOCK_ADD(QueueState[0].binningWriteOffset, binningBatchNum, BinningHeader[binningIndex].y);
+		WAVE_INTERLOCK_ADD(QueueState[QUEUE_STATE_INDEX].binningWriteOffset, binningBatchNum, BinningHeader[binningIndex].y);
 
 		uint offset = 0;
 

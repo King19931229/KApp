@@ -12,18 +12,6 @@ public:
 	~KSpirvBuiltInResource();
 };
 
-struct KShaderCompileEnvironment
-{
-	std::vector<IKShader::MacroPair> macros;
-	std::vector<IKShader::IncludeSource> includes;
-	bool enableSourceDebug;
-
-	KShaderCompileEnvironment()
-	{
-		enableSourceDebug = true;
-	}
-};
-
 class KShaderManager
 {
 protected:
@@ -35,6 +23,7 @@ protected:
 	IKShader::IncludeSource m_BindingInclude;
 
 	size_t CalcVariantionHash(const KShaderCompileEnvironment& env);
+	void ApplyEnvironment(IKShaderPtr soul, const KShaderCompileEnvironment& env);
 	bool AcquireByEnvironment(ShaderType type, const char* path, const KShaderCompileEnvironment& env, KShaderRef& shader, bool async);
 	bool Release(IKShaderPtr& shader);
 public:

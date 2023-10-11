@@ -149,8 +149,11 @@ size_t KShaderManager::CalcVariantionHash(const KShaderCompileEnvironment& env)
 	{
 		fullString += std::get<0>(includePair) + std::get<1>(includePair);
 	}
-	fullString += env.enableSourceDebug ? "1" : "0";
-	return KHash::BKDR(fullString.c_str(), fullString.length());
+	fullString += env.enableSourceDebug ? "D1" : "D0";
+
+	size_t hash = env.parentEnv ? CalcVariantionHash(*env.parentEnv) : 0;
+	KHash::HashCombine(hash, KHash::BKDR(fullString.c_str(), fullString.length()));
+	return hash;
 }
 
 bool KShaderManager::Init()
@@ -207,6 +210,26 @@ bool KShaderManager::Reload()
 	return true;
 }
 
+void KShaderManager::ApplyEnvironment(IKShaderPtr soul, const KShaderCompileEnvironment& env)
+{
+	if (soul)
+	{
+		if (env.parentEnv)
+		{
+			ApplyEnvironment(soul, *env.parentEnv);
+		}
+		for (const IKShader::MacroPair& macroPair : env.macros)
+		{
+			soul->AddMacro(macroPair);
+		}
+		for (const IKShader::IncludeSource& includePair : env.includes)
+		{
+			soul->AddIncludeSource(includePair);
+		}
+		soul->SetSourceDebugEnable(env.enableSourceDebug);
+	}
+}
+
 bool KShaderManager::AcquireByEnvironment(ShaderType type, const char* path, const KShaderCompileEnvironment& env, KShaderRef& shader, bool async)
 {
 	auto it = m_Shaders.find(path);
@@ -223,17 +246,7 @@ bool KShaderManager::AcquireByEnvironment(ShaderType type, const char* path, con
 	{
 		IKShaderPtr soul;
 		KRenderGlobal::RenderDevice->CreateShader(soul);
-		for (const IKShader::MacroPair& macroPair : env.macros)
-		{
-			soul->AddMacro(macroPair);
-		}
-		for (const IKShader::IncludeSource& includePair : env.includes)
-		{
-			soul->AddIncludeSource(includePair);
-		}
-
-		soul->SetSourceDebugEnable(env.enableSourceDebug);
-
+		ApplyEnvironment(soul, env);
 		if (soul->InitFromFile(type, path, async))
 		{
 			KShaderRef ref(soul, [this](IKShaderPtr soul)

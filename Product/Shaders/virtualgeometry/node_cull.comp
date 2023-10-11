@@ -17,13 +17,16 @@ void ProcessNodeBatch(uint groupIndex, uint batchStart, uint batchSize)
 	uint localIndex = groupIndex / BVH_MAX_NODES;
 	uint childIndex = groupIndex & BVH_NODE_MASK;
 
+	uint batchIndex = batchStart + localIndex;
+#if INSTANCE_CULL_MODE == INSTANCE_CULL_POST
+	batchIndex += MAX_CANDIDATE_NODE;
+#endif
 #if DEBUG_SHADER_GROUP
-	uint globalIndex = batchStart + localIndex;
 	if (localIndex >= batchSize)
 	{
 		return;
 	}
-	CandidateNode nodeBatch = UnpackCandidateNode(CandidateNodeBatch[globalIndex]);
+	CandidateNode nodeBatch = UnpackCandidateNode(CandidateNodeBatch[batchIndex]);
 #else
 	if (!IsSharedHierarchyDataValid(localIndex))
 	{
@@ -60,6 +63,30 @@ void ProcessNodeBatch(uint groupIndex, uint batchStart, uint batchSize)
 	}
 #endif
 
+#if INSTANCE_CULL_MODE == INSTANCE_CULL_MAIN || INSTANCE_CULL_MODE == INSTANCE_CULL_POST
+	if (cullData.bIsVisible)
+	{
+		ivec2 hzbSize = textureSize(hiZTex, 0);
+		ScreenRect rect = GetScreenRect(ivec4(0, 0, hzbSize * 2), cullData, 4);
+		cullData.bIsVisible = IsVisibleHZB(rect, hzbSize, true);
+	}
+#if INSTANCE_CULL_MODE == INSTANCE_CULL_MAIN
+	if (!cullData.bIsVisible)
+	{
+		uint nodeWriteOffset = 0;
+		WAVE_INTERLOCK_ADD(QueueState[QUEUE_STATE_POST_INDEX].nodeWriteOffset, 1, nodeWriteOffset);
+		if (nodeWriteOffset < MAX_CANDIDATE_NODE)
+		{
+			nodeWriteOffset += MAX_CANDIDATE_NODE;
+			CandidateNode node;
+			node.instanceId = nodeBatch.instanceId;
+			node.nodeIndex = nodeBatch.nodeIndex;
+			StoreCandidateNode(nodeWriteOffset, node);
+		}
+	}
+#endif
+#endif
+
 	if (!cullData.bIsVisible)
 	{
 		return;
@@ -71,9 +98,12 @@ void ProcessNodeBatch(uint groupIndex, uint batchStart, uint batchSize)
 		if (nodeIndex != INVALID_INDEX)
 		{
 			uint nodeWriteOffset = 0;
-			WAVE_INTERLOCK_ADD(QueueState[0].nodeWriteOffset, 1, nodeWriteOffset);
+			WAVE_INTERLOCK_ADD(QueueState[QUEUE_STATE_INDEX].nodeWriteOffset, 1, nodeWriteOffset);
 			if (nodeWriteOffset < MAX_CANDIDATE_NODE)
 			{
+#if INSTANCE_CULL_MODE == INSTANCE_CULL_POST
+				nodeWriteOffset += MAX_CANDIDATE_NODE;
+#endif
 				CandidateNode node;
 				node.instanceId = instanceId;
 				node.nodeIndex = nodeIndex;
@@ -104,7 +134,7 @@ void ProcessNodeBatch(uint groupIndex, uint batchStart, uint batchSize)
 		uint clusterNum = hierarchy.clusterNum;
 #endif
 		uint clusterWriteOffset = 0;
-		WAVE_INTERLOCK_ADD(QueueState[0].clusterWriteOffset, clusterNum, clusterWriteOffset);
+		WAVE_INTERLOCK_ADD(QueueState[QUEUE_STATE_INDEX].clusterWriteOffset, clusterNum, clusterWriteOffset);
 
 		for (uint i = 0; i < clusterNum; ++i)
 		{
@@ -125,21 +155,25 @@ void main()
 {
 	uint groupID = gl_WorkGroupID.x;
 	uint groupIndex = gl_LocalInvocationID.x;
-	uint maxBatchNodes = QueueState[0].nodePrevWriteOffset - QueueState[0].nodeReadOffset;
+	uint maxBatchNodes = QueueState[QUEUE_STATE_INDEX].nodePrevWriteOffset - QueueState[QUEUE_STATE_INDEX].nodeReadOffset;
 
-	uint batchStart = QueueState[0].nodeReadOffset + groupID * BVH_MAX_GROUP_BATCH_SIZE;
-	uint batchSize = min(batchStart + BVH_MAX_GROUP_BATCH_SIZE, QueueState[0].nodePrevWriteOffset) - batchStart;
+	uint batchStart = QueueState[QUEUE_STATE_INDEX].nodeReadOffset + groupID * BVH_MAX_GROUP_BATCH_SIZE;
+	uint batchSize = min(batchStart + BVH_MAX_GROUP_BATCH_SIZE, QueueState[QUEUE_STATE_INDEX].nodePrevWriteOffset) - batchStart;
 
 	uint localIndex = groupIndex / BVH_MAX_NODES;
 	uint childIndex = groupIndex & BVH_NODE_MASK;
 
+	uint batchIndex = batchStart + localIndex;
+#if INSTANCE_CULL_MODE == INSTANCE_CULL_POST
+	batchIndex += MAX_CANDIDATE_NODE;
+#endif
+
 #if !DEBUG_SHADER_GROUP
-	uint nodeIndex = batchStart + localIndex;
 	if (childIndex == 0)
 	{
 		if (localIndex < batchSize)
 		{
-			SharedCandidateNodeBatch[localIndex] = CandidateNodeBatch[nodeIndex];
+			SharedCandidateNodeBatch[localIndex] = CandidateNodeBatch[batchIndex];
 		}
 		else
 		{
@@ -154,7 +188,7 @@ void main()
 #if !DEBUG_SHADER_GROUP
 	if (IsSharedHierarchyDataValid(localIndex))
 	{
-		CandidateNodeBatch[nodeIndex] = uvec4(0xFFFFFFFF);
+		CandidateNodeBatch[batchIndex] = uvec4(0xFFFFFFFF);
 	}
 #endif
 }

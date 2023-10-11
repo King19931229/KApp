@@ -20,6 +20,25 @@
 #define INSTANCE_CULL_MAIN 1
 #define INSTANCE_CULL_POST 2
 
+#ifndef INSTANCE_CULL_MODE
+#	define INSTANCE_CULL_MODE INSTANCE_CULL_NONE
+#endif
+
+#define QUEUE_STATE_MAIN_INDEX 0
+#define QUEUE_STATE_POST_INDEX 1
+
+#if INSTANCE_CULL_MODE != INSTANCE_CULL_POST
+#define QUEUE_STATE_INDEX QUEUE_STATE_MAIN_INDEX
+#else
+#define QUEUE_STATE_INDEX QUEUE_STATE_POST_INDEX
+#endif
+
+#if INSTANCE_CULL_MODE != INSTANCE_CULL_NONE
+layout(binding = BINDING_HIZ_BUFFER) uniform sampler2D hiZTex;
+#include "culling.h"
+#include "hiz/hiz_culling.h"
+#endif
+
 // Match with KVirtualGeometryInstance
 struct InstanceStruct
 {
@@ -240,6 +259,7 @@ uvec4 PackCandidateNode(CandidateNode node)
 	uvec4 pack = uvec4(0,0,0,0);
 	pack.x = node.instanceId;
 	pack.y = node.nodeIndex;
+	pack.z = pack.w = 1;
 	return pack;
 }
 

@@ -20,7 +20,7 @@ bool KWhiteFurnace::Init()
 
 	m_WFTarget->InitFromStorage(1024, 1024, 1, EF_R32G32B32A32_FLOAT);
 	m_WFTestPipeline->BindStorageImage(0, m_WFTarget->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_OUT, 0, false);
-	m_WFTestPipeline->Init("pbr/white _furnace.comp");
+	m_WFTestPipeline->Init("pbr/white _furnace.comp", KShaderCompileEnvironment());
 
 	Execute();
 

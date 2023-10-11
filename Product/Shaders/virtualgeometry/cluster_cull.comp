@@ -5,7 +5,9 @@
 void ProcessClusterBatch(uint groupIndex, uint batchStart, uint batchSize)
 {
     uint batchIndex = batchStart + groupIndex;
-
+#if INSTANCE_CULL_MODE == INSTANCE_CULL_POST
+	batchIndex += MAX_CANDIDATE_CLUSTER;
+#endif
 	if (CandidateClusterBatch[batchIndex].x != 0xFFFFFFFF)
 	{
 		CandidateCluster candidateCluster = UnpackCandidateCluster(CandidateClusterBatch[batchIndex]);
@@ -45,10 +47,32 @@ void ProcessClusterBatch(uint groupIndex, uint batchStart, uint batchSize)
 #endif
 		}
 #endif
+
+#if INSTANCE_CULL_MODE == INSTANCE_CULL_MAIN || INSTANCE_CULL_MODE == INSTANCE_CULL_POST
+		if (cullData.bIsVisible)
+		{
+			ivec2 hzbSize = textureSize(hiZTex, 0);
+			ScreenRect rect = GetScreenRect(ivec4(0, 0, hzbSize * 2), cullData, 4);
+			cullData.bIsVisible = IsVisibleHZB(rect, hzbSize, true);
+		}
+#if INSTANCE_CULL_MODE == INSTANCE_CULL_MAIN
+		if (!cullData.bIsVisible)
+		{
+			uint clusterWriteOffset = 0;
+			WAVE_INTERLOCK_ADD(QueueState[QUEUE_STATE_POST_INDEX].clusterWriteOffset, 1, clusterWriteOffset);
+			if (clusterWriteOffset < MAX_CANDIDATE_CLUSTER)
+			{
+				clusterWriteOffset += MAX_CANDIDATE_CLUSTER;
+				StoreCandidateCluster(clusterWriteOffset, candidateCluster);
+			}
+		}
+#endif
+#endif
+
 		if (cullData.bIsVisible)
 		{
 			uint clusterWriteOffset = 0;
-			WAVE_INTERLOCK_ADD(QueueState[0].visibleClusterNum, 1, clusterWriteOffset);
+			WAVE_INTERLOCK_ADD(QueueState[QUEUE_STATE_INDEX].visibleClusterNum, 1, clusterWriteOffset);
 			if (clusterWriteOffset < MAX_CANDIDATE_CLUSTER)
 			{
 				StoreSelectedCluster(clusterWriteOffset, candidateCluster);
@@ -66,8 +90,8 @@ void main()
 	uint groupID = gl_WorkGroupID.x;
 	uint groupIndex = gl_LocalInvocationID.x;
 
-	uint batchStart = QueueState[0].clusterReadOffset + groupID * VG_GROUP_SIZE;
-	uint batchSize = min(batchStart + VG_GROUP_SIZE, QueueState[0].clusterWriteOffset) - batchStart;
+	uint batchStart = QueueState[QUEUE_STATE_INDEX].clusterReadOffset + groupID * VG_GROUP_SIZE;
+	uint batchSize = min(batchStart + VG_GROUP_SIZE, QueueState[QUEUE_STATE_INDEX].clusterWriteOffset) - batchStart;
 
 	if (groupIndex < batchSize)
 	{

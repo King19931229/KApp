@@ -10,6 +10,14 @@ KRTAO::KRTAO()
 	, m_CurrentAOIndex(0)
 	, m_Enable(true)
 {
+#define RTAO_BINDING_TO_STR(x) #x
+
+#define RTAO_BINDING(SEMANTIC) m_RTAOEnv.macros.push_back( {RTAO_BINDING_TO_STR(BINDING_##SEMANTIC), std::to_string(BINDING_##SEMANTIC) });
+#include "KRTAOBinding.inl"
+#undef RTAO_BINDING
+
+#undef RTAO_BINDING_TO_STR
+
 	ZERO_MEMORY(m_AOComputePipeline);
 	ZERO_MEMORY(m_ReprojectPipeline);
 	ZERO_MEMORY(m_AOTemporalPipeline);
@@ -115,20 +123,29 @@ bool KRTAO::Init(IKRayTraceScene* scene)
 				m_AOComputePipeline[i]->BindStorageImage(BINDING_CUR_NORMAL_DEPTH, m_NormalDepthTarget[i]->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_OUT, 0, true);
 
 				// 似乎目前SPIRV源码级别调试处理不了光追ComputeShader(glslang 12.3.1)
-				m_AOComputePipeline[i]->Init("ao/rtao.comp", false);
+				KShaderCompileEnvironment env;
+				env.parentEnv = &m_RTAOEnv;
+				env.enableSourceDebug = false;
+				m_AOComputePipeline[i]->Init("ao/rtao.comp", env);
 			}
 
 			renderDevice->CreateComputePipeline(m_MeanHorizontalComputePipeline);
 			m_MeanHorizontalComputePipeline->BindStorageImage(0, m_MeanVarianceTarget[1]->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
 			m_MeanHorizontalComputePipeline->BindUniformBuffer(2, m_MeanUniformBuffer);
 			m_MeanHorizontalComputePipeline->BindStorageImage(1, m_MeanVarianceTarget[0]->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_OUT, 0, true);
-			m_MeanHorizontalComputePipeline->Init("ao/mean_h.comp");
+			KShaderCompileEnvironment horizontalEnv;
+			horizontalEnv.parentEnv = &m_RTAOEnv;
+			horizontalEnv.macros.push_back({"HORIZONTAL", ""});
+			m_MeanHorizontalComputePipeline->Init("ao/mean.comp", horizontalEnv);
 
 			renderDevice->CreateComputePipeline(m_MeanVerticalComputePipeline);
 			m_MeanVerticalComputePipeline->BindStorageImage(0, m_MeanVarianceTarget[0]->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
 			m_MeanVerticalComputePipeline->BindUniformBuffer(2, m_MeanUniformBuffer);
 			m_MeanVerticalComputePipeline->BindStorageImage(1, m_MeanVarianceTarget[1]->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_OUT, 0, true);
-			m_MeanVerticalComputePipeline->Init("ao/mean_v.comp");
+			KShaderCompileEnvironment verticalEnv;
+			verticalEnv.parentEnv = &m_RTAOEnv;
+			verticalEnv.macros.push_back({ "VERTICAL", "" });
+			m_MeanVerticalComputePipeline->Init("ao/mean.comp", verticalEnv);
 
 			for (uint32_t i = 0; i < 2; ++i)
 			{
@@ -148,7 +165,7 @@ bool KRTAO::Init(IKRayTraceScene* scene)
 				m_ReprojectPipeline[i]->BindStorageImage(BINDING_REPROJECTED, m_ReprojectedTarget->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_OUT, 0, true);
 				m_ReprojectPipeline[i]->BindUniformBuffer(BINDING_CAMERA, cameraBuffer);
 				m_ReprojectPipeline[i]->BindUniformBuffer(BINDING_UNIFORM, m_AOUniformBuffer);
-				m_ReprojectPipeline[i]->Init("ao/reproject.comp");
+				m_ReprojectPipeline[i]->Init("ao/reproject.comp", m_RTAOEnv);
 			}
 
 			for (uint32_t i = 0; i < 2; ++i)
@@ -163,7 +180,7 @@ bool KRTAO::Init(IKRayTraceScene* scene)
 				m_AOTemporalPipeline[i]->BindStorageImage(BINDING_VARIANCE, m_VarianceTarget->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_OUT, 0, true);
 				m_AOTemporalPipeline[i]->BindStorageImage(BINDING_BLUR_STRENGTH, m_BlurStrengthTarget->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_OUT, 0, true);
 				m_AOTemporalPipeline[i]->BindUniformBuffer(BINDING_UNIFORM, m_AOUniformBuffer);
-				m_AOTemporalPipeline[i]->Init("ao/rtao_temp.comp");
+				m_AOTemporalPipeline[i]->Init("ao/rtao_temp.comp", m_RTAOEnv);
 			}
 
 			for (uint32_t i = 0; i < 2; ++i)
@@ -173,11 +190,8 @@ bool KRTAO::Init(IKRayTraceScene* scene)
 				m_AtrousComputePipeline[i]->BindStorageImage(BINDING_CUR_AO, m_AOTarget[i]->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
 				m_AtrousComputePipeline[i]->BindStorageImage(BINDING_CUR_NORMAL_DEPTH, m_NormalDepthTarget[i]->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_OUT, 0, true);
 				m_AtrousComputePipeline[i]->BindStorageImage(BINDING_ATROUS_AO, m_AtrousAOTarget->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_OUT, 0, true);
-				m_AtrousComputePipeline[i]->Init("ao/atrous.comp");
+				m_AtrousComputePipeline[i]->Init("ao/atrous.comp", m_RTAOEnv);
 			}
-
-			const char* blurHorizontalVertexShader[3] = { "ao/disconnected_1_h.comp", "ao/disconnected_2_h.comp", "ao/disconnected_3_h.comp" };
-			const char* blurVerticalVertexShader[3] = { "ao/disconnected_1_v.comp", "ao/disconnected_2_v.comp", "ao/disconnected_3_v.comp" };
 
 			for (uint32_t i = 0; i < 2; ++i)
 			{
@@ -186,17 +200,33 @@ bool KRTAO::Init(IKRayTraceScene* scene)
 					renderDevice->CreateComputePipeline(m_BlurHorizontalComputePipeline[i][j]);
 					renderDevice->CreateComputePipeline(m_BlurVerticalComputePipeline[i][j]);
 
-					m_BlurHorizontalComputePipeline[i][j]->BindStorageImage(0, m_AtrousAOTarget->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
-					m_BlurHorizontalComputePipeline[i][j]->BindStorageImage(1, m_BlurStrengthTarget->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
-					m_BlurHorizontalComputePipeline[i][j]->BindStorageImage(2, m_NormalDepthTarget[i]->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
-					m_BlurHorizontalComputePipeline[i][j]->BindStorageImage(3, m_BlurTempTarget->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_OUT, 0, true);
-					m_BlurHorizontalComputePipeline[i][j]->Init(blurHorizontalVertexShader[j]);
+					KShaderCompileEnvironment env;
+					env.parentEnv = &m_RTAOEnv;
+					if (j == 0)
+					{
+						env.macros.push_back({"GAUSSIAN_KERNEL_3X3", ""});
+					}
+					else if (j == 1)
+					{
+						env.macros.push_back({ "GAUSSIAN_KERNEL_5X5", "" });
+					}
+					else if (j == 2)
+					{
+						env.macros.push_back({ "GAUSSIAN_KERNEL_7X7", "" });
+					}
 
 					m_BlurVerticalComputePipeline[i][j]->BindStorageImage(0, m_BlurTempTarget->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
 					m_BlurVerticalComputePipeline[i][j]->BindStorageImage(1, m_BlurStrengthTarget->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
 					m_BlurVerticalComputePipeline[i][j]->BindStorageImage(2, m_NormalDepthTarget[i]->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
 					m_BlurVerticalComputePipeline[i][j]->BindStorageImage(3, m_AtrousAOTarget->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_OUT, 0, true);
-					m_BlurVerticalComputePipeline[i][j]->Init(blurVerticalVertexShader[j]);
+					m_BlurVerticalComputePipeline[i][j]->Init("ao/disconnected.comp", env);
+
+					env.macros.push_back({ "HORIZONTAL", "" });
+					m_BlurHorizontalComputePipeline[i][j]->BindStorageImage(0, m_AtrousAOTarget->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
+					m_BlurHorizontalComputePipeline[i][j]->BindStorageImage(1, m_BlurStrengthTarget->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
+					m_BlurHorizontalComputePipeline[i][j]->BindStorageImage(2, m_NormalDepthTarget[i]->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
+					m_BlurHorizontalComputePipeline[i][j]->BindStorageImage(3, m_BlurTempTarget->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_OUT, 0, true);
+					m_BlurHorizontalComputePipeline[i][j]->Init("ao/disconnected.comp", env);
 				}
 			}
 
@@ -213,7 +243,7 @@ bool KRTAO::Init(IKRayTraceScene* scene)
 				m_ComposePipeline[i]->BindUniformBuffer(BINDING_CAMERA, cameraBuffer);
 				m_ComposePipeline[i]->BindStorageImage(BINDING_COMPOSED, ao->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_OUT, 0, true);
 				m_ComposePipeline[i]->BindUniformBuffer(BINDING_UNIFORM, m_AOUniformBuffer);
-				m_ComposePipeline[i]->Init("ao/compose.comp");
+				m_ComposePipeline[i]->Init("ao/compose.comp", m_RTAOEnv);
 			}
 		}
 	}

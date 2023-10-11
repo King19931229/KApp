@@ -9,7 +9,7 @@ void main()
 	uint groupIndex = gl_LocalInvocationID.x;
 
 	uint batchStart = groupID * VG_GROUP_SIZE;
-	uint batchSize = min(batchStart + VG_GROUP_SIZE, QueueState[0].visibleClusterNum) - batchStart;
+	uint batchSize = min(batchStart + VG_GROUP_SIZE, QueueState[QUEUE_STATE_INDEX].visibleClusterNum) - batchStart;
 
 	if (groupIndex < batchSize)
 	{

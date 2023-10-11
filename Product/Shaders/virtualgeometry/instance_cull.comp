@@ -2,13 +2,6 @@
 #include "culling.h"
 #include "wave.h"
 
-#ifndef INSTANCE_CULL_MODE
-#	define INSTANCE_CULL_MODE INSTANCE_CULL_NONE
-#else
-layout(binding = BINDING_HIZ_BUFFER) uniform sampler2D hiZTex;
-#include "hiz/hiz_culling.h"
-#endif
-
 layout(local_size_x = VG_GROUP_SIZE, local_size_y = 1, local_size_z = 1) in;
 void main()
 {
@@ -36,7 +29,7 @@ void main()
 			cullData.bIsVisible = IsVisibleHZB(rect, hzbSize, true);
 		}
 #if INSTANCE_CULL_MODE == INSTANCE_CULL_MAIN
-		else
+		if (!cullData.bIsVisible)
 		{
 			uint offset = atomicAdd(PostCullIndirectArgs[3], 1);
 			MainCullResult[offset] = instanceId;
@@ -47,9 +40,12 @@ void main()
 		if (cullData.bIsVisible)
 		{
 			uint nodeWriteOffset = 0;
-			WAVE_INTERLOCK_ADD(QueueState[0].nodeWriteOffset, 1, nodeWriteOffset);
+			WAVE_INTERLOCK_ADD(QueueState[QUEUE_STATE_INDEX].nodeWriteOffset, 1, nodeWriteOffset);
 			if (nodeWriteOffset < MAX_CANDIDATE_NODE)
 			{
+#if INSTANCE_CULL_MODE == INSTANCE_CULL_POST
+				nodeWriteOffset += MAX_CANDIDATE_NODE;
+#endif
 				CandidateNode node;
 				node.instanceId = instanceId;
 				node.nodeIndex = 0;

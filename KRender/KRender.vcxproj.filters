@@ -904,8 +904,14 @@
     <None Include="Interface\KVertexSemantic.inl">
       <Filter>Interface</Filter>
     </None>
-    <None Include="Interface\KConstantBinding.inl">
+    <None Include="Interface\KShaderBinding.inl">
       <Filter>Interface</Filter>
+    </None>
+    <None Include="Internal\VirtualGeometry\KVirtualGeomertyBinding.inl">
+      <Filter>Internal\VirtualGeometry</Filter>
+    </None>
+    <None Include="Internal\Object\KRTAOBinding.inl">
+      <Filter>Internal\Object</Filter>
     </None>
   </ItemGroup>
 </Project>

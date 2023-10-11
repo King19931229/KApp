@@ -423,6 +423,7 @@ bool KRenderer::Init(const KRendererInitContext& initContext)
 	};
 
 	KRenderGlobal::DeferredRenderer.AddCallFunc(DRS_STAGE_MAIN_BASE_PASS, &m_BasePassCallFunc);
+	KRenderGlobal::DeferredRenderer.AddCallFunc(DRS_STAGE_POST_BASE_PASS, &m_BasePassCallFunc);
 	KRenderGlobal::DeferredRenderer.AddCallFunc(DRS_STATE_DEBUG_OBJECT, &m_DebugCallFunc);
 	KRenderGlobal::DeferredRenderer.AddCallFunc(DRS_STATE_FOREGROUND, &m_ForegroundCallFunc);
 
@@ -482,6 +483,7 @@ bool KRenderer::UnInit()
 	KRenderGlobal::RenderDevice->Wait();
 
 	KRenderGlobal::DeferredRenderer.RemoveCallFunc(DRS_STAGE_MAIN_BASE_PASS, &m_BasePassCallFunc);
+	KRenderGlobal::DeferredRenderer.RemoveCallFunc(DRS_STAGE_POST_BASE_PASS, &m_BasePassCallFunc);
 	KRenderGlobal::DeferredRenderer.RemoveCallFunc(DRS_STATE_DEBUG_OBJECT, &m_DebugCallFunc);
 	KRenderGlobal::DeferredRenderer.RemoveCallFunc(DRS_STATE_FOREGROUND, &m_ForegroundCallFunc);
 

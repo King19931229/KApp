@@ -146,7 +146,7 @@ public:
 
 	virtual void BindDynamicUniformBuffer(uint32_t location);
 
-	virtual bool Init(const char* szShader, bool enableSourceDebug);
+	virtual bool Init(const char* szShader, const KShaderCompileEnvironment& env);
 	virtual bool UnInit();
 	virtual bool Execute(IKCommandBufferPtr primaryBuffer, uint32_t groupX, uint32_t groupY, uint32_t groupZ, const KDynamicConstantBufferUsage* usage);
 	virtual bool ExecuteIndirect(IKCommandBufferPtr primaryBuffer, IKStorageBufferPtr indirectBuffer, const KDynamicConstantBufferUsage* usage);
