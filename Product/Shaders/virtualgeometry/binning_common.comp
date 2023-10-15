@@ -23,8 +23,8 @@ void main()
 
 		uint resourceIndex = InstanceData[instanceId].resourceIndex;
 
-		uint materialNum = clusterBatch.materialNum;
-		for (uint i = 0; i < materialNum; i++)
+		uint batchNum = clusterBatch.batchNum;
+		for (uint i = 0; i < batchNum; i++)
 		{
 			uint materialIndex = 0;
 			uint rangeBegin = 0;
@@ -54,6 +54,7 @@ void main()
 
 			offset = binningIndex * 3;
 			offset += INDIRECT_MESH_ARGS_OFFSET;
+
 			WAVE_INTERLOCK_ADD_ONLY(IndirectMeshArgs[offset], 1);
 #endif
 		}

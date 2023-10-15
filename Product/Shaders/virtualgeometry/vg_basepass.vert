@@ -28,11 +28,11 @@ void main()
 		vec3 normal;
 		vec2 uv;
 
-		// uint index;
-		// DecodeClusterBatchDataIndex(triangleIndex, localVertexIndex, batchIndex, index);
-		// DecodeClusterBatchDataVertex(index, batchIndex, localToWorld, position, normal, uv);
+		uint index;
+		DecodeClusterBatchDataIndex(triangleIndex, localVertexIndex, batchIndex, index);
+		DecodeClusterBatchDataVertex(index, batchIndex, localToWorld, position, normal, uv);
 
-		DecodeClusterBatchData(triangleIndex, localVertexIndex, batchIndex, localToWorld, position, normal, uv);
+		// DecodeClusterBatchData(triangleIndex, localVertexIndex, batchIndex, localToWorld, position, normal, uv);
 
 		outWorldPos = (localToWorld * vec4(position, 1.0)).xyz;
 		outPrevWorldPos = (localToWorld * vec4(position, 1.0)).xyz;

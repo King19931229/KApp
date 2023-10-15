@@ -1,25 +1,10 @@
 #include "vg_define.h"
 
-#ifdef MESH_SHADER
-
-layout(location = 0) in Interpolants
-{
-	vec2 texCoord;
-	vec3 worldPos;
-	vec3 prevWorldPos;
-	vec3 worldNormal;
-	vec3 color0;
-} IN;
-
-#else
-
 layout(location = 0) in vec2 texCoord;
 layout(location = 1) in vec3 worldPos;
 layout(location = 2) in vec3 prevWorldPos;
 layout(location = 3) in vec3 worldNormal;
 layout(location = 4) in vec3 color0;
-
-#endif
 
 layout(location = 0) out vec4 RT0;
 layout(location = 1) out vec4 RT1;
@@ -49,14 +34,6 @@ void EncodeGBuffer(vec3 pos, vec3 normal, vec2 motion, vec3 baseColor, vec3 emis
 
 void main()
 {
-#ifdef MESH_SHADER
-	#define texCoord IN.texCoord
-	#define worldPos IN.worldPos
-	#define prevWorldPos IN.prevWorldPos
-	#define worldNormal IN.worldNormal
-	#define color0 IN.color0
-#endif
-
 	MaterialPixelParameters parameters = ComputeMaterialPixelParameters(
 		  worldPos
 		, prevWorldPos

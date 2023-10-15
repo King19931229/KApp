@@ -2,45 +2,66 @@
 
 #extension GL_EXT_mesh_shader : require
 
-#define VG_MESH_SHADER_GROUP_SIZE 128
-#define VG_MESH_SHADER_VERTEX_PER_LANE (MAX_CLUSTER_VERTEX_NUM / VG_MESH_SHADER_GROUP_SIZE)
-#define VG_MESH_SHADER_TRIANGLE_PER_LANE (MAX_CLUSTER_VERTEX_NUM / VG_MESH_SHADER_GROUP_SIZE)
+#define VG_MESH_SHADER_GROUP_SIZE 32
+#define VG_MESH_SHADER_VERTEX_PER_THREAD (MAX_CLUSTER_VERTEX_NUM / VG_MESH_SHADER_GROUP_SIZE)
+#define VG_MESH_SHADER_TRIANGLE_PER_THREAD (MAX_CLUSTER_VERTEX_NUM / VG_MESH_SHADER_GROUP_SIZE)
 
 layout(local_size_x = VG_MESH_SHADER_GROUP_SIZE, local_size_y = 1, local_size_z = 1) in;
 layout(max_vertices = MAX_CLUSTER_VERTEX_NUM, max_primitives = MAX_CLUSTER_TRIANGLE_NUM) out;
 layout(triangles) out;
 
-layout(location = 0) out Interpolants
+layout(location = 0) out vec2 outTexCoord[];
+layout(location = 1) out vec3 outWorldPos[];
+layout(location = 2) out vec3 outPrevWorldPos[];
+layout(location = 3) out vec3 outWorldNormal[];
+layout(location = 4) out vec3 outVertexColor[];
+
+struct BatchSturct
 {
 	vec2 texCoord;
 	vec3 worldPos;
 	vec3 prevWorldPos;
 	vec3 worldNormal;
 	vec3 vertexColor;
-} OUT[];
+	vec4 glPositoin;
+};
+
+// shared BatchSturct BatchData[VERTEX_REUSE_BATCH_SIZE];
+
+uint FindNthSetBit(uint mask, int index)
+{
+	int last = bitCount(mask) - index - 1;
+	uint p = 16;
+	p += bitCount(mask >> p) <= last ? -8 : 8;
+	p += bitCount(mask >> p) <= last ? -4 : 4;
+	p += bitCount(mask >> p) <= last ? -2 : 2;
+	p += bitCount(mask >> p) <= last ? -1 : 1;
+	p  = bitCount(mask >> p) == last ? (p - 1) : p;
+	return p;
+}
+
+uint FindNthSetBit(uvec2 mask, int index)
+{
+	int lowPop = bitCount(mask.x);
+	return FindNthSetBit(index < lowPop ? mask.x : mask.y, index < lowPop ? index : index - lowPop) + (index < lowPop ? 0 : 32);
+}
 
 void main()
 {
 	uint workIndex = gl_WorkGroupID.x;
-	uint landIndex = gl_LocalInvocationID.x;
+	uint threadIndex = gl_LocalInvocationID.x;
 
 	Binning binning = GetBinning(materialBinningIndex, workIndex);
 
 	uint batchIndex = binning.clusterIndex;
-	uint batchTriangleEnd = binning.rangeBegin + binning.rangeNum;
+	uint batchTriangleBegin = binning.rangeBegin;
 	uint batchTriangleNum = binning.rangeNum;
+	uint batchTriangleEnd = batchTriangleBegin + batchTriangleNum;
 
-	uint triangleIndexBegin = landIndex * VG_MESH_SHADER_TRIANGLE_PER_LANE;
-	// Offset to the batch
-	triangleIndexBegin += binning.rangeBegin;
-
-	uint triangleIndexEnd = triangleIndexBegin + VG_MESH_SHADER_TRIANGLE_PER_LANE - 1;
-	// Trim to the batch
-	triangleIndexEnd = min(triangleIndexEnd, batchTriangleEnd - 1);
-
-	for (uint triangleIndex = triangleIndexBegin; triangleIndex <= triangleIndexEnd; ++triangleIndex)
+	for (uint loop = 0; loop < VG_MESH_SHADER_TRIANGLE_PER_THREAD; ++loop)
 	{
-		if (triangleIndex >= batchTriangleNum)
+		uint triangleIndex = batchTriangleBegin + threadIndex + loop * VG_MESH_SHADER_TRIANGLE_PER_THREAD;
+		if (triangleIndex - batchTriangleBegin >= batchTriangleNum)
 		{
 			break;
 		}
@@ -48,18 +69,16 @@ void main()
 		for (uint i = 0; i < 3; ++i)
 		{
 			DecodeClusterBatchDataIndex(triangleIndex, i, batchIndex, index);
-			gl_PrimitiveTriangleIndicesEXT[triangleIndex][i] = index;
+			gl_PrimitiveTriangleIndicesEXT[triangleIndex - batchTriangleBegin][i] = index;
 		}
 	}
 
-	uint vertexBegin = landIndex * VG_MESH_SHADER_VERTEX_PER_LANE;
-	uint vertexEnd = (landIndex + 1) * VG_MESH_SHADER_VERTEX_PER_LANE;
-	// Trim to the batch
-	vertexEnd = min(vertexEnd, MAX_CLUSTER_VERTEX_NUM - 1);
+	uint batchVertexNum = MAX_CLUSTER_VERTEX_NUM;
 
-	for (uint vertexIndex = vertexBegin; vertexIndex <= vertexEnd; ++vertexIndex)
+	for (uint loop = 0; loop < VG_MESH_SHADER_VERTEX_PER_THREAD; ++loop)
 	{
-		if (vertexIndex >= vertexEnd)
+		uint vertexIndex = threadIndex + loop * VG_MESH_SHADER_VERTEX_PER_THREAD;
+		if (vertexIndex >= batchVertexNum)
 		{
 			break;
 		}
@@ -68,23 +87,24 @@ void main()
 		vec3 normal;
 		vec2 uv;
 
-		DecodeClusterBatchDataVertex(vertexIndex, batchIndex, localToWorld, position, normal, uv);
+		uint index = vertexIndex;
+		DecodeClusterBatchDataVertex(index, batchIndex, localToWorld, position, normal, uv);
 
-		OUT[vertexIndex].worldPos = (localToWorld * vec4(position, 1.0)).xyz;
-		OUT[vertexIndex].prevWorldPos = (localToWorld * vec4(position, 1.0)).xyz;
-		OUT[vertexIndex].texCoord = uv;
-		OUT[vertexIndex].worldNormal = normalize(mat3(localToWorld) * normal);
+		outWorldPos[vertexIndex] = (localToWorld * vec4(position, 1.0)).xyz;
+		outPrevWorldPos[vertexIndex] = (localToWorld * vec4(position, 1.0)).xyz;
+		outTexCoord[vertexIndex] = uv;
+		outWorldNormal[vertexIndex] = normalize(mat3(localToWorld) * normal);
 
 		uint clusterIndex;
 		DecodeClusterBatchClusterIndex(batchIndex, clusterIndex);
-		OUT[vertexIndex].vertexColor = RandomColor(clusterIndex);
-		// OUT[vertexIndex].vertexColor = RandomColor(clusterIndex * MAX_CLUSTER_TRIANGLE_NUM + triangleIndex);
-		// OUT[vertexIndex].vertexColor = outWorldNormal;
+		outVertexColor[vertexIndex] = RandomColor(clusterIndex);
+		// outVertexColor[vertexIndex] = RandomColor(clusterIndex * MAX_CLUSTER_TRIANGLE_NUM + triangleIndex);
+		// outVertexColor[vertexIndex] = outWorldNormal;
 
 		gl_MeshVerticesEXT[vertexIndex].gl_Position = worldToClip * localToWorld * vec4(position, 1.0);
 	}
 
-	if (landIndex == 0)
+	if (threadIndex == 0)
 	{
 		SetMeshOutputsEXT(MAX_CLUSTER_VERTEX_NUM, batchTriangleNum);
 	}

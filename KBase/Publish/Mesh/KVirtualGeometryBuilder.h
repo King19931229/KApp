@@ -37,6 +37,14 @@ struct KVirtualGeometryDefine
 };
 static_assert(!(KVirtualGeometryDefine::MAX_BVH_NODES& (KVirtualGeometryDefine::MAX_BVH_NODES - 1)), "MAX_BVH_NODES must be pow of 2");
 
+struct KMeshClusterMaterialRange
+{
+	uint32_t start = 0;
+	uint32_t length = 0;
+	uint32_t materialIndex = 0;
+	std::vector<uint32_t> batchTriCounts;
+};
+
 struct KMeshCluster
 {
 	struct Triangle
@@ -47,6 +55,8 @@ struct KMeshCluster
 	std::vector<KMeshProcessorVertex> vertices;
 	std::vector<uint32_t> indices;
 	std::vector<uint32_t> materialIndices;
+
+	std::vector<KMeshClusterMaterialRange> materialRanges;
 
 	// lodBound是计算Lod所用到的Bound 并不是严格意义上真正的Bound
 	KAABBBox lodBound;
@@ -76,12 +86,12 @@ struct KMeshCluster
 		return color;
 	}
 
-	void GetMaterialRanges(std::vector<uint32_t>& materialIndexs, std::vector<KRange>& materialRanges);
-
 	void CopyProperty(const KMeshCluster& cluster);
 
 	void InitBound();
-	void SortMaterial();
+	void InitMaterial();
+	void PostInit();
+
 	void UnInit();
 	void Init(KMeshClusterPtr* clusters, uint32_t numClusters);
 	void Init(const std::vector<KMeshProcessorVertex>& inVertices, const std::vector<uint32_t>& inIndices, const std::vector<uint32_t>& inMaterialIndices);
@@ -193,7 +203,7 @@ struct KMeshClusterBatch
 	uint32_t materialIntOffset = KVirtualGeometryDefine::INVALID_INDEX;
 	uint32_t storageIndex = KVirtualGeometryDefine::INVALID_INDEX;
 	uint32_t triangleNum = 0;
-	uint32_t materialNum = 0;
+	uint32_t batchNum = 0;
 	uint32_t padding[2];
 };
 static_assert((sizeof(KMeshClusterBatch) % 16) == 0, "Size must be a multiple of 16");
@@ -262,6 +272,9 @@ protected:
 
 	uint32_t m_MaxTriangleNum = 0;
 	uint32_t m_MinTriangleNum = 0;
+
+	uint32_t m_MaxBatchVertexNum = 32;
+
 	float m_MaxError = 0;
 
 	uint32_t m_BVHRoot = KVirtualGeometryDefine::INVALID_INDEX;
@@ -292,6 +305,7 @@ protected:
 
 	void BuildDAG(const std::vector<KMeshProcessorVertex>& vertices, const std::vector<uint32_t>& indices, const std::vector<uint32_t>& materialIndices, uint32_t minPartitionNum, uint32_t maxPartitionNum, uint32_t minClusterGroup, uint32_t maxClusterGroup);
 	void ConstrainCluster();
+	void BuildReuseBatch();
 	void BuildClusterStorage();
 	void BuildClusterBVH();
 

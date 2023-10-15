@@ -35,7 +35,7 @@ void KMeshCluster::InitBound()
 	edgeLength = sqrt(maxEdgeLengthSquare);
 }
 
-void KMeshCluster::SortMaterial()
+void KMeshCluster::InitMaterial()
 {
 	struct MaterialIndexSort
 	{
@@ -72,10 +72,28 @@ void KMeshCluster::SortMaterial()
 			indices[3 * i + idx] = oldIndices[3 * triIndex + idx];
 		}
 	}
-}
 
-void KMeshCluster::GetMaterialRanges(std::vector<uint32_t>& materialIndexs, std::vector<KRange>& materialRanges)
-{
+	for (size_t i = 0; i < indices.size() / 3; ++i)
+	{
+		uint32_t index0 = indices[3 * i];
+		uint32_t index1 = indices[3 * i + 1];
+		uint32_t index2 = indices[3 * i + 2];
+		if (index1 < index0 && index1 < index2)
+		{
+			indices[3 * i] = index1;
+			indices[3 * i + 1] = index2;
+			indices[3 * i + 2] = index0;
+		}
+		else if (index2 < index0 && index2 < index1)
+		{
+			indices[3 * i] = index2;
+			indices[3 * i + 1] = index0;
+			indices[3 * i + 2] = index1;
+		}
+	}
+
+	materialRanges.clear();
+
 	if (materialIndices.size() > 0)
 	{
 		uint32_t lastMaterialIndex = materialIndices[0];
@@ -85,8 +103,14 @@ void KMeshCluster::GetMaterialRanges(std::vector<uint32_t>& materialIndexs, std:
 		{
 			if (i == materialIndices.size() || materialIndices[i] != lastMaterialIndex)
 			{
-				materialIndexs.push_back(lastMaterialIndex);
-				materialRanges.push_back(KRange(lastMaterialIndexRangeBegin, i - 1));
+				KMeshClusterMaterialRange newRange;
+
+				newRange.start = lastMaterialIndexRangeBegin;
+				newRange.length = i - lastMaterialIndexRangeBegin;
+				newRange.materialIndex = lastMaterialIndex;
+				newRange.batchTriCounts = { newRange.length };
+
+				materialRanges.push_back(newRange);
 
 				if (i == materialIndices.size())
 				{
@@ -98,6 +122,12 @@ void KMeshCluster::GetMaterialRanges(std::vector<uint32_t>& materialIndexs, std:
 			}
 		}
 	}
+}
+
+void KMeshCluster::PostInit()
+{
+	InitBound();
+	InitMaterial();
 }
 
 void KMeshCluster::CopyProperty(const KMeshCluster& cluster)
@@ -172,8 +202,7 @@ void KMeshCluster::Init(KMeshClusterPtr* clusters, uint32_t numClusters)
 	indices.shrink_to_fit();
 	materialIndices.shrink_to_fit();
 
-	InitBound();
-	SortMaterial();
+	PostInit();
 }
 
 void KMeshCluster::Init(const std::vector<KMeshProcessorVertex>& inVertices, const std::vector<uint32_t>& inIndices, const std::vector<uint32_t>& inMaterialIndices)
@@ -185,8 +214,7 @@ void KMeshCluster::Init(const std::vector<KMeshProcessorVertex>& inVertices, con
 	indices = inIndices;
 	materialIndices = inMaterialIndices;
 
-	InitBound();
-	SortMaterial();
+	PostInit();
 }
 
 void KMeshCluster::Init(const std::vector<KMeshProcessorVertex>& inVertices, const std::vector<uint32_t>& inIndices, const std::vector<uint32_t>& inMaterialIndices, const KRange& range)
@@ -234,8 +262,7 @@ void KMeshCluster::Init(const std::vector<KMeshProcessorVertex>& inVertices, con
 	vertices.shrink_to_fit();
 	indices.shrink_to_fit();
 
-	InitBound();
-	SortMaterial();
+	PostInit();
 }
 
 void KMeshCluster::Init(const std::vector<KMeshProcessorVertex>& inVertices, const std::vector<Triangle>& inTriangles, const std::vector<idx_t>& inTriIndices, const std::vector<uint32_t>& inMaterialIndices, const KRange& range)
@@ -281,8 +308,7 @@ void KMeshCluster::Init(const std::vector<KMeshProcessorVertex>& inVertices, con
 	vertices.shrink_to_fit();
 	indices.shrink_to_fit();
 
-	InitBound();
-	SortMaterial();
+	PostInit();
 }
 
 KRange KGraphPartitioner::NewRange(uint32_t offset, uint32_t num)
@@ -1263,7 +1289,6 @@ void KVirtualGeometryBuilder::ConstrainCluster()
 	for (size_t i = 0; i < m_Clusters.size(); ++i)
 	{
 		while (m_Clusters[i]->vertices.size() > m_MaxClusterVertex)
-		//if (i < oldClusterNum)
 		{
 			KMeshClusterPtr cluster = m_Clusters[i];
 			uint32_t newClusterIndicesNum = 3 * ((uint32_t)cluster->indices.size() / 6);
@@ -1285,9 +1310,6 @@ void KVirtualGeometryBuilder::ConstrainCluster()
 				m_Clusters[i] = newClusterA;
 				m_Clusters.push_back(newClusterB);
 
-				// auto it = std::find(group->clusters.begin(), group->clusters.end(), newClusterA->index);
-				// *it = newClusterB->index;
-
 				group->clusters.push_back(newClusterB->index);
 
 				if (cluster->generatingGroupIndex != KVirtualGeometryDefine::INVALID_INDEX)
@@ -1295,6 +1317,70 @@ void KVirtualGeometryBuilder::ConstrainCluster()
 					KMeshClusterGroupPtr generatingGroup = m_ClusterGroups[cluster->generatingGroupIndex];
 					generatingGroup->generatingClusters.push_back(newClusterB->index);
 				}
+			}
+		}
+	}
+}
+
+void KVirtualGeometryBuilder::BuildReuseBatch()
+{
+	for (size_t i = 0; i < m_Clusters.size(); ++i)
+	{
+		KMeshClusterPtr cluster = m_Clusters[i];
+		for (KMeshClusterMaterialRange& materialRange : cluster->materialRanges)
+		{
+			std::vector<bool> vertexUseBits;
+			vertexUseBits.resize(materialRange.length * 3);
+
+			auto ResetUseBit = [&vertexUseBits]()
+			{
+				for (size_t i = 0; i < vertexUseBits.size(); ++i)
+				{
+					vertexUseBits[i] = false;
+				}
+			};
+
+			ResetUseBit();
+
+			uint32_t batchVertexNum = 0;
+			uint32_t batchTriangleNum = 0;
+
+			materialRange.batchTriCounts.clear();
+
+			for (uint32_t i = 0; i < materialRange.length; ++i)
+			{
+				uint32_t triIndex = materialRange.start + i;
+				uint32_t v[3] = { 0 };
+
+				uint32_t newVertexNum = 0;
+				for (size_t k = 0; k < 3; ++k)
+				{
+					v[k] = cluster->indices[3 * triIndex + k];
+					newVertexNum += !vertexUseBits[v[k]];
+				}
+
+				if (batchVertexNum + newVertexNum > m_MaxBatchVertexNum)
+				{
+					materialRange.batchTriCounts.push_back(batchTriangleNum);
+					batchVertexNum = 0;
+					batchTriangleNum = 0;
+					--i;
+					ResetUseBit();
+					continue;
+				}
+
+				for (size_t k = 0; k < 3; ++k)
+				{
+					vertexUseBits[v[k]] = true;
+				}
+
+				batchVertexNum += newVertexNum;
+				batchTriangleNum += 1;
+			}
+
+			if (batchTriangleNum > 0)
+			{
+				materialRange.batchTriCounts.push_back(batchTriangleNum);
 			}
 		}
 	}
@@ -1981,6 +2067,7 @@ void KVirtualGeometryBuilder::Build(const std::vector<KMeshProcessorVertex>& ver
 {
 	BuildDAG(vertices, indices, materialIndices, 124, 128, 4, 32);
 	ConstrainCluster();
+	BuildReuseBatch();
 	BuildClusterStorage();
 	BuildClusterBVH();
 
@@ -2052,19 +2139,25 @@ bool KVirtualGeometryBuilder::GetMeshClusterStorages(std::vector<KMeshClusterBat
 
 				indexStorage.indices.insert(indexStorage.indices.end(), cluster->indices.begin(), cluster->indices.end());
 
-				std::vector<uint32_t> materialIndexs;
-				std::vector<KRange> materialRanges;
-				cluster->GetMaterialRanges(materialIndexs, materialRanges);
-				assert(materialIndexs.size() == materialRanges.size());
+				const std::vector<KMeshClusterMaterialRange>& materialRanges = cluster->materialRanges;
+				uint32_t batchNum = 0;
+
 				materialStorage.materials.reserve(materialStorage.materials.size() + KMeshClustersMaterialStorage::INT_PER_MATERIAL * materialRanges.size());
-				for (size_t i = 0; i < materialRanges.size(); ++i)
+
+				for (const KMeshClusterMaterialRange& materialRange : materialRanges)
 				{
-					materialStorage.materials.push_back(materialIndexs[i]);
-					materialStorage.materials.push_back(materialRanges[i].begin);
-					materialStorage.materials.push_back(materialRanges[i].end);
+					uint32_t batchBegin = materialRange.start;
+					for (uint32_t batchTriCount : materialRange.batchTriCounts)
+					{
+						materialStorage.materials.push_back(materialRange.materialIndex);
+						materialStorage.materials.push_back(batchBegin);
+						materialStorage.materials.push_back(batchBegin + batchTriCount - 1);
+						batchBegin += batchTriCount;
+						++batchNum;
+					}
 				}
 
-				newBatch.materialNum = (uint32_t)materialIndexs.size();
+				newBatch.batchNum = batchNum;
 				clusters.push_back(newBatch);
 
 				vertexOffset = (uint32_t)vertexStroage.vertices.size();

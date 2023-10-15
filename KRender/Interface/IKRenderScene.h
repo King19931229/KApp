@@ -46,7 +46,8 @@ struct IKVirtualGeometryScene
 	virtual bool UnInit() = 0;
 	virtual bool ExecuteMain(IKCommandBufferPtr primaryBuffer) = 0;
 	virtual bool ExecutePost(IKCommandBufferPtr primaryBuffer) = 0;
-	virtual bool BasePass(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer) = 0;
+	virtual bool BasePassMain(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer) = 0;
+	virtual bool BasePassPost(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer) = 0;
 	virtual bool DebugRender(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer) = 0;
 };
 typedef std::shared_ptr<IKVirtualGeometryScene> IKVirtualGeometryScenePtr;

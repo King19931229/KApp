@@ -301,6 +301,7 @@ void KRenderImGui::Run()
 		if (m_SettingMenuEnable[VIRTUAL_GEOMETRY])
 		{
 			ImGui::Checkbox("UseMeshPipeline", &KRenderGlobal::VirtualGeometryManager.GetUseMeshPipeline());
+			ImGui::Checkbox("UseDoubleOcclusion", &KRenderGlobal::VirtualGeometryManager.GetUseDoubleOcclusion());
 		}
 	}
 	ImGui::PopStyleColor(1);

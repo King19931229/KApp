@@ -52,6 +52,7 @@ protected:
 	KVirtualGeometryStorageBuffer m_ResourceBuffer;
 
 	bool m_UseMeshPipeline;
+	bool m_UseDoubleOcclusion;
 
 	bool AcquireImpl(const char* label, const KMeshRawData& userData, KVirtualGeometryResourceRef& geometry);
 	bool RemoveGeometry(uint32_t index);
@@ -75,6 +76,7 @@ public:
 	IKStorageBufferPtr GetResourceBuffer() { return m_ResourceBuffer.GetBuffer(); }
 
 	bool& GetUseMeshPipeline() { return m_UseMeshPipeline; }
+	bool& GetUseDoubleOcclusion() { return m_UseDoubleOcclusion; }
 
 	const std::vector<KMaterialRef>& GetAllMaterials() const { return m_MaterialResources; }
 

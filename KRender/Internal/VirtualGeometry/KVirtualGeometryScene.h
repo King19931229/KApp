@@ -136,6 +136,9 @@ protected:
 	bool RemoveInstance(IKEntity* entity);
 
 	bool Execute(IKCommandBufferPtr primaryBuffer, InstanceCull cullMode);
+	bool BasePass(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer, InstanceCull cullMode);
+
+	static std::string InstanceCullString(InstanceCull cullMode);
 public:
 	KVirtualGeometryScene();
 	~KVirtualGeometryScene();
@@ -146,7 +149,9 @@ public:
 	bool ExecuteMain(IKCommandBufferPtr primaryBuffer) override;
 	bool ExecutePost(IKCommandBufferPtr primaryBuffer) override;
 
-	bool BasePass(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer) override;
+	bool BasePassMain(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer) override;
+	bool BasePassPost(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer) override;
+
 	bool DebugRender(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer) override;
 
 	bool ReloadShader();

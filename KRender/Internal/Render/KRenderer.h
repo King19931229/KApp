@@ -62,7 +62,8 @@ protected:
 	KMainPassPtr m_Pass;
 	glm::mat4 m_PrevViewProj;
 
-	RenderPassCallFuncType m_BasePassCallFunc;
+	RenderPassCallFuncType m_BasePassMainCallFunc;
+	RenderPassCallFuncType m_BasePassPostCallFunc;
 	RenderPassCallFuncType m_DebugCallFunc;
 	RenderPassCallFuncType m_ForegroundCallFunc;
 	std::unordered_map<IKRenderWindow*, OnWindowRenderCallback*> m_WindowRenderCB;
