@@ -1,10 +1,18 @@
 #include "vg_define.h"
+#include "wave.h"
 
 #extension GL_EXT_mesh_shader : require
 
+#define VERTEX_REUSE_BATCH 0
+
+#if VERTEX_REUSE_BATCH
 #define VG_MESH_SHADER_GROUP_SIZE 32
-#define VG_MESH_SHADER_VERTEX_PER_THREAD (MAX_CLUSTER_VERTEX_NUM / VG_MESH_SHADER_GROUP_SIZE)
-#define VG_MESH_SHADER_TRIANGLE_PER_THREAD (MAX_CLUSTER_VERTEX_NUM / VG_MESH_SHADER_GROUP_SIZE)
+#else
+#define VG_MESH_SHADER_GROUP_SIZE 128
+#endif
+
+#define VG_MESH_SHADER_VERTEX_PER_THREAD ((MAX_CLUSTER_VERTEX_NUM + VG_MESH_SHADER_GROUP_SIZE - 1)  / VG_MESH_SHADER_GROUP_SIZE)
+#define VG_MESH_SHADER_TRIANGLE_PER_THREAD ((MAX_CLUSTER_TRIANGLE_NUM + VG_MESH_SHADER_GROUP_SIZE - 1) / VG_MESH_SHADER_GROUP_SIZE)
 
 layout(local_size_x = VG_MESH_SHADER_GROUP_SIZE, local_size_y = 1, local_size_z = 1) in;
 layout(max_vertices = MAX_CLUSTER_VERTEX_NUM, max_primitives = MAX_CLUSTER_TRIANGLE_NUM) out;
@@ -16,21 +24,9 @@ layout(location = 2) out vec3 outPrevWorldPos[];
 layout(location = 3) out vec3 outWorldNormal[];
 layout(location = 4) out vec3 outVertexColor[];
 
-struct BatchSturct
+uint FindNthSetBit(uint mask, uint index)
 {
-	vec2 texCoord;
-	vec3 worldPos;
-	vec3 prevWorldPos;
-	vec3 worldNormal;
-	vec3 vertexColor;
-	vec4 glPositoin;
-};
-
-// shared BatchSturct BatchData[VERTEX_REUSE_BATCH_SIZE];
-
-uint FindNthSetBit(uint mask, int index)
-{
-	int last = bitCount(mask) - index - 1;
+	uint last = bitCount(mask) - index - 1;
 	uint p = 16;
 	p += bitCount(mask >> p) <= last ? -8 : 8;
 	p += bitCount(mask >> p) <= last ? -4 : 4;
@@ -40,10 +36,66 @@ uint FindNthSetBit(uint mask, int index)
 	return p;
 }
 
-uint FindNthSetBit(uvec2 mask, int index)
+uint FindNthSetBit(uvec2 mask, uint index)
 {
-	int lowPop = bitCount(mask.x);
+	uint lowPop = bitCount(mask.x);
 	return FindNthSetBit(index < lowPop ? mask.x : mask.y, index < lowPop ? index : index - lowPop) + (index < lowPop ? 0 : 32);
+}
+
+// Prefix sum of Bits masked to the bits lower than Index.
+uint MaskedBitCount(uvec2 bits, uint index)
+{
+	bool bLow = index < 32;
+
+	uint mask = 1u << (index - (bLow ? 0 : 32));
+	mask -= 1;
+
+	uint offset;
+	offset  = bitCount(bits.x & (bLow ? mask : ~0));
+	offset += bitCount(bits.y & (bLow ? 0 : mask));
+	return offset;
+}
+
+uint DeduplicateVertexIndex(in uint batchIndex, in uint batchTriangleNum, in uint laneIndex, in uint triangleIndex, out uint uniqueVertexIndex, out uvec3 vertexLaneIndices)
+{
+	uvec3 vertexIndices = uvec3(0);
+	uvec2 vertexUsedHash = uvec2(0);
+
+	uint baseVertexIndex = 0;
+
+	if (laneIndex < batchTriangleNum)
+	{
+		for (uint i = 0; i < 3; ++i)
+		{
+			DecodeClusterBatchDataIndex(triangleIndex, i, batchIndex, vertexIndices[i]);
+		}
+		// baseVertexIndex = subgroupMin(min(min(vertexIndices[0], vertexIndices[1]),vertexIndices[2]));
+		baseVertexIndex = subgroupMin(vertexIndices[0]);
+		vertexIndices -= uvec3(baseVertexIndex);
+		for (uint i = 0; i < 3; ++i)
+		{
+			if (vertexIndices[i] < 32)
+			{
+				vertexUsedHash[0] |= 1 << vertexIndices[i];
+			}
+			else
+			{
+				vertexUsedHash[1] |= 1 << (vertexIndices[i] & 31);
+			}
+		}
+	}
+
+	vertexUsedHash[0] = subgroupOr(vertexUsedHash[0]);
+	vertexUsedHash[1] = subgroupOr(vertexUsedHash[1]);
+
+	uniqueVertexIndex = FindNthSetBit(vertexUsedHash, laneIndex) + subgroupBroadcastFirst(baseVertexIndex);
+
+	for (uint i = 0; i < 3; ++i)
+	{
+		vertexLaneIndices[i] = MaskedBitCount(vertexUsedHash, vertexIndices[i]);
+	}
+
+	return bitCount(vertexUsedHash[0]) + bitCount(vertexUsedHash[1]);
 }
 
 void main()
@@ -58,13 +110,18 @@ void main()
 	uint batchTriangleNum = binning.rangeNum;
 	uint batchTriangleEnd = batchTriangleBegin + batchTriangleNum;
 
+	// TODO
+	uint batchVertexNum = MAX_CLUSTER_VERTEX_NUM;
+
+#if VERTEX_REUSE_BATCH == 0
 	for (uint loop = 0; loop < VG_MESH_SHADER_TRIANGLE_PER_THREAD; ++loop)
 	{
-		uint triangleIndex = batchTriangleBegin + threadIndex + loop * VG_MESH_SHADER_TRIANGLE_PER_THREAD;
+		uint triangleIndex = batchTriangleBegin + threadIndex + loop * VG_MESH_SHADER_GROUP_SIZE;
 		if (triangleIndex - batchTriangleBegin >= batchTriangleNum)
 		{
 			break;
 		}
+
 		uint index;
 		for (uint i = 0; i < 3; ++i)
 		{
@@ -73,15 +130,14 @@ void main()
 		}
 	}
 
-	uint batchVertexNum = MAX_CLUSTER_VERTEX_NUM;
-
 	for (uint loop = 0; loop < VG_MESH_SHADER_VERTEX_PER_THREAD; ++loop)
 	{
-		uint vertexIndex = threadIndex + loop * VG_MESH_SHADER_VERTEX_PER_THREAD;
+		uint vertexIndex = threadIndex + loop * VG_MESH_SHADER_GROUP_SIZE;
 		if (vertexIndex >= batchVertexNum)
 		{
 			break;
 		}
+
 		mat4 localToWorld;
 		vec3 position;
 		vec3 normal;
@@ -103,9 +159,46 @@ void main()
 
 		gl_MeshVerticesEXT[vertexIndex].gl_Position = worldToClip * localToWorld * vec4(position, 1.0);
 	}
+#else
+	uint laneIndex = threadIndex;
+	uint uniqueVertexIndex = 0;
+	uvec3 vertexLaneIndices = uvec3(0);
+	uint triangleIndex = batchTriangleBegin + laneIndex;
+
+	uint uniqueVertexNum = DeduplicateVertexIndex(batchIndex, batchTriangleNum, laneIndex, triangleIndex, uniqueVertexIndex, vertexLaneIndices);
+
+	if (laneIndex < batchTriangleNum)
+	{
+		gl_PrimitiveTriangleIndicesEXT[laneIndex] = vertexLaneIndices;
+	}
+
+	if (laneIndex < uniqueVertexNum)
+	{
+		mat4 localToWorld;
+		vec3 position;
+		vec3 normal;
+		vec2 uv;
+
+		uint index = uniqueVertexIndex;
+		DecodeClusterBatchDataVertex(index, batchIndex, localToWorld, position, normal, uv);
+
+		outWorldPos[laneIndex] = (localToWorld * vec4(position, 1.0)).xyz;
+		outPrevWorldPos[laneIndex] = (localToWorld * vec4(position, 1.0)).xyz;
+		outTexCoord[laneIndex] = uv;
+		outWorldNormal[laneIndex] = normalize(mat3(localToWorld) * normal);
+
+		uint clusterIndex;
+		DecodeClusterBatchClusterIndex(batchIndex, clusterIndex);
+		outVertexColor[laneIndex] = RandomColor(clusterIndex);
+		// outVertexColor[laneIndex] = RandomColor(clusterIndex * MAX_CLUSTER_TRIANGLE_NUM + triangleIndex);
+		// outVertexColor[laneIndex] = outWorldNormal;
+
+		gl_MeshVerticesEXT[laneIndex].gl_Position = worldToClip * localToWorld * vec4(position, 1.0);
+	}
+#endif
 
 	if (threadIndex == 0)
 	{
-		SetMeshOutputsEXT(MAX_CLUSTER_VERTEX_NUM, batchTriangleNum);
+		SetMeshOutputsEXT(batchVertexNum, batchTriangleNum);
 	}
 }

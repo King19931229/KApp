@@ -273,7 +273,7 @@ protected:
 	uint32_t m_MaxTriangleNum = 0;
 	uint32_t m_MinTriangleNum = 0;
 
-	uint32_t m_MaxBatchVertexNum = 32;
+	uint32_t m_MaxReuseBatchNum = 32;
 
 	float m_MaxError = 0;
 

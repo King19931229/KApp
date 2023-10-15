@@ -1359,7 +1359,7 @@ void KVirtualGeometryBuilder::BuildReuseBatch()
 					newVertexNum += !vertexUseBits[v[k]];
 				}
 
-				if (batchVertexNum + newVertexNum > m_MaxBatchVertexNum)
+				if (batchVertexNum + newVertexNum > m_MaxReuseBatchNum)
 				{
 					materialRange.batchTriCounts.push_back(batchTriangleNum);
 					batchVertexNum = 0;
@@ -1376,6 +1376,14 @@ void KVirtualGeometryBuilder::BuildReuseBatch()
 
 				batchVertexNum += newVertexNum;
 				batchTriangleNum += 1;
+
+				if (batchTriangleNum == m_MaxReuseBatchNum)
+				{
+					materialRange.batchTriCounts.push_back(batchTriangleNum);
+					batchVertexNum = 0;
+					batchTriangleNum = 0;
+					ResetUseBit();
+				}
 			}
 
 			if (batchTriangleNum > 0)
