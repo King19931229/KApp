@@ -3,10 +3,10 @@
 
 #extension GL_EXT_mesh_shader : require
 
-#define VERTEX_REUSE_BATCH 0
+#define VERTEX_REUSE_BATCH 1
 
 #if VERTEX_REUSE_BATCH
-#define VG_MESH_SHADER_GROUP_SIZE 32
+#define VG_MESH_SHADER_GROUP_SIZE 64
 #else
 #define VG_MESH_SHADER_GROUP_SIZE 128
 #endif
@@ -93,6 +93,13 @@ uint DeduplicateVertexIndex(in uint batchIndex, in uint batchTriangleNum, in uin
 	for (uint i = 0; i < 3; ++i)
 	{
 		vertexLaneIndices[i] = MaskedBitCount(vertexUsedHash, vertexIndices[i]);
+	}
+
+	uint maxVertexIndex = max(max(vertexIndices[0], vertexIndices[1]), vertexIndices[2]);
+	maxVertexIndex = subgroupMax(maxVertexIndex);
+	if (maxVertexIndex >= 64)
+	{
+		return 0;
 	}
 
 	return bitCount(vertexUsedHash[0]) + bitCount(vertexUsedHash[1]);

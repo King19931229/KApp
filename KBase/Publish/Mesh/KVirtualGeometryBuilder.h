@@ -34,6 +34,8 @@ struct KVirtualGeometryDefine
 	static constexpr uint32_t MAX_CLUSTER_TRIANGLE = 128;
 	static constexpr uint32_t MAX_CLUSTER_VERTEX = 256;
 	static constexpr uint32_t MAX_CLUSTER_GROUP = 32;
+
+	static constexpr uint32_t MAX_CLUSTER_REUSE_BATCH = 32;
 };
 static_assert(!(KVirtualGeometryDefine::MAX_BVH_NODES& (KVirtualGeometryDefine::MAX_BVH_NODES - 1)), "MAX_BVH_NODES must be pow of 2");
 
@@ -91,6 +93,8 @@ struct KMeshCluster
 	void InitBound();
 	void InitMaterial();
 	void PostInit();
+	bool BuildMaterialRange();
+	void EnsureIndexOrder();
 
 	void UnInit();
 	void Init(KMeshClusterPtr* clusters, uint32_t numClusters);
@@ -273,8 +277,6 @@ protected:
 	uint32_t m_MaxTriangleNum = 0;
 	uint32_t m_MinTriangleNum = 0;
 
-	uint32_t m_MaxReuseBatchNum = 32;
-
 	float m_MaxError = 0;
 
 	uint32_t m_BVHRoot = KVirtualGeometryDefine::INVALID_INDEX;
@@ -304,6 +306,7 @@ protected:
 	uint32_t BuildHierarchyTopDown(std::vector<KMeshClusterBVHNodePtr>& bvhNodes, std::vector<uint32_t>& indices, bool sort);
 
 	void BuildDAG(const std::vector<KMeshProcessorVertex>& vertices, const std::vector<uint32_t>& indices, const std::vector<uint32_t>& materialIndices, uint32_t minPartitionNum, uint32_t maxPartitionNum, uint32_t minClusterGroup, uint32_t maxClusterGroup);
+	void BuildMaterialRanges();
 	void ConstrainCluster();
 	void BuildReuseBatch();
 	void BuildClusterStorage();
