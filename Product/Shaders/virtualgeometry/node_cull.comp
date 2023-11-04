@@ -3,14 +3,12 @@
 #include "wave.h"
 
 shared uvec4 SharedCandidateNodeBatch[BVH_MAX_GROUP_BATCH_SIZE];
+shared uint SharedNodeBatchReadOffset;
+shared uint SharedNodeReadyMask;
+shared uint SharedNodeCount;
 
-#define DEBUG_SHADER_GROUP 0
+#define DONT_USE_SHARED_NODE_BATCH 0
 #define EMIT_CLUSTER_EACH_THREAD 1
-
-bool IsSharedHierarchyDataValid(uint index)
-{
-	return SharedCandidateNodeBatch[index].x != 0xFFFFFFFF;
-}
 
 void ProcessNodeBatch(uint groupIndex, uint batchStart, uint batchSize)
 {
@@ -18,20 +16,16 @@ void ProcessNodeBatch(uint groupIndex, uint batchStart, uint batchSize)
 	uint childIndex = groupIndex & BVH_NODE_MASK;
 
 	uint batchIndex = batchStart + localIndex;
+	bool process = localIndex < batchSize;
+
+	if (process)
+	{
 #if INSTANCE_CULL_MODE == INSTANCE_CULL_POST
 	batchIndex += MAX_CANDIDATE_NODE;
 #endif
-#if DEBUG_SHADER_GROUP
-	if (localIndex >= batchSize)
-	{
-		return;
-	}
+#if DONT_USE_SHARED_NODE_BATCH
 	CandidateNode nodeBatch = UnpackCandidateNode(CandidateNodeBatch[batchIndex]);
 #else
-	if (!IsSharedHierarchyDataValid(localIndex))
-	{
-		return;
-	}
 	CandidateNode nodeBatch = UnpackCandidateNode(SharedCandidateNodeBatch[localIndex]);
 #endif
 
@@ -90,6 +84,7 @@ void ProcessNodeBatch(uint groupIndex, uint batchStart, uint batchSize)
 				{
 					nodeWriteOffset += MAX_CANDIDATE_NODE;
 					StoreCandidateNode(nodeWriteOffset, childBatch);
+					WAVE_INTERLOCK_ADD_ONLY(QueueState[QUEUE_STATE_POST_INDEX].nodeCount, 1);
 				}
 			}
 #endif // INSTANCE_CULL_MODE == INSTANCE_CULL_MAIN
@@ -105,6 +100,7 @@ void ProcessNodeBatch(uint groupIndex, uint batchStart, uint batchSize)
 					nodeWriteOffset += MAX_CANDIDATE_NODE;
 #endif
 					StoreCandidateNode(nodeWriteOffset, childBatch);
+					WAVE_INTERLOCK_ADD_ONLY(QueueState[QUEUE_STATE_INDEX].nodeCount, 1);
 				}
 			}
 		}
@@ -118,74 +114,152 @@ void ProcessNodeBatch(uint groupIndex, uint batchStart, uint batchSize)
 
 		uint clusterStart = hierarchy.clusterStart + childIndex * clusterNumPerChild + uint(childIndex != 0) * clusterNumPerChildRest;
 		uint clusterNum = clusterNumPerChild + uint(childIndex == 0) * clusterNumPerChildRest;
-		if (clusterNum == 0)
-		{
-			return;
-		}
 #else
-		if (childIndex != 0)
-		{
-			return;
-		}
 		uint clusterStart = hierarchy.clusterStart;
-		uint clusterNum = hierarchy.clusterNum;
-#endif
-		uint clusterWriteOffset = 0;
-		WAVE_INTERLOCK_ADD(QueueState[QUEUE_STATE_INDEX].clusterWriteOffset, clusterNum, clusterWriteOffset);
-
-		for (uint i = 0; i < clusterNum; ++i)
+		uint clusterNum = 0;
+		if (childIndex == 0)
 		{
-			if (clusterWriteOffset + i >= MAX_CANDIDATE_CLUSTER)
+			clusterNum = hierarchy.clusterNum;
+		}
+#endif
+		if (clusterNum > 0)
+		{
+			uint clusterWriteOffset = 0;
+			WAVE_INTERLOCK_ADD(QueueState[QUEUE_STATE_INDEX].clusterWriteOffset, clusterNum, clusterWriteOffset);
+
+			for (uint i = 0; i < clusterNum; ++i)
 			{
-				break;
+				if (clusterWriteOffset + i >= MAX_CANDIDATE_CLUSTER)
+				{
+					break;
+				}
+				CandidateCluster candidateCluster;
+				candidateCluster.instanceId = instanceId;
+				candidateCluster.clusterIndex = clusterStart + i;
+				StoreCandidateCluster(clusterWriteOffset + i, candidateCluster);
 			}
-			CandidateCluster candidateCluster;
-			candidateCluster.instanceId = instanceId;
-			candidateCluster.clusterIndex = clusterStart + i;
-			StoreCandidateCluster(clusterWriteOffset + i, candidateCluster);
+		}
+	}
+	}
+
+	barrier();
+	if (groupIndex == 0)
+	{
+		WAVE_INTERLOCK_ADD_ONLY(QueueState[QUEUE_STATE_INDEX].nodeCount, -batchSize);
+	}
+}
+
+#ifdef PERSISTENT_CULL
+
+layout(local_size_x = VG_GROUP_SIZE, local_size_y = 1, local_size_z = 1) in;
+void main()
+{
+	uint groupIndex = gl_LocalInvocationID.x;
+
+	uint processOffset = BVH_MAX_GROUP_BATCH_SIZE;
+	uint batchReadOffset = 0;
+
+	bool bProcessNode = true;
+	uint loopCounter = 0;
+
+	while (bProcessNode)
+	{
+		SharedNodeReadyMask = 0;
+		barrier();
+
+		if (processOffset == BVH_MAX_GROUP_BATCH_SIZE)
+		{
+			if (groupIndex == 0)
+			{
+				WAVE_INTERLOCK_ADD(QueueState[QUEUE_STATE_INDEX].nodeReadOffset, BVH_MAX_GROUP_BATCH_SIZE, SharedNodeBatchReadOffset);
+			}
+			barrier();
+			processOffset = 0;
+			batchReadOffset = SharedNodeBatchReadOffset;
+		}
+
+		uint batchStart = batchReadOffset + processOffset;
+		uint batchIndex = batchStart + groupIndex;
+		bProcessNode = batchIndex < MAX_CANDIDATE_NODE;
+		if (!bProcessNode)
+		{
+			continue;
+		}
+		bool bNodeReady = processOffset + groupIndex < BVH_MAX_GROUP_BATCH_SIZE;
+#if INSTANCE_CULL_MODE == INSTANCE_CULL_POST
+		batchIndex += MAX_CANDIDATE_NODE;
+#endif
+		if (bNodeReady)
+		{
+			bNodeReady = CandidateNodeBatch[batchIndex].x != 0xFFFFFFFF;
+		}
+
+		if (bNodeReady)
+		{
+			SharedCandidateNodeBatch[groupIndex] = CandidateNodeBatch[batchIndex];
+			atomicOr(SharedNodeReadyMask, 1 << groupIndex);
+		}
+		barrier();
+
+		uint nodeReadyMask = SharedNodeReadyMask;
+		if (nodeReadyMask > 0)
+		{
+			uint batchSize = findLSB(~nodeReadyMask);
+			ProcessNodeBatch(groupIndex, batchStart, batchSize);
+			if (groupIndex < batchSize/*bNodeReady*/)
+			{
+				CandidateNodeBatch[batchIndex] = uvec4(0xFFFFFFFF);
+			}
+			processOffset += batchSize;
+		}
+
+		barrier();
+		if (groupIndex == 0)
+		{
+			SharedNodeCount = QueueState[QUEUE_STATE_INDEX].nodeCount;
+		}
+		barrier();
+
+		if (SharedNodeCount == 0)
+		{
+			bProcessNode = false;
+		}
+
+		loopCounter += 1;
+		if (loopCounter >= 1000)
+		{
+			break;
 		}
 	}
 }
+
+#else
 
 layout(local_size_x = VG_GROUP_SIZE, local_size_y = 1, local_size_z = 1) in;
 void main()
 {
 	uint groupID = gl_WorkGroupID.x;
 	uint groupIndex = gl_LocalInvocationID.x;
-	uint maxBatchNodes = QueueState[QUEUE_STATE_INDEX].nodePrevWriteOffset - QueueState[QUEUE_STATE_INDEX].nodeReadOffset;
-
 	uint batchStart = QueueState[QUEUE_STATE_INDEX].nodeReadOffset + groupID * BVH_MAX_GROUP_BATCH_SIZE;
 	uint batchSize = min(batchStart + BVH_MAX_GROUP_BATCH_SIZE, QueueState[QUEUE_STATE_INDEX].nodePrevWriteOffset) - batchStart;
 
-	uint localIndex = groupIndex / BVH_MAX_NODES;
-	uint childIndex = groupIndex & BVH_NODE_MASK;
-
-	uint batchIndex = batchStart + localIndex;
+	uint batchIndex = batchStart + groupIndex;
 #if INSTANCE_CULL_MODE == INSTANCE_CULL_POST
 	batchIndex += MAX_CANDIDATE_NODE;
 #endif
 
-#if !DEBUG_SHADER_GROUP
-	if (childIndex == 0)
+#if DONT_USE_SHARED_NODE_BATCH == 0
+	if (groupIndex < batchSize)
 	{
-		if (localIndex < batchSize)
-		{
-			SharedCandidateNodeBatch[localIndex] = CandidateNodeBatch[batchIndex];
-		}
-		else
-		{
-			SharedCandidateNodeBatch[localIndex] = uvec4(0xFFFFFFFF);
-		}
+		SharedCandidateNodeBatch[groupIndex] = CandidateNodeBatch[batchIndex];
 	}
-	memoryBarrierShared(); // barrier();
+	barrier();
 #endif
-
 	ProcessNodeBatch(groupIndex, batchStart, batchSize);
-
-#if !DEBUG_SHADER_GROUP
-	if (IsSharedHierarchyDataValid(localIndex))
+	if (groupIndex < batchSize)
 	{
 		CandidateNodeBatch[batchIndex] = uvec4(0xFFFFFFFF);
 	}
-#endif
 }
+
+#endif

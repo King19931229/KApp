@@ -108,6 +108,7 @@ protected:
 	IKComputePipelinePtr m_InitNodeCullArgsPipeline[INSTANCE_CULL_COUNT];
 	IKComputePipelinePtr m_InitClusterCullArgsPipeline[INSTANCE_CULL_COUNT];
 	IKComputePipelinePtr m_NodeCullPipeline[INSTANCE_CULL_COUNT];
+	IKComputePipelinePtr m_PersistentNodeCullPipeline[INSTANCE_CULL_COUNT];
 	IKComputePipelinePtr m_ClusterCullPipeline[INSTANCE_CULL_COUNT];
 	IKComputePipelinePtr m_CalcDrawArgsPipeline[INSTANCE_CULL_COUNT];
 	IKComputePipelinePtr m_InitBinningPipline[INSTANCE_CULL_COUNT];

@@ -2,6 +2,10 @@
 #include "wave.h"
 
 #extension GL_EXT_mesh_shader : require
+#extension GL_ARB_shader_atomic_counters : require
+#extension GL_ARB_shader_ballot : require
+#extension GL_KHR_shader_subgroup_arithmetic : require
+#extension GL_KHR_shader_subgroup_ballot : require
 
 #define VERTEX_REUSE_BATCH 1
 

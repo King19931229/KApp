@@ -39,12 +39,12 @@ void InitQEM(IKEnginePtr engine)
 		{ "Models/glTF-Sample-Models/2.0/SciFiHelmet/glTF/SciFiHelmet.gltf", ".gltf", 100.0f }
 	};
 
-#if 0
+#if 1
 	static IKEntityPtr entity = nullptr;
 
 	static KMeshRawData userData;
 	static bool initUserData = false;
-	static const uint32_t fileIndex = 0;
+	static const uint32_t fileIndex = 1;
 	static const char* filePath = modelInfos[fileIndex].path;
 	static const char* fileExt = modelInfos[fileIndex].ext;
 	static const float scale = modelInfos[fileIndex].scale;
@@ -169,7 +169,7 @@ void InitQEM(IKEnginePtr engine)
 			DebugDAGCut
 		};
 
-		static uint32_t selectedOption = DebugSimplification;
+		static uint32_t selectedOption = DebugVirtualGeometry;
 
 		if (ImGui::RadioButton("DebugVirtualGeometry", selectedOption == DebugVirtualGeometry))
 		{
@@ -355,7 +355,7 @@ void InitQEM(IKEnginePtr engine)
 		bool initUserData = false;
 
 		std::vector<IKEntityPtr> entites;
-		for (uint32_t fileIndex = 0; fileIndex < 2; ++fileIndex)
+		for (uint32_t fileIndex = 1; fileIndex < 2; ++fileIndex)
 		{
 			KMeshRawData userData;
 			const char* filePath = modelInfos[fileIndex].path;
@@ -402,12 +402,14 @@ void InitQEM(IKEnginePtr engine)
 				}
 			}
 		}
+		/*
 		for (size_t i = 0; i < entites.size() / 2; ++i)
 		{
 			scene->Remove(entites[i].get());
 			entites[i]->UnRegisterAllComponent();
 			KECS::EntityManager->ReleaseEntity(entites[i]);
 		}
+		*/
 	};
 #endif
 	if (engine->GetRenderCore()->IsInit())

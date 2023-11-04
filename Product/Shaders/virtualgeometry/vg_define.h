@@ -9,7 +9,7 @@
 #define MAX_CANDIDATE_CLUSTER (1024 * 1024 * 4)
 #define MAX_CLUSTER_TRIANGLE_NUM 128
 #define MAX_CLUSTER_VERTEX_NUM 256
-#define VG_GROUP_SIZE 64
+#define VG_GROUP_SIZE 32
 #define BVH_MAX_GROUP_BATCH_SIZE (VG_GROUP_SIZE / BVH_MAX_NODES)
 #define CULL_CLUSTER_ALONG_BVH 1
 #define INDIRECT_DRAW_ARGS_OFFSET 0
@@ -115,13 +115,13 @@ struct QueueStateStruct
 	uint nodePrevWriteOffset;
 	uint nodeWriteOffset;
 
+	uint nodeCount;
+
 	uint clusterReadOffset;
 	uint clusterWriteOffset;
 
 	uint visibleClusterNum;
 	uint binningWriteOffset;
-
-	uint padding[1];
 };
 
 struct CandidateNode

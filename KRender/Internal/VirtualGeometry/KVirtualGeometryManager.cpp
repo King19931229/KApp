@@ -145,6 +145,7 @@ bool KVirtualGeometryStorageBuffer::Append(size_t size, void* pData)
 KVirtualGeometryManager::KVirtualGeometryManager()
 	: m_UseMeshPipeline(false)
 	, m_UseDoubleOcclusion(true)
+	, m_PersistentCull(true)
 {
 }
 

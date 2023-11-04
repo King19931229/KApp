@@ -302,6 +302,7 @@ void KRenderImGui::Run()
 		{
 			ImGui::Checkbox("UseMeshPipeline", &KRenderGlobal::VirtualGeometryManager.GetUseMeshPipeline());
 			ImGui::Checkbox("UseDoubleOcclusion", &KRenderGlobal::VirtualGeometryManager.GetUseDoubleOcclusion());
+			ImGui::Checkbox("UsePersistentCull", &KRenderGlobal::VirtualGeometryManager.GetUsePersistentCull());
 		}
 	}
 	ImGui::PopStyleColor(1);

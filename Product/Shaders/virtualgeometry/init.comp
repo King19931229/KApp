@@ -9,6 +9,7 @@ void main()
 		QueueState[i].nodeReadOffset = 0;
 		QueueState[i].nodePrevWriteOffset = 0;
 		QueueState[i].nodeWriteOffset = 0;
+		QueueState[i].nodeCount = 0;
 		QueueState[i].clusterReadOffset = 0;
 		QueueState[i].clusterWriteOffset = 0;
 		QueueState[i].visibleClusterNum = 0;

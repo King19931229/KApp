@@ -41,6 +41,7 @@ void main()
 		{
 			uint nodeWriteOffset = 0;
 			WAVE_INTERLOCK_ADD(QueueState[QUEUE_STATE_INDEX].nodeWriteOffset, 1, nodeWriteOffset);
+			WAVE_INTERLOCK_ADD_ONLY(QueueState[QUEUE_STATE_INDEX].nodeCount, 1);
 			if (nodeWriteOffset < MAX_CANDIDATE_NODE)
 			{
 #if INSTANCE_CULL_MODE == INSTANCE_CULL_POST
