@@ -42,73 +42,70 @@ void ProcessNodeBatch(uint groupIndex, uint batchStart, uint batchSize)
 	GetHierarchyData(nodeBatch, hierarchy);
 
 	uint isLeaf = hierarchy.isLeaf;
-
 	mat4 localToWorld = InstanceData[instanceId].transform;
-
-	vec3 boundCenter = hierarchy.lodBoundCenterError.xyz;
-	float maxParentError = hierarchy.lodBoundCenterError.w;
-	vec3 boundHalfExtend = hierarchy.lodBoundHalfExtendRadius.xyz;
-	float radius = hierarchy.lodBoundHalfExtendRadius.w;
-
-	FrustumCullData cullData = BoxCullFrustumGeneral(boundCenter, boundHalfExtend, localToWorld, worldToClip, true, false);
-
-#if CULL_CLUSTER_ALONG_BVH
-	if (cullData.bIsVisible)
-	{
-#if USE_INSTANCE_CENTER_CULL
-		cullData.bIsVisible = ShouldVisitChild(localToWorld, worldToView, vec3(0, 0, 0), radius, maxParentError);
-#else
-		cullData.bIsVisible = ShouldVisitChild(localToWorld, worldToView, boundCenter, radius, maxParentError);
-#endif
-	}
-#endif
-
-#if INSTANCE_CULL_MODE == INSTANCE_CULL_MAIN || INSTANCE_CULL_MODE == INSTANCE_CULL_POST
-	if (cullData.bIsVisible)
-	{
-		ivec2 hzbSize = textureSize(hiZTex, 0);
-		ScreenRect rect = GetScreenRect(ivec4(0, 0, hzbSize * 2), cullData, 4);
-		cullData.bIsVisible = IsVisibleHZB(rect, hzbSize, true);
-	}
-#if INSTANCE_CULL_MODE == INSTANCE_CULL_MAIN
-	if (!cullData.bIsVisible)
-	{
-		uint nodeWriteOffset = 0;
-		WAVE_INTERLOCK_ADD(QueueState[QUEUE_STATE_POST_INDEX].nodeWriteOffset, 1, nodeWriteOffset);
-		if (nodeWriteOffset < MAX_CANDIDATE_NODE)
-		{
-			nodeWriteOffset += MAX_CANDIDATE_NODE;
-			CandidateNode node;
-			node.instanceId = nodeBatch.instanceId;
-			node.nodeIndex = nodeBatch.nodeIndex;
-			StoreCandidateNode(nodeWriteOffset, node);
-		}
-	}
-#endif
-#endif
-
-	if (!cullData.bIsVisible)
-	{
-		return;
-	}
 
 	if (isLeaf == 0)
 	{
 		uint nodeIndex = hierarchy.children[childIndex];
 		if (nodeIndex != INVALID_INDEX)
 		{
-			uint nodeWriteOffset = 0;
-			WAVE_INTERLOCK_ADD(QueueState[QUEUE_STATE_INDEX].nodeWriteOffset, 1, nodeWriteOffset);
-			if (nodeWriteOffset < MAX_CANDIDATE_NODE)
+			CandidateNode childBatch;
+			childBatch.instanceId = instanceId;
+			childBatch.nodeIndex = nodeIndex;
+
+			ClusterHierarchyStruct childHierarchy;
+			GetHierarchyData(childBatch, childHierarchy);
+
+			vec3 boundCenter = childHierarchy.lodBoundCenterError.xyz;
+			float maxParentError = childHierarchy.lodBoundCenterError.w;
+			vec3 boundHalfExtend = childHierarchy.lodBoundHalfExtendRadius.xyz;
+			float radius = childHierarchy.lodBoundHalfExtendRadius.w;
+
+			FrustumCullData cullData = BoxCullFrustumGeneral(boundCenter, boundHalfExtend, localToWorld, worldToClip, true, false);
+
+#if CULL_CLUSTER_ALONG_BVH
+			if (cullData.bIsVisible)
 			{
-#if INSTANCE_CULL_MODE == INSTANCE_CULL_POST
-				nodeWriteOffset += MAX_CANDIDATE_NODE;
+#if USE_INSTANCE_CENTER_CULL
+				cullData.bIsVisible = ShouldVisitChild(localToWorld, worldToView, vec3(0, 0, 0), radius, maxParentError);
+#else
+				cullData.bIsVisible = ShouldVisitChild(localToWorld, worldToView, boundCenter, radius, maxParentError);
+#endif // USE_INSTANCE_CENTER_CULL
+			}
+#endif // CULL_CLUSTER_ALONG_BVH
+
+#if INSTANCE_CULL_MODE == INSTANCE_CULL_MAIN || INSTANCE_CULL_MODE == INSTANCE_CULL_POST
+			if (cullData.bIsVisible)
+			{
+				ivec2 hzbSize = textureSize(hiZTex, 0);
+				ScreenRect rect = GetScreenRect(ivec4(0, 0, hzbSize * 2), cullData, 4);
+				cullData.bIsVisible = IsVisibleHZB(rect, hzbSize, true);
+			}
+#if INSTANCE_CULL_MODE == INSTANCE_CULL_MAIN
+			if (!cullData.bIsVisible)
+			{
+				uint nodeWriteOffset = 0;
+				WAVE_INTERLOCK_ADD(QueueState[QUEUE_STATE_POST_INDEX].nodeWriteOffset, 1, nodeWriteOffset);
+				if (nodeWriteOffset < MAX_CANDIDATE_NODE)
+				{
+					nodeWriteOffset += MAX_CANDIDATE_NODE;
+					StoreCandidateNode(nodeWriteOffset, childBatch);
+				}
+			}
+#endif // INSTANCE_CULL_MODE == INSTANCE_CULL_MAIN
 #endif
-				CandidateNode node;
-				node.instanceId = instanceId;
-				node.nodeIndex = nodeIndex;
-				StoreCandidateNode(nodeWriteOffset, node);
-				// ExtraDebugInfo[nodeWriteOffset] = groupIndex; //uint(IsSharedHierarchyDataValid(localIndex));
+
+			if (cullData.bIsVisible)
+			{
+				uint nodeWriteOffset = 0;
+				WAVE_INTERLOCK_ADD(QueueState[QUEUE_STATE_INDEX].nodeWriteOffset, 1, nodeWriteOffset);
+				if (nodeWriteOffset < MAX_CANDIDATE_NODE)
+				{
+#if INSTANCE_CULL_MODE == INSTANCE_CULL_POST
+					nodeWriteOffset += MAX_CANDIDATE_NODE;
+#endif
+					StoreCandidateNode(nodeWriteOffset, childBatch);
+				}
 			}
 		}
 	}
