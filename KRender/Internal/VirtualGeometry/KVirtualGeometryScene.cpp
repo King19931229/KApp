@@ -202,6 +202,14 @@ bool KVirtualGeometryScene::Init(IKRenderScene* scene, const KCamera* camera)
 				persistentCullEnv.parentEnv = &cullEnv;
 				persistentCullEnv.macros.push_back({ "PERSISTENT_CULL", "" });
 
+				KShaderCompileEnvironment nodeCullEnv;
+				nodeCullEnv.parentEnv = &cullEnv;
+				nodeCullEnv.macros.push_back({ "NODE_CULL", "" });
+
+				KShaderCompileEnvironment clusterCullEnv;
+				clusterCullEnv.parentEnv = &cullEnv;
+				clusterCullEnv.macros.push_back({ "CLUSTER_CULL", "" });
+
 				KRenderGlobal::RenderDevice->CreateComputePipeline(m_InitQueueStatePipeline[i]);
 				m_InitQueueStatePipeline[i]->BindStorageBuffer(BINDING_QUEUE_STATE, m_QueueStateBuffer, COMPUTE_RESOURCE_OUT, true);
 				if (i == INSTANCE_CULL_MAIN)
@@ -243,46 +251,50 @@ bool KVirtualGeometryScene::Init(IKRenderScene* scene, const KCamera* camera)
 				m_InitClusterCullArgsPipeline[i]->BindStorageBuffer(BINDING_INDIRECT_ARGS, m_IndirectAgrsBuffer, COMPUTE_RESOURCE_OUT, true);
 				m_InitClusterCullArgsPipeline[i]->Init("virtualgeometry/init_cluster_cull_args.comp", cullEnv);
 
+				auto BindNodeCullResource = [this](IKComputePipelinePtr pipeline, InstanceCull cullMode)
 				{
-					auto BindNodeCullResource = [this](IKComputePipelinePtr pipeline, InstanceCull cullMode)
+					pipeline->BindUniformBuffer(BINDING_GLOBAL_DATA, m_GlobalDataBuffer);
+					pipeline->BindStorageBuffer(BINDING_RESOURCE, KRenderGlobal::VirtualGeometryManager.GetResourceBuffer(), COMPUTE_RESOURCE_IN, true);
+					pipeline->BindStorageBuffer(BINDING_INSTANCE_DATA, m_InstanceDataBuffer, COMPUTE_RESOURCE_IN, true);
+					pipeline->BindStorageBuffer(BINDING_HIERARCHY, KRenderGlobal::VirtualGeometryManager.GetPackedHierarchyBuffer(), COMPUTE_RESOURCE_IN, true);
+					pipeline->BindStorageBuffer(BINDING_QUEUE_STATE, m_QueueStateBuffer, COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, true);
+					pipeline->BindStorageBuffer(BINDING_CANDIDATE_NODE_BATCH, m_CandidateNodeBuffer, COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, true);
+					pipeline->BindStorageBuffer(BINDING_CANDIDATE_CLUSTER_BATCH, m_CandidateClusterBuffer, COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, true);
+					pipeline->BindStorageBuffer(BINDING_EXTRA_DEBUG_INFO, m_ExtraDebugBuffer, COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, true);
+					if (cullMode != INSTANCE_CULL_NONE)
 					{
-						pipeline->BindUniformBuffer(BINDING_GLOBAL_DATA, m_GlobalDataBuffer);
-						pipeline->BindStorageBuffer(BINDING_RESOURCE, KRenderGlobal::VirtualGeometryManager.GetResourceBuffer(), COMPUTE_RESOURCE_IN, true);
-						pipeline->BindStorageBuffer(BINDING_INSTANCE_DATA, m_InstanceDataBuffer, COMPUTE_RESOURCE_IN, true);
-						pipeline->BindStorageBuffer(BINDING_HIERARCHY, KRenderGlobal::VirtualGeometryManager.GetPackedHierarchyBuffer(), COMPUTE_RESOURCE_IN, true);
-						pipeline->BindStorageBuffer(BINDING_QUEUE_STATE, m_QueueStateBuffer, COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, true);
-						pipeline->BindStorageBuffer(BINDING_CANDIDATE_NODE_BATCH, m_CandidateNodeBuffer, COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, true);
-						pipeline->BindStorageBuffer(BINDING_CANDIDATE_CLUSTER_BATCH, m_CandidateClusterBuffer, COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, true);
-						pipeline->BindStorageBuffer(BINDING_EXTRA_DEBUG_INFO, m_ExtraDebugBuffer, COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, true);
-						if (cullMode != INSTANCE_CULL_NONE)
-						{
-							pipeline->BindSampler(BINDING_HIZ_BUFFER, KRenderGlobal::HiZBuffer.GetMaxBuffer()->GetFrameBuffer(), KRenderGlobal::HiZBuffer.GetHiZSampler(), true);
-						}
-					};
+						pipeline->BindSampler(BINDING_HIZ_BUFFER, KRenderGlobal::HiZBuffer.GetMaxBuffer()->GetFrameBuffer(), KRenderGlobal::HiZBuffer.GetHiZSampler(), true);
+					}
+				};
 
-					KRenderGlobal::RenderDevice->CreateComputePipeline(m_NodeCullPipeline[i]);
-					BindNodeCullResource(m_NodeCullPipeline[i], (InstanceCull)i);
-					m_NodeCullPipeline[i]->Init("virtualgeometry/node_cull.comp", cullEnv);
+				KRenderGlobal::RenderDevice->CreateComputePipeline(m_NodeCullPipeline[i]);
+				BindNodeCullResource(m_NodeCullPipeline[i], (InstanceCull)i);
+				m_NodeCullPipeline[i]->Init("virtualgeometry/node_and_cluster_cull.comp", nodeCullEnv);
 
-					KRenderGlobal::RenderDevice->CreateComputePipeline(m_PersistentNodeCullPipeline[i]);
-					BindNodeCullResource(m_PersistentNodeCullPipeline[i], (InstanceCull)i);
-					m_PersistentNodeCullPipeline[i]->Init("virtualgeometry/node_cull.comp", persistentCullEnv);
-				}
+				auto BindNodeClusterResource = [this](IKComputePipelinePtr pipeline, InstanceCull cullMode)
+				{
+					pipeline->BindUniformBuffer(BINDING_GLOBAL_DATA, m_GlobalDataBuffer);
+					pipeline->BindStorageBuffer(BINDING_RESOURCE, KRenderGlobal::VirtualGeometryManager.GetResourceBuffer(), COMPUTE_RESOURCE_IN, true);
+					pipeline->BindStorageBuffer(BINDING_INSTANCE_DATA, m_InstanceDataBuffer, COMPUTE_RESOURCE_IN, true);
+					pipeline->BindStorageBuffer(BINDING_QUEUE_STATE, m_QueueStateBuffer, COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, true);
+					pipeline->BindStorageBuffer(BINDING_CLUSTER_BATCH, KRenderGlobal::VirtualGeometryManager.GetClusterBatchBuffer(), COMPUTE_RESOURCE_IN, true);
+					pipeline->BindStorageBuffer(BINDING_CANDIDATE_CLUSTER_BATCH, m_CandidateClusterBuffer, COMPUTE_RESOURCE_IN, true);
+					pipeline->BindStorageBuffer(BINDING_SELECTED_CLUSTER_BATCH, m_SelectedClusterBuffer, COMPUTE_RESOURCE_OUT, true);
+					pipeline->BindStorageBuffer(BINDING_EXTRA_DEBUG_INFO, m_ExtraDebugBuffer, COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, true);
+					if (cullMode != INSTANCE_CULL_NONE)
+					{
+						pipeline->BindSampler(BINDING_HIZ_BUFFER, KRenderGlobal::HiZBuffer.GetMaxBuffer()->GetFrameBuffer(), KRenderGlobal::HiZBuffer.GetHiZSampler(), true);
+					}
+				};
 
 				KRenderGlobal::RenderDevice->CreateComputePipeline(m_ClusterCullPipeline[i]);
-				m_ClusterCullPipeline[i]->BindUniformBuffer(BINDING_GLOBAL_DATA, m_GlobalDataBuffer);
-				m_ClusterCullPipeline[i]->BindStorageBuffer(BINDING_RESOURCE, KRenderGlobal::VirtualGeometryManager.GetResourceBuffer(), COMPUTE_RESOURCE_IN, true);
-				m_ClusterCullPipeline[i]->BindStorageBuffer(BINDING_INSTANCE_DATA, m_InstanceDataBuffer, COMPUTE_RESOURCE_IN, true);
-				m_ClusterCullPipeline[i]->BindStorageBuffer(BINDING_QUEUE_STATE, m_QueueStateBuffer, COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, true);
-				m_ClusterCullPipeline[i]->BindStorageBuffer(BINDING_CLUSTER_BATCH, KRenderGlobal::VirtualGeometryManager.GetClusterBatchBuffer(), COMPUTE_RESOURCE_IN, true);
-				m_ClusterCullPipeline[i]->BindStorageBuffer(BINDING_CANDIDATE_CLUSTER_BATCH, m_CandidateClusterBuffer, COMPUTE_RESOURCE_IN, true);
-				m_ClusterCullPipeline[i]->BindStorageBuffer(BINDING_SELECTED_CLUSTER_BATCH, m_SelectedClusterBuffer, COMPUTE_RESOURCE_OUT, true);
-				m_ClusterCullPipeline[i]->BindStorageBuffer(BINDING_EXTRA_DEBUG_INFO, m_ExtraDebugBuffer, COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, true);
-				if (i != INSTANCE_CULL_NONE)
-				{
-					m_ClusterCullPipeline[i]->BindSampler(BINDING_HIZ_BUFFER, KRenderGlobal::HiZBuffer.GetMaxBuffer()->GetFrameBuffer(), KRenderGlobal::HiZBuffer.GetHiZSampler(), true);
-				}
-				m_ClusterCullPipeline[i]->Init("virtualgeometry/cluster_cull.comp", cullEnv);
+				BindNodeClusterResource(m_ClusterCullPipeline[i], (InstanceCull)i);
+				m_ClusterCullPipeline[i]->Init("virtualgeometry/node_and_cluster_cull.comp", clusterCullEnv);
+
+				KRenderGlobal::RenderDevice->CreateComputePipeline(m_PersistentCullPipeline[i]);
+				BindNodeCullResource(m_PersistentCullPipeline[i], (InstanceCull)i);
+				BindNodeClusterResource(m_PersistentCullPipeline[i], (InstanceCull)i);
+				m_PersistentCullPipeline[i]->Init("virtualgeometry/node_and_cluster_cull.comp", persistentCullEnv);
 
 				KRenderGlobal::RenderDevice->CreateComputePipeline(m_CalcDrawArgsPipeline[i]);
 				m_CalcDrawArgsPipeline[i]->BindStorageBuffer(BINDING_QUEUE_STATE, m_QueueStateBuffer, COMPUTE_RESOURCE_IN, true);
@@ -414,7 +426,7 @@ bool KVirtualGeometryScene::UnInit()
 		SAFE_UNINIT(m_InitNodeCullArgsPipeline[i]);
 		SAFE_UNINIT(m_InitClusterCullArgsPipeline[i]);
 		SAFE_UNINIT(m_NodeCullPipeline[i]);
-		SAFE_UNINIT(m_PersistentNodeCullPipeline[i]);
+		SAFE_UNINIT(m_PersistentCullPipeline[i]);
 		SAFE_UNINIT(m_ClusterCullPipeline[i]);
 		SAFE_UNINIT(m_CalcDrawArgsPipeline[i]);
 		SAFE_UNINIT(m_InitBinningPipline[i]);
@@ -731,7 +743,7 @@ std::string KVirtualGeometryScene::InstanceCullString(KVirtualGeometryScene::Ins
 		case INSTANCE_CULL_POST:
 			return "Post";
 		default:
-			return "";
+			return "Normal";
 	}
 }
 
@@ -768,24 +780,26 @@ bool KVirtualGeometryScene::Execute(IKCommandBufferPtr primaryBuffer, InstanceCu
 		if (KRenderGlobal::VirtualGeometryManager.GetUsePersistentCull())
 		{
 			primaryBuffer->BeginDebugMarker("VirtualGeometry_NodeCull_Persistent", glm::vec4(1));
-			m_PersistentNodeCullPipeline[cullMode]->Execute(primaryBuffer, 1024, 1, 1, nullptr);
+			m_PersistentCullPipeline[cullMode]->Execute(primaryBuffer, 1024, 1, 1, nullptr);
 			primaryBuffer->EndDebugMarker();
 		}
 		else
 		{
 			for (uint32_t level = 0; level < 12; ++level)
 			{
-				primaryBuffer->BeginDebugMarker(("VirtualGeometry_InitNodeCullArgs_" + std::to_string(level) + "_" + cullString).c_str(), glm::vec4(1));
-				m_InitNodeCullArgsPipeline[cullMode]->Execute(primaryBuffer, 1, 1, 1, nullptr);
-				primaryBuffer->EndDebugMarker();
+				primaryBuffer->BeginDebugMarker(("VirtualGeometry_NodeProcess_" + std::to_string(level) + "_" + cullString).c_str(), glm::vec4(1));
+				{
+					primaryBuffer->BeginDebugMarker(("VirtualGeometry_InitNodeCullArgs_" + std::to_string(level) + "_" + cullString).c_str(), glm::vec4(1));
+					m_InitNodeCullArgsPipeline[cullMode]->Execute(primaryBuffer, 1, 1, 1, nullptr);
+					primaryBuffer->EndDebugMarker();
 
-				primaryBuffer->BeginDebugMarker(("VirtualGeometry_NodeCull_" + std::to_string(level) + "_" + cullString).c_str(), glm::vec4(1));
-				m_NodeCullPipeline[cullMode]->ExecuteIndirect(primaryBuffer, m_IndirectAgrsBuffer, nullptr);
+					primaryBuffer->BeginDebugMarker(("VirtualGeometry_NodeCull_" + std::to_string(level) + "_" + cullString).c_str(), glm::vec4(1));
+					m_NodeCullPipeline[cullMode]->ExecuteIndirect(primaryBuffer, m_IndirectAgrsBuffer, nullptr);
+					primaryBuffer->EndDebugMarker();
+				}
 				primaryBuffer->EndDebugMarker();
 			}
-		}
 
-		{
 			primaryBuffer->BeginDebugMarker("VirtualGeometry_InitNodeCulusterArgs" + cullString, glm::vec4(1));
 			m_InitClusterCullArgsPipeline[cullMode]->Execute(primaryBuffer, 1, 1, 1, nullptr);
 			primaryBuffer->EndDebugMarker();
@@ -987,9 +1001,9 @@ bool KVirtualGeometryScene::ReloadShader()
 		{
 			m_NodeCullPipeline[i]->Reload();
 		}
-		if (m_PersistentNodeCullPipeline[i])
+		if (m_PersistentCullPipeline[i])
 		{
-			m_PersistentNodeCullPipeline[i]->Reload();
+			m_PersistentCullPipeline[i]->Reload();
 		}
 		if (m_ClusterCullPipeline[i])
 		{
