@@ -6,15 +6,16 @@ shared uvec4 SharedCandidateNodeBatch[BVH_MAX_GROUP_BATCH_SIZE];
 shared uint SharedNodeBatchReadOffset;
 shared uint SharedNodeReadyMask;
 shared uint SharedNodeCount;
-shared uint SharedClusterReadyCount;
+shared uint SharedClusterReadOffset;
 
 #define DONT_USE_SHARED_NODE_BATCH 0
 #define EMIT_CLUSTER_EACH_THREAD 1
 
 void ProcessClusterBatch(uint groupIndex, uint batchStart, uint batchSize)
 {
-	uint batchIndex = batchStart + groupIndex;
+	uint batchIndex = batchStart + groupIndex;	
 #if INSTANCE_CULL_MODE == INSTANCE_CULL_POST
+	batchStart += MAX_CANDIDATE_CLUSTER;
 	batchIndex += MAX_CANDIDATE_CLUSTER;
 #endif
 	if (groupIndex < batchSize)
@@ -50,7 +51,7 @@ void ProcessClusterBatch(uint groupIndex, uint batchStart, uint batchSize)
 			float parentError = clusterBatch.parentBoundCenterError.w;
 			float parentBoundRadius = clusterBatch.parentBoundHalfExtendRadius.w;
 #if USE_INSTANCE_CENTER_CULL
-			cullData.bIsVisible = FitToDraw(localToWorld, worldToView, vec3(0, 0, 0), boundRadius, localError, instanceCenter, parentBoundRadius, parentError);
+			cullData.bIsVisible = FitToDraw(localToWorld, worldToView, vec3(0, 0, 0), boundRadius, localError, vec3(0, 0, 0), parentBoundRadius, parentError);
 #else
 			cullData.bIsVisible = FitToDraw(localToWorld, worldToView, boundCenter, boundRadius, localError, parentBoundCenter, parentBoundRadius, parentError);
 #endif
@@ -152,20 +153,20 @@ void ProcessNodeBatch(uint groupIndex, uint batchStart, uint batchSize)
 					ivec2 hzbSize = textureSize(hiZTex, 0);
 					ScreenRect rect = GetScreenRect(ivec4(0, 0, hzbSize * 2), cullData, 4);
 					cullData.bIsVisible = IsVisibleHZB(rect, hzbSize, true);
-				}
 #if INSTANCE_CULL_MODE == INSTANCE_CULL_MAIN
-				if (!cullData.bIsVisible)
-				{
-					uint nodeWriteOffset = 0;
-					WAVE_INTERLOCK_ADD_ONLY(QueueState[QUEUE_STATE_POST_INDEX].nodeCount, 1);
-					WAVE_INTERLOCK_ADD(QueueState[QUEUE_STATE_POST_INDEX].nodeWriteOffset, 1, nodeWriteOffset);
-					if (nodeWriteOffset < MAX_CANDIDATE_NODE)
+					if (!cullData.bIsVisible)
 					{
-						nodeWriteOffset += MAX_CANDIDATE_NODE;
-						StoreCandidateNode(nodeWriteOffset, childBatch);
+						uint nodeWriteOffset = 0;
+						WAVE_INTERLOCK_ADD_ONLY(QueueState[QUEUE_STATE_POST_INDEX].nodeCount, 1);
+						WAVE_INTERLOCK_ADD(QueueState[QUEUE_STATE_POST_INDEX].nodeWriteOffset, 1, nodeWriteOffset);
+						if (nodeWriteOffset < MAX_CANDIDATE_NODE)
+						{
+							nodeWriteOffset += MAX_CANDIDATE_NODE;
+							StoreCandidateNode(nodeWriteOffset, childBatch);
+						}
 					}
-				}
 #endif // INSTANCE_CULL_MODE == INSTANCE_CULL_MAIN
+				}
 #endif
 				if (cullData.bIsVisible)
 				{
@@ -201,19 +202,23 @@ void ProcessNodeBatch(uint groupIndex, uint batchStart, uint batchSize)
 #endif
 			if (clusterNum > 0)
 			{
-				uint clusterWriteOffset = 0;
-				WAVE_INTERLOCK_ADD(QueueState[QUEUE_STATE_INDEX].clusterWriteOffset, clusterNum, clusterWriteOffset);
+				uint clusterBaseWriteOffset = 0;
+				WAVE_INTERLOCK_ADD(QueueState[QUEUE_STATE_INDEX].clusterWriteOffset, clusterNum, clusterBaseWriteOffset);
 
 				for (uint i = 0; i < clusterNum; ++i)
 				{
-					if (clusterWriteOffset + i >= MAX_CANDIDATE_CLUSTER)
+					uint clusterWriteOffset = clusterBaseWriteOffset + i;
+					if (clusterWriteOffset >= MAX_CANDIDATE_CLUSTER)
 					{
 						break;
 					}
+#if INSTANCE_CULL_MODE == INSTANCE_CULL_POST
+					clusterWriteOffset += MAX_CANDIDATE_CLUSTER;
+#endif
 					CandidateCluster candidateCluster;
 					candidateCluster.instanceId = instanceId;
 					candidateCluster.clusterIndex = clusterStart + i;
-					StoreCandidateCluster(clusterWriteOffset + i, candidateCluster);
+					StoreCandidateCluster(clusterWriteOffset, candidateCluster);
 				}
 			}
 		}
@@ -233,64 +238,68 @@ void main()
 {
 	uint groupIndex = gl_LocalInvocationID.x;
 
-	uint processOffset = BVH_MAX_GROUP_BATCH_SIZE;
-	uint batchReadOffset = 0;
+	uint nodeProcessOffset = BVH_MAX_GROUP_BATCH_SIZE;
+	uint nodeReadOffset = 0;
 
 	bool bProcessNode = true;
+	bool bProcessCluster = true;
 	uint loopCounter = 0;
-	const uint maxLoopCount = 100;
+	const uint maxLoopCount = 1000;
 
-	SharedClusterReadyCount = 0;
-
-	while (bProcessNode)
+	while (bProcessNode || bProcessCluster)
 	{
 		SharedNodeReadyMask = 0;
 		barrier();
 
-		if (processOffset == BVH_MAX_GROUP_BATCH_SIZE)
+		if (nodeProcessOffset == BVH_MAX_GROUP_BATCH_SIZE)
 		{
 			if (groupIndex == 0)
 			{
 				WAVE_INTERLOCK_ADD(QueueState[QUEUE_STATE_INDEX].nodeReadOffset, BVH_MAX_GROUP_BATCH_SIZE, SharedNodeBatchReadOffset);
 			}
 			barrier();
-			processOffset = 0;
-			batchReadOffset = SharedNodeBatchReadOffset;
+			nodeProcessOffset = 0;
+			nodeReadOffset = SharedNodeBatchReadOffset;
 		}
 
-		uint batchStart = batchReadOffset + processOffset;
-		uint batchIndex = batchStart + groupIndex;
-		bProcessNode = batchIndex < MAX_CANDIDATE_NODE;
+		uint nodeBatchStart = nodeReadOffset + nodeProcessOffset;
+		uint nodeBatchIndex = nodeBatchStart + groupIndex;
+		bProcessNode = nodeBatchIndex < MAX_CANDIDATE_NODE;
 
-		bool bNodeReady = bProcessNode && (processOffset + groupIndex < BVH_MAX_GROUP_BATCH_SIZE);
+		if (bProcessNode)
+		{
 #if INSTANCE_CULL_MODE == INSTANCE_CULL_POST
-		batchIndex += MAX_CANDIDATE_NODE;
+			nodeBatchStart += MAX_CANDIDATE_NODE;
+			nodeBatchIndex += MAX_CANDIDATE_NODE;
 #endif
-		if (bNodeReady)
-		{
-			bNodeReady = CandidateNodeBatch[batchIndex].x != 0xFFFFFFFF;
-		}
-
-		if (bNodeReady)
-		{
-			SharedCandidateNodeBatch[groupIndex] = CandidateNodeBatch[batchIndex];
-			atomicOr(SharedNodeReadyMask, 1 << groupIndex);
-		}
-		barrier();
-
-		uint nodeReadyMask = SharedNodeReadyMask;
-		if (nodeReadyMask > 0)
-		{
-			// Maybe the bNodeReady can be [0 1 1 1 0 1 1 1] in each thread
-			// And nodeReadyMask is [01110111] and findLSB(~nodeReadyMask) is 3
-			// However the bitCount(nodeReadyMask) is 6
-			uint batchSize = findLSB(~nodeReadyMask); // bitCount(nodeReadyMask);
-			ProcessNodeBatch(groupIndex, batchStart, batchSize);
-			if (groupIndex < batchSize) // (bNodeReady)
+			bool bNodeReady = bProcessNode && (nodeProcessOffset + groupIndex < BVH_MAX_GROUP_BATCH_SIZE);
+			if (bNodeReady)
 			{
-				CandidateNodeBatch[batchIndex] = uvec4(0xFFFFFFFF);
+				bNodeReady = CandidateNodeBatch[nodeBatchIndex].x != 0xFFFFFFFF;
 			}
-			processOffset += batchSize;
+
+			if (bNodeReady)
+			{
+				SharedCandidateNodeBatch[groupIndex] = CandidateNodeBatch[nodeBatchIndex];
+				atomicOr(SharedNodeReadyMask, 1 << groupIndex);
+			}
+			barrier();
+
+			uint nodeReadyMask = SharedNodeReadyMask;
+			if ((nodeReadyMask & 1) == 1)
+			{
+				// Maybe the bNodeReady can be [0 1 1 1 0 1 1 1] in each thread
+				// And nodeReadyMask is [01110111] and findLSB(~nodeReadyMask) is 3
+				// However the bitCount(nodeReadyMask) is 6
+				uint batchSize = findLSB(~nodeReadyMask); // bitCount(nodeReadyMask);
+				ProcessNodeBatch(groupIndex, nodeBatchStart, batchSize);
+				if (groupIndex < batchSize) // (bNodeReady)
+				{
+					CandidateNodeBatch[nodeBatchIndex] = uvec4(0xFFFFFFFF);
+				}
+				nodeProcessOffset += batchSize;
+				continue;
+			}
 		}
 
 		if (groupIndex == 0)
@@ -302,6 +311,33 @@ void main()
 		if (SharedNodeCount == 0)
 		{
 			bProcessNode = false;
+		}
+
+		if (!bProcessNode)
+		{
+			if (groupIndex == 0)
+			{
+				WAVE_INTERLOCK_ADD(QueueState[QUEUE_STATE_INDEX].clusterReadOffset, VG_GROUP_SIZE, SharedClusterReadOffset);
+			}
+			barrier();
+
+			uint clusterReadOffset = SharedClusterReadOffset;
+			uint clusterBatchStart = clusterReadOffset;
+			uint clusterBatchIndex = clusterBatchStart + groupIndex;
+			bProcessCluster = clusterBatchIndex < MAX_CANDIDATE_CLUSTER;
+
+			if (bProcessCluster)
+			{
+#if INSTANCE_CULL_MODE == INSTANCE_CULL_POST
+				bProcessCluster = CandidateClusterBatch[clusterBatchIndex + MAX_CANDIDATE_CLUSTER].x != 0xFFFFFFFF;
+#else
+				bProcessCluster = CandidateClusterBatch[clusterBatchIndex].x != 0xFFFFFFFF;
+#endif
+				if (bProcessCluster)
+				{
+					ProcessClusterBatch(0, clusterBatchIndex, 1);
+				}
+			}
 		}
 
 		// Protect from system crash...
@@ -325,6 +361,7 @@ void main()
 
 	uint batchIndex = batchStart + groupIndex;
 #if INSTANCE_CULL_MODE == INSTANCE_CULL_POST
+	batchStart += MAX_CANDIDATE_NODE;
 	batchIndex += MAX_CANDIDATE_NODE;
 #endif
 
