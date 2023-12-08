@@ -205,7 +205,7 @@ struct KMeshClusterBatch
 	uint32_t vertexFloatOffset = KVirtualGeometryDefine::INVALID_INDEX;
 	uint32_t indexIntOffset = KVirtualGeometryDefine::INVALID_INDEX;
 	uint32_t materialIntOffset = KVirtualGeometryDefine::INVALID_INDEX;
-	uint32_t storageIndex = KVirtualGeometryDefine::INVALID_INDEX;
+	uint32_t partIndex = KVirtualGeometryDefine::INVALID_INDEX;
 	uint32_t triangleNum = 0;
 	uint32_t batchNum = 0;
 	uint32_t padding[2];
@@ -217,7 +217,8 @@ struct KMeshClustersVertexStorage
 {
 	enum
 	{
-		FLOAT_PER_VERTEX = 8
+		FLOAT_PER_VERTEX = 8,
+		BYTE_SIZE_PER_VERTEX = 4 * FLOAT_PER_VERTEX
 	};
 	// Each vertex 8 float: pos.xyz:3 normal.xyz:3 uv:2
 	std::vector<float> vertices;
@@ -225,6 +226,10 @@ struct KMeshClustersVertexStorage
 
 struct KMeshClustersIndexStorage
 {
+	enum
+	{
+		BYTE_SIZE_PER_INDEX = 4
+	};
 	std::vector<uint32_t> indices;
 };
 
@@ -232,10 +237,28 @@ struct KMeshClustersMaterialStorage
 {
 	enum
 	{
-		INT_PER_MATERIAL = 3
+		INT_PER_MATERIAL = 3,
+		BYTE_PER_MATERIAL = INT_PER_MATERIAL * 4
 	};
 	// Each material 3 int: mateialIndex, rangeBegin, rangeEnd
 	std::vector<uint32_t> materials;
+};
+
+struct KMeshClusterBatchStorage
+{
+	enum
+	{
+		BYTE_PER_CLUSTER_BATCH = sizeof(KMeshClusterBatch)
+	};
+	std::vector<KMeshClusterBatch> batches;
+};
+
+struct KVirtualGeometryPageStorage
+{
+	KMeshClustersVertexStorage vertexStorage;
+	KMeshClustersIndexStorage indexStorage;
+	KMeshClustersMaterialStorage materialStorage;
+	KMeshClusterBatchStorage batchStorage;
 };
 
 struct KMeshClusterBVHNode
@@ -256,6 +279,13 @@ struct KMeshClusterHierarchy
 
 typedef std::shared_ptr<KMeshClusterBVHNode> KMeshClusterBVHNodePtr;
 
+struct KVirtualGeometryPage
+{
+	uint32_t clusterGroupPartStart = 0;
+	uint32_t clusterGroupPartNum = 0;
+	uint32_t dataByteSize = 0;
+};
+
 class KVirtualGeometryBuilder
 {
 protected:
@@ -263,6 +293,7 @@ protected:
 	std::vector<KMeshClusterGroupPtr> m_ClusterGroups;
 	std::vector<KMeshClustersPartPtr> m_ClusterStorageParts;
 	std::vector<KMeshClusterBVHNodePtr> m_BVHNodes;
+	std::vector<KVirtualGeometryPage> m_Pages;
 
 	KAABBBox m_Bound;
 
@@ -276,6 +307,10 @@ protected:
 
 	uint32_t m_MaxTriangleNum = 0;
 	uint32_t m_MinTriangleNum = 0;
+
+	uint32_t m_MaxClusterPartInPage = 1024;
+	uint32_t m_RootPageByteSize = 4 * 1024 * 1024;
+	uint32_t m_StreamingPageByteSize = 1024 * 1024;
 
 	float m_MaxError = 0;
 
@@ -307,14 +342,17 @@ protected:
 
 	void BuildDAG(const std::vector<KMeshProcessorVertex>& vertices, const std::vector<uint32_t>& indices, const std::vector<uint32_t>& materialIndices, uint32_t minPartitionNum, uint32_t maxPartitionNum, uint32_t minClusterGroup, uint32_t maxClusterGroup);
 	void BuildMaterialRanges();
+	void SortClusterGroup();
 	void ConstrainCluster();
 	void BuildReuseBatch();
-	void BuildClusterStorage();
+	void LegacyBuildClusterStorage();
+	void BuildPage();
+	void BuildPageStorage();
 	void BuildClusterBVH();
 
 	void RecurselyVisitBVH(uint32_t index, std::function<void(uint32_t index)> visitFunc);
 
-	uint32_t BuildMeshClusterHierarchies(std::vector<KMeshClusterHierarchy>& hierarchies, uint32_t index);
+	uint32_t BuildMeshClusterHierarchies(std::vector<KMeshClusterHierarchy>& hierarchies, uint32_t index) const;
 
 	static bool ColorDebugClusters(const std::vector<KMeshClusterPtr>& clusters, const std::vector<uint32_t>& ids, std::vector<KMeshProcessorVertex>& vertices, std::vector<uint32_t>& indices, std::vector<uint32_t>& materialIndices);
 	static bool ColorDebugClusterGroups(const std::vector<KMeshClusterPtr>& clusters, const std::vector<KMeshClusterGroupPtr>& groups, const std::vector<uint32_t>& ids, std::vector<KMeshProcessorVertex>& vertices, std::vector<uint32_t>& indices, std::vector<uint32_t>& materialIndices);
@@ -330,8 +368,9 @@ public:
 
 	void Build(const std::vector<KMeshProcessorVertex>& vertices, const std::vector<uint32_t>& indices, const std::vector<uint32_t>& materialIndices);
 
-	bool GetMeshClusterStorages(std::vector<KMeshClusterBatch>& clusters, KMeshClustersVertexStorage& vertexStroage, KMeshClustersIndexStorage& indexStorage, KMeshClustersMaterialStorage& materialStorage, std::vector<uint32_t>& clustersPartNum);
-	bool GetMeshClusterHierarchies(std::vector<KMeshClusterHierarchy>& hierarchies);
+	bool GetMeshClusterStorages(KMeshClusterBatchStorage& batchStorage, KMeshClustersVertexStorage& vertexStroage, KMeshClustersIndexStorage& indexStorage, KMeshClustersMaterialStorage& materialStorage, std::vector<uint32_t>& clustersPartNum) const;
+	bool GetMeshClusterHierarchies(std::vector<KMeshClusterHierarchy>& hierarchies) const;
+	bool GetPageStorages(std::vector<KVirtualGeometryPage>& pages, std::vector<KVirtualGeometryPageStorage>& pageStorages) const;
 
 	inline uint32_t GetLevelNum() const
 	{

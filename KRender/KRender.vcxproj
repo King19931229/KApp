@@ -144,6 +144,7 @@
     <ClInclude Include="Internal\VirtualGeometry\KVirtualGeomerty.h" />
     <ClInclude Include="Internal\VirtualGeometry\KVirtualGeometryManager.h" />
     <ClInclude Include="Internal\VirtualGeometry\KVirtualGeometryScene.h" />
+    <ClInclude Include="Internal\VirtualGeometry\KVirtualGeometryStreaming.h" />
     <ClInclude Include="Internal\Voxilzer\KClipmapVoxilzer.h" />
     <ClInclude Include="Internal\Voxilzer\KVoxilzer.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanAccelerationStructure.h" />
@@ -264,6 +265,7 @@
     <ClCompile Include="Internal\VirtualGeometry\KVirtualGeometry.cpp" />
     <ClCompile Include="Internal\VirtualGeometry\KVirtualGeometryManager.cpp" />
     <ClCompile Include="Internal\VirtualGeometry\KVirtualGeometryScene.cpp" />
+    <ClCompile Include="Internal\VirtualGeometry\KVirtualGeometryStreaming.cpp" />
     <ClCompile Include="Internal\Voxilzer\KClipmapVoxilzer.cpp" />
     <ClCompile Include="Internal\Voxilzer\KVoxilzer.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanAccelerationStructure.cpp" />

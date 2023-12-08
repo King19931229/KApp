@@ -220,14 +220,16 @@ bool KVirtualGeometryManager::AcquireImpl(const char* label, const KMeshRawData&
 		KVirtualGeometryBuilder builder;
 		builder.Build(vertices, indices, materialIndices);
 
-		std::vector<KMeshClusterBatch> clusters;
+		KMeshClusterBatchStorage batchStorages;
 		KMeshClustersVertexStorage vertexStroages;
 		KMeshClustersIndexStorage indexStroages;
 		KMeshClustersMaterialStorage materialStorages;
 		std::vector<uint32_t> clustersPartNum;
 		std::vector<uint32_t> clustersPartStart;
 
-		if (!builder.GetMeshClusterStorages(clusters, vertexStroages, indexStroages, materialStorages, clustersPartNum))
+		std::vector<KVirtualGeometryPageStorage> pageStorages;
+
+		if (!builder.GetMeshClusterStorages(batchStorages, vertexStroages, indexStroages, materialStorages, clustersPartNum))
 		{
 			return false;
 		}
@@ -285,7 +287,7 @@ bool KVirtualGeometryManager::AcquireImpl(const char* label, const KMeshRawData&
 			geometry = KVirtualGeometryResourceRef(KNEW KVirtualGeometryResource());
 
 			geometry->clusterBatchOffset = (uint32_t)m_ClusterBatchBuffer.GetSize();
-			geometry->clusterBatchSize = (uint32_t)clusters.size() * sizeof(KMeshClusterBatch);
+			geometry->clusterBatchSize = (uint32_t)batchStorages.batches.size() * sizeof(KMeshClusterBatch);
 
 			geometry->hierarchyPackedOffset = (uint32_t)m_PackedHierarchyBuffer.GetSize();
 			geometry->hierarchyPackedSize = (uint32_t)hierarchyNode.size() * sizeof(KMeshClusterHierarchyPackedNode);
@@ -306,7 +308,7 @@ bool KVirtualGeometryManager::AcquireImpl(const char* label, const KMeshRawData&
 			geometry->clusterMaterialStorageByteOffset = (uint32_t)m_ClusterMateialStorageBuffer.GetSize();
 			geometry->clusterMaterialStorageByteSize = (uint32_t)materialStorages.materials.size() * sizeof(uint32_t);
 
-			m_ClusterBatchBuffer.Append(geometry->clusterBatchSize, clusters.data());
+			m_ClusterBatchBuffer.Append(geometry->clusterBatchSize, batchStorages.batches.data());
 			m_PackedHierarchyBuffer.Append(geometry->hierarchyPackedSize, hierarchyNode.data());
 			m_ClusterVertexStorageBuffer.Append(geometry->clusterVertexStorageByteSize, vertexStroages.vertices.data());
 			m_ClusterIndexStorageBuffer.Append(geometry->clusterIndexStorageByteSize, indexStroages.indices.data());

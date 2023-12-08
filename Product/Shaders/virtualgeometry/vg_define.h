@@ -60,7 +60,7 @@ struct ClusterBatchStruct
 	uint vertexFloatOffset;
 	uint indexIntOffset;
 	uint materialIntOffset;
-	uint storageIndex;
+	uint partIndex;
 	uint triangleNum;
 	uint batchNum;
 	uint padding[2];

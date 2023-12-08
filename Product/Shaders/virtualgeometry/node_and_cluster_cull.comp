@@ -7,6 +7,7 @@ shared uint SharedNodeBatchReadOffset;
 shared uint SharedNodeReadyMask;
 shared uint SharedNodeCount;
 shared uint SharedClusterReadOffset;
+shared uint SharedClusterReadNum;
 
 #define DONT_USE_SHARED_NODE_BATCH 0
 #define EMIT_CLUSTER_EACH_THREAD 1
@@ -244,7 +245,10 @@ void main()
 	bool bProcessNode = true;
 	bool bProcessCluster = true;
 	uint loopCounter = 0;
-	const uint maxLoopCount = 1000;
+	const uint maxLoopCount = 10000;
+
+	SharedClusterReadOffset = 0xFFFFFFFF;
+	SharedClusterReadNum = 0;
 
 	while (bProcessNode || bProcessCluster)
 	{
@@ -313,31 +317,39 @@ void main()
 			bProcessNode = false;
 		}
 
-		if (!bProcessNode)
+		if (groupIndex == 0 && SharedClusterReadOffset == 0xFFFFFFFF)
 		{
-			if (groupIndex == 0)
-			{
-				WAVE_INTERLOCK_ADD(QueueState[QUEUE_STATE_INDEX].clusterReadOffset, VG_GROUP_SIZE, SharedClusterReadOffset);
-			}
-			barrier();
+			WAVE_INTERLOCK_ADD(QueueState[QUEUE_STATE_INDEX].clusterReadOffset, VG_GROUP_SIZE, SharedClusterReadOffset);
+		}
+		barrier();
 
-			uint clusterReadOffset = SharedClusterReadOffset;
-			uint clusterBatchStart = clusterReadOffset;
-			uint clusterBatchIndex = clusterBatchStart + groupIndex;
-			bProcessCluster = clusterBatchIndex < MAX_CANDIDATE_CLUSTER;
+		uint clusterReadOffset = SharedClusterReadOffset;
+		uint clusterBatchStart = clusterReadOffset;
+		uint clusterBatchIndex = clusterBatchStart + groupIndex;
+		bProcessCluster = clusterBatchIndex < MAX_CANDIDATE_CLUSTER;
 
+		if (bProcessCluster)
+		{
+#if INSTANCE_CULL_MODE == INSTANCE_CULL_POST
+			bProcessCluster = CandidateClusterBatch[clusterBatchIndex + MAX_CANDIDATE_CLUSTER].x != 0xFFFFFFFF;
+#else
+			bProcessCluster = CandidateClusterBatch[clusterBatchIndex].x != 0xFFFFFFFF;
+#endif
 			if (bProcessCluster)
 			{
-#if INSTANCE_CULL_MODE == INSTANCE_CULL_POST
-				bProcessCluster = CandidateClusterBatch[clusterBatchIndex + MAX_CANDIDATE_CLUSTER].x != 0xFFFFFFFF;
-#else
-				bProcessCluster = CandidateClusterBatch[clusterBatchIndex].x != 0xFFFFFFFF;
-#endif
-				if (bProcessCluster)
+				ProcessClusterBatch(0, clusterBatchIndex, 1);
+				if (bProcessNode)
 				{
-					ProcessClusterBatch(0, clusterBatchIndex, 1);
+					WAVE_INTERLOCK_ADD_ONLY(SharedClusterReadNum, 1);
 				}
 			}
+		}
+
+		barrier();
+		if (!bProcessNode || SharedClusterReadNum == VG_GROUP_SIZE)
+		{
+			SharedClusterReadOffset = 0xFFFFFFFF;
+			SharedClusterReadNum = 0;
 		}
 
 		// Protect from system crash...

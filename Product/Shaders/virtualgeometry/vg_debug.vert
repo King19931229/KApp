@@ -32,7 +32,6 @@ void main()
 
 	uint clusterVertexFloatOffset = clusterBatch.vertexFloatOffset;
 	uint clusterIndexIntOffset = clusterBatch.indexIntOffset;
-	uint clusterStorageIndex = clusterBatch.storageIndex;
 	uint clusterTriangleNum = clusterBatch.triangleNum;
 
 	uint batchTriangleEnd = binning.rangeBegin + binning.rangeNum;
