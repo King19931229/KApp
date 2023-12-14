@@ -36,8 +36,17 @@ struct KVirtualGeometryDefine
 	static constexpr uint32_t MAX_CLUSTER_GROUP = 32;
 
 	static constexpr uint32_t MAX_CLUSTER_REUSE_BATCH = 32;
+
+	static constexpr uint32_t MAX_CLUSTER_PART_IN_PAGE_BITS = 10;
+	static constexpr uint32_t MAX_CLUSTER_PART_IN_PAGE = 1 << MAX_CLUSTER_PART_IN_PAGE_BITS;
+
+	static constexpr uint32_t MAX_CLUSTER_IN_PAGE_BITS = 5 + MAX_CLUSTER_PART_IN_PAGE_BITS;
+	static constexpr uint32_t MAX_CLUSTER_IN_PAGE = 1 << MAX_CLUSTER_IN_PAGE_BITS;
+
+	static constexpr uint32_t MAX_ROOT_PAGE_SIZE = 1024 * 1024;
+	static constexpr uint32_t MAX_STREAMING_PAGE_SIZE = 4 * 1024 * 1024;
 };
-static_assert(!(KVirtualGeometryDefine::MAX_BVH_NODES& (KVirtualGeometryDefine::MAX_BVH_NODES - 1)), "MAX_BVH_NODES must be pow of 2");
+static_assert(!(KVirtualGeometryDefine::MAX_BVH_NODES & (KVirtualGeometryDefine::MAX_BVH_NODES - 1)), "MAX_BVH_NODES must be pow of 2");
 
 struct KMeshClusterMaterialRange
 {
@@ -60,12 +69,17 @@ struct KMeshCluster
 
 	std::vector<KMeshClusterMaterialRange> materialRanges;
 
+	// 严格意义上真正的Bound
+	KAABBBox bound;
 	// lodBound是计算Lod所用到的Bound 并不是严格意义上真正的Bound
 	KAABBBox lodBound;
 	// 所处的Group所在的index
 	uint32_t groupIndex = KVirtualGeometryDefine::INVALID_INDEX;
 	// 生成的Group所在的index
 	uint32_t generatingGroupIndex = KVirtualGeometryDefine::INVALID_INDEX;
+
+	uint32_t partIndex = KVirtualGeometryDefine::INVALID_INDEX;
+	uint32_t offsetInPart = 0;
 
 	uint32_t index = KVirtualGeometryDefine::INVALID_INDEX;
 	uint32_t level = 0;
@@ -110,9 +124,12 @@ struct KMeshClusterGroup
 	// 此Group由哪些Cluster生成
 	std::vector<uint32_t> clusters;
 	KAABBBox parentLodBound;
+	KAABBBox bound;
 	glm::vec3 color;
 	uint32_t level = 0;
-	uint32_t index = 0;
+	uint32_t index = KVirtualGeometryDefine::INVALID_INDEX;
+	uint32_t pageStart = KVirtualGeometryDefine::INVALID_INDEX;
+	uint32_t pageEnd = KVirtualGeometryDefine::INVALID_INDEX;
 	float maxParentError = 0;
 	float edgeLength = 0;
 };
@@ -185,16 +202,20 @@ public:
 	}
 };
 
-struct KMeshClustersPart
+struct KMeshClusterGroupPart
 {
-	std::vector<uint32_t> clusters;
+	std::vector<KMeshClusterPtr> clusters;
 	uint32_t groupIndex = KVirtualGeometryDefine::INVALID_INDEX;
 	uint32_t level = KVirtualGeometryDefine::INVALID_INDEX;
+	uint32_t pageIndex = KVirtualGeometryDefine::INVALID_INDEX;
+	// Start offset in page
+	uint32_t clusterStart = 0;
+	uint32_t clusterNum = 0;
 	KAABBBox lodBound;
 	float lodError = 0;
 };
 
-typedef std::shared_ptr<KMeshClustersPart> KMeshClustersPartPtr;
+typedef std::shared_ptr<KMeshClusterGroupPart> KMeshClusterGroupPartPtr;
 
 struct KMeshClusterBatch
 {
@@ -208,7 +229,8 @@ struct KMeshClusterBatch
 	uint32_t partIndex = KVirtualGeometryDefine::INVALID_INDEX;
 	uint32_t triangleNum = 0;
 	uint32_t batchNum = 0;
-	uint32_t padding[2];
+	uint32_t leaf = 0;
+	uint32_t padding = 0;
 };
 static_assert((sizeof(KMeshClusterBatch) % 16) == 0, "Size must be a multiple of 16");
 static_assert(sizeof(KMeshClusterBatch) == 16 * 4 + 8 * 4, "must match");
@@ -263,7 +285,7 @@ struct KVirtualGeometryPageStorage
 
 struct KMeshClusterBVHNode
 {
-	uint32_t storagePartIndex = KVirtualGeometryDefine::INVALID_INDEX;
+	uint32_t partIndex = KVirtualGeometryDefine::INVALID_INDEX;
 	std::vector<uint32_t> children;
 	KAABBBox lodBound;
 	float lodError = 0;
@@ -274,16 +296,40 @@ struct KMeshClusterHierarchy
 	glm::vec4 lodBoundCenterError;
 	glm::vec4 lodBoundHalfExtendRadius;
 	uint32_t children[KVirtualGeometryDefine::MAX_BVH_NODES];
-	uint32_t storagePartIndex = KVirtualGeometryDefine::INVALID_INDEX;
+	uint32_t partIndex = KVirtualGeometryDefine::INVALID_INDEX;
 };
 
 typedef std::shared_ptr<KMeshClusterBVHNode> KMeshClusterBVHNodePtr;
 
 struct KVirtualGeometryPage
 {
-	uint32_t clusterGroupPartStart = 0;
+	uint32_t clusterGroupPartStart = KVirtualGeometryDefine::INVALID_INDEX;
 	uint32_t clusterGroupPartNum = 0;
+	uint32_t clusterNum = 0;
 	uint32_t dataByteSize = 0;
+	bool isRootPage = false;
+};
+
+struct KVirtualGeomertyClusterFixup
+{
+	uint32_t fixupPage = KVirtualGeometryDefine::INVALID_INDEX;
+	uint32_t clusterIndex = KVirtualGeometryDefine::INVALID_INDEX;
+	uint32_t dependencyPageStart = KVirtualGeometryDefine::INVALID_INDEX;
+	uint32_t dependencyPageEnd = 0;
+};
+
+struct KVirtualGeomertyHierarchyFixup
+{
+	uint32_t fixupPage = KVirtualGeometryDefine::INVALID_INDEX;
+	uint32_t groupIndex = KVirtualGeometryDefine::INVALID_INDEX;
+	uint32_t dependencyPageStart = KVirtualGeometryDefine::INVALID_INDEX;
+	uint32_t dependencyPageEnd = 0;
+};
+
+struct KVirtualGeomertyFixup
+{
+	std::vector<std::vector<KVirtualGeomertyClusterFixup>> clusterFixups;
+	std::vector<std::vector<KVirtualGeomertyHierarchyFixup>> hierarchyFixups;
 };
 
 class KVirtualGeometryBuilder
@@ -291,9 +337,11 @@ class KVirtualGeometryBuilder
 protected:
 	std::vector<KMeshClusterPtr> m_Clusters;
 	std::vector<KMeshClusterGroupPtr> m_ClusterGroups;
-	std::vector<KMeshClustersPartPtr> m_ClusterStorageParts;
+	std::vector<KMeshClusterGroupPartPtr> m_ClusterGroupParts;
 	std::vector<KMeshClusterBVHNodePtr> m_BVHNodes;
 	std::vector<KVirtualGeometryPage> m_Pages;
+	std::vector<KVirtualGeometryPageStorage> m_PageStorages;
+	KVirtualGeomertyFixup m_Fixup;
 
 	KAABBBox m_Bound;
 
@@ -307,10 +355,6 @@ protected:
 
 	uint32_t m_MaxTriangleNum = 0;
 	uint32_t m_MinTriangleNum = 0;
-
-	uint32_t m_MaxClusterPartInPage = 1024;
-	uint32_t m_RootPageByteSize = 4 * 1024 * 1024;
-	uint32_t m_StreamingPageByteSize = 1024 * 1024;
 
 	float m_MaxError = 0;
 
@@ -345,10 +389,10 @@ protected:
 	void SortClusterGroup();
 	void ConstrainCluster();
 	void BuildReuseBatch();
-	void LegacyBuildClusterStorage();
 	void BuildPage();
 	void BuildPageStorage();
 	void BuildClusterBVH();
+	void BuildFixup();
 
 	void RecurselyVisitBVH(uint32_t index, std::function<void(uint32_t index)> visitFunc);
 
@@ -368,8 +412,9 @@ public:
 
 	void Build(const std::vector<KMeshProcessorVertex>& vertices, const std::vector<uint32_t>& indices, const std::vector<uint32_t>& materialIndices);
 
-	bool GetMeshClusterStorages(KMeshClusterBatchStorage& batchStorage, KMeshClustersVertexStorage& vertexStroage, KMeshClustersIndexStorage& indexStorage, KMeshClustersMaterialStorage& materialStorage, std::vector<uint32_t>& clustersPartNum) const;
+	bool GetMeshClusterStorages(KMeshClusterBatchStorage& batchStorage, KMeshClustersVertexStorage& vertexStroage, KMeshClustersIndexStorage& indexStorage, KMeshClustersMaterialStorage& materialStorage) const;
 	bool GetMeshClusterHierarchies(std::vector<KMeshClusterHierarchy>& hierarchies) const;
+	bool GetMeshClusterGroupParts(std::vector<KMeshClusterGroupPart>& parts) const;
 	bool GetPageStorages(std::vector<KVirtualGeometryPage>& pages, std::vector<KVirtualGeometryPageStorage>& pageStorages) const;
 
 	inline uint32_t GetLevelNum() const

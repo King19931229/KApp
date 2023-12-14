@@ -12,7 +12,7 @@ void main()
 
 	Binning binning = GetBinning(materialBinningIndex, workIndex);
 
-	uint batchIndex = binning.clusterIndex;
+	uint batchIndex = binning.batchIndex;
 	uint batchTriangleEnd = binning.rangeBegin + binning.rangeNum;
 
 	uint triangleIndex = gl_VertexIndex / 3;

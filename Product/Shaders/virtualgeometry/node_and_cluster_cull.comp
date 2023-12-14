@@ -30,7 +30,7 @@ void ProcessClusterBatch(uint groupIndex, uint batchStart, uint batchSize)
 		mat4 localToWorld = InstanceData[instanceId].transform;
 
 		vec3 boundCenter = clusterBatch.lodBoundCenterError.xyz;
-		float localError = clusterBatch.lodBoundCenterError.w;
+		float localError = (clusterBatch.leaf == 0) ? clusterBatch.lodBoundCenterError.w : 0;
 		vec3 boundHalfExtend = clusterBatch.lodBoundHalfExtendRadius.xyz;
 		float boundRadius = clusterBatch.lodBoundHalfExtendRadius.w;
 
@@ -201,6 +201,7 @@ void ProcessNodeBatch(uint groupIndex, uint batchStart, uint batchSize)
 				clusterNum = hierarchy.clusterNum;
 			}
 #endif
+			clusterNum = (hierarchy.clusterPageIndex != INVALID_INDEX) ? clusterNum : 0;
 			if (clusterNum > 0)
 			{
 				uint clusterBaseWriteOffset = 0;
@@ -218,6 +219,7 @@ void ProcessNodeBatch(uint groupIndex, uint batchStart, uint batchSize)
 #endif
 					CandidateCluster candidateCluster;
 					candidateCluster.instanceId = instanceId;
+					candidateCluster.pageIndex = hierarchy.clusterPageIndex;
 					candidateCluster.clusterIndex = clusterStart + i;
 					StoreCandidateCluster(clusterWriteOffset, candidateCluster);
 				}

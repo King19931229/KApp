@@ -13,9 +13,9 @@ void main()
 
 	if (groupIndex < batchSize)
 	{
-		uint clusterIndex = batchStart + groupIndex;
+		uint batchIndex = batchStart + groupIndex;
 
-		CandidateCluster selectedCluster = UnpackCandidateCluster(SelectedClusterBatch[clusterIndex]);
+		CandidateCluster selectedCluster = UnpackCandidateCluster(SelectedClusterBatch[batchIndex]);
 		uint instanceId = selectedCluster.instanceId;
 
 		ClusterBatchStruct clusterBatch;
@@ -36,7 +36,7 @@ void main()
 			WAVE_INTERLOCK_ADD_ONLY(BinningHeader[binningIndex].x, 1);
 #elif defined(BINNING_SCATTER)
 			BinningBatch batch;
-			batch.clusterIndex = clusterIndex;
+			batch.batchIndex = batchIndex;
 			batch.binningIndex = binningIndex;
 			batch.rangeBegin = rangeBegin;
 			batch.rangeNum = rangeEnd - rangeBegin + 1;

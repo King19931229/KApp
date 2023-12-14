@@ -77,7 +77,7 @@ struct KMeshClusterHierarchyPackedNode
 	uint32_t isLeaf = 0;
 	uint32_t clusterStart = KVirtualGeometryDefine::INVALID_INDEX;
 	uint32_t clusterNum = KVirtualGeometryDefine::INVALID_INDEX;
-	uint32_t padding = 0;
+	uint32_t clusterPageIndex = 0;
 };
 
 static_assert(sizeof(KMeshClusterHierarchyPackedNode) == KVirtualGeometryDefine::MAX_BVH_NODES * 4 + 32 + 16, "size check");

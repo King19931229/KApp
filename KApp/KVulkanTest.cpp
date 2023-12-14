@@ -44,7 +44,7 @@ void InitQEM(IKEnginePtr engine)
 
 	static KMeshRawData userData;
 	static bool initUserData = false;
-	static const uint32_t fileIndex = 1;
+	static const uint32_t fileIndex = 0;
 	static const char* filePath = modelInfos[fileIndex].path;
 	static const char* fileExt = modelInfos[fileIndex].ext;
 	static const float scale = modelInfos[fileIndex].scale;
@@ -355,7 +355,7 @@ void InitQEM(IKEnginePtr engine)
 		bool initUserData = false;
 
 		std::vector<IKEntityPtr> entites;
-		for (uint32_t fileIndex = 1; fileIndex < 2; ++fileIndex)
+		for (uint32_t fileIndex = 0; fileIndex < 1; ++fileIndex)
 		{
 			KMeshRawData userData;
 			const char* filePath = modelInfos[fileIndex].path;

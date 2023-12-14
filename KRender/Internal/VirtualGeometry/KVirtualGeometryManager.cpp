@@ -220,31 +220,18 @@ bool KVirtualGeometryManager::AcquireImpl(const char* label, const KMeshRawData&
 		KVirtualGeometryBuilder builder;
 		builder.Build(vertices, indices, materialIndices);
 
+		std::vector<KVirtualGeometryPage> pages;
+		std::vector<KVirtualGeometryPageStorage> pageStorages;
+		builder.GetPageStorages(pages, pageStorages);
+
 		KMeshClusterBatchStorage batchStorages;
 		KMeshClustersVertexStorage vertexStroages;
 		KMeshClustersIndexStorage indexStroages;
 		KMeshClustersMaterialStorage materialStorages;
-		std::vector<uint32_t> clustersPartNum;
-		std::vector<uint32_t> clustersPartStart;
 
-		std::vector<KVirtualGeometryPageStorage> pageStorages;
-
-		if (!builder.GetMeshClusterStorages(batchStorages, vertexStroages, indexStroages, materialStorages, clustersPartNum))
+		if (!builder.GetMeshClusterStorages(batchStorages, vertexStroages, indexStroages, materialStorages))
 		{
 			return false;
-		}
-
-		clustersPartStart.resize(clustersPartNum.size());
-		for (size_t i = 0; i < clustersPartNum.size(); ++i)
-		{
-			if (i > 0)
-			{
-				clustersPartStart[i] += clustersPartStart[i - 1] + clustersPartNum[i - 1];
-			}
-			else
-			{
-				clustersPartStart[i] = 0;
-			}
 		}
 
 		std::vector<KMeshClusterHierarchy> hierarchies;
@@ -253,8 +240,23 @@ bool KVirtualGeometryManager::AcquireImpl(const char* label, const KMeshRawData&
 			return false;
 		}
 
+		std::vector<KMeshClusterGroupPart> clusterGroupParts;
+		if (!builder.GetMeshClusterGroupParts(clusterGroupParts))
+		{
+			return false;
+		}
+
 		std::vector<KMeshClusterHierarchyPackedNode> hierarchyNode;
 		hierarchyNode.resize(hierarchies.size());
+
+		std::vector<uint32_t> clusterNumOfPreviousPages;
+		clusterNumOfPreviousPages.resize(pages.size());
+		memset(clusterNumOfPreviousPages.data(), 0, clusterNumOfPreviousPages.size() * sizeof(uint32_t));
+		for (size_t i = 1; i < clusterNumOfPreviousPages.size(); ++i)
+		{
+			clusterNumOfPreviousPages[i] = clusterNumOfPreviousPages[i - 1] + pages[i - 1].clusterNum;
+		}
+
 		for (size_t i = 0; i < hierarchyNode.size(); ++i)
 		{
 			KMeshClusterHierarchy& hierarchy = hierarchies[i];
@@ -268,11 +270,15 @@ bool KVirtualGeometryManager::AcquireImpl(const char* label, const KMeshRawData&
 				node.children[child] = hierarchy.children[child];
 			}
 
-			if (hierarchy.storagePartIndex != KVirtualGeometryDefine::INVALID_INDEX)
+			if (hierarchy.partIndex != KVirtualGeometryDefine::INVALID_INDEX)
 			{
 				node.isLeaf = true;
-				node.clusterStart = clustersPartStart[hierarchy.storagePartIndex];
-				node.clusterNum = clustersPartNum[hierarchy.storagePartIndex];
+				// Local page index, just for debug.
+				uint32_t pageIndex = clusterGroupParts[hierarchy.partIndex].pageIndex;
+				node.clusterPageIndex = pageIndex;
+				node.clusterStart = clusterGroupParts[hierarchy.partIndex].clusterStart;
+				node.clusterStart = clusterGroupParts[hierarchy.partIndex].clusterStart + clusterNumOfPreviousPages[pageIndex];
+				node.clusterNum = (uint32_t)clusterGroupParts[hierarchy.partIndex].clusters.size();
 			}
 			else
 			{

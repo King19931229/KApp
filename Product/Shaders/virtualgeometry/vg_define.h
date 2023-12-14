@@ -63,7 +63,8 @@ struct ClusterBatchStruct
 	uint partIndex;
 	uint triangleNum;
 	uint batchNum;
-	uint padding[2];
+	uint leaf;
+	uint padding;
 };
 
 // Match with KMeshClusterHierarchyPackedNode
@@ -75,7 +76,7 @@ struct ClusterHierarchyStruct
 	uint isLeaf;
 	uint clusterStart;
 	uint clusterNum;
-	uint padding;
+	uint clusterPageIndex;
 };
 
 // Match with KVirtualGeometryResource
@@ -133,12 +134,13 @@ struct CandidateNode
 struct CandidateCluster
 {
 	uint instanceId;
+	uint pageIndex;
 	uint clusterIndex;
 };
 
 struct BinningBatch
 {
-	uint clusterIndex;	
+	uint batchIndex;
 	uint binningIndex;
 	uint rangeBegin;
 	uint rangeNum;
@@ -146,7 +148,7 @@ struct BinningBatch
 
 struct Binning
 {
-	uint clusterIndex;
+	uint batchIndex;
 	uint rangeBegin;
 	uint rangeNum;
 };
@@ -289,7 +291,7 @@ CandidateCluster UnpackCandidateCluster(uvec4 data)
 uvec4 PackBinningBatch(BinningBatch batch)
 {
 	uvec4 pack = uvec4(0,0,0,0);
-	pack.x = batch.clusterIndex;
+	pack.x = batch.batchIndex;
 	pack.y = batch.binningIndex;
 	pack.z |= (batch.rangeBegin & 0xFF) << 8;
 	pack.z |= (batch.rangeNum & 0xFF);
@@ -299,7 +301,7 @@ uvec4 PackBinningBatch(BinningBatch batch)
 BinningBatch UnpackBinningBatch(uvec4 data)
 {
 	BinningBatch batch;
-	batch.clusterIndex = data.x;
+	batch.batchIndex = data.x;
 	batch.binningIndex = data.y;
 	batch.rangeBegin = (data.z >> 8) & 0xFF;
 	batch.rangeNum = (data.z & 0xFF);
@@ -312,7 +314,7 @@ Binning GetBinning(uint binningIndex, uint binningBatchIndex)
 	BinningBatch batchData = UnpackBinningBatch(BinningData[batchIndex]);
 
 	Binning binningData;
-	binningData.clusterIndex = batchData.clusterIndex;
+	binningData.batchIndex = batchData.batchIndex;
 	binningData.rangeBegin = batchData.rangeBegin;
 	binningData.rangeNum = batchData.rangeNum;
 
@@ -553,10 +555,10 @@ void DecodeClusterBatchClusterIndex(in uint batchIndex, out uint clusterIndex)
 	clusterIndex = selectedCluster.clusterIndex;
 }
 
-void DecodeClusterBatchData(in uint triangleIndex, in uint localVertexIndex, in uint clusterIndex,
+void DecodeClusterBatchData(in uint triangleIndex, in uint localVertexIndex, in uint batchIndex,
 	out mat4 localToWorld, out vec3 position, out vec3 normal, out vec2 uv)
 {
-	CandidateCluster selectedCluster = UnpackCandidateCluster(SelectedClusterBatch[clusterIndex]);
+	CandidateCluster selectedCluster = UnpackCandidateCluster(SelectedClusterBatch[batchIndex]);
 	uint instanceId = selectedCluster.instanceId;
 
 	ClusterBatchStruct clusterBatch;

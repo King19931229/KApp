@@ -118,7 +118,7 @@ void main()
 
 	Binning binning = GetBinning(materialBinningIndex, workIndex);
 
-	uint batchIndex = binning.clusterIndex;
+	uint batchIndex = binning.batchIndex;
 	uint batchTriangleBegin = binning.rangeBegin;
 	uint batchTriangleNum = binning.rangeNum;
 	uint batchTriangleEnd = batchTriangleBegin + batchTriangleNum;

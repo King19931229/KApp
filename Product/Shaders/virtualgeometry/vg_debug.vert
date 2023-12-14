@@ -8,9 +8,9 @@ layout(location = 4) out vec3 outVertexColor;
 
 void main()
 {
-	uint batchIndex = gl_InstanceIndex;
+	uint instanceIndex = gl_InstanceIndex;
 
-	Binning binning = GetBinning(materialBinningIndex, batchIndex);
+	Binning binning = GetBinning(materialBinningIndex, instanceIndex);
 
 	uint triangleIndex = gl_VertexIndex / 3;
 	uint vertexIndex = gl_VertexIndex - triangleIndex * 3;
@@ -18,9 +18,9 @@ void main()
 	// Offset to the batch
 	triangleIndex += binning.rangeBegin;
 
-	uint clusterIndex = binning.clusterIndex;
+	uint batchIndex = binning.batchIndex;
 
-	CandidateCluster selectedCluster = UnpackCandidateCluster(SelectedClusterBatch[clusterIndex]);
+	CandidateCluster selectedCluster = UnpackCandidateCluster(SelectedClusterBatch[batchIndex]);
 	uint instanceId = selectedCluster.instanceId;
 
 	ClusterBatchStruct clusterBatch;
