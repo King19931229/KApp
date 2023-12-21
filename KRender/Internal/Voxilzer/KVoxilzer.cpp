@@ -300,37 +300,37 @@ void KVoxilzer::SetupSparseVoxelBuffer()
 	uint32_t countOnly = 1;
 
 	m_CounterBuffer->InitMemory(sizeof(counter), &counter);
-	m_CounterBuffer->InitDevice(false);
+	m_CounterBuffer->InitDevice(false, false);
 
 	uint32_t fragmentDummy[] = { 0, 0, 0, 0 };
 	m_FragmentlistBuffer->InitMemory(sizeof(fragmentDummy), fragmentDummy);
-	m_FragmentlistBuffer->InitDevice(false);
+	m_FragmentlistBuffer->InitDevice(false, false);
 
 	m_CountOnlyBuffer->InitMemory(sizeof(countOnly), &countOnly);
-	m_CountOnlyBuffer->InitDevice(false);
+	m_CountOnlyBuffer->InitDevice(false, false);
 
 	uint32_t buildinfo[] = { 0, 8 };
 	m_BuildInfoBuffer->InitMemory(sizeof(buildinfo), buildinfo);
-	m_BuildInfoBuffer->InitDevice(false);
+	m_BuildInfoBuffer->InitDevice(false, false);
 
 	uint32_t indirectinfo[] = { 1, 1, 1 };
 	m_BuildIndirectBuffer->InitMemory(sizeof(indirectinfo), indirectinfo);
-	m_BuildIndirectBuffer->InitDevice(true);
+	m_BuildIndirectBuffer->InitDevice(true, false);
 
 	// 随意填充空数据即可
 	m_OctreeBuffer->InitMemory(sizeof(fragmentDummy), fragmentDummy);
-	m_OctreeBuffer->InitDevice(false);
+	m_OctreeBuffer->InitDevice(false, false);
 
 	m_OctreeDataBuffer->InitMemory(sizeof(fragmentDummy), fragmentDummy);
-	m_OctreeDataBuffer->InitDevice(false);
+	m_OctreeDataBuffer->InitDevice(false, false);
 
 	m_OctreeMipmapDataBuffer->InitMemory(sizeof(fragmentDummy), fragmentDummy);
-	m_OctreeMipmapDataBuffer->InitDevice(false);
+	m_OctreeMipmapDataBuffer->InitDevice(false, false);
 
 	glm::vec4 cameraDummy[5] = { glm::vec4(0, 0, 0, 0), glm::vec4(0, 0, -1, 0), glm::vec4(1, 0, 0, 0), glm::vec4(0, 1, 0, 0), glm::vec4(0, 0, 0, 0) };
 
 	m_OctreeCameraBuffer->InitMemory(sizeof(cameraDummy), cameraDummy);
-	m_OctreeCameraBuffer->InitDevice(false);
+	m_OctreeCameraBuffer->InitDevice(false, false);
 
 	uint32_t dimension = m_VolumeDimension;
 	m_StaticFlag->InitFromStorage3D(dimension, dimension, dimension, 1, EF_R8_UNORM);
@@ -896,7 +896,7 @@ void KVoxilzer::VoxelizeStaticSceneCounter(IKCommandBufferPtr commandBuffer, boo
 		{
 			m_FragmentlistBuffer->UnInit();
 			m_FragmentlistBuffer->InitMemory(bufferSize, nullptr);
-			m_FragmentlistBuffer->InitDevice(false);
+			m_FragmentlistBuffer->InitDevice(false, false);
 		}
 
 		counter = 0;
@@ -1053,7 +1053,7 @@ void KVoxilzer::BuildOctree(IKCommandBufferPtr commandBuffer)
 	{
 		m_OctreeBuffer->UnInit();
 		m_OctreeBuffer->InitMemory(octreeNodeNum * OCTREE_NODE_SIZE, nullptr);
-		m_OctreeBuffer->InitDevice(false);
+		m_OctreeBuffer->InitDevice(false, false);
 		m_OctreeBuffer->SetDebugName("SVO_OctreeBuffer");
 
 #ifdef USE_OCTREE_MIPMAP_BUFFER
@@ -1066,17 +1066,17 @@ void KVoxilzer::BuildOctree(IKCommandBufferPtr commandBuffer)
 
 	m_OctreeDataBuffer->UnInit();
 	m_OctreeDataBuffer->InitMemory(fragmentCount * OCTREE_DATA_SIZE, nullptr);
-	m_OctreeDataBuffer->InitDevice(false);
+	m_OctreeDataBuffer->InitDevice(false, false);
 	m_OctreeDataBuffer->SetDebugName("SVO_OctreeDataBuffer");
 
 	uint32_t buildinfo[] = { 0, 8 };
 	m_BuildInfoBuffer->InitMemory(sizeof(buildinfo), buildinfo);
-	m_BuildInfoBuffer->InitDevice(false);
+	m_BuildInfoBuffer->InitDevice(false, false);
 	m_BuildInfoBuffer->SetDebugName("SVO_BuildInfoBuffer");
 
 	uint32_t indirectinfo[] = { 1, 1, 1 };
 	m_BuildIndirectBuffer->InitMemory(sizeof(indirectinfo), indirectinfo);
-	m_BuildIndirectBuffer->InitDevice(true);
+	m_BuildIndirectBuffer->InitDevice(true, false);
 	m_BuildIndirectBuffer->SetDebugName("SVO_BuildIndirectBuffer");
 
 	uint32_t fragmentGroupX = group_x_64(fragmentCount);
@@ -1117,7 +1117,7 @@ void KVoxilzer::ShrinkOctree()
 	m_OctreeBuffer->Read(buffers.data());
 	m_OctreeBuffer->UnInit();
 	m_OctreeBuffer->InitMemory(m_OctreeNonLeafCount * OCTREE_NODE_SIZE, buffers.data());
-	m_OctreeBuffer->InitDevice(false);
+	m_OctreeBuffer->InitDevice(false, false);
 	m_OctreeBuffer->SetDebugName("SVO_OctreeBuffer");
 
 #ifdef USE_OCTREE_MIPMAP_BUFFER
@@ -1133,7 +1133,7 @@ void KVoxilzer::ShrinkOctree()
 	m_OctreeDataBuffer->Read(buffers.data());
 	m_OctreeDataBuffer->UnInit();
 	m_OctreeDataBuffer->InitMemory(m_OctreeLeafCount * OCTREE_DATA_SIZE, buffers.data());
-	m_OctreeDataBuffer->InitDevice(false);
+	m_OctreeDataBuffer->InitDevice(false, false);
 	m_OctreeDataBuffer->SetDebugName("SVO_OctreeDataBuffer");
 }
 

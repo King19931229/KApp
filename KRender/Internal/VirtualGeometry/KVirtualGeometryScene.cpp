@@ -91,6 +91,8 @@ bool KVirtualGeometryScene::Init(IKRenderScene* scene, const KCamera* camera)
 	{
 		m_Scene = scene;
 		m_Camera = camera;
+		uint32_t frameCount = KRenderGlobal::NumFramesInFlight;
+
 		m_PrevViewProj = m_Camera->GetProjectiveMatrix() * m_Camera->GetViewMatrix();
 		{
 			KRenderGlobal::RenderDevice->CreateUniformBuffer(m_GlobalDataBuffer);
@@ -100,18 +102,33 @@ bool KVirtualGeometryScene::Init(IKRenderScene* scene, const KCamera* camera)
 
 			KRenderGlobal::RenderDevice->CreateStorageBuffer(m_InstanceDataBuffer);
 			m_InstanceDataBuffer->InitMemory(sizeof(KVirtualGeometryInstance), nullptr);
-			m_InstanceDataBuffer->InitDevice(false);
+			m_InstanceDataBuffer->InitDevice(false, false);
 			m_InstanceDataBuffer->SetDebugName(VIRTUAL_GEOMETRY_SCENE_INSTANCE_DATA);
 
 			KRenderGlobal::RenderDevice->CreateStorageBuffer(m_MainCullResultBuffer);
 			m_MainCullResultBuffer->InitMemory(sizeof(uint32_t), nullptr);
-			m_MainCullResultBuffer->InitDevice(false);
+			m_MainCullResultBuffer->InitDevice(false, false);
 			m_MainCullResultBuffer->SetDebugName(VIRTUAL_GEOMETRY_SCENE_MAIN_CULL_RESULT);
 
 			KRenderGlobal::RenderDevice->CreateStorageBuffer(m_QueueStateBuffer);
 			m_QueueStateBuffer->InitMemory(2 * sizeof(KVirtualGeometryQueueState), nullptr);
-			m_QueueStateBuffer->InitDevice(false);
+			m_QueueStateBuffer->InitDevice(false, false);
 			m_QueueStateBuffer->SetDebugName(VIRTUAL_GEOMETRY_SCENE_QUEUE_STATE);
+
+			m_StreamingRequestBuffers.resize(frameCount);
+			m_StreamingRequestClearPipelines.resize(frameCount);
+
+			for (size_t frameIndex = 0; frameIndex < frameCount; ++frameIndex)
+			{
+				KRenderGlobal::RenderDevice->CreateStorageBuffer(m_StreamingRequestBuffers[frameIndex]);
+				m_StreamingRequestBuffers[frameIndex]->InitMemory(MAX_STREAMING_REQUEST * sizeof(KVirtualGeometryStreamingRequest), nullptr);
+				m_StreamingRequestBuffers[frameIndex]->InitDevice(false, true);
+				m_StreamingRequestBuffers[frameIndex]->SetDebugName((std::string(VIRTUAL_GEOMETRY_SCENE_STREAMING_REQUEST) + "_" + std::to_string(frameIndex)).c_str());
+
+				KRenderGlobal::RenderDevice->CreateComputePipeline(m_StreamingRequestClearPipelines[frameIndex]);
+				m_StreamingRequestClearPipelines[frameIndex]->BindStorageBuffer(BINDING_STREAMING_REQUEST, m_StreamingRequestBuffers[frameIndex], COMPUTE_RESOURCE_OUT, false);
+				m_StreamingRequestClearPipelines[frameIndex]->Init("virtualgeometry/streaming_request_clear.comp", m_DefaultBindingEnv);
+			}
 
 			std::vector<glm::uvec4> emptyCandidateNodeData;
 			emptyCandidateNodeData.resize(2 * MAX_CANDIDATE_NODE);
@@ -119,7 +136,7 @@ bool KVirtualGeometryScene::Init(IKRenderScene* scene, const KCamera* camera)
 
 			KRenderGlobal::RenderDevice->CreateStorageBuffer(m_CandidateNodeBuffer);
 			m_CandidateNodeBuffer->InitMemory(2 * MAX_CANDIDATE_NODE * sizeof(glm::uvec4), emptyCandidateNodeData.data());
-			m_CandidateNodeBuffer->InitDevice(false);
+			m_CandidateNodeBuffer->InitDevice(false, false);
 			m_CandidateNodeBuffer->SetDebugName(VIRTUAL_GEOMETRY_SCENE_CANDIDATE_NODE);
 
 			std::vector<glm::uvec4> emptyBatchClusterData;
@@ -128,55 +145,55 @@ bool KVirtualGeometryScene::Init(IKRenderScene* scene, const KCamera* camera)
 
 			KRenderGlobal::RenderDevice->CreateStorageBuffer(m_CandidateClusterBuffer);
 			m_CandidateClusterBuffer->InitMemory(2 * MAX_CANDIDATE_CLUSTERS * sizeof(glm::uvec4), emptyBatchClusterData.data());
-			m_CandidateClusterBuffer->InitDevice(false);
+			m_CandidateClusterBuffer->InitDevice(false, false);
 			m_CandidateClusterBuffer->SetDebugName(VIRTUAL_GEOMETRY_SCENE_CANDIDATE_CLUSTER);
 
 			KRenderGlobal::RenderDevice->CreateStorageBuffer(m_SelectedClusterBuffer);
 			m_SelectedClusterBuffer->InitMemory(2 * MAX_CANDIDATE_CLUSTERS * sizeof(glm::uvec4), emptyBatchClusterData.data());
-			m_SelectedClusterBuffer->InitDevice(false);
+			m_SelectedClusterBuffer->InitDevice(false, false);
 			m_SelectedClusterBuffer->SetDebugName(VIRTUAL_GEOMETRY_SCENE_SELECTED_CLUSTER);
 
 			KRenderGlobal::RenderDevice->CreateStorageBuffer(m_ExtraDebugBuffer);
 			m_ExtraDebugBuffer->InitMemory(2 * MAX_CANDIDATE_CLUSTERS * sizeof(glm::uvec4), emptyBatchClusterData.data());
-			m_ExtraDebugBuffer->InitDevice(false);
+			m_ExtraDebugBuffer->InitDevice(false, false);
 			m_ExtraDebugBuffer->SetDebugName(VIRTUAL_GEOMETRY_SCENE_BINDING_EXTRA_DEBUG_INFO);
 
 			uint32_t indirectInfo[] = { 1, 1, 1, 1 };
 			KRenderGlobal::RenderDevice->CreateStorageBuffer(m_IndirectAgrsBuffer);
 			m_IndirectAgrsBuffer->InitMemory(sizeof(indirectInfo), indirectInfo);
-			m_IndirectAgrsBuffer->InitDevice(true);
+			m_IndirectAgrsBuffer->InitDevice(true, false);
 			m_IndirectAgrsBuffer->SetDebugName(VIRTUAL_GEOMETRY_SCENE_INDIRECT_ARGS);
 
 			KRenderGlobal::RenderDevice->CreateStorageBuffer(m_PostCullIndirectArgsBuffer);
 			m_PostCullIndirectArgsBuffer->InitMemory(sizeof(indirectInfo), indirectInfo);
-			m_PostCullIndirectArgsBuffer->InitDevice(true);
+			m_PostCullIndirectArgsBuffer->InitDevice(true, false);
 			m_PostCullIndirectArgsBuffer->SetDebugName(VIRTUAL_GEOMETRY_SCENE_POST_CULL_INDIRECT_ARGS);
 
 			// { vertexCount, instanceCount, firstVertex, firstInstance }
 			int32_t indirectDrawInfo[] = { 0, 0, 0, 0 };
 			KRenderGlobal::RenderDevice->CreateStorageBuffer(m_IndirectDrawBuffer);
 			m_IndirectDrawBuffer->InitMemory(sizeof(indirectDrawInfo), indirectDrawInfo);
-			m_IndirectDrawBuffer->InitDevice(true);
+			m_IndirectDrawBuffer->InitDevice(true, false);
 			m_IndirectDrawBuffer->SetDebugName(VIRTUAL_GEOMETRY_SCENE_INDIRECT_DRAW_ARGS);
 
 			// { groupCountX, groupCountY, groupCountZ }
 			int32_t indirectMeshInfo[] = { 0, 0, 0 };
 			KRenderGlobal::RenderDevice->CreateStorageBuffer(m_IndirectMeshBuffer);
 			m_IndirectMeshBuffer->InitMemory(sizeof(indirectMeshInfo), indirectMeshInfo);
-			m_IndirectMeshBuffer->InitDevice(true);
+			m_IndirectMeshBuffer->InitDevice(true, false);
 			m_IndirectMeshBuffer->SetDebugName(VIRTUAL_GEOMETRY_SCENE_INDIRECT_MESH_ARGS);
 
 			std::vector<glm::uvec4> emptyBinningBatchData;
 			emptyBinningBatchData.resize(MAX_CANDIDATE_CLUSTERS);
 			KRenderGlobal::RenderDevice->CreateStorageBuffer(m_BinningDataBuffer);
 			m_BinningDataBuffer->InitMemory(emptyBinningBatchData.size() * sizeof(glm::uvec4), emptyBinningBatchData.data());
-			m_BinningDataBuffer->InitDevice(false);
+			m_BinningDataBuffer->InitDevice(false, false);
 			m_BinningDataBuffer->SetDebugName(VIRTUAL_GEOMETRY_SCENE_BINNING_DATA);
 
 			uint32_t emptyBinningHeader[] = { 0, 0, 0, 0 };
 			KRenderGlobal::RenderDevice->CreateStorageBuffer(m_BinningHeaderBuffer);
 			m_BinningHeaderBuffer->InitMemory(sizeof(emptyBinningHeader), emptyBinningHeader);
-			m_BinningHeaderBuffer->InitDevice(false);
+			m_BinningHeaderBuffer->InitDevice(false, false);
 			m_BinningHeaderBuffer->SetDebugName(VIRTUAL_GEOMETRY_SCENE_BINNIIG_HEADER);
 		}
 
@@ -267,9 +284,14 @@ bool KVirtualGeometryScene::Init(IKRenderScene* scene, const KCamera* camera)
 					}
 				};
 
-				KRenderGlobal::RenderDevice->CreateComputePipeline(m_NodeCullPipeline[i]);
-				BindNodeCullResource(m_NodeCullPipeline[i], (InstanceCull)i);
-				m_NodeCullPipeline[i]->Init("virtualgeometry/node_and_cluster_cull.comp", nodeCullEnv);
+				m_NodeCullPipelines[i].resize(frameCount);
+				for (size_t frameIndex = 0; frameIndex < frameCount; ++frameIndex)
+				{
+					KRenderGlobal::RenderDevice->CreateComputePipeline(m_NodeCullPipelines[i][frameIndex]);
+					BindNodeCullResource(m_NodeCullPipelines[i][frameIndex], (InstanceCull)i);
+					m_NodeCullPipelines[i][frameIndex]->BindStorageBuffer(BINDING_STREAMING_REQUEST, m_StreamingRequestBuffers[i], COMPUTE_RESOURCE_IN, true);
+					m_NodeCullPipelines[i][frameIndex]->Init("virtualgeometry/node_and_cluster_cull.comp", nodeCullEnv);
+				}
 
 				auto BindNodeClusterResource = [this](IKComputePipelinePtr pipeline, InstanceCull cullMode)
 				{
@@ -287,14 +309,23 @@ bool KVirtualGeometryScene::Init(IKRenderScene* scene, const KCamera* camera)
 					}
 				};
 
-				KRenderGlobal::RenderDevice->CreateComputePipeline(m_ClusterCullPipeline[i]);
-				BindNodeClusterResource(m_ClusterCullPipeline[i], (InstanceCull)i);
-				m_ClusterCullPipeline[i]->Init("virtualgeometry/node_and_cluster_cull.comp", clusterCullEnv);
+				m_ClusterCullPipelines[i].resize(frameCount);
+				for (size_t frameIndex = 0; frameIndex < frameCount; ++frameIndex)
+				{
+					KRenderGlobal::RenderDevice->CreateComputePipeline(m_ClusterCullPipelines[i][frameIndex]);
+					BindNodeClusterResource(m_ClusterCullPipelines[i][frameIndex], (InstanceCull)i);
+					m_ClusterCullPipelines[i][frameIndex]->Init("virtualgeometry/node_and_cluster_cull.comp", clusterCullEnv);
+				}
 
-				KRenderGlobal::RenderDevice->CreateComputePipeline(m_PersistentCullPipeline[i]);
-				BindNodeCullResource(m_PersistentCullPipeline[i], (InstanceCull)i);
-				BindNodeClusterResource(m_PersistentCullPipeline[i], (InstanceCull)i);
-				m_PersistentCullPipeline[i]->Init("virtualgeometry/node_and_cluster_cull.comp", persistentCullEnv);
+				m_PersistentCullPipelines[i].resize(frameCount);
+				for (size_t frameIndex = 0; frameIndex < frameCount; ++frameIndex)
+				{
+					KRenderGlobal::RenderDevice->CreateComputePipeline(m_PersistentCullPipelines[i][frameIndex]);
+					BindNodeCullResource(m_PersistentCullPipelines[i][frameIndex], (InstanceCull)i);
+					BindNodeClusterResource(m_PersistentCullPipelines[i][frameIndex], (InstanceCull)i);
+					m_PersistentCullPipelines[i][frameIndex]->BindStorageBuffer(BINDING_STREAMING_REQUEST, m_StreamingRequestBuffers[i], COMPUTE_RESOURCE_IN, true);
+					m_PersistentCullPipelines[i][frameIndex]->Init("virtualgeometry/node_and_cluster_cull.comp", persistentCullEnv);
+				}
 
 				KRenderGlobal::RenderDevice->CreateComputePipeline(m_CalcDrawArgsPipeline[i]);
 				m_CalcDrawArgsPipeline[i]->BindStorageBuffer(BINDING_QUEUE_STATE, m_QueueStateBuffer, COMPUTE_RESOURCE_IN, true);
@@ -405,6 +436,9 @@ bool KVirtualGeometryScene::UnInit()
 
 	m_Camera = nullptr;
 
+	SAFE_UNINIT_CONTAINER(m_StreamingRequestBuffers);
+	SAFE_UNINIT_CONTAINER(m_StreamingRequestClearPipelines);
+
 	SAFE_UNINIT(m_GlobalDataBuffer);
 	SAFE_UNINIT(m_InstanceDataBuffer);
 	SAFE_UNINIT(m_MainCullResultBuffer);
@@ -425,9 +459,9 @@ bool KVirtualGeometryScene::UnInit()
 		SAFE_UNINIT(m_InstanceCullPipeline[i]);
 		SAFE_UNINIT(m_InitNodeCullArgsPipeline[i]);
 		SAFE_UNINIT(m_InitClusterCullArgsPipeline[i]);
-		SAFE_UNINIT(m_NodeCullPipeline[i]);
-		SAFE_UNINIT(m_PersistentCullPipeline[i]);
-		SAFE_UNINIT(m_ClusterCullPipeline[i]);
+		SAFE_UNINIT_CONTAINER(m_NodeCullPipelines[i]);
+		SAFE_UNINIT_CONTAINER(m_PersistentCullPipelines[i]);
+		SAFE_UNINIT_CONTAINER(m_ClusterCullPipelines[i]);
 		SAFE_UNINIT(m_CalcDrawArgsPipeline[i]);
 		SAFE_UNINIT(m_InitBinningPipline[i]);
 		SAFE_UNINIT(m_BinningClassifyPipline[i]);
@@ -644,7 +678,7 @@ bool KVirtualGeometryScene::UpdateInstanceData()
 				KRenderGlobal::RenderDevice->Wait();
 				m_IndirectDrawBuffer->UnInit();
 				m_IndirectDrawBuffer->InitMemory(targetBufferSize, nullptr);
-				m_IndirectDrawBuffer->InitDevice(true);
+				m_IndirectDrawBuffer->InitDevice(true, false);
 				m_IndirectDrawBuffer->SetDebugName(VIRTUAL_GEOMETRY_SCENE_INDIRECT_DRAW_ARGS);
 			}
 		}
@@ -658,7 +692,7 @@ bool KVirtualGeometryScene::UpdateInstanceData()
 				KRenderGlobal::RenderDevice->Wait();
 				m_IndirectMeshBuffer->UnInit();
 				m_IndirectMeshBuffer->InitMemory(targetBufferSize, nullptr);
-				m_IndirectMeshBuffer->InitDevice(true);
+				m_IndirectMeshBuffer->InitDevice(true, false);
 				m_IndirectMeshBuffer->SetDebugName(VIRTUAL_GEOMETRY_SCENE_INDIRECT_MESH_ARGS);
 			}
 		}
@@ -675,7 +709,7 @@ bool KVirtualGeometryScene::UpdateInstanceData()
 			KRenderGlobal::RenderDevice->Wait();
 			m_BinningHeaderBuffer->UnInit();
 			m_BinningHeaderBuffer->InitMemory(targetBufferSize, nullptr);
-			m_BinningHeaderBuffer->InitDevice(false);
+			m_BinningHeaderBuffer->InitDevice(false, false);
 			m_BinningHeaderBuffer->SetDebugName(VIRTUAL_GEOMETRY_SCENE_BINNIIG_HEADER);
 		}
 
@@ -702,7 +736,7 @@ bool KVirtualGeometryScene::UpdateInstanceData()
 
 			m_InstanceDataBuffer->UnInit();
 			m_InstanceDataBuffer->InitMemory(targetBufferSize, nullptr);
-			m_InstanceDataBuffer->InitDevice(false);
+			m_InstanceDataBuffer->InitDevice(false, false);
 			m_InstanceDataBuffer->SetDebugName(VIRTUAL_GEOMETRY_SCENE_INSTANCE_DATA);
 		}
 
@@ -724,7 +758,7 @@ bool KVirtualGeometryScene::UpdateInstanceData()
 
 			m_MainCullResultBuffer->UnInit();
 			m_MainCullResultBuffer->InitMemory(targetBufferSize, nullptr);
-			m_MainCullResultBuffer->InitDevice(false);
+			m_MainCullResultBuffer->InitDevice(false, false);
 			m_MainCullResultBuffer->SetDebugName(VIRTUAL_GEOMETRY_SCENE_MAIN_CULL_RESULT);
 		}
 	}
@@ -752,6 +786,7 @@ bool KVirtualGeometryScene::Execute(IKCommandBufferPtr primaryBuffer, InstanceCu
 	UpdateInstanceData();
 
 	std::string cullString = InstanceCullString(cullMode);
+	uint32_t currentFrame = KRenderGlobal::CurrentInFlightFrameIndex;
 
 	primaryBuffer->BeginDebugMarker("VirtualGeometry" + cullString, glm::vec4(1));
 	if (m_InitQueueStatePipeline)
@@ -780,7 +815,7 @@ bool KVirtualGeometryScene::Execute(IKCommandBufferPtr primaryBuffer, InstanceCu
 		if (KRenderGlobal::VirtualGeometryManager.GetUsePersistentCull())
 		{
 			primaryBuffer->BeginDebugMarker("VirtualGeometry_NodeCull_Persistent", glm::vec4(1));
-			m_PersistentCullPipeline[cullMode]->Execute(primaryBuffer, 1024, 1, 1, nullptr);
+			m_PersistentCullPipelines[cullMode][currentFrame]->Execute(primaryBuffer, 1024, 1, 1, nullptr);
 			primaryBuffer->EndDebugMarker();
 		}
 		else
@@ -794,7 +829,7 @@ bool KVirtualGeometryScene::Execute(IKCommandBufferPtr primaryBuffer, InstanceCu
 					primaryBuffer->EndDebugMarker();
 
 					primaryBuffer->BeginDebugMarker(("VirtualGeometry_NodeCull_" + std::to_string(level) + "_" + cullString).c_str(), glm::vec4(1));
-					m_NodeCullPipeline[cullMode]->ExecuteIndirect(primaryBuffer, m_IndirectAgrsBuffer, nullptr);
+					m_NodeCullPipelines[cullMode][currentFrame]->ExecuteIndirect(primaryBuffer, m_IndirectAgrsBuffer, nullptr);
 					primaryBuffer->EndDebugMarker();
 				}
 				primaryBuffer->EndDebugMarker();
@@ -805,7 +840,7 @@ bool KVirtualGeometryScene::Execute(IKCommandBufferPtr primaryBuffer, InstanceCu
 			primaryBuffer->EndDebugMarker();
 
 			primaryBuffer->BeginDebugMarker("VirtualGeometry_ClusterCull" + cullString, glm::vec4(1));
-			m_ClusterCullPipeline[cullMode]->ExecuteIndirect(primaryBuffer, m_IndirectAgrsBuffer, nullptr);
+			m_ClusterCullPipelines[cullMode][currentFrame]->ExecuteIndirect(primaryBuffer, m_IndirectAgrsBuffer, nullptr);
 			primaryBuffer->EndDebugMarker();
 		}
 
@@ -849,6 +884,18 @@ bool KVirtualGeometryScene::Execute(IKCommandBufferPtr primaryBuffer, InstanceCu
 
 bool KVirtualGeometryScene::ExecuteMain(IKCommandBufferPtr primaryBuffer)
 {
+	std::vector<KVirtualGeometryStreamingRequest> requests;
+	requests.resize(MAX_STREAMING_REQUEST);
+
+	uint32_t currentFrame = KRenderGlobal::CurrentInFlightFrameIndex;
+	m_StreamingRequestBuffers[currentFrame]->Read(requests.data());
+
+	primaryBuffer->BeginDebugMarker("VirtualGeometry_StreamingRequestClear", glm::vec4(1.0f));
+	{
+		m_StreamingRequestClearPipelines[currentFrame]->Execute(primaryBuffer, 1, 1, 1);
+	}
+	primaryBuffer->EndDebugMarker();
+
 	if (KRenderGlobal::VirtualGeometryManager.GetUseDoubleOcclusion())
 	{
 		return Execute(primaryBuffer, INSTANCE_CULL_MAIN);
@@ -979,6 +1026,11 @@ bool KVirtualGeometryScene::DebugRender(IKRenderPassPtr renderPass, IKCommandBuf
 
 bool KVirtualGeometryScene::ReloadShader()
 {
+	for (IKComputePipelinePtr pipeline : m_StreamingRequestClearPipelines)
+	{
+		pipeline->Reload();
+	}
+
 	for (uint32_t i = 0; i < INSTANCE_CULL_COUNT; ++i)
 	{
 		if (m_InitQueueStatePipeline[i])
@@ -997,17 +1049,17 @@ bool KVirtualGeometryScene::ReloadShader()
 		{
 			m_InitClusterCullArgsPipeline[i]->Reload();
 		}
-		if (m_NodeCullPipeline[i])
+		for(IKComputePipelinePtr pipeline : m_NodeCullPipelines[i])
 		{
-			m_NodeCullPipeline[i]->Reload();
+			pipeline->Reload();
 		}
-		if (m_PersistentCullPipeline[i])
+		for (IKComputePipelinePtr pipeline : m_PersistentCullPipelines[i])
 		{
-			m_PersistentCullPipeline[i]->Reload();
+			pipeline->Reload();
 		}
-		if (m_ClusterCullPipeline[i])
+		for (IKComputePipelinePtr pipeline : m_ClusterCullPipelines[i])
 		{
-			m_ClusterCullPipeline[i]->Reload();
+			pipeline->Reload();
 		}
 		if (m_CalcDrawArgsPipeline[i])
 		{

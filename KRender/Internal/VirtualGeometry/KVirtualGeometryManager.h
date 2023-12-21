@@ -3,6 +3,7 @@
 #include "Interface/IKMaterial.h"
 #include "Interface/IKBuffer.h"
 #include "KVirtualGeomerty.h"
+#include "KVirtualGeometryStreaming.h"
 #include <map>
 
 class KVirtualGeometryStorageBuffer
@@ -50,6 +51,8 @@ protected:
 	KVirtualGeometryStorageBuffer m_ClusterIndexStorageBuffer;
 	KVirtualGeometryStorageBuffer m_ClusterMateialStorageBuffer;
 	KVirtualGeometryStorageBuffer m_ResourceBuffer;
+
+	KVirtualGeometryStreamingManager m_StreamingManager;
 
 	bool m_UseMeshPipeline;
 	bool m_UseDoubleOcclusion;

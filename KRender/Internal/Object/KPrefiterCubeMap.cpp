@@ -269,7 +269,7 @@ bool KPrefilerCubeMap::AllocateTempResource(IKRenderDevice* renderDevice, uint32
 		* (uint32_t)((m_SrcCubeMap->GetHeight() + SH_GROUP_SIZE - 1) / SH_GROUP_SIZE)
 		* 6;
 	m_SHCoffBuffer->InitMemory(9 * sizeof(glm::vec4) * numGroups, nullptr);
-	m_SHCoffBuffer->InitDevice(false);
+	m_SHCoffBuffer->InitDevice(false, false);
 
 	m_SHProductPipeline->BindStorageBuffer(SH_BINDING_COEFFICIENT, m_SHCoffBuffer, COMPUTE_RESOURCE_OUT, true);
 	m_SHProductPipeline->BindStorageImage(SH_BINDING_CUBEMAP, m_SrcCubeMap->GetFrameBuffer(), EF_R16G16B16A16_FLOAT, COMPUTE_RESOURCE_IN, 0, true);
@@ -416,7 +416,7 @@ bool KPrefilerCubeMap::Compute()
 	}
 
 	m_SHCoffBuffer->InitMemory(sizeof(m_SHCoeff), m_SHCoeff);
-	m_SHCoffBuffer->InitDevice(false);
+	m_SHCoffBuffer->InitDevice(false, false);
 
 	{
 		IKCommandBufferPtr primaryBuffer = KRenderGlobal::CommandPool->Request(CBL_PRIMARY);

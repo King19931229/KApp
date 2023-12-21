@@ -27,7 +27,7 @@ struct KVirtualGeometryResource
 	uint32_t materialBaseIndex = 0;
 	uint32_t materialNum = 0;
 
-	uint32_t padding[3];
+	uint32_t padding[3] = { 0 };
 };
 static_assert((sizeof(KVirtualGeometryResource) % 16) == 0, "Size must be a multiple of 16");
 
@@ -37,7 +37,7 @@ struct KVirtualGeometryInstance
 	glm::mat4 transform;
 	uint32_t resourceIndex;
 	uint32_t binningBaseIndex;
-	uint32_t padding[2];
+	uint32_t padding[2] = { 0 };
 };
 static_assert((sizeof(KVirtualGeometryInstance) % 16) == 0, "Size must be a multiple of 16");
 
@@ -69,6 +69,15 @@ struct KVirtualGeometryQueueState
 };
 static_assert((sizeof(KVirtualGeometryQueueState) % 16) == 0, "Size must be a multiple of 16");
 
+struct KVirtualGeometryStreamingRequest
+{
+	uint32_t resourceIndex;
+	uint32_t pageStart;
+	uint32_t pageNum;
+	uint32_t priority;
+};
+static_assert((sizeof(KVirtualGeometryStreamingRequest) % 16) == 0, "Size must be a multiple of 16");
+
 struct KMeshClusterHierarchyPackedNode
 {
 	glm::vec4 lodBoundCenterError;
@@ -78,9 +87,12 @@ struct KMeshClusterHierarchyPackedNode
 	uint32_t clusterStart = KVirtualGeometryDefine::INVALID_INDEX;
 	uint32_t clusterNum = KVirtualGeometryDefine::INVALID_INDEX;
 	uint32_t clusterPageIndex = 0;
+	uint32_t groupPageStart = KVirtualGeometryDefine::INVALID_INDEX;
+	uint32_t groupPageNum = 0;
+	uint32_t padding[2] = { 0 };
 };
 
-static_assert(sizeof(KMeshClusterHierarchyPackedNode) == KVirtualGeometryDefine::MAX_BVH_NODES * 4 + 32 + 16, "size check");
+static_assert(sizeof(KMeshClusterHierarchyPackedNode) == KVirtualGeometryDefine::MAX_BVH_NODES * 4 + 64, "size check");
 static_assert((sizeof(KMeshClusterHierarchyPackedNode) % 16) == 0, "Size must be a multiple of 16");
 
 typedef KReferenceHolder<KVirtualGeometryResource*> KVirtualGeometryResourceRef;

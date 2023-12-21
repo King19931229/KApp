@@ -135,7 +135,7 @@ bool KVulkanBuffer::InitDevice(VkBufferUsageFlags usages, const void* pData, uin
 		KVulkanInitializer::CreateVkBuffer(
 			(VkDeviceSize)m_BufferSize
 			, usageFlags
-			, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
+			, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT
 			, m_vkBuffer
 			, m_AllocInfo);
 
@@ -506,16 +506,16 @@ KVulkanStorageBuffer::~KVulkanStorageBuffer()
 {
 }
 
-bool KVulkanStorageBuffer::InitDevice(bool indirect)
+bool KVulkanStorageBuffer::InitDevice(bool indirect, bool hostVisible)
 {
-	KStorageBufferBase::InitDevice(indirect);
+	KStorageBufferBase::InitDevice(indirect, hostVisible);
 
 	VkBufferUsageFlags usageFlags = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
 	if (indirect)
 	{
 		usageFlags |= VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT;
 	}
-	return m_Buffer.InitDevice(usageFlags, m_Data.data(), (uint32_t)m_BufferSize, false);
+	return m_Buffer.InitDevice(usageFlags, m_Data.data(), (uint32_t)m_BufferSize, hostVisible);
 }
 
 bool KVulkanStorageBuffer::UnInit()

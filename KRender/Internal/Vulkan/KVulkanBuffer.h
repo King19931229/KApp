@@ -125,7 +125,7 @@ public:
 	KVulkanStorageBuffer();
 	virtual ~KVulkanStorageBuffer();
 
-	virtual bool InitDevice(bool indirect);
+	virtual bool InitDevice(bool indirect, bool hostVisible);
 	virtual bool UnInit();
 
 	virtual bool SetDebugName(const char* pName);

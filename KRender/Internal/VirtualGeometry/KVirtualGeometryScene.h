@@ -1,5 +1,6 @@
 #pragma once
 #include "KVirtualGeomerty.h"
+#include "KVirtualGeometryStreaming.h"
 #include "KBase/Interface/Entity/IKEntity.h"
 #include "KBase/Interface/Component/IKRenderComponent.h"
 #include "Interface/IKRenderScene.h"
@@ -20,6 +21,7 @@ protected:
 	{
 		MAX_CANDIDATE_NODE = 1024 * 1024,
 		MAX_CANDIDATE_CLUSTERS = 1024 * 1024 * 4,
+		MAX_STREAMING_REQUEST = 256 * 1024,
 
 		VG_GROUP_SIZE = 64,
 		VG_MESH_SHADER_GROUP_SIZE = 128
@@ -39,6 +41,10 @@ protected:
 	static constexpr char* VIRTUAL_GEOMETRY_SCENE_INDIRECT_MESH_ARGS = "VirtualGeometrySceneIndirectMeshArgs";
 	static constexpr char* VIRTUAL_GEOMETRY_SCENE_BINNING_DATA = "VirtualGeometrySceneBinningData";
 	static constexpr char* VIRTUAL_GEOMETRY_SCENE_BINNIIG_HEADER = "VirtualGeometrySceneBinningHeader";
+	static constexpr char* VIRTUAL_GEOMETRY_SCENE_STREAMING_REQUEST = "VirtualGeometrySceneStreamingRequest";
+	
+	// TODO 将StreamingRequestBuffer以及回读到放回StreamingManager里
+	KVirtualGeometryStreamingManager* m_StreamingMgr;
 
 	IKRenderScene* m_Scene;
 	const KCamera* m_Camera;
@@ -101,20 +107,25 @@ protected:
 	IKStorageBufferPtr m_BinningHeaderBuffer;
 	IKStorageBufferPtr m_MainCullResultBuffer;
 
+	std::vector<IKStorageBufferPtr> m_StreamingRequestBuffers;
+
 	IKStorageBufferPtr m_PostCullIndirectArgsBuffer;
 
 	IKComputePipelinePtr m_InitQueueStatePipeline[INSTANCE_CULL_COUNT];
 	IKComputePipelinePtr m_InstanceCullPipeline[INSTANCE_CULL_COUNT];
 	IKComputePipelinePtr m_InitNodeCullArgsPipeline[INSTANCE_CULL_COUNT];
 	IKComputePipelinePtr m_InitClusterCullArgsPipeline[INSTANCE_CULL_COUNT];
-	IKComputePipelinePtr m_NodeCullPipeline[INSTANCE_CULL_COUNT];
-	IKComputePipelinePtr m_PersistentCullPipeline[INSTANCE_CULL_COUNT];
-	IKComputePipelinePtr m_ClusterCullPipeline[INSTANCE_CULL_COUNT];
+
 	IKComputePipelinePtr m_CalcDrawArgsPipeline[INSTANCE_CULL_COUNT];
 	IKComputePipelinePtr m_InitBinningPipline[INSTANCE_CULL_COUNT];
 	IKComputePipelinePtr m_BinningClassifyPipline[INSTANCE_CULL_COUNT];
 	IKComputePipelinePtr m_BinningAllocatePipline[INSTANCE_CULL_COUNT];
 	IKComputePipelinePtr m_BinningScatterPipline[INSTANCE_CULL_COUNT];
+
+	std::vector<IKComputePipelinePtr> m_NodeCullPipelines[INSTANCE_CULL_COUNT];
+	std::vector<IKComputePipelinePtr> m_PersistentCullPipelines[INSTANCE_CULL_COUNT];
+	std::vector<IKComputePipelinePtr> m_ClusterCullPipelines[INSTANCE_CULL_COUNT];
+	std::vector<IKComputePipelinePtr> m_StreamingRequestClearPipelines;
 
 	glm::mat4 m_PrevViewProj;
 
@@ -157,5 +168,6 @@ public:
 
 	bool ReloadShader();
 
+	inline void SetStreamingMgr(KVirtualGeometryStreamingManager* streamingMgr) { m_StreamingMgr = streamingMgr; }
 	inline IKStorageBufferPtr GetInstanceBuffer() { return m_InstanceDataBuffer; }
 };

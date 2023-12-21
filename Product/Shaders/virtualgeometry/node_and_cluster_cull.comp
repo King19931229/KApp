@@ -187,6 +187,14 @@ void ProcessNodeBatch(uint groupIndex, uint batchStart, uint batchSize)
 		// Leaf
 		else
 		{
+			uint requestOffset = 0;
+			WAVE_INTERLOCK_ADD(StreamingRequest[0].priority, 1, requestOffset);
+			if (requestOffset < MAX_STREAMING_REQUEST - 1)
+			{
+				requestOffset += 1;
+				StoreStreamingRequest(requestOffset, resourceIndex, hierarchy.groupPageStart, hierarchy.groupPageNum, 1);
+			}
+
 #if EMIT_CLUSTER_EACH_THREAD
 			uint clusterNumPerChild = hierarchy.clusterNum / BVH_MAX_NODES;
 			uint clusterNumPerChildRest = hierarchy.clusterNum & BVH_NODE_MASK;

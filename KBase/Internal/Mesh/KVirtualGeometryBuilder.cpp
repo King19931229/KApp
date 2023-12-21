@@ -1592,16 +1592,17 @@ void KVirtualGeometryBuilder::BuildReuseBatch()
 
 void KVirtualGeometryBuilder::BuildPage()
 {
-	m_Pages.clear();
-	m_Pages.push_back(KVirtualGeometryPage());
+	m_Pages.pages.clear();
+	m_Pages.pages.push_back(KVirtualGeometryPage());
 
 	m_ClusterGroupParts.clear();
 	m_ClusterGroupParts.reserve(m_ClusterGroups.size());
 
-	KVirtualGeometryPage* currentPage = &(*m_Pages.rbegin());
+	KVirtualGeometryPage* currentPage = &(*m_Pages.pages.rbegin());
 	KMeshClusterGroupPartPtr currentPart = nullptr;
 
 	currentPage->isRootPage = true;
+	m_Pages.numRootPage = 1;
 
 	for (uint32_t groupIndex = 0; groupIndex < (uint32_t)m_ClusterGroups.size(); ++groupIndex)
 	{
@@ -1628,9 +1629,10 @@ void KVirtualGeometryBuilder::BuildPage()
 				|| (currentPage->dataByteSize + clusterByteSize > maxPageSize)
 				)
 			{
-				m_Pages.push_back(KVirtualGeometryPage());
-				currentPage = &(*m_Pages.rbegin());
+				m_Pages.pages.push_back(KVirtualGeometryPage());
+				currentPage = &(*m_Pages.pages.rbegin());
 				currentPage->isRootPage = group.level == m_LevelNum;
+				m_Pages.numRootPage += currentPage->isRootPage;
 				currentPart = nullptr;
 			}
 
@@ -1649,7 +1651,7 @@ void KVirtualGeometryBuilder::BuildPage()
 
 				currentPart->lodBound = group.parentLodBound;
 				currentPart->lodError = group.maxParentError;
-				currentPart->pageIndex = (uint32_t)m_Pages.size() - 1;
+				currentPart->pageIndex = (uint32_t)m_Pages.pages.size() - 1;
 				currentPart->clusterStart = currentPage->clusterNum;
 
 				++currentPage->clusterGroupPartNum;
@@ -1665,11 +1667,11 @@ void KVirtualGeometryBuilder::BuildPage()
 
 			if (localClusterIndex == 0)
 			{
-				group.pageStart = (uint32_t)m_Pages.size() - 1;
+				group.pageStart = (uint32_t)m_Pages.pages.size() - 1;
 			}
 			if (localClusterIndex == (uint32_t)group.clusters.size() - 1)
 			{
-				group.pageEnd = (uint32_t)m_Pages.size() - 1;
+				group.pageEnd = (uint32_t)m_Pages.pages.size() - 1;
 			}
 		}
 	}
@@ -1700,10 +1702,10 @@ void KVirtualGeometryBuilder::BuildFixup()
 	std::vector<std::unordered_set<uint32_t>> clusterFixupHashes;
 	std::vector<std::unordered_set<uint32_t>> hierarchyFixupHashes;
 
-	clusterFixupHashes.resize(m_Pages.size());
-	hierarchyFixupHashes.resize(m_Pages.size());
+	clusterFixupHashes.resize(m_Pages.pages.size());
+	hierarchyFixupHashes.resize(m_Pages.pages.size());
 
-	m_Fixup.clusterFixups.resize(m_Pages.size());
+	m_PageFixup.clusterFixups.resize(m_Pages.pages.size());
 	for (uint32_t partIndex = 0; partIndex < (uint32_t)m_ClusterGroupParts.size(); ++partIndex)
 	{
 		KMeshClusterGroupPartPtr part = m_ClusterGroupParts[partIndex];
@@ -1724,7 +1726,7 @@ void KVirtualGeometryBuilder::BuildFixup()
 					uint32_t hash = ComputeClusterFixupHash(newFixup);
 					if (clusterFixupHashes[page].find(hash) == clusterFixupHashes[page].end())
 					{
-						m_Fixup.clusterFixups[page].push_back(newFixup);
+						m_PageFixup.clusterFixups[page].push_back(newFixup);
 						clusterFixupHashes[page].insert(hash);
 					}
 				}
@@ -1732,7 +1734,7 @@ void KVirtualGeometryBuilder::BuildFixup()
 		}
 	}
 
-	m_Fixup.hierarchyFixups.resize(m_Pages.size());
+	m_PageFixup.hierarchyFixups.resize(m_Pages.pages.size());
 	for (uint32_t partIndex = 0; partIndex < (uint32_t)m_ClusterGroupParts.size(); ++partIndex)
 	{
 		KMeshClusterGroupPartPtr part = m_ClusterGroupParts[partIndex];
@@ -1752,7 +1754,7 @@ void KVirtualGeometryBuilder::BuildFixup()
 				uint32_t hash = ComputeHierarchyFixupHash(newFixup);
 				if (hierarchyFixupHashes[page].find(hash) == hierarchyFixupHashes[page].end())
 				{
-					m_Fixup.hierarchyFixups[page].push_back(newFixup);
+					m_PageFixup.hierarchyFixups[page].push_back(newFixup);
 					hierarchyFixupHashes[page].insert(hash);
 				}
 			}
@@ -1760,14 +1762,30 @@ void KVirtualGeometryBuilder::BuildFixup()
 	}
 }
 
+void KVirtualGeometryBuilder::BuildPageDependency(uint32_t pageIndex, KVirtualGeomertyPageDependency& dependency)
+{
+	const std::vector<KVirtualGeomertyClusterFixup>& clusterFixups = m_PageFixup.clusterFixups[pageIndex];
+	for (const KVirtualGeomertyClusterFixup& fixup : clusterFixups)
+	{
+		if (fixup.fixupPage != pageIndex)
+		{
+			auto it = std::find(dependency.dependencies.begin(), dependency.dependencies.end(), fixup.fixupPage);
+			if (it == dependency.dependencies.end())
+			{
+				dependency.dependencies.push_back(fixup.fixupPage);
+			}
+		}
+	}
+}
+
 void KVirtualGeometryBuilder::BuildPageStorage()
 {
-	m_PageStorages.resize(m_Pages.size());
+	m_PageStorages.storages.resize(m_Pages.pages.size());
 
-	for (uint32_t i = 0; i < (uint32_t)m_Pages.size(); ++i)
+	for (uint32_t i = 0; i < (uint32_t)m_Pages.pages.size(); ++i)
 	{
-		KVirtualGeometryPageStorage& pageStorage = m_PageStorages[i];
-		const KVirtualGeometryPage& page = m_Pages[i];
+		KVirtualGeometryPageStorage& pageStorage = m_PageStorages.storages[i];
+		const KVirtualGeometryPage& page = m_Pages.pages[i];
 
 		size_t maxClusterNum = page.clusterGroupPartNum * m_MaxClusterGroup;
 
@@ -2524,6 +2542,12 @@ void KVirtualGeometryBuilder::Build(const std::vector<KMeshProcessorVertex>& ver
 	BuildPageStorage();
 	BuildClusterBVH();
 
+	m_PageDependencies.pageDependencies.resize(m_Pages.pages.size());
+	for (uint32_t pageIndex = 0; pageIndex < (uint32_t)m_Pages.pages.size(); ++pageIndex)
+	{
+		BuildPageDependency(pageIndex, m_PageDependencies.pageDependencies[pageIndex]);
+	}
+
 	m_Bound.SetNull();
 	for (const KMeshProcessorVertex& vertex : vertices)
 	{
@@ -2531,29 +2555,26 @@ void KVirtualGeometryBuilder::Build(const std::vector<KMeshProcessorVertex>& ver
 	}
 }
 
-bool KVirtualGeometryBuilder::GetPageStorages(std::vector<KVirtualGeometryPage>& pages, std::vector<KVirtualGeometryPageStorage>& pageStorages) const
+bool KVirtualGeometryBuilder::GetPages(KVirtualGeometryPages& pages, KVirtualGeometryPageStorages& pageStorages, KVirtualGeomertyFixup& pageFixup, KVirtualGeomertyPageDependencies& pageDependencies) const
 {
 	pages = m_Pages;
 	pageStorages = m_PageStorages;
+	pageFixup = m_PageFixup;
+	pageDependencies = m_PageDependencies;
 	return true;
 }
 
 bool KVirtualGeometryBuilder::GetMeshClusterStorages(KMeshClusterBatchStorage& batchStorage, KMeshClustersVertexStorage& vertexStorage, KMeshClustersIndexStorage& indexStorage, KMeshClustersMaterialStorage& materialStorage) const
 {
-	std::vector<KVirtualGeometryPage> pages;
-	std::vector<KVirtualGeometryPageStorage> pageStorages;
-
 	batchStorage.batches.clear();
 	vertexStorage.vertices.clear();
 	indexStorage.indices.clear();
 	materialStorage.materials.clear();
 
-	GetPageStorages(pages, pageStorages);
-
-	for (size_t pageIndex = 0; pageIndex < pages.size(); ++pageIndex)
+	for (size_t pageIndex = 0; pageIndex < m_Pages.pages.size(); ++pageIndex)
 	{
-		KVirtualGeometryPage& page = pages[pageIndex];
-		KVirtualGeometryPageStorage& pageStorage = pageStorages[pageIndex];
+		const KVirtualGeometryPage& page = m_Pages.pages[pageIndex];
+		const KVirtualGeometryPageStorage& pageStorage = m_PageStorages.storages[pageIndex];
 
 		batchStorage.batches.insert(batchStorage.batches.end(), pageStorage.batchStorage.batches.begin(), pageStorage.batchStorage.batches.end());
 		vertexStorage.vertices.insert(vertexStorage.vertices.end(), pageStorage.vertexStorage.vertices.begin(), pageStorage.vertexStorage.vertices.end());
@@ -2561,14 +2582,14 @@ bool KVirtualGeometryBuilder::GetMeshClusterStorages(KMeshClusterBatchStorage& b
 		materialStorage.materials.insert(materialStorage.materials.end(), pageStorage.materialStorage.materials.begin(), pageStorage.materialStorage.materials.end());
 	}
 
-	uint32_t vertexFloatOffset = (pages.size() > 0) ? (uint32_t)pageStorages[0].vertexStorage.vertices.size() : 0;
-	uint32_t indexIntOffset = (pages.size() > 0) ? (uint32_t)pageStorages[0].indexStorage.indices.size() : 0;
-	uint32_t materialIntOffset = (pages.size() > 0) ? (uint32_t)pageStorages[0].materialStorage.materials.size() : 0;
-	uint32_t batchOffset = (pages.size() > 0) ? (uint32_t)pageStorages[0].batchStorage.batches.size() : 0;
-	for (size_t pageIndex = 1; pageIndex < pages.size(); ++pageIndex)
+	uint32_t vertexFloatOffset = (m_Pages.pages.size() > 0) ? (uint32_t)m_PageStorages.storages[0].vertexStorage.vertices.size() : 0;
+	uint32_t indexIntOffset = (m_Pages.pages.size() > 0) ? (uint32_t)m_PageStorages.storages[0].indexStorage.indices.size() : 0;
+	uint32_t materialIntOffset = (m_Pages.pages.size() > 0) ? (uint32_t)m_PageStorages.storages[0].materialStorage.materials.size() : 0;
+	uint32_t batchOffset = (m_Pages.pages.size() > 0) ? (uint32_t)m_PageStorages.storages[0].batchStorage.batches.size() : 0;
+	for (size_t pageIndex = 1; pageIndex < m_Pages.pages.size(); ++pageIndex)
 	{
-		KVirtualGeometryPage& page = pages[pageIndex];
-		KVirtualGeometryPageStorage& pageStorage = pageStorages[pageIndex];
+		const KVirtualGeometryPage& page = m_Pages.pages[pageIndex];
+		const KVirtualGeometryPageStorage& pageStorage = m_PageStorages.storages[pageIndex];
 		uint32_t pageBatchSize = (uint32_t)pageStorage.batchStorage.batches.size();
 
 		for (uint32_t localBatchIndex = 0; localBatchIndex < pageBatchSize; ++localBatchIndex)
@@ -2578,10 +2599,10 @@ bool KVirtualGeometryBuilder::GetMeshClusterStorages(KMeshClusterBatchStorage& b
 			batchStorage.batches[batchIndex].indexIntOffset += indexIntOffset;
 			batchStorage.batches[batchIndex].materialIntOffset += materialIntOffset;
 		}
-		vertexFloatOffset += (uint32_t)pageStorages[pageIndex].vertexStorage.vertices.size();
-		indexIntOffset += (uint32_t)pageStorages[pageIndex].indexStorage.indices.size();
-		materialIntOffset += (uint32_t)pageStorages[pageIndex].materialStorage.materials.size();
-		batchOffset += (uint32_t)pageStorages[pageIndex].batchStorage.batches.size();
+		vertexFloatOffset += (uint32_t)m_PageStorages.storages[pageIndex].vertexStorage.vertices.size();
+		indexIntOffset += (uint32_t)m_PageStorages.storages[pageIndex].indexStorage.indices.size();
+		materialIntOffset += (uint32_t)m_PageStorages.storages[pageIndex].materialStorage.materials.size();
+		batchOffset += (uint32_t)m_PageStorages.storages[pageIndex].batchStorage.batches.size();
 	}
 
 	return true;
@@ -2650,12 +2671,9 @@ bool KVirtualGeometryBuilder::GetMeshClusterHierarchies(std::vector<KMeshCluster
 	return false;
 }
 
-bool KVirtualGeometryBuilder::GetMeshClusterGroupParts(std::vector<KMeshClusterGroupPart>& parts) const
+bool KVirtualGeometryBuilder::GetMeshClusterGroupParts(std::vector<KMeshClusterGroupPartPtr>& parts, std::vector<KMeshClusterGroupPtr>& groups) const
 {
-	parts.resize(m_ClusterGroupParts.size());
-	for (size_t i = 0; i < m_ClusterGroupParts.size(); ++i)
-	{
-		parts[i] = *m_ClusterGroupParts[i];
-	}
+	parts = m_ClusterGroupParts;
+	groups = m_ClusterGroups;
 	return true;
 }

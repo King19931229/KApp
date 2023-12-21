@@ -20,7 +20,7 @@ bool KVirtualGeometryStorageBuffer::Init(const char* name, size_t initialSize)
 	m_Name = name;
 	KRenderGlobal::RenderDevice->CreateStorageBuffer(m_Buffer);
 	m_Buffer->InitMemory(initialSize, nullptr);
-	m_Buffer->InitDevice(false);
+	m_Buffer->InitDevice(false, false);
 	m_Buffer->SetDebugName(m_Name.c_str());
 	return true;
 }
@@ -56,7 +56,7 @@ bool KVirtualGeometryStorageBuffer::Remove(size_t offset, size_t size)
 		{
 			m_Buffer->UnInit();
 			m_Buffer->InitMemory(newBufferSize, nullptr);
-			m_Buffer->InitDevice(false);
+			m_Buffer->InitDevice(false, false);
 			m_Buffer->SetDebugName(m_Name.c_str());
 		}
 
@@ -122,7 +122,7 @@ bool KVirtualGeometryStorageBuffer::Append(size_t size, void* pData)
 
 		m_Buffer->UnInit();
 		m_Buffer->InitMemory(newBufferSize, nullptr);
-		m_Buffer->InitDevice(false);
+		m_Buffer->InitDevice(false, false);
 		m_Buffer->SetDebugName(m_Name.c_str());
 
 		if (m_Size > 0)
@@ -166,11 +166,15 @@ bool KVirtualGeometryManager::Init()
 	m_ClusterIndexStorageBuffer.Init("VirtualGeometryIndexStorage", sizeof(uint32_t));
 	m_ClusterMateialStorageBuffer.Init("VirtualGeometryMaterialStorage", sizeof(uint32_t) * KMeshClustersMaterialStorage::INT_PER_MATERIAL);
 
+	m_StreamingManager.Init(10, 5);
+
 	return true;
 }
 
 bool KVirtualGeometryManager::UnInit()
 {
+	m_StreamingManager.UnInit();
+
 	for (IKVirtualGeometryScenePtr scene : m_Scenes)
 	{
 		scene->UnInit();
@@ -220,9 +224,14 @@ bool KVirtualGeometryManager::AcquireImpl(const char* label, const KMeshRawData&
 		KVirtualGeometryBuilder builder;
 		builder.Build(vertices, indices, materialIndices);
 
-		std::vector<KVirtualGeometryPage> pages;
-		std::vector<KVirtualGeometryPageStorage> pageStorages;
-		builder.GetPageStorages(pages, pageStorages);
+		KVirtualGeometryPages pages;
+		KVirtualGeometryPageStorages pageStorages;
+		KVirtualGeomertyFixup pageFixup;
+		KVirtualGeomertyPageDependencies pageDependencies;
+		if (!builder.GetPages(pages, pageStorages, pageFixup, pageDependencies))
+		{
+			return false;
+		}
 
 		KMeshClusterBatchStorage batchStorages;
 		KMeshClustersVertexStorage vertexStroages;
@@ -240,8 +249,9 @@ bool KVirtualGeometryManager::AcquireImpl(const char* label, const KMeshRawData&
 			return false;
 		}
 
-		std::vector<KMeshClusterGroupPart> clusterGroupParts;
-		if (!builder.GetMeshClusterGroupParts(clusterGroupParts))
+		std::vector<KMeshClusterGroupPartPtr> clusterGroupParts;
+		std::vector<KMeshClusterGroupPtr> clusterGroups;
+		if (!builder.GetMeshClusterGroupParts(clusterGroupParts, clusterGroups))
 		{
 			return false;
 		}
@@ -250,11 +260,11 @@ bool KVirtualGeometryManager::AcquireImpl(const char* label, const KMeshRawData&
 		hierarchyNode.resize(hierarchies.size());
 
 		std::vector<uint32_t> clusterNumOfPreviousPages;
-		clusterNumOfPreviousPages.resize(pages.size());
+		clusterNumOfPreviousPages.resize(pages.pages.size());
 		memset(clusterNumOfPreviousPages.data(), 0, clusterNumOfPreviousPages.size() * sizeof(uint32_t));
 		for (size_t i = 1; i < clusterNumOfPreviousPages.size(); ++i)
 		{
-			clusterNumOfPreviousPages[i] = clusterNumOfPreviousPages[i - 1] + pages[i - 1].clusterNum;
+			clusterNumOfPreviousPages[i] = clusterNumOfPreviousPages[i - 1] + pages.pages[i - 1].clusterNum;
 		}
 
 		for (size_t i = 0; i < hierarchyNode.size(); ++i)
@@ -273,12 +283,17 @@ bool KVirtualGeometryManager::AcquireImpl(const char* label, const KMeshRawData&
 			if (hierarchy.partIndex != KVirtualGeometryDefine::INVALID_INDEX)
 			{
 				node.isLeaf = true;
+				KMeshClusterGroupPartPtr part = clusterGroupParts[hierarchy.partIndex];
+				uint32_t pageIndex = part->pageIndex;
+				uint32_t groupIndex = part->groupIndex;
+				KMeshClusterGroupPtr group = clusterGroups[groupIndex];
 				// Local page index, just for debug.
-				uint32_t pageIndex = clusterGroupParts[hierarchy.partIndex].pageIndex;
 				node.clusterPageIndex = pageIndex;
-				node.clusterStart = clusterGroupParts[hierarchy.partIndex].clusterStart;
-				node.clusterStart = clusterGroupParts[hierarchy.partIndex].clusterStart + clusterNumOfPreviousPages[pageIndex];
-				node.clusterNum = (uint32_t)clusterGroupParts[hierarchy.partIndex].clusters.size();
+				node.clusterStart = part->clusterStart;
+				node.clusterStart = part->clusterStart + clusterNumOfPreviousPages[pageIndex];
+				node.clusterNum = (uint32_t)part->clusters.size();
+				node.groupPageStart = group->pageStart;
+				node.groupPageNum = group->pageEnd - group->pageStart + 1;
 			}
 			else
 			{
@@ -287,6 +302,9 @@ bool KVirtualGeometryManager::AcquireImpl(const char* label, const KMeshRawData&
 		}
 
 		uint32_t resourceIndex = (uint32_t)m_GeometryResources.size();
+		uint32_t resourceIndexInStreaming = m_StreamingManager.AddGeometry(pages, pageStorages, pageFixup, pageDependencies);
+		assert(resourceIndex == resourceIndexInStreaming);
+
 		const KAABBBox& bound = builder.GetBound();
 
 		{
@@ -387,6 +405,8 @@ bool KVirtualGeometryManager::RemoveGeometry(uint32_t index)
 	{
 		KVirtualGeometryResourceRef geometry = m_GeometryResources[index];
 
+		m_StreamingManager.RemoveGeometry(index);
+
 		m_ResourceBuffer.Remove(index * sizeof(KVirtualGeometryResource), sizeof(KVirtualGeometryResource));
 
 		m_PackedHierarchyBuffer.Remove(geometry->hierarchyPackedOffset, geometry->hierarchyPackedSize);
@@ -449,6 +469,8 @@ bool KVirtualGeometryManager::AcquireFromUserData(const KMeshRawData& userData, 
 bool KVirtualGeometryManager::CreateVirtualGeometryScene(IKVirtualGeometryScenePtr& scene)
 {
 	scene = IKVirtualGeometryScenePtr(KNEW KVirtualGeometryScene());
+	// TODO
+	((KVirtualGeometryScene*)scene.get())->SetStreamingMgr(&m_StreamingManager);
 	m_Scenes.insert(scene);
 	return true;
 }

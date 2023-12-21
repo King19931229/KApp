@@ -43,8 +43,8 @@ struct KVirtualGeometryDefine
 	static constexpr uint32_t MAX_CLUSTER_IN_PAGE_BITS = 5 + MAX_CLUSTER_PART_IN_PAGE_BITS;
 	static constexpr uint32_t MAX_CLUSTER_IN_PAGE = 1 << MAX_CLUSTER_IN_PAGE_BITS;
 
-	static constexpr uint32_t MAX_ROOT_PAGE_SIZE = 1024 * 1024;
-	static constexpr uint32_t MAX_STREAMING_PAGE_SIZE = 4 * 1024 * 1024;
+	static constexpr uint32_t MAX_ROOT_PAGE_SIZE = 10 * 1024;
+	static constexpr uint32_t MAX_STREAMING_PAGE_SIZE = 10 * 1024;
 };
 static_assert(!(KVirtualGeometryDefine::MAX_BVH_NODES & (KVirtualGeometryDefine::MAX_BVH_NODES - 1)), "MAX_BVH_NODES must be pow of 2");
 
@@ -266,6 +266,11 @@ struct KMeshClustersMaterialStorage
 	std::vector<uint32_t> materials;
 };
 
+struct KMeshClustersMaterialStorages
+{
+	std::vector<uint32_t> storages;
+};
+
 struct KMeshClusterBatchStorage
 {
 	enum
@@ -281,6 +286,21 @@ struct KVirtualGeometryPageStorage
 	KMeshClustersIndexStorage indexStorage;
 	KMeshClustersMaterialStorage materialStorage;
 	KMeshClusterBatchStorage batchStorage;
+};
+
+struct KVirtualGeometryPageStorages
+{
+	std::vector<KVirtualGeometryPageStorage> storages;
+};
+
+struct KVirtualGeomertyPageDependency
+{
+	std::vector<uint32_t> dependencies;
+};
+
+struct KVirtualGeomertyPageDependencies
+{
+	std::vector<KVirtualGeomertyPageDependency> pageDependencies;
 };
 
 struct KMeshClusterBVHNode
@@ -308,6 +328,12 @@ struct KVirtualGeometryPage
 	uint32_t clusterNum = 0;
 	uint32_t dataByteSize = 0;
 	bool isRootPage = false;
+};
+
+struct KVirtualGeometryPages
+{
+	uint32_t numRootPage = 0;
+	std::vector<KVirtualGeometryPage> pages;
 };
 
 struct KVirtualGeomertyClusterFixup
@@ -339,9 +365,11 @@ protected:
 	std::vector<KMeshClusterGroupPtr> m_ClusterGroups;
 	std::vector<KMeshClusterGroupPartPtr> m_ClusterGroupParts;
 	std::vector<KMeshClusterBVHNodePtr> m_BVHNodes;
-	std::vector<KVirtualGeometryPage> m_Pages;
-	std::vector<KVirtualGeometryPageStorage> m_PageStorages;
-	KVirtualGeomertyFixup m_Fixup;
+
+	KVirtualGeometryPages m_Pages;
+	KVirtualGeometryPageStorages m_PageStorages;
+	KVirtualGeomertyFixup m_PageFixup;
+	KVirtualGeomertyPageDependencies m_PageDependencies;
 
 	KAABBBox m_Bound;
 
@@ -393,6 +421,7 @@ protected:
 	void BuildPageStorage();
 	void BuildClusterBVH();
 	void BuildFixup();
+	void BuildPageDependency(uint32_t pageIndex, KVirtualGeomertyPageDependency& dependency);
 
 	void RecurselyVisitBVH(uint32_t index, std::function<void(uint32_t index)> visitFunc);
 
@@ -414,8 +443,8 @@ public:
 
 	bool GetMeshClusterStorages(KMeshClusterBatchStorage& batchStorage, KMeshClustersVertexStorage& vertexStroage, KMeshClustersIndexStorage& indexStorage, KMeshClustersMaterialStorage& materialStorage) const;
 	bool GetMeshClusterHierarchies(std::vector<KMeshClusterHierarchy>& hierarchies) const;
-	bool GetMeshClusterGroupParts(std::vector<KMeshClusterGroupPart>& parts) const;
-	bool GetPageStorages(std::vector<KVirtualGeometryPage>& pages, std::vector<KVirtualGeometryPageStorage>& pageStorages) const;
+	bool GetMeshClusterGroupParts(std::vector<KMeshClusterGroupPartPtr>& parts, std::vector<KMeshClusterGroupPtr>& groups) const;
+	bool GetPages(KVirtualGeometryPages& pages, KVirtualGeometryPageStorages& pageStorages, KVirtualGeomertyFixup& pageFixup, KVirtualGeomertyPageDependencies &pageDependencies) const;
 
 	inline uint32_t GetLevelNum() const
 	{

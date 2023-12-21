@@ -7,6 +7,7 @@
 #define BVH_NODE_MASK (BVH_MAX_NODES - 1)
 #define MAX_CANDIDATE_NODE (1024 * 1024)
 #define MAX_CANDIDATE_CLUSTER (1024 * 1024 * 4)
+#define MAX_STREAMING_REQUEST (256 * 1024)
 #define MAX_CLUSTER_TRIANGLE_NUM 128
 #define MAX_CLUSTER_VERTEX_NUM 256
 #define VG_GROUP_SIZE 64
@@ -77,6 +78,9 @@ struct ClusterHierarchyStruct
 	uint clusterStart;
 	uint clusterNum;
 	uint clusterPageIndex;
+	uint groupPageStart;
+	uint groupPageNum;
+	uint padding[2];
 };
 
 // Match with KVirtualGeometryResource
@@ -123,6 +127,15 @@ struct QueueStateStruct
 
 	uint visibleClusterNum;
 	uint binningWriteOffset;
+};
+
+// Match with KVirtualGeometryStreamingRequest
+struct StreamingRequestStruct
+{
+	uint resourceIndex;
+	uint pageStart;
+	uint pageNum;
+	uint priority;
 };
 
 struct CandidateNode
@@ -189,6 +202,10 @@ layout (std430, binding = BINDING_QUEUE_STATE) coherent buffer QueueStateBuffer 
 
 layout (std430, binding = BINDING_INSTANCE_DATA) coherent buffer InstanceDataBuffer {
 	InstanceStruct InstanceData[];
+};
+
+layout (std430, binding = BINDING_STREAMING_REQUEST) coherent buffer StreamingRequestBuffer {
+	StreamingRequestStruct StreamingRequest[];
 };
 
 layout (std430, binding = BINDING_HIERARCHY) coherent buffer ClusterHierarchyBuffer {
@@ -277,6 +294,7 @@ uvec4 PackCandidateCluster(CandidateCluster cluster)
 	uvec4 pack = uvec4(0,0,0,0);
 	pack.x = cluster.instanceId;
 	pack.y = cluster.clusterIndex;
+	pack.z = cluster.pageIndex;
 	return pack;
 }
 
@@ -285,6 +303,7 @@ CandidateCluster UnpackCandidateCluster(uvec4 data)
 	CandidateCluster cluster;
 	cluster.instanceId = data.x;
 	cluster.clusterIndex = data.y;
+	cluster.pageIndex = data.z;
 	return cluster;
 }
 
@@ -321,6 +340,14 @@ Binning GetBinning(uint binningIndex, uint binningBatchIndex)
 	return binningData;
 }
 
+void StoreStreamingRequest(uint index, uint resourceIndex, uint pageStart, uint pageNum, uint priority)
+{
+	StreamingRequest[index].resourceIndex = resourceIndex;
+	StreamingRequest[index].pageStart = pageStart;
+	StreamingRequest[index].pageNum = pageNum;
+	StreamingRequest[index].priority = priority;
+}
+
 void StoreCandidateNode(uint index, CandidateNode node)
 {
 	CandidateNodeBatch[index] = PackCandidateNode(node);
@@ -347,7 +374,7 @@ void GetHierarchyData(in CandidateNode node, out ClusterHierarchyStruct hierarch
 	uint nodeIndex = node.nodeIndex;
 
 	uint hierarchyPackedOffset = ResourceData[resourceIndex].hierarchyPackedOffset;
-	uint hierarchyNodeSize = BVH_MAX_NODES * 4 + 16 + 32;
+	uint hierarchyNodeSize = BVH_MAX_NODES * 4 + 64;
 	uint hierarchyOffset = hierarchyPackedOffset / hierarchyNodeSize + nodeIndex;
 
 	hierarchy = ClusterHierarchy[hierarchyOffset];
@@ -357,6 +384,7 @@ void GetClusterData(in CandidateCluster cluster, out ClusterBatchStruct clusterB
 {
 	uint resourceIndex = InstanceData[cluster.instanceId].resourceIndex;
 	uint clusterIndex = cluster.clusterIndex;
+	uint pageIndex = cluster.pageIndex;
 
 	uint clusterBatchOffset = ResourceData[resourceIndex].clusterBatchPackedOffset;
 	uint clusterBatchSize = 16 * 4 + 8 * 4;

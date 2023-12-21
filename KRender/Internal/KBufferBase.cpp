@@ -113,8 +113,9 @@ bool KStorageBufferBase::InitMemory(size_t bufferSize, const void* pInitData)
 	}
 }
 
-bool KStorageBufferBase::InitDevice(bool indirect)
+bool KStorageBufferBase::InitDevice(bool indirect, bool hostVisble)
 {
+	(hostVisble);
 	m_bIndirect = indirect;
 	return true;
 }
