@@ -9,18 +9,6 @@ KVirtualGeometryScene::KVirtualGeometryScene()
 {
 	m_OnSceneChangedFunc = std::bind(&KVirtualGeometryScene::OnSceneChanged, this, std::placeholders::_1, std::placeholders::_2);
 	m_OnRenderComponentChangedFunc = std::bind(&KVirtualGeometryScene::OnRenderComponentChanged, this, std::placeholders::_1, std::placeholders::_2);
-
-#define VIRTUAL_GEOMETRY_BINDING_TO_STR(x) #x
-
-#define VIRTUAL_GEOMETRY_BINDING(SEMANTIC) m_DefaultBindingEnv.macros.push_back( {VIRTUAL_GEOMETRY_BINDING_TO_STR(BINDING_##SEMANTIC), std::to_string(BINDING_##SEMANTIC) });
-#include "KVirtualGeomertyBinding.inl"
-#undef VIRTUAL_GEOMETRY_BINDING
-
-#define VIRTUAL_GEOMETRY_BINDING(SEMANTIC) m_BasepassBindingEnv.macros.push_back( {VIRTUAL_GEOMETRY_BINDING_TO_STR(BINDING_##SEMANTIC), std::to_string(MAX_MATERIAL_TEXTURE_BINDING + BINDING_##SEMANTIC) });
-#include "KVirtualGeomertyBinding.inl"
-#undef VIRTUAL_GEOMETRY_BINDING
-
-#undef VIRTUAL_GEOMETRY_BINDING_TO_STR
 }
 
 KVirtualGeometryScene::~KVirtualGeometryScene()
@@ -115,21 +103,6 @@ bool KVirtualGeometryScene::Init(IKRenderScene* scene, const KCamera* camera)
 			m_QueueStateBuffer->InitDevice(false, false);
 			m_QueueStateBuffer->SetDebugName(VIRTUAL_GEOMETRY_SCENE_QUEUE_STATE);
 
-			m_StreamingRequestBuffers.resize(frameCount);
-			m_StreamingRequestClearPipelines.resize(frameCount);
-
-			for (size_t frameIndex = 0; frameIndex < frameCount; ++frameIndex)
-			{
-				KRenderGlobal::RenderDevice->CreateStorageBuffer(m_StreamingRequestBuffers[frameIndex]);
-				m_StreamingRequestBuffers[frameIndex]->InitMemory(MAX_STREAMING_REQUEST * sizeof(KVirtualGeometryStreamingRequest), nullptr);
-				m_StreamingRequestBuffers[frameIndex]->InitDevice(false, true);
-				m_StreamingRequestBuffers[frameIndex]->SetDebugName((std::string(VIRTUAL_GEOMETRY_SCENE_STREAMING_REQUEST) + "_" + std::to_string(frameIndex)).c_str());
-
-				KRenderGlobal::RenderDevice->CreateComputePipeline(m_StreamingRequestClearPipelines[frameIndex]);
-				m_StreamingRequestClearPipelines[frameIndex]->BindStorageBuffer(BINDING_STREAMING_REQUEST, m_StreamingRequestBuffers[frameIndex], COMPUTE_RESOURCE_OUT, false);
-				m_StreamingRequestClearPipelines[frameIndex]->Init("virtualgeometry/streaming_request_clear.comp", m_DefaultBindingEnv);
-			}
-
 			std::vector<glm::uvec4> emptyCandidateNodeData;
 			emptyCandidateNodeData.resize(2 * MAX_CANDIDATE_NODE);
 			memset(emptyCandidateNodeData.data(), -1, 2 * MAX_CANDIDATE_NODE * sizeof(glm::uvec4));
@@ -201,7 +174,7 @@ bool KVirtualGeometryScene::Init(IKRenderScene* scene, const KCamera* camera)
 			for (uint32_t i = 0; i < INSTANCE_CULL_COUNT; ++i)
 			{
 				KShaderCompileEnvironment cullEnv;
-				cullEnv.parentEnv = &m_DefaultBindingEnv;
+				cullEnv.parentEnv = &KRenderGlobal::VirtualGeometryManager.GetDefaultBindingEnv();
 				if (i == INSTANCE_CULL_NONE)
 				{
 					cullEnv.macros.push_back({ "INSTANCE_CULL_MODE", "INSTANCE_CULL_NONE" });
@@ -289,7 +262,7 @@ bool KVirtualGeometryScene::Init(IKRenderScene* scene, const KCamera* camera)
 				{
 					KRenderGlobal::RenderDevice->CreateComputePipeline(m_NodeCullPipelines[i][frameIndex]);
 					BindNodeCullResource(m_NodeCullPipelines[i][frameIndex], (InstanceCull)i);
-					m_NodeCullPipelines[i][frameIndex]->BindStorageBuffer(BINDING_STREAMING_REQUEST, m_StreamingRequestBuffers[i], COMPUTE_RESOURCE_IN, true);
+					m_NodeCullPipelines[i][frameIndex]->BindStorageBuffer(BINDING_STREAMING_REQUEST, KRenderGlobal::VirtualGeometryManager.GetStreamingRequestPipeline(frameIndex), COMPUTE_RESOURCE_IN, true);
 					m_NodeCullPipelines[i][frameIndex]->Init("virtualgeometry/node_and_cluster_cull.comp", nodeCullEnv);
 				}
 
@@ -310,7 +283,7 @@ bool KVirtualGeometryScene::Init(IKRenderScene* scene, const KCamera* camera)
 				};
 
 				m_ClusterCullPipelines[i].resize(frameCount);
-				for (size_t frameIndex = 0; frameIndex < frameCount; ++frameIndex)
+				for (uint32_t frameIndex = 0; frameIndex < frameCount; ++frameIndex)
 				{
 					KRenderGlobal::RenderDevice->CreateComputePipeline(m_ClusterCullPipelines[i][frameIndex]);
 					BindNodeClusterResource(m_ClusterCullPipelines[i][frameIndex], (InstanceCull)i);
@@ -318,12 +291,12 @@ bool KVirtualGeometryScene::Init(IKRenderScene* scene, const KCamera* camera)
 				}
 
 				m_PersistentCullPipelines[i].resize(frameCount);
-				for (size_t frameIndex = 0; frameIndex < frameCount; ++frameIndex)
+				for (uint32_t frameIndex = 0; frameIndex < frameCount; ++frameIndex)
 				{
 					KRenderGlobal::RenderDevice->CreateComputePipeline(m_PersistentCullPipelines[i][frameIndex]);
 					BindNodeCullResource(m_PersistentCullPipelines[i][frameIndex], (InstanceCull)i);
 					BindNodeClusterResource(m_PersistentCullPipelines[i][frameIndex], (InstanceCull)i);
-					m_PersistentCullPipelines[i][frameIndex]->BindStorageBuffer(BINDING_STREAMING_REQUEST, m_StreamingRequestBuffers[i], COMPUTE_RESOURCE_IN, true);
+					m_PersistentCullPipelines[i][frameIndex]->BindStorageBuffer(BINDING_STREAMING_REQUEST, KRenderGlobal::VirtualGeometryManager.GetStreamingRequestPipeline(frameIndex), COMPUTE_RESOURCE_IN, true);
 					m_PersistentCullPipelines[i][frameIndex]->Init("virtualgeometry/node_and_cluster_cull.comp", persistentCullEnv);
 				}
 
@@ -374,13 +347,13 @@ bool KVirtualGeometryScene::Init(IKRenderScene* scene, const KCamera* camera)
 		}
 
 		{
-			KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "virtualgeometry/vg_basepass.vert", m_BasepassBindingEnv, m_BasePassVertexShader, false);
-			KRenderGlobal::ShaderManager.Acquire(ST_MESH, "virtualgeometry/vg_basepass.mesh", m_BasepassBindingEnv, m_BasePassMeshShader, false);
+			KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "virtualgeometry/vg_basepass.vert", KRenderGlobal::VirtualGeometryManager.GetBasepassBindingEnv(), m_BasePassVertexShader, false);
+			KRenderGlobal::ShaderManager.Acquire(ST_MESH, "virtualgeometry/vg_basepass.mesh", KRenderGlobal::VirtualGeometryManager.GetBasepassBindingEnv(), m_BasePassMeshShader, false);
 		}
 
 		{
-			KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "virtualgeometry/vg_debug.vert", m_DefaultBindingEnv, m_DebugVertexShader, false);
-			KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "virtualgeometry/vg_debug.frag", m_DefaultBindingEnv, m_DebugFragmentShader, false);
+			KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "virtualgeometry/vg_debug.vert", KRenderGlobal::VirtualGeometryManager.GetDefaultBindingEnv(), m_DebugVertexShader, false);
+			KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "virtualgeometry/vg_debug.frag", KRenderGlobal::VirtualGeometryManager.GetDefaultBindingEnv(), m_DebugFragmentShader, false);
 
 			KRenderGlobal::RenderDevice->CreatePipeline(m_DebugPipeline);
 			m_DebugPipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
@@ -435,9 +408,6 @@ bool KVirtualGeometryScene::UnInit()
 	}
 
 	m_Camera = nullptr;
-
-	SAFE_UNINIT_CONTAINER(m_StreamingRequestBuffers);
-	SAFE_UNINIT_CONTAINER(m_StreamingRequestClearPipelines);
 
 	SAFE_UNINIT(m_GlobalDataBuffer);
 	SAFE_UNINIT(m_InstanceDataBuffer);
@@ -594,7 +564,7 @@ bool KVirtualGeometryScene::UpdateInstanceData()
 			KRenderGlobal::RenderDevice->CreatePipeline(pipeline);
 
 			KShaderCompileEnvironment env;
-			env.parentEnv = &m_BasepassBindingEnv;
+			env.parentEnv = &KRenderGlobal::VirtualGeometryManager.GetBasepassBindingEnv();
 			env.includes.push_back({ "material_generate_code.h", m_BinningMaterials[i]->GetMaterialGeneratedCode() });
 
 			const IKMaterialTextureBindingPtr materialTextureBinding = m_BinningMaterials[i]->GetTextureBinding();
@@ -884,18 +854,6 @@ bool KVirtualGeometryScene::Execute(IKCommandBufferPtr primaryBuffer, InstanceCu
 
 bool KVirtualGeometryScene::ExecuteMain(IKCommandBufferPtr primaryBuffer)
 {
-	std::vector<KVirtualGeometryStreamingRequest> requests;
-	requests.resize(MAX_STREAMING_REQUEST);
-
-	uint32_t currentFrame = KRenderGlobal::CurrentInFlightFrameIndex;
-	m_StreamingRequestBuffers[currentFrame]->Read(requests.data());
-
-	primaryBuffer->BeginDebugMarker("VirtualGeometry_StreamingRequestClear", glm::vec4(1.0f));
-	{
-		m_StreamingRequestClearPipelines[currentFrame]->Execute(primaryBuffer, 1, 1, 1);
-	}
-	primaryBuffer->EndDebugMarker();
-
 	if (KRenderGlobal::VirtualGeometryManager.GetUseDoubleOcclusion())
 	{
 		return Execute(primaryBuffer, INSTANCE_CULL_MAIN);
@@ -1026,11 +984,6 @@ bool KVirtualGeometryScene::DebugRender(IKRenderPassPtr renderPass, IKCommandBuf
 
 bool KVirtualGeometryScene::ReloadShader()
 {
-	for (IKComputePipelinePtr pipeline : m_StreamingRequestClearPipelines)
-	{
-		pipeline->Reload();
-	}
-
 	for (uint32_t i = 0; i < INSTANCE_CULL_COUNT; ++i)
 	{
 		if (m_InitQueueStatePipeline[i])

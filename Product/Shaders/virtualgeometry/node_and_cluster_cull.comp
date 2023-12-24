@@ -192,7 +192,7 @@ void ProcessNodeBatch(uint groupIndex, uint batchStart, uint batchSize)
 			if (requestOffset < MAX_STREAMING_REQUEST - 1)
 			{
 				requestOffset += 1;
-				StoreStreamingRequest(requestOffset, resourceIndex, hierarchy.groupPageStart, hierarchy.groupPageNum, 1);
+				StoreStreamingRequest(requestOffset, resourceIndex, hierarchy.groupPageStart, hierarchy.groupPageNum, hierarchy.clusterStart/*priority*/);
 			}
 
 #if EMIT_CLUSTER_EACH_THREAD

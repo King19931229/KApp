@@ -2,6 +2,13 @@
 #include "KBase/Publish/Mesh/KVirtualGeometryBuilder.h"
 #include "KBase/Publish/KReferenceHolder.h"
 
+enum
+{
+	#define VIRTUAL_GEOMETRY_BINDING(SEMANTIC) BINDING_##SEMANTIC,
+	#include "KVirtualGeomertyBinding.inl"
+	#undef VIRTUAL_GEOMETRY_BINDING
+};
+
 struct KVirtualGeometryResource
 {
 	glm::vec4 boundCenter;
@@ -75,8 +82,29 @@ struct KVirtualGeometryStreamingRequest
 	uint32_t pageStart;
 	uint32_t pageNum;
 	uint32_t priority;
+
+	friend bool operator==(const KVirtualGeometryStreamingRequest& lhs, const KVirtualGeometryStreamingRequest& rhs);
 };
 static_assert((sizeof(KVirtualGeometryStreamingRequest) % 16) == 0, "Size must be a multiple of 16");
+
+template<>
+struct std::hash<KVirtualGeometryStreamingRequest>
+{
+	inline std::size_t operator()(const KVirtualGeometryStreamingRequest& desc) const
+	{
+		std::size_t hash = 0;
+		KHash::HashCombine(hash, desc.resourceIndex);
+		KHash::HashCombine(hash, desc.pageNum);
+		KHash::HashCombine(hash, desc.pageStart);
+		KHash::HashCombine(hash, desc.priority);
+		return hash;
+	}
+};
+
+inline bool operator==(const KVirtualGeometryStreamingRequest& lhs, const KVirtualGeometryStreamingRequest& rhs)
+{
+	return lhs.resourceIndex == rhs.resourceIndex && lhs.pageStart == rhs.pageStart && lhs.pageNum == rhs.pageNum && lhs.priority == rhs.priority;
+}
 
 struct KMeshClusterHierarchyPackedNode
 {

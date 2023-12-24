@@ -52,6 +52,9 @@ protected:
 	KVirtualGeometryStorageBuffer m_ClusterMateialStorageBuffer;
 	KVirtualGeometryStorageBuffer m_ResourceBuffer;
 
+	KShaderCompileEnvironment m_DefaultBindingEnv;
+	KShaderCompileEnvironment m_BasepassBindingEnv;
+
 	KVirtualGeometryStreamingManager m_StreamingManager;
 
 	bool m_UseMeshPipeline;
@@ -83,6 +86,9 @@ public:
 	bool& GetUseDoubleOcclusion() { return m_UseDoubleOcclusion; }
 	bool& GetUsePersistentCull() { return m_PersistentCull; }
 
+	const KShaderCompileEnvironment& GetDefaultBindingEnv() const { return m_DefaultBindingEnv; }
+	const KShaderCompileEnvironment& GetBasepassBindingEnv() const { return m_BasepassBindingEnv; }
+
 	const std::vector<KMaterialRef>& GetAllMaterials() const { return m_MaterialResources; }
 
 	bool AcquireFromUserData(const KMeshRawData& userData, const std::string& label, KVirtualGeometryResourceRef& ref);
@@ -92,4 +98,6 @@ public:
 
 	bool ExecuteMain(IKCommandBufferPtr primaryBuffer);
 	bool ExecutePost(IKCommandBufferPtr primaryBuffer);
+
+	IKStorageBufferPtr GetStreamingRequestPipeline(uint32_t frameIndex);
 };

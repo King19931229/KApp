@@ -147,6 +147,17 @@ KVirtualGeometryManager::KVirtualGeometryManager()
 	, m_UseDoubleOcclusion(true)
 	, m_PersistentCull(true)
 {
+#define VIRTUAL_GEOMETRY_BINDING_TO_STR(x) #x
+
+#define VIRTUAL_GEOMETRY_BINDING(SEMANTIC) m_DefaultBindingEnv.macros.push_back( {VIRTUAL_GEOMETRY_BINDING_TO_STR(BINDING_##SEMANTIC), std::to_string(BINDING_##SEMANTIC) });
+#include "KVirtualGeomertyBinding.inl"
+#undef VIRTUAL_GEOMETRY_BINDING
+
+#define VIRTUAL_GEOMETRY_BINDING(SEMANTIC) m_BasepassBindingEnv.macros.push_back( {VIRTUAL_GEOMETRY_BINDING_TO_STR(BINDING_##SEMANTIC), std::to_string(MAX_MATERIAL_TEXTURE_BINDING + BINDING_##SEMANTIC) });
+#include "KVirtualGeomertyBinding.inl"
+#undef VIRTUAL_GEOMETRY_BINDING
+
+#undef VIRTUAL_GEOMETRY_BINDING_TO_STR
 }
 
 KVirtualGeometryManager::~KVirtualGeometryManager()
@@ -458,6 +469,7 @@ bool KVirtualGeometryManager::ReloadShader()
 		KVirtualGeometryScene* vgScene = (KVirtualGeometryScene*)scene.get();
 		vgScene->ReloadShader();
 	}
+	m_StreamingManager.ReloadShader();
 	return true;
 }
 
@@ -469,8 +481,6 @@ bool KVirtualGeometryManager::AcquireFromUserData(const KMeshRawData& userData, 
 bool KVirtualGeometryManager::CreateVirtualGeometryScene(IKVirtualGeometryScenePtr& scene)
 {
 	scene = IKVirtualGeometryScenePtr(KNEW KVirtualGeometryScene());
-	// TODO
-	((KVirtualGeometryScene*)scene.get())->SetStreamingMgr(&m_StreamingManager);
 	m_Scenes.insert(scene);
 	return true;
 }
@@ -485,6 +495,7 @@ bool KVirtualGeometryManager::RemoveVirtualGeometryScene(IKVirtualGeometrySceneP
 
 bool KVirtualGeometryManager::ExecuteMain(IKCommandBufferPtr primaryBuffer)
 {
+	m_StreamingManager.Update(primaryBuffer);
 	for (IKVirtualGeometryScenePtr scene : m_Scenes)
 	{
 		scene->ExecuteMain(primaryBuffer);
@@ -499,4 +510,9 @@ bool KVirtualGeometryManager::ExecutePost(IKCommandBufferPtr primaryBuffer)
 		scene->ExecutePost(primaryBuffer);
 	}
 	return true;
+}
+
+IKStorageBufferPtr KVirtualGeometryManager::GetStreamingRequestPipeline(uint32_t frameIndex)
+{
+	return m_StreamingManager.GetStreamingRequestPipeline(frameIndex);
 }

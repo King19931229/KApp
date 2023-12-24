@@ -206,7 +206,7 @@ struct IKShader : public IKResource
 
 struct KShaderCompileEnvironment
 {
-	KShaderCompileEnvironment* parentEnv;
+	const KShaderCompileEnvironment* parentEnv;
 	std::vector<IKShader::MacroPair> macros;
 	std::vector<IKShader::IncludeSource> includes;
 	bool enableSourceDebug;
