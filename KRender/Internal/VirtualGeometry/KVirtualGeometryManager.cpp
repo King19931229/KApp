@@ -173,9 +173,9 @@ bool KVirtualGeometryManager::Init()
 
 	m_PackedHierarchyBuffer.Init("VirtualGeometryPackedHierarchy", sizeof(glm::uvec4));
 	m_ClusterBatchBuffer.Init("VirtualGeometryClusterBatch", sizeof(glm::uvec4));
-	m_ClusterVertexStorageBuffer.Init("VirtualGeometryVertexStorage", sizeof(float) * KMeshClustersVertexStorage::FLOAT_PER_VERTEX);
+	m_ClusterVertexStorageBuffer.Init("VirtualGeometryVertexStorage", sizeof(float) * KVirtualGeometryEncoding::FLOAT_PER_VERTEX);
 	m_ClusterIndexStorageBuffer.Init("VirtualGeometryIndexStorage", sizeof(uint32_t));
-	m_ClusterMateialStorageBuffer.Init("VirtualGeometryMaterialStorage", sizeof(uint32_t) * KMeshClustersMaterialStorage::INT_PER_MATERIAL);
+	m_ClusterMateialStorageBuffer.Init("VirtualGeometryMaterialStorage", sizeof(uint32_t) * KVirtualGeometryEncoding::INT_PER_MATERIAL);
 
 	m_StreamingManager.Init(10, 5);
 
@@ -515,4 +515,14 @@ bool KVirtualGeometryManager::ExecutePost(IKCommandBufferPtr primaryBuffer)
 IKStorageBufferPtr KVirtualGeometryManager::GetStreamingRequestPipeline(uint32_t frameIndex)
 {
 	return m_StreamingManager.GetStreamingRequestPipeline(frameIndex);
+}
+
+IKStorageBufferPtr KVirtualGeometryManager::GetPageDataBuffer()
+{
+	return m_StreamingManager.GetPageDataBuffer();
+}
+
+IKUniformBufferPtr KVirtualGeometryManager::GetStreamingDataBuffer()
+{
+	return m_StreamingManager.GetStreamingDataBuffer();
 }

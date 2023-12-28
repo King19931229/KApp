@@ -2,11 +2,20 @@
 #include "KBase/Publish/Mesh/KVirtualGeometryBuilder.h"
 #include "KBase/Publish/KReferenceHolder.h"
 
-enum
+enum VirtualGeometryBinding
 {
 	#define VIRTUAL_GEOMETRY_BINDING(SEMANTIC) BINDING_##SEMANTIC,
 	#include "KVirtualGeomertyBinding.inl"
 	#undef VIRTUAL_GEOMETRY_BINDING
+};
+
+enum VirtualGeometryConstant
+{
+	VG_GROUP_SIZE = 64,
+	VG_MESH_SHADER_GROUP_SIZE = 128,
+	MAX_CANDIDATE_NODE = 1024 * 1024,
+	MAX_CANDIDATE_CLUSTERS = 1024 * 1024 * 4,
+	MAX_STREAMING_REQUEST = 256 * 1024,	
 };
 
 struct KVirtualGeometryResource

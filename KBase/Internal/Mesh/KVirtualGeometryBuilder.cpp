@@ -1612,13 +1612,13 @@ void KVirtualGeometryBuilder::BuildPage()
 		{
 			KMeshClusterPtr cluster = m_Clusters[group.clusters[localClusterIndex]];
 			uint32_t clusterByteSize = 0;
-			clusterByteSize += KMeshClustersVertexStorage::BYTE_SIZE_PER_VERTEX * (uint32_t)cluster->vertices.size();
-			clusterByteSize += KMeshClustersIndexStorage::BYTE_SIZE_PER_INDEX * (uint32_t)cluster->indices.size();
+			clusterByteSize += KVirtualGeometryEncoding::BYTE_SIZE_PER_VERTEX * (uint32_t)cluster->vertices.size();
+			clusterByteSize += KVirtualGeometryEncoding::BYTE_SIZE_PER_INDEX * (uint32_t)cluster->indices.size();
 			for (const KMeshClusterMaterialRange& materialRange : cluster->materialRanges)
 			{
-				clusterByteSize += KMeshClustersMaterialStorage::BYTE_PER_MATERIAL * (uint32_t)materialRange.batchTriCounts.size();
+				clusterByteSize += KVirtualGeometryEncoding::BYTE_PER_MATERIAL * (uint32_t)materialRange.batchTriCounts.size();
 			}
-			clusterByteSize += KMeshClusterBatchStorage::BYTE_PER_CLUSTER_BATCH;
+			clusterByteSize += KVirtualGeometryEncoding::BYTE_PER_CLUSTER_BATCH;
 
 			uint32_t maxPageSize = currentPage->isRootPage ? KVirtualGeometryDefine::MAX_ROOT_PAGE_SIZE : KVirtualGeometryDefine::MAX_STREAMING_PAGE_SIZE;
 
@@ -1790,7 +1790,7 @@ void KVirtualGeometryBuilder::BuildPageStorage()
 		size_t maxClusterNum = page.clusterGroupPartNum * m_MaxClusterGroup;
 
 		pageStorage.batchStorage.batches.reserve(maxClusterNum);
-		pageStorage.vertexStorage.vertices.reserve(maxClusterNum * m_MaxClusterVertex * KMeshClustersVertexStorage::FLOAT_PER_VERTEX);
+		pageStorage.vertexStorage.vertices.reserve(maxClusterNum * m_MaxClusterVertex * KVirtualGeometryEncoding::FLOAT_PER_VERTEX);
 		pageStorage.indexStorage.indices.reserve(maxClusterNum * m_MaxPartitionNum * 3);
 
 		uint32_t vertexOffset = 0;
@@ -1839,7 +1839,7 @@ void KVirtualGeometryBuilder::BuildPageStorage()
 				const std::vector<KMeshClusterMaterialRange>& materialRanges = cluster->materialRanges;
 				uint32_t batchNum = 0;
 
-				pageStorage.materialStorage.materials.reserve(pageStorage.materialStorage.materials.size() + KMeshClustersMaterialStorage::INT_PER_MATERIAL * materialRanges.size());
+				pageStorage.materialStorage.materials.reserve(pageStorage.materialStorage.materials.size() + KVirtualGeometryEncoding::INT_PER_MATERIAL * materialRanges.size());
 
 				for (const KMeshClusterMaterialRange& materialRange : materialRanges)
 				{

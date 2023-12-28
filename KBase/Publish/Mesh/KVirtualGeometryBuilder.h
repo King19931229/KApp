@@ -237,31 +237,17 @@ static_assert(sizeof(KMeshClusterBatch) == 16 * 4 + 8 * 4, "must match");
 
 struct KMeshClustersVertexStorage
 {
-	enum
-	{
-		FLOAT_PER_VERTEX = 8,
-		BYTE_SIZE_PER_VERTEX = 4 * FLOAT_PER_VERTEX
-	};
 	// Each vertex 8 float: pos.xyz:3 normal.xyz:3 uv:2
 	std::vector<float> vertices;
 };
 
 struct KMeshClustersIndexStorage
 {
-	enum
-	{
-		BYTE_SIZE_PER_INDEX = 4
-	};
 	std::vector<uint32_t> indices;
 };
 
 struct KMeshClustersMaterialStorage
 {
-	enum
-	{
-		INT_PER_MATERIAL = 3,
-		BYTE_PER_MATERIAL = INT_PER_MATERIAL * 4
-	};
 	// Each material 3 int: mateialIndex, rangeBegin, rangeEnd
 	std::vector<uint32_t> materials;
 };
@@ -273,11 +259,20 @@ struct KMeshClustersMaterialStorages
 
 struct KMeshClusterBatchStorage
 {
+	std::vector<KMeshClusterBatch> batches;
+};
+
+struct KVirtualGeometryEncoding
+{
 	enum
 	{
+		FLOAT_PER_VERTEX = 8,
+		BYTE_SIZE_PER_VERTEX = 4 * FLOAT_PER_VERTEX,
+		BYTE_SIZE_PER_INDEX = 4,
+		INT_PER_MATERIAL = 3,
+		BYTE_PER_MATERIAL = INT_PER_MATERIAL * 4,
 		BYTE_PER_CLUSTER_BATCH = sizeof(KMeshClusterBatch)
 	};
-	std::vector<KMeshClusterBatch> batches;
 };
 
 struct KVirtualGeometryPageStorage

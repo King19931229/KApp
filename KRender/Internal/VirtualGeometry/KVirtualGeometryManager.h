@@ -100,4 +100,6 @@ public:
 	bool ExecutePost(IKCommandBufferPtr primaryBuffer);
 
 	IKStorageBufferPtr GetStreamingRequestPipeline(uint32_t frameIndex);
+	IKStorageBufferPtr GetPageDataBuffer();
+	IKUniformBufferPtr GetStreamingDataBuffer();
 };

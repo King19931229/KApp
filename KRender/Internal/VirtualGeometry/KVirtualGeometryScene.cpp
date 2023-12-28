@@ -244,6 +244,8 @@ bool KVirtualGeometryScene::Init(IKRenderScene* scene, const KCamera* camera)
 				auto BindNodeCullResource = [this](IKComputePipelinePtr pipeline, InstanceCull cullMode)
 				{
 					pipeline->BindUniformBuffer(BINDING_GLOBAL_DATA, m_GlobalDataBuffer);
+					pipeline->BindUniformBuffer(BINDING_STREAMING_DATA, KRenderGlobal::VirtualGeometryManager.GetStreamingDataBuffer());
+					pipeline->BindStorageBuffer(BINDING_PAGE_DATA, KRenderGlobal::VirtualGeometryManager.GetPageDataBuffer(), COMPUTE_RESOURCE_IN, true);
 					pipeline->BindStorageBuffer(BINDING_RESOURCE, KRenderGlobal::VirtualGeometryManager.GetResourceBuffer(), COMPUTE_RESOURCE_IN, true);
 					pipeline->BindStorageBuffer(BINDING_INSTANCE_DATA, m_InstanceDataBuffer, COMPUTE_RESOURCE_IN, true);
 					pipeline->BindStorageBuffer(BINDING_HIERARCHY, KRenderGlobal::VirtualGeometryManager.GetPackedHierarchyBuffer(), COMPUTE_RESOURCE_IN, true);
@@ -258,7 +260,7 @@ bool KVirtualGeometryScene::Init(IKRenderScene* scene, const KCamera* camera)
 				};
 
 				m_NodeCullPipelines[i].resize(frameCount);
-				for (size_t frameIndex = 0; frameIndex < frameCount; ++frameIndex)
+				for (uint32_t frameIndex = 0; frameIndex < frameCount; ++frameIndex)
 				{
 					KRenderGlobal::RenderDevice->CreateComputePipeline(m_NodeCullPipelines[i][frameIndex]);
 					BindNodeCullResource(m_NodeCullPipelines[i][frameIndex], (InstanceCull)i);
@@ -269,6 +271,8 @@ bool KVirtualGeometryScene::Init(IKRenderScene* scene, const KCamera* camera)
 				auto BindNodeClusterResource = [this](IKComputePipelinePtr pipeline, InstanceCull cullMode)
 				{
 					pipeline->BindUniformBuffer(BINDING_GLOBAL_DATA, m_GlobalDataBuffer);
+					pipeline->BindUniformBuffer(BINDING_STREAMING_DATA, KRenderGlobal::VirtualGeometryManager.GetStreamingDataBuffer());
+					pipeline->BindStorageBuffer(BINDING_PAGE_DATA, KRenderGlobal::VirtualGeometryManager.GetPageDataBuffer(), COMPUTE_RESOURCE_IN, true);
 					pipeline->BindStorageBuffer(BINDING_RESOURCE, KRenderGlobal::VirtualGeometryManager.GetResourceBuffer(), COMPUTE_RESOURCE_IN, true);
 					pipeline->BindStorageBuffer(BINDING_INSTANCE_DATA, m_InstanceDataBuffer, COMPUTE_RESOURCE_IN, true);
 					pipeline->BindStorageBuffer(BINDING_QUEUE_STATE, m_QueueStateBuffer, COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, true);

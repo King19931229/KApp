@@ -10,14 +10,6 @@
 class KVirtualGeometryScene : public IKVirtualGeometryScene
 {
 protected:
-	enum
-	{
-		MAX_CANDIDATE_NODE = 1024 * 1024,
-		MAX_CANDIDATE_CLUSTERS = 1024 * 1024 * 4,
-		VG_GROUP_SIZE = 64,
-		VG_MESH_SHADER_GROUP_SIZE = 128
-	};
-
 	static constexpr char* VIRTUAL_GEOMETRY_SCENE_GLOBAL_DATA = "VirtualGeometrySceneGlobalData";
 	static constexpr char* VIRTUAL_GEOMETRY_SCENE_INSTANCE_DATA = "VirtualGeometrySceneInstanceData";
 	static constexpr char* VIRTUAL_GEOMETRY_SCENE_MAIN_CULL_RESULT = "VirtualGeometrySceneMainCullResult";

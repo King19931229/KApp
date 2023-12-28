@@ -185,11 +185,21 @@ uniform MaterialData_DYN_UNIFORM
  	uvec4 misc3;
 };
 
+// Match with KVirtualGeometryStreaming
+layout (binding = BINDING_STREAMING_DATA)
+uniform StreamingData
+{
+ 	uvec4 misc4;
+};
+
 #define cameraNear misc.x
 #define cameraAspect misc.y
 #define lodScale misc.z
 #define numInstance misc2.x
 #define numBinning misc2.y
+#define pageDataSize misc4.x
+#define streamingPageNum misc4.y
+#define rootPageNum misc4.z
 #define materialBinningIndex misc3.x
 
 layout (std430, binding = BINDING_RESOURCE) coherent buffer ResourceBuffer {
@@ -202,10 +212,6 @@ layout (std430, binding = BINDING_QUEUE_STATE) coherent buffer QueueStateBuffer 
 
 layout (std430, binding = BINDING_INSTANCE_DATA) coherent buffer InstanceDataBuffer {
 	InstanceStruct InstanceData[];
-};
-
-layout (std430, binding = BINDING_STREAMING_REQUEST) coherent buffer StreamingRequestBuffer {
-	StreamingRequestStruct StreamingRequest[];
 };
 
 layout (std430, binding = BINDING_HIERARCHY) coherent buffer ClusterHierarchyBuffer {
@@ -270,6 +276,18 @@ layout (std430, binding = BINDING_MAIN_CULL_RESULT) coherent buffer MainCullResu
 
 layout (std430, binding = BINDING_POST_CULL_INDIRECT_ARGS) coherent buffer PostCullIndirectArgsBuffer {
 	uint PostCullIndirectArgs[];
+};
+
+layout (std430, binding = BINDING_STREAMING_REQUEST) coherent buffer StreamingRequestBuffer {
+	StreamingRequestStruct StreamingRequest[];
+};
+
+layout (std430, binding = BINDING_PAGE_DATA) coherent buffer PageDataBuffer {
+	uint PageData[];
+};
+
+layout (std430, binding = BINDING_PAGE_UPLOAD) coherent buffer PageUploadBuffer {
+	uint PageUpload[];
 };
 
 uvec4 PackCandidateNode(CandidateNode node)
