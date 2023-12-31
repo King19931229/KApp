@@ -8,8 +8,11 @@
 #define MAX_CANDIDATE_NODE (1024 * 1024)
 #define MAX_CANDIDATE_CLUSTER (1024 * 1024 * 4)
 #define MAX_STREAMING_REQUEST (256 * 1024)
+#define MAX_ROOT_PAGE_SIZE (10 * 1024)
+#define MAX_STREAMING_PAGE_SIZE (10 * 1024)
 #define MAX_CLUSTER_TRIANGLE_NUM 128
 #define MAX_CLUSTER_VERTEX_NUM 256
+#define MAX_PAGE_NUM (1024 * 1024)
 #define VG_GROUP_SIZE 64
 #define BVH_MAX_GROUP_BATCH_SIZE (VG_GROUP_SIZE / BVH_MAX_NODES)
 #define CULL_CLUSTER_ALONG_BVH 1
@@ -200,6 +203,7 @@ uniform StreamingData
 #define pageDataSize misc4.x
 #define streamingPageNum misc4.y
 #define rootPageNum misc4.z
+#define hierarchyDataNum misc4.w
 #define materialBinningIndex misc3.x
 
 layout (std430, binding = BINDING_RESOURCE) coherent buffer ResourceBuffer {
@@ -214,7 +218,7 @@ layout (std430, binding = BINDING_INSTANCE_DATA) coherent buffer InstanceDataBuf
 	InstanceStruct InstanceData[];
 };
 
-layout (std430, binding = BINDING_HIERARCHY) coherent buffer ClusterHierarchyBuffer {
+layout (std430, binding = BINDING_HIERARCHY_DATA) coherent buffer ClusterHierarchyBuffer {
 	ClusterHierarchyStruct ClusterHierarchy[];
 };
 
@@ -289,6 +293,26 @@ layout (std430, binding = BINDING_PAGE_DATA) coherent buffer PageDataBuffer {
 layout (std430, binding = BINDING_PAGE_UPLOAD) coherent buffer PageUploadBuffer {
 	uint PageUpload[];
 };
+
+layout (std430, binding = BINDING_CLUSTER_FIXUP_UPLOAD) coherent buffer ClusterFixupUploadBuffer {
+	uint ClusterFixupUpload[];
+};
+
+layout (std430, binding = BINDING_HIERARCHY_FIXUP_UPLOAD) coherent buffer HierarchyFixupUploadBuffer {
+	uint HierarchyFixupUpload[];
+};
+
+uint GPUPageIndexToGPUOffset(uint gpuPageIndex)
+{
+	if (gpuPageIndex < streamingPageNum)
+	{
+		return gpuPageIndex * MAX_STREAMING_PAGE_SIZE;
+	}
+	else
+	{
+		return streamingPageNum * MAX_STREAMING_PAGE_SIZE + (gpuPageIndex - streamingPageNum) * MAX_ROOT_PAGE_SIZE;
+	}
+}
 
 uvec4 PackCandidateNode(CandidateNode node)
 {

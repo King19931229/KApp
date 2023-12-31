@@ -35,7 +35,7 @@ struct KVirtualGeometryClusterFixupUpdate
 {
 	uint32_t gpuPageIndex;
 	uint32_t clusterIndex;
-	uint32_t flag;
+	uint32_t isLeaf;
 	uint32_t padding;
 };
 static_assert((sizeof(KVirtualGeometryClusterFixupUpdate) % 16) == 0, "Size must be a multiple of 16");
@@ -44,7 +44,7 @@ struct KVirtualGeometryHierarchyFixupUpdate
 {
 	uint32_t gpuPageIndex;
 	uint32_t groupIndex;
-	uint32_t flag;
+	uint32_t clusterPageIndex;
 	uint32_t padding;
 };
 static_assert((sizeof(KVirtualGeometryHierarchyFixupUpdate) % 16) == 0, "Size must be a multiple of 16");
@@ -92,20 +92,27 @@ protected:
 	static constexpr char* VIRTUAL_GEOMETRY_STREAMING_REQUEST = "VirtualGeometryStreamingRequest";
 	static constexpr char* VIRTUAL_GEOMETRY_PAGE_STORAGE = "VirtualGeometryPageStorage";
 	static constexpr char* VIRTUAL_GEOMETRY_PAGE_UPLOAD = "VirtualGeometryPageUpload";
+	static constexpr char* VIRTUAL_GEOMETRY_CLUSTER_FIXUP_UPLOAD = "VirtualGeometryClusterFixupUpload";
+	static constexpr char* VIRTUAL_GEOMETRY_HIERARCHY_FIXUP_UPLOAD = "VirtualGeometryHierarchyFixupUpload";
 
 	IKUniformBufferPtr m_StreamingDataBuffer;
 	IKStorageBufferPtr m_PageDataBuffer;
 
 	std::vector<IKStorageBufferPtr> m_StreamingRequestBuffers;
 	std::vector<IKStorageBufferPtr> m_PageUploadBuffers;
+	std::vector<IKStorageBufferPtr> m_ClusterFixupUploadBuffers;
+	std::vector<IKStorageBufferPtr> m_HierarchyFixupUploadBuffers;
 	std::vector<IKComputePipelinePtr> m_StreamingRequestClearPipelines;
 	std::vector<IKComputePipelinePtr> m_PageUploadPipelines;
+	std::vector<IKComputePipelinePtr> m_ClusterFixupUploadPipelines;
+	std::vector<IKComputePipelinePtr> m_HierarchyFixupUploadPipelines;
 
 	std::vector<KVirtualGeometryActivePage*> m_Pages;
 	std::vector<KVirtualGeometryPages> m_ResourcePages;
 	std::vector<KVirtualGeometryPageStorages> m_ResourcePageStorages;
 	std::vector<KVirtualGeomertyFixup> m_ResourcePageFixups;
 	std::vector<KVirtualGeomertyPageDependencies> m_ResourcePageDependencies;
+	std::vector<KVirtualGeomertyPageClustersData> m_ResourcePageClustersDatas;
 
 	KVirtualGeometryActivePage* m_FreeStreamingPageHead;
 	KVirtualGeometryActivePage* m_UsedStreamingPageHead;
@@ -156,6 +163,6 @@ public:
 	IKStorageBufferPtr GetPageDataBuffer();
 	IKUniformBufferPtr GetStreamingDataBuffer();
 
-	uint32_t AddGeometry(const KVirtualGeometryPages& pages, const KVirtualGeometryPageStorages& storages, const KVirtualGeomertyFixup& fixup, const KVirtualGeomertyPageDependencies& dependencies);
+	uint32_t AddGeometry(const KVirtualGeometryPages& pages, const KVirtualGeometryPageStorages& storages, const KVirtualGeomertyFixup& fixup, const KVirtualGeomertyPageDependencies& dependencies, const KVirtualGeomertyPageClustersData& data);
 	void RemoveGeometry(uint32_t resourceIndex);
 };

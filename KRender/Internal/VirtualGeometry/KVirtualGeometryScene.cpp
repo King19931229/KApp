@@ -248,7 +248,7 @@ bool KVirtualGeometryScene::Init(IKRenderScene* scene, const KCamera* camera)
 					pipeline->BindStorageBuffer(BINDING_PAGE_DATA, KRenderGlobal::VirtualGeometryManager.GetPageDataBuffer(), COMPUTE_RESOURCE_IN, true);
 					pipeline->BindStorageBuffer(BINDING_RESOURCE, KRenderGlobal::VirtualGeometryManager.GetResourceBuffer(), COMPUTE_RESOURCE_IN, true);
 					pipeline->BindStorageBuffer(BINDING_INSTANCE_DATA, m_InstanceDataBuffer, COMPUTE_RESOURCE_IN, true);
-					pipeline->BindStorageBuffer(BINDING_HIERARCHY, KRenderGlobal::VirtualGeometryManager.GetPackedHierarchyBuffer(), COMPUTE_RESOURCE_IN, true);
+					pipeline->BindStorageBuffer(BINDING_HIERARCHY_DATA, KRenderGlobal::VirtualGeometryManager.GetPackedHierarchyBuffer(), COMPUTE_RESOURCE_IN, true);
 					pipeline->BindStorageBuffer(BINDING_QUEUE_STATE, m_QueueStateBuffer, COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, true);
 					pipeline->BindStorageBuffer(BINDING_CANDIDATE_NODE_BATCH, m_CandidateNodeBuffer, COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, true);
 					pipeline->BindStorageBuffer(BINDING_CANDIDATE_CLUSTER_BATCH, m_CandidateClusterBuffer, COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, true);
@@ -480,8 +480,8 @@ bool KVirtualGeometryScene::UpdateInstanceData()
 		globalData.misc.x = m_Camera ? m_Camera->GetNear() : 0.0f;
 		globalData.misc.y = m_Camera ? m_Camera->GetAspect() : 1.0f;
 
-		globalData.miscs2.x = (uint32_t)m_Instances.size();
-		globalData.miscs2.y = (uint32_t)m_BinningMaterials.size();
+		globalData.misc2.x = (uint32_t)m_Instances.size();
+		globalData.misc2.y = (uint32_t)m_BinningMaterials.size();
 
 		size_t sceneWidth = 0;
 		size_t sceneHeight = 0;
@@ -896,7 +896,7 @@ bool KVirtualGeometryScene::BasePass(IKRenderPassPtr renderPass, IKCommandBuffer
 		}
 
 		KVirtualGeometryMaterial material;
-		material.miscs3.x = (uint32_t)i;
+		material.misc3.x = (uint32_t)i;
 
 		KDynamicConstantBufferUsage objectUsage;
 		objectUsage.binding = BINDING_MATERIAL_DATA + MAX_MATERIAL_TEXTURE_BINDING;

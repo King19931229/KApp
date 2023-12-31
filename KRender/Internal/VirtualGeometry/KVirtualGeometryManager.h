@@ -102,4 +102,6 @@ public:
 	IKStorageBufferPtr GetStreamingRequestPipeline(uint32_t frameIndex);
 	IKStorageBufferPtr GetPageDataBuffer();
 	IKUniformBufferPtr GetStreamingDataBuffer();
+
+	KVirtualGeometryResourceRef GetResource(uint32_t resourceIndex);
 };

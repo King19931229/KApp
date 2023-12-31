@@ -239,7 +239,8 @@ bool KVirtualGeometryManager::AcquireImpl(const char* label, const KMeshRawData&
 		KVirtualGeometryPageStorages pageStorages;
 		KVirtualGeomertyFixup pageFixup;
 		KVirtualGeomertyPageDependencies pageDependencies;
-		if (!builder.GetPages(pages, pageStorages, pageFixup, pageDependencies))
+		KVirtualGeomertyPageClustersData pageClusters;
+		if (!builder.GetPages(pages, pageStorages, pageFixup, pageDependencies, pageClusters))
 		{
 			return false;
 		}
@@ -260,9 +261,10 @@ bool KVirtualGeometryManager::AcquireImpl(const char* label, const KMeshRawData&
 			return false;
 		}
 
+		std::vector<KMeshClusterPtr> clusters;
 		std::vector<KMeshClusterGroupPartPtr> clusterGroupParts;
 		std::vector<KMeshClusterGroupPtr> clusterGroups;
-		if (!builder.GetMeshClusterGroupParts(clusterGroupParts, clusterGroups))
+		if (!builder.GetMeshClusterGroupParts(clusters, clusterGroupParts, clusterGroups))
 		{
 			return false;
 		}
@@ -313,7 +315,7 @@ bool KVirtualGeometryManager::AcquireImpl(const char* label, const KMeshRawData&
 		}
 
 		uint32_t resourceIndex = (uint32_t)m_GeometryResources.size();
-		uint32_t resourceIndexInStreaming = m_StreamingManager.AddGeometry(pages, pageStorages, pageFixup, pageDependencies);
+		uint32_t resourceIndexInStreaming = m_StreamingManager.AddGeometry(pages, pageStorages, pageFixup, pageDependencies, pageClusters);
 		assert(resourceIndex == resourceIndexInStreaming);
 
 		const KAABBBox& bound = builder.GetBound();
@@ -525,4 +527,16 @@ IKStorageBufferPtr KVirtualGeometryManager::GetPageDataBuffer()
 IKUniformBufferPtr KVirtualGeometryManager::GetStreamingDataBuffer()
 {
 	return m_StreamingManager.GetStreamingDataBuffer();
+}
+
+KVirtualGeometryResourceRef KVirtualGeometryManager::GetResource(uint32_t resourceIndex)
+{
+	if (resourceIndex < m_GeometryResources.size())
+	{
+		return m_GeometryResources[resourceIndex];
+	}
+	else
+	{
+		return KVirtualGeometryResourceRef();
+	}
 }

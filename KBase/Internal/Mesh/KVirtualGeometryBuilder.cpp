@@ -1516,6 +1516,11 @@ void KVirtualGeometryBuilder::ConstrainCluster()
 			}
 		}
 	}
+
+	for (size_t i = 0; i < m_Clusters.size(); ++i)
+	{
+		assert(m_Clusters[i]->index == i);
+	}
 }
 
 void KVirtualGeometryBuilder::BuildReuseBatch()
@@ -1668,10 +1673,12 @@ void KVirtualGeometryBuilder::BuildPage()
 			if (localClusterIndex == 0)
 			{
 				group.pageStart = (uint32_t)m_Pages.pages.size() - 1;
+				group.groupPartStart = (uint32_t)m_ClusterGroupParts.size() - 1;
 			}
 			if (localClusterIndex == (uint32_t)group.clusters.size() - 1)
 			{
 				group.pageEnd = (uint32_t)m_Pages.pages.size() - 1;
+				group.groupPartEnd = (uint32_t)m_ClusterGroupParts.size() - 1;
 			}
 		}
 	}
@@ -1720,7 +1727,7 @@ void KVirtualGeometryBuilder::BuildFixup()
 					newFixup.fixupPage = part->pageIndex;
 					newFixup.dependencyPageStart = generatingGroup.pageStart;
 					newFixup.dependencyPageEnd = generatingGroup.pageEnd;
-					newFixup.clusterIndex = part->clusterStart + cluster->offsetInPart;
+					// newFixup.clusterIndex = part->clusterStart + cluster->offsetInPart;
 					newFixup.clusterIndex = cluster->index;
 
 					uint32_t hash = ComputeClusterFixupHash(newFixup);
@@ -2530,6 +2537,35 @@ void KVirtualGeometryBuilder::DumpClusterInformation(const std::string& saveRoot
 	}
 }
 
+void KVirtualGeometryBuilder::BuildStreaming()
+{
+	m_PageDependencies.pageDependencies.resize(m_Pages.pages.size());
+	for (uint32_t pageIndex = 0; pageIndex < (uint32_t)m_Pages.pages.size(); ++pageIndex)
+	{
+		BuildPageDependency(pageIndex, m_PageDependencies.pageDependencies[pageIndex]);
+	}
+
+	m_PageClusters.clusters.resize(m_Clusters.size());
+	for (size_t clusterIndex = 0; clusterIndex < m_Clusters.size(); ++clusterIndex)
+	{
+		m_PageClusters.clusters[clusterIndex].partIndex = m_Clusters[clusterIndex]->partIndex;
+		m_PageClusters.clusters[clusterIndex].offsetInPart = m_Clusters[clusterIndex]->offsetInPart;
+	}
+
+	m_PageClusters.groups.resize(m_ClusterGroups.size());
+	for (size_t groupIndex = 0; groupIndex < m_ClusterGroups.size(); ++groupIndex)
+	{
+		m_PageClusters.groups[groupIndex].groupPartStart = m_ClusterGroups[groupIndex]->groupPartStart;
+		m_PageClusters.groups[groupIndex].groupPartEnd = m_ClusterGroups[groupIndex]->groupPartEnd;
+	}
+
+	m_PageClusters.parts.resize(m_ClusterGroupParts.size());
+	for (size_t partIndex = 0; partIndex < m_ClusterGroupParts.size(); ++partIndex)
+	{
+		m_PageClusters.parts[partIndex].hierarchyIndex = m_ClusterGroupParts[partIndex]->hierarchyIndex;
+	}
+}
+
 void KVirtualGeometryBuilder::Build(const std::vector<KMeshProcessorVertex>& vertices, const std::vector<uint32_t>& indices, const std::vector<uint32_t>& materialIndices)
 {
 	BuildDAG(vertices, indices, materialIndices, 124, 128, 4, 32);
@@ -2541,12 +2577,8 @@ void KVirtualGeometryBuilder::Build(const std::vector<KMeshProcessorVertex>& ver
 	BuildFixup();
 	BuildPageStorage();
 	BuildClusterBVH();
-
-	m_PageDependencies.pageDependencies.resize(m_Pages.pages.size());
-	for (uint32_t pageIndex = 0; pageIndex < (uint32_t)m_Pages.pages.size(); ++pageIndex)
-	{
-		BuildPageDependency(pageIndex, m_PageDependencies.pageDependencies[pageIndex]);
-	}
+	BuildMeshClusterHierarchies(m_BVHRoot);
+	BuildStreaming();
 
 	m_Bound.SetNull();
 	for (const KMeshProcessorVertex& vertex : vertices)
@@ -2555,12 +2587,13 @@ void KVirtualGeometryBuilder::Build(const std::vector<KMeshProcessorVertex>& ver
 	}
 }
 
-bool KVirtualGeometryBuilder::GetPages(KVirtualGeometryPages& pages, KVirtualGeometryPageStorages& pageStorages, KVirtualGeomertyFixup& pageFixup, KVirtualGeomertyPageDependencies& pageDependencies) const
+bool KVirtualGeometryBuilder::GetPages(KVirtualGeometryPages& pages, KVirtualGeometryPageStorages& pageStorages, KVirtualGeomertyFixup& pageFixup, KVirtualGeomertyPageDependencies& pageDependencies, KVirtualGeomertyPageClustersData& pageClusters) const
 {
 	pages = m_Pages;
 	pageStorages = m_PageStorages;
 	pageFixup = m_PageFixup;
 	pageDependencies = m_PageDependencies;
+	pageClusters = m_PageClusters;
 	return true;
 }
 
@@ -2608,12 +2641,12 @@ bool KVirtualGeometryBuilder::GetMeshClusterStorages(KMeshClusterBatchStorage& b
 	return true;
 }
 
-uint32_t KVirtualGeometryBuilder::BuildMeshClusterHierarchies(std::vector<KMeshClusterHierarchy>& hierarchies, uint32_t index) const
+uint32_t KVirtualGeometryBuilder::BuildMeshClusterHierarchies(uint32_t index)
 {
-	uint32_t hierarchyIndex = (uint32_t)hierarchies.size();
-	hierarchies.push_back(KMeshClusterHierarchy());
+	uint32_t hierarchyIndex = (uint32_t)m_Hierarchies.size();
+	m_Hierarchies.push_back(KMeshClusterHierarchy());
 
-	KMeshClusterHierarchy newHierarchy = hierarchies[hierarchyIndex];
+	KMeshClusterHierarchy newHierarchy = m_Hierarchies[hierarchyIndex];
 
 	KMeshClusterBVHNodePtr bvhNode = m_BVHNodes[index];
 	newHierarchy.partIndex = bvhNode->partIndex;
@@ -2631,12 +2664,12 @@ uint32_t KVirtualGeometryBuilder::BuildMeshClusterHierarchies(std::vector<KMeshC
 		{
 			if (i < bvhNode->children.size())
 			{
-				uint32_t childIndex = BuildMeshClusterHierarchies(hierarchies, bvhNode->children[i]);
+				uint32_t childIndex = BuildMeshClusterHierarchies(bvhNode->children[i]);
 				newHierarchy.children[i] = childIndex;
 
 				KAABBBox childBound;
-				const glm::vec4& lodBoundCenterError = hierarchies[childIndex].lodBoundCenterError;
-				const glm::vec4& lodBoundHalfExtendRadius = hierarchies[childIndex].lodBoundHalfExtendRadius;
+				const glm::vec4& lodBoundCenterError = m_Hierarchies[childIndex].lodBoundCenterError;
+				const glm::vec4& lodBoundHalfExtendRadius = m_Hierarchies[childIndex].lodBoundHalfExtendRadius;
 				childBound.InitFromHalfExtent(glm::vec3(lodBoundCenterError.x, lodBoundCenterError.y, lodBoundCenterError.z), glm::vec3(lodBoundHalfExtendRadius.x, lodBoundHalfExtendRadius.y, lodBoundHalfExtendRadius.z));
 
 				lodBound = lodBound.Merge(childBound);
@@ -2651,28 +2684,26 @@ uint32_t KVirtualGeometryBuilder::BuildMeshClusterHierarchies(std::vector<KMeshC
 
 		lodBound = group->parentLodBound;
 		maxError = group->maxParentError;
+
+		part->hierarchyIndex = hierarchyIndex;
 	}
 
 	newHierarchy.lodBoundCenterError = glm::vec4(lodBound.GetCenter(), maxError);
 	newHierarchy.lodBoundHalfExtendRadius = glm::vec4(0.5f * lodBound.GetExtend(), 0.5f * glm::length(lodBound.GetExtend()));
 
-	hierarchies[hierarchyIndex] = std::move(newHierarchy);
+	m_Hierarchies[hierarchyIndex] = std::move(newHierarchy);
 	return hierarchyIndex;
 }
 
 bool KVirtualGeometryBuilder::GetMeshClusterHierarchies(std::vector<KMeshClusterHierarchy>& hierarchies) const
 {
-	hierarchies.clear();
-	if (m_BVHRoot != KVirtualGeometryDefine::INVALID_INDEX)
-	{
-		BuildMeshClusterHierarchies(hierarchies, m_BVHRoot);
-		return true;
-	}
-	return false;
+	hierarchies = m_Hierarchies;
+	return true;
 }
 
-bool KVirtualGeometryBuilder::GetMeshClusterGroupParts(std::vector<KMeshClusterGroupPartPtr>& parts, std::vector<KMeshClusterGroupPtr>& groups) const
+bool KVirtualGeometryBuilder::GetMeshClusterGroupParts(std::vector<KMeshClusterPtr>& clusters, std::vector<KMeshClusterGroupPartPtr>& parts, std::vector<KMeshClusterGroupPtr>& groups) const
 {
+	clusters = m_Clusters;
 	parts = m_ClusterGroupParts;
 	groups = m_ClusterGroups;
 	return true;

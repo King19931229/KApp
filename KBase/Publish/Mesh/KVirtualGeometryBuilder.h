@@ -77,11 +77,13 @@ struct KMeshCluster
 	uint32_t groupIndex = KVirtualGeometryDefine::INVALID_INDEX;
 	// 生成的Group所在的index
 	uint32_t generatingGroupIndex = KVirtualGeometryDefine::INVALID_INDEX;
-
+	// 所在的GroupPart的index
 	uint32_t partIndex = KVirtualGeometryDefine::INVALID_INDEX;
+	// 所在的GroupPart的第几个cluster
 	uint32_t offsetInPart = 0;
-
+	// 全局cluster index
 	uint32_t index = KVirtualGeometryDefine::INVALID_INDEX;
+	// LOD level
 	uint32_t level = 0;
 
 	// lodError是计算Lod所用到的Error 并不是严格意义上真正的Error
@@ -130,10 +132,11 @@ struct KMeshClusterGroup
 	uint32_t index = KVirtualGeometryDefine::INVALID_INDEX;
 	uint32_t pageStart = KVirtualGeometryDefine::INVALID_INDEX;
 	uint32_t pageEnd = KVirtualGeometryDefine::INVALID_INDEX;
+	uint32_t groupPartStart = KVirtualGeometryDefine::INVALID_INDEX;
+	uint32_t groupPartEnd = KVirtualGeometryDefine::INVALID_INDEX;
 	float maxParentError = 0;
 	float edgeLength = 0;
 };
-
 typedef std::shared_ptr<KMeshClusterGroup> KMeshClusterGroupPtr;
 
 struct KGraph
@@ -211,10 +214,11 @@ struct KMeshClusterGroupPart
 	// Start offset in page
 	uint32_t clusterStart = 0;
 	uint32_t clusterNum = 0;
+	// Index in hierarchy
+	uint32_t hierarchyIndex = 0;
 	KAABBBox lodBound;
 	float lodError = 0;
 };
-
 typedef std::shared_ptr<KMeshClusterGroupPart> KMeshClusterGroupPartPtr;
 
 struct KMeshClusterBatch
@@ -298,6 +302,30 @@ struct KVirtualGeomertyPageDependencies
 	std::vector<KVirtualGeomertyPageDependency> pageDependencies;
 };
 
+struct KVirtualGeomertyPageCluster
+{
+	uint32_t partIndex = KVirtualGeometryDefine::INVALID_INDEX;
+	uint32_t offsetInPart = 0;
+};
+
+struct KVirtualGeomertyPageClusterGroup
+{
+	uint32_t groupPartStart = KVirtualGeometryDefine::INVALID_INDEX;
+	uint32_t groupPartEnd = KVirtualGeometryDefine::INVALID_INDEX;
+};
+
+struct KVirtualGeomertyPageClusterGroupPart
+{
+	uint32_t hierarchyIndex = 0;
+};
+
+struct KVirtualGeomertyPageClustersData
+{
+	std::vector<KVirtualGeomertyPageCluster> clusters;
+	std::vector<KVirtualGeomertyPageClusterGroup> groups;
+	std::vector<KVirtualGeomertyPageClusterGroupPart> parts;
+};
+
 struct KMeshClusterBVHNode
 {
 	uint32_t partIndex = KVirtualGeometryDefine::INVALID_INDEX;
@@ -305,6 +333,7 @@ struct KMeshClusterBVHNode
 	KAABBBox lodBound;
 	float lodError = 0;
 };
+typedef std::shared_ptr<KMeshClusterBVHNode> KMeshClusterBVHNodePtr;
 
 struct KMeshClusterHierarchy
 {
@@ -313,8 +342,6 @@ struct KMeshClusterHierarchy
 	uint32_t children[KVirtualGeometryDefine::MAX_BVH_NODES];
 	uint32_t partIndex = KVirtualGeometryDefine::INVALID_INDEX;
 };
-
-typedef std::shared_ptr<KMeshClusterBVHNode> KMeshClusterBVHNodePtr;
 
 struct KVirtualGeometryPage
 {
@@ -334,6 +361,7 @@ struct KVirtualGeometryPages
 struct KVirtualGeomertyClusterFixup
 {
 	uint32_t fixupPage = KVirtualGeometryDefine::INVALID_INDEX;
+	// Local page cluster index
 	uint32_t clusterIndex = KVirtualGeometryDefine::INVALID_INDEX;
 	uint32_t dependencyPageStart = KVirtualGeometryDefine::INVALID_INDEX;
 	uint32_t dependencyPageEnd = 0;
@@ -360,11 +388,13 @@ protected:
 	std::vector<KMeshClusterGroupPtr> m_ClusterGroups;
 	std::vector<KMeshClusterGroupPartPtr> m_ClusterGroupParts;
 	std::vector<KMeshClusterBVHNodePtr> m_BVHNodes;
+	std::vector<KMeshClusterHierarchy> m_Hierarchies;
 
 	KVirtualGeometryPages m_Pages;
 	KVirtualGeometryPageStorages m_PageStorages;
 	KVirtualGeomertyFixup m_PageFixup;
 	KVirtualGeomertyPageDependencies m_PageDependencies;
+	KVirtualGeomertyPageClustersData m_PageClusters;
 
 	KAABBBox m_Bound;
 
@@ -406,6 +436,8 @@ protected:
 	float SortBVHNodesByAxis(const std::vector<KMeshClusterBVHNodePtr>& bvhNodes, SortAxis axis, const std::vector<uint32_t>& indices, const KRange& range, std::vector<uint32_t>& sorted);
 	void SortBVHNodes(const std::vector<KMeshClusterBVHNodePtr>& bvhNodes, std::vector<uint32_t>& indices);
 	uint32_t BuildHierarchyTopDown(std::vector<KMeshClusterBVHNodePtr>& bvhNodes, std::vector<uint32_t>& indices, bool sort);
+	uint32_t BuildMeshClusterHierarchies(uint32_t index);
+	void BuildPageDependency(uint32_t pageIndex, KVirtualGeomertyPageDependency& dependency);
 
 	void BuildDAG(const std::vector<KMeshProcessorVertex>& vertices, const std::vector<uint32_t>& indices, const std::vector<uint32_t>& materialIndices, uint32_t minPartitionNum, uint32_t maxPartitionNum, uint32_t minClusterGroup, uint32_t maxClusterGroup);
 	void BuildMaterialRanges();
@@ -416,12 +448,10 @@ protected:
 	void BuildPageStorage();
 	void BuildClusterBVH();
 	void BuildFixup();
-	void BuildPageDependency(uint32_t pageIndex, KVirtualGeomertyPageDependency& dependency);
+	void BuildStreaming();
 
 	void RecurselyVisitBVH(uint32_t index, std::function<void(uint32_t index)> visitFunc);
-
-	uint32_t BuildMeshClusterHierarchies(std::vector<KMeshClusterHierarchy>& hierarchies, uint32_t index) const;
-
+	
 	static bool ColorDebugClusters(const std::vector<KMeshClusterPtr>& clusters, const std::vector<uint32_t>& ids, std::vector<KMeshProcessorVertex>& vertices, std::vector<uint32_t>& indices, std::vector<uint32_t>& materialIndices);
 	static bool ColorDebugClusterGroups(const std::vector<KMeshClusterPtr>& clusters, const std::vector<KMeshClusterGroupPtr>& groups, const std::vector<uint32_t>& ids, std::vector<KMeshProcessorVertex>& vertices, std::vector<uint32_t>& indices, std::vector<uint32_t>& materialIndices);
 public:
@@ -438,8 +468,8 @@ public:
 
 	bool GetMeshClusterStorages(KMeshClusterBatchStorage& batchStorage, KMeshClustersVertexStorage& vertexStroage, KMeshClustersIndexStorage& indexStorage, KMeshClustersMaterialStorage& materialStorage) const;
 	bool GetMeshClusterHierarchies(std::vector<KMeshClusterHierarchy>& hierarchies) const;
-	bool GetMeshClusterGroupParts(std::vector<KMeshClusterGroupPartPtr>& parts, std::vector<KMeshClusterGroupPtr>& groups) const;
-	bool GetPages(KVirtualGeometryPages& pages, KVirtualGeometryPageStorages& pageStorages, KVirtualGeomertyFixup& pageFixup, KVirtualGeomertyPageDependencies &pageDependencies) const;
+	bool GetMeshClusterGroupParts(std::vector<KMeshClusterPtr>& clusters, std::vector<KMeshClusterGroupPartPtr>& parts, std::vector<KMeshClusterGroupPtr>& groups) const;
+	bool GetPages(KVirtualGeometryPages& pages, KVirtualGeometryPageStorages& pageStorages, KVirtualGeomertyFixup& pageFixup, KVirtualGeomertyPageDependencies &pageDependencies, KVirtualGeomertyPageClustersData& pageClusters) const;
 
 	inline uint32_t GetLevelNum() const
 	{

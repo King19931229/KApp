@@ -16,6 +16,7 @@ enum VirtualGeometryConstant
 	MAX_CANDIDATE_NODE = 1024 * 1024,
 	MAX_CANDIDATE_CLUSTERS = 1024 * 1024 * 4,
 	MAX_STREAMING_REQUEST = 256 * 1024,	
+	MAX_PAGE_NUM = 1024 * 1024
 };
 
 struct KVirtualGeometryResource
@@ -64,12 +65,12 @@ struct KVirtualGeometryGlobal
 	glm::mat4 worldToView;
 	glm::mat4 worldToTranslateView;
 	glm::vec4 misc;
-	glm::uvec4 miscs2;
+	glm::uvec4 misc2;
 };
 
 struct KVirtualGeometryMaterial
 {
-	glm::uvec4 miscs3;
+	glm::uvec4 misc3;
 };
 
 struct KVirtualGeometryQueueState
@@ -123,7 +124,7 @@ struct KMeshClusterHierarchyPackedNode
 	uint32_t isLeaf = 0;
 	uint32_t clusterStart = KVirtualGeometryDefine::INVALID_INDEX;
 	uint32_t clusterNum = KVirtualGeometryDefine::INVALID_INDEX;
-	uint32_t clusterPageIndex = 0;
+	uint32_t clusterPageIndex = MAX_PAGE_NUM;
 	uint32_t groupPageStart = KVirtualGeometryDefine::INVALID_INDEX;
 	uint32_t groupPageNum = 0;
 	uint32_t padding[2] = { 0 };

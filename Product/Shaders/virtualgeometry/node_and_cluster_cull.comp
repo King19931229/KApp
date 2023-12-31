@@ -209,7 +209,7 @@ void ProcessNodeBatch(uint groupIndex, uint batchStart, uint batchSize)
 				clusterNum = hierarchy.clusterNum;
 			}
 #endif
-			clusterNum = (hierarchy.clusterPageIndex != INVALID_INDEX) ? clusterNum : 0;
+			clusterNum = (hierarchy.clusterPageIndex != MAX_PAGE_NUM) ? clusterNum : 0;
 			if (clusterNum > 0)
 			{
 				uint clusterBaseWriteOffset = 0;
