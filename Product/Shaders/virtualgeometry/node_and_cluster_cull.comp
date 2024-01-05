@@ -25,11 +25,14 @@ void ProcessClusterBatch(uint groupIndex, uint batchStart, uint batchSize)
 		uint instanceId = candidateCluster.instanceId;
 
 		ClusterBatchStruct clusterBatch;
-		GetClusterData(candidateCluster, clusterBatch);
+		GetClusterBatchData(candidateCluster, clusterBatch);
 
 		mat4 localToWorld = InstanceData[instanceId].transform;
 
 		vec3 boundCenter = clusterBatch.lodBoundCenterError.xyz;
+#if !ENABLE_STREAMING
+		clusterBatch.leaf = 0;
+#endif
 		float localError = (clusterBatch.leaf == 0) ? clusterBatch.lodBoundCenterError.w : 0;
 		vec3 boundHalfExtend = clusterBatch.lodBoundHalfExtendRadius.xyz;
 		float boundRadius = clusterBatch.lodBoundHalfExtendRadius.w;
@@ -95,7 +98,7 @@ void ProcessClusterBatch(uint groupIndex, uint batchStart, uint batchSize)
 
 void ProcessNodeBatch(uint groupIndex, uint batchStart, uint batchSize)
 {
-	uint localIndex = groupIndex / BVH_MAX_NODES;
+	uint localIndex = groupIndex / MAX_BVH_NODES;
 	if (localIndex < batchSize)
 	{
 		uint childIndex = groupIndex & BVH_NODE_MASK;
@@ -196,20 +199,24 @@ void ProcessNodeBatch(uint groupIndex, uint batchStart, uint batchSize)
 			}
 
 #if EMIT_CLUSTER_EACH_THREAD
-			uint clusterNumPerChild = hierarchy.clusterNum / BVH_MAX_NODES;
+			uint clusterNumPerChild = hierarchy.clusterNum / MAX_BVH_NODES;
 			uint clusterNumPerChildRest = hierarchy.clusterNum & BVH_NODE_MASK;
 
 			uint clusterStart = hierarchy.clusterStart + childIndex * clusterNumPerChild + uint(childIndex != 0) * clusterNumPerChildRest;
+			uint clusterPageStart = hierarchy.clusterPageStart + childIndex * clusterNumPerChild + uint(childIndex != 0) * clusterNumPerChildRest;
 			uint clusterNum = clusterNumPerChild + uint(childIndex == 0) * clusterNumPerChildRest;
 #else
 			uint clusterStart = hierarchy.clusterStart;
+			uint clusterPageStart = hierarchy.clusterPageStart;
 			uint clusterNum = 0;
 			if (childIndex == 0)
 			{
 				clusterNum = hierarchy.clusterNum;
 			}
 #endif
-			clusterNum = (hierarchy.clusterPageIndex != MAX_PAGE_NUM) ? clusterNum : 0;
+#if ENABLE_STREAMING
+			clusterNum = (hierarchy.gpuPageIndex != 0XFFFFFFFF) ? clusterNum : 0;
+#endif
 			if (clusterNum > 0)
 			{
 				uint clusterBaseWriteOffset = 0;
@@ -227,8 +234,9 @@ void ProcessNodeBatch(uint groupIndex, uint batchStart, uint batchSize)
 #endif
 					CandidateCluster candidateCluster;
 					candidateCluster.instanceId = instanceId;
-					candidateCluster.pageIndex = hierarchy.clusterPageIndex;
+					candidateCluster.gpuPageIndex = hierarchy.gpuPageIndex;
 					candidateCluster.clusterIndex = clusterStart + i;
+					candidateCluster.clusterIndexInPage = clusterPageStart + i;
 					StoreCandidateCluster(clusterWriteOffset, candidateCluster);
 				}
 			}

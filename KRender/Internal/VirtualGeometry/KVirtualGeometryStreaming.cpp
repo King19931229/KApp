@@ -43,8 +43,9 @@ void KVirtualGeometryStreamingManager::Init(uint32_t maxStreamingPages, uint32_t
 		m_Pages[index]->prev = m_Pages[index]->next = m_Pages[index];
 	}
 
-	for (uint32_t index = 0; index < m_MaxStreamingPages; ++index)
+	for (uint32_t i = 0; i < m_MaxStreamingPages; ++i)
 	{
+		uint32_t index = m_MaxStreamingPages - 1 - i;
 		if (m_FreeStreamingPageHead)
 		{
 			m_Pages[index]->next = m_FreeStreamingPageHead;
@@ -55,8 +56,9 @@ void KVirtualGeometryStreamingManager::Init(uint32_t maxStreamingPages, uint32_t
 		m_FreeStreamingPageHead = m_Pages[index];
 	}
 
-	for (uint32_t index = m_MaxStreamingPages; index < m_NumPages; ++index)
+	for (uint32_t i = m_MaxStreamingPages; i < m_NumPages; ++i)
 	{
+		uint32_t index = m_NumPages - 1 - i + m_MaxStreamingPages;
 		if (m_FreeRootPageHead)
 		{
 			m_Pages[index]->next = m_FreeRootPageHead;
@@ -109,12 +111,14 @@ void KVirtualGeometryStreamingManager::Init(uint32_t maxStreamingPages, uint32_t
 
 		KRenderGlobal::RenderDevice->CreateComputePipeline(m_ClusterFixupUploadPipelines[frameIndex]);
 		m_ClusterFixupUploadPipelines[frameIndex]->BindStorageBuffer(BINDING_HIERARCHY_DATA, KRenderGlobal::VirtualGeometryManager.GetPackedHierarchyBuffer(), COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, true);
+		m_ClusterFixupUploadPipelines[frameIndex]->BindStorageBuffer(BINDING_PAGE_DATA, m_PageDataBuffer, COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, true);
 		m_ClusterFixupUploadPipelines[frameIndex]->BindStorageBuffer(BINDING_CLUSTER_FIXUP_UPLOAD, m_ClusterFixupUploadBuffers[frameIndex], COMPUTE_RESOURCE_IN, true);
 		m_ClusterFixupUploadPipelines[frameIndex]->BindUniformBuffer(BINDING_STREAMING_DATA, m_StreamingDataBuffer);
 		m_ClusterFixupUploadPipelines[frameIndex]->Init("virtualgeometry/cluster_fixup_upload.comp", KRenderGlobal::VirtualGeometryManager.GetDefaultBindingEnv());
 
 		KRenderGlobal::RenderDevice->CreateComputePipeline(m_HierarchyFixupUploadPipelines[frameIndex]);
 		m_HierarchyFixupUploadPipelines[frameIndex]->BindStorageBuffer(BINDING_HIERARCHY_DATA, KRenderGlobal::VirtualGeometryManager.GetPackedHierarchyBuffer(), COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, true);
+		m_HierarchyFixupUploadPipelines[frameIndex]->BindStorageBuffer(BINDING_PAGE_DATA, m_PageDataBuffer, COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, true);
 		m_HierarchyFixupUploadPipelines[frameIndex]->BindStorageBuffer(BINDING_HIERARCHY_FIXUP_UPLOAD, m_HierarchyFixupUploadBuffers[frameIndex], COMPUTE_RESOURCE_IN, true);
 		m_HierarchyFixupUploadPipelines[frameIndex]->BindUniformBuffer(BINDING_STREAMING_DATA, m_StreamingDataBuffer);
 		m_HierarchyFixupUploadPipelines[frameIndex]->Init("virtualgeometry/hierarchy_fixup_upload.comp", KRenderGlobal::VirtualGeometryManager.GetDefaultBindingEnv());
@@ -218,8 +222,8 @@ void KVirtualGeometryStreamingManager::ApplyFixup(KVirtualGeometryActivePage* pa
 			if (GetGPUPageIndex(fixupDesc, fixupGPUPageIndex))
 			{
 				KVirtualGeometryClusterFixupUpdate newUpdate;
-				newUpdate.clusterIndex = clusterFixup.clusterIndex;
-				newUpdate.isLeaf = install;
+				newUpdate.clusterIndexInPage = clusterFixup.clusterIndexInPage;
+				newUpdate.isLeaf = !install;
 				newUpdate.gpuPageIndex = fixupGPUPageIndex;
 				m_ClusterFixupUpdates.push_back(newUpdate);
 			}
@@ -245,8 +249,8 @@ void KVirtualGeometryStreamingManager::ApplyFixup(KVirtualGeometryActivePage* pa
 			if (GetGPUPageIndex(fixupDesc, fixupGPUPageIndex))
 			{
 				KVirtualGeometryHierarchyFixupUpdate newUpdate;
-				newUpdate.groupIndex = hierarchyFixup.groupIndex;
-				newUpdate.clusterPageIndex = install ? fixupGPUPageIndex : MAX_PAGE_NUM;
+				newUpdate.partIndex = hierarchyFixup.partIndex;
+				newUpdate.clusterPageIndex = install ? fixupGPUPageIndex : KVirtualGeometryDefine::INVALID_INDEX;
 				newUpdate.gpuPageIndex = fixupGPUPageIndex;
 				m_HierarchyFixupUpdates.push_back(newUpdate);
 			}
@@ -321,6 +325,8 @@ void KVirtualGeometryStreamingManager::ApplyStreamingUpdate(IKCommandBufferPtr p
 	IKStorageBufferPtr hierarchyBuffer = KRenderGlobal::VirtualGeometryManager.GetPackedHierarchyBuffer();
 	uint32_t hierarchySize = (uint32_t)hierarchyBuffer->GetBufferSize();
 	uint32_t hierarchyNum = hierarchySize / sizeof(KMeshClusterHierarchyPackedNode);
+	uint32_t clusterFixupNum = (uint32_t)m_ClusterFixupUpdates.size();
+	uint32_t hierarchyFixupNum = (uint32_t)m_HierarchyFixupUpdates.size();
 
 	// 1.Update streaming data UBO
 	{
@@ -329,6 +335,9 @@ void KVirtualGeometryStreamingManager::ApplyStreamingUpdate(IKCommandBufferPtr p
 		streamingData.misc4.y = m_MaxStreamingPages;
 		streamingData.misc4.z = m_MaxRootPages;
 		streamingData.misc4.w = (uint32_t)KRenderGlobal::VirtualGeometryManager.GetPackedHierarchyBuffer()->GetBufferSize() / sizeof(KMeshClusterHierarchyPackedNode);
+
+		streamingData.misc5.x = clusterFixupNum;
+		streamingData.misc5.y = hierarchyFixupNum;
 
 		void* pWrite = nullptr;
 		m_StreamingDataBuffer->Map(&pWrite);
@@ -357,12 +366,25 @@ void KVirtualGeometryStreamingManager::ApplyStreamingUpdate(IKCommandBufferPtr p
 			uint32_t pageIndex = page->residentPage.pageIndex;
 			uint32_t gpuPageIndex = page->index;
 			const KVirtualGeometryPageStorage& pageStorage = m_ResourcePageStorages[resourceIndex].storages[pageIndex];
+			const KVirtualGeometryPage& pageDescription = m_ResourcePages[resourceIndex].pages[pageIndex];
 
 			uint32_t gpuOffset = GPUPageIndexToGPUOffset(gpuPageIndex);
 			uint32_t gpuSize = GPUPageIndexToGPUSize(gpuPageIndex);
 			uint32_t currentOffset = 0;
 
 			// Refer to KVirtualGeometryBuilder::BuildPageStorage()
+			memcpy(pageUploadContents.data() + gpuOffset + currentOffset, &pageStorage.vertexStorageByteOffset, sizeof(uint32_t));
+			currentOffset += sizeof(uint32_t);
+
+			memcpy(pageUploadContents.data() + gpuOffset + currentOffset, &pageStorage.indexStorageByteOffset, sizeof(uint32_t));
+			currentOffset += sizeof(uint32_t);
+
+			memcpy(pageUploadContents.data() + gpuOffset + currentOffset, &pageStorage.materialStorageByteOffset, sizeof(uint32_t));
+			currentOffset += sizeof(uint32_t);
+
+			memcpy(pageUploadContents.data() + gpuOffset + currentOffset, &pageStorage.batchStorageByteOffset, sizeof(uint32_t));
+			currentOffset += sizeof(uint32_t);
+
 			uint32_t vertexSize = (uint32_t)pageStorage.vertexStorage.vertices.size() * sizeof(float);
 			memcpy(pageUploadContents.data() + gpuOffset + currentOffset, pageStorage.vertexStorage.vertices.data(), vertexSize);
 			currentOffset += vertexSize;
@@ -379,8 +401,7 @@ void KVirtualGeometryStreamingManager::ApplyStreamingUpdate(IKCommandBufferPtr p
 			memcpy(pageUploadContents.data() + gpuOffset + currentOffset, pageStorage.batchStorage.batches.data(), batchSize);
 			currentOffset += batchSize;
 
-			assert(currentOffset <= gpuSize && "Can't do over page write");
-			assert(gpuOffset + currentOffset <= pageSize && "Can't do over page write");
+			assert(currentOffset == pageDescription.dataByteSize);
 		}
 
 		pageUploadContentBuffer->InitMemory(pageSize, pageUploadContents.data());
@@ -394,53 +415,51 @@ void KVirtualGeometryStreamingManager::ApplyStreamingUpdate(IKCommandBufferPtr p
 	if (m_ClusterFixupUpdates.size() > 0)
 	{
 		IKStorageBufferPtr fixupUploadContentBuffer = m_ClusterFixupUploadBuffers[currentFrame];
-
 		std::vector<uint32_t> fixupUploadContents;
-		fixupUploadContents.resize(hierarchyNum);
-		memset(fixupUploadContents.data(), -1, sizeof(uint32_t) * fixupUploadContents.size());
+		fixupUploadContents.resize(clusterFixupNum * 4);
+		size_t bufferSize = sizeof(uint32_t) * fixupUploadContents.size();
+		memset(fixupUploadContents.data(), -1, bufferSize);
 
-		for (const KVirtualGeometryClusterFixupUpdate& fixup : m_ClusterFixupUpdates)
+		for (uint32_t index = 0; index < clusterFixupNum; ++index)
 		{
+			const KVirtualGeometryClusterFixupUpdate& fixup = m_ClusterFixupUpdates[index];
 			uint32_t resourceIndex = m_Pages[fixup.gpuPageIndex]->residentPage.resourceIndex;
-			uint32_t hierarchyStartOffset = KRenderGlobal::VirtualGeometryManager.GetResource(resourceIndex)->hierarchyPackedOffset / sizeof(KMeshClusterHierarchyPackedNode);
-			const KVirtualGeomertyPageClustersData& clusterData = m_ResourcePageClustersDatas[resourceIndex];
-			const KVirtualGeomertyPageCluster& cluster = clusterData.clusters[fixup.clusterIndex];
-			const KVirtualGeomertyPageClusterGroupPart& part = clusterData.parts[cluster.partIndex];
-			fixupUploadContents[hierarchyStartOffset + part.hierarchyIndex] = fixup.isLeaf;
+			fixupUploadContents[4 * index] = resourceIndex;
+			fixupUploadContents[4 * index + 1] = fixup.gpuPageIndex;
+			fixupUploadContents[4 * index + 2] = fixup.clusterIndexInPage;
+			fixupUploadContents[4 * index + 3] = fixup.isLeaf;
 		}
 
-		fixupUploadContentBuffer->InitMemory(sizeof(uint32_t) * fixupUploadContents.size(), fixupUploadContents.data());
+		fixupUploadContentBuffer->InitMemory(bufferSize, fixupUploadContents.data());
 		fixupUploadContentBuffer->InitDevice(false, false);
 
-		uint32_t numDispatch = (hierarchyNum + VG_GROUP_SIZE - 1) / VG_GROUP_SIZE;
+		uint32_t numDispatch = (clusterFixupNum + VG_GROUP_SIZE - 1) / VG_GROUP_SIZE;
 		m_ClusterFixupUploadPipelines[currentFrame]->Execute(primaryBuffer, numDispatch, 1, 1, nullptr);
 	}
 
 	if (m_HierarchyFixupUpdates.size() > 0)
 	{
 		IKStorageBufferPtr fixupUploadContentBuffer = m_HierarchyFixupUploadBuffers[currentFrame];
-
 		std::vector<uint32_t> fixupUploadContents;
-		fixupUploadContents.resize(hierarchyNum);
-		memset(fixupUploadContents.data(), -1, sizeof(uint32_t) * fixupUploadContents.size());
+		fixupUploadContents.resize(2 * hierarchyFixupNum);
+		size_t bufferSize = sizeof(uint32_t) * fixupUploadContents.size();
+		memset(fixupUploadContents.data(), -1, bufferSize);
 
-		for (const KVirtualGeometryHierarchyFixupUpdate& fixup : m_HierarchyFixupUpdates)
+		for (uint32_t index = 0; index < hierarchyFixupNum; ++index)
 		{
+			const KVirtualGeometryHierarchyFixupUpdate& fixup = m_HierarchyFixupUpdates[index];
 			uint32_t resourceIndex = m_Pages[fixup.gpuPageIndex]->residentPage.resourceIndex;
 			uint32_t hierarchyStartOffset = KRenderGlobal::VirtualGeometryManager.GetResource(resourceIndex)->hierarchyPackedOffset / sizeof(KMeshClusterHierarchyPackedNode);
 			const KVirtualGeomertyPageClustersData& clusterData = m_ResourcePageClustersDatas[resourceIndex];
-			const KVirtualGeomertyPageClusterGroup& group = clusterData.groups[fixup.groupIndex];
-			for (uint32_t partIndex = group.groupPartStart; partIndex <= group.groupPartEnd; ++partIndex)
-			{
-				const KVirtualGeomertyPageClusterGroupPart& part = clusterData.parts[partIndex];
-				fixupUploadContents[hierarchyStartOffset + part.hierarchyIndex] = fixup.clusterPageIndex;
-			}
+			uint32_t hierarchyIndex = clusterData.parts[fixup.partIndex].hierarchyIndex;
+			fixupUploadContents[2 * index] = hierarchyStartOffset + hierarchyIndex;
+			fixupUploadContents[2 * index + 1] = fixup.clusterPageIndex;
 		}
 
-		fixupUploadContentBuffer->InitMemory(sizeof(uint32_t) * fixupUploadContents.size(), fixupUploadContents.data());
+		fixupUploadContentBuffer->InitMemory(bufferSize, fixupUploadContents.data());
 		fixupUploadContentBuffer->InitDevice(false, false);
 
-		uint32_t numDispatch = (hierarchyNum + VG_GROUP_SIZE - 1) / VG_GROUP_SIZE;
+		uint32_t numDispatch = (hierarchyFixupNum + VG_GROUP_SIZE - 1) / VG_GROUP_SIZE;
 		m_HierarchyFixupUploadPipelines[currentFrame]->Execute(primaryBuffer, numDispatch, 1, 1, nullptr);
 	}
 
@@ -532,6 +551,23 @@ bool KVirtualGeometryStreamingManager::IsRootPage(const KVirtualGeometryStreamin
 	return false;
 }
 
+bool KVirtualGeometryStreamingManager::GetPageLevel(const KVirtualGeometryStreamingPageDesc& pageDesc, uint32_t& minLevel, uint32_t& maxLevel)
+{
+	if (pageDesc.resourceIndex < m_ResourcePages.size())
+	{
+		const KVirtualGeometryPages& geometryPages = m_ResourcePages[pageDesc.resourceIndex];
+		const KVirtualGeometryPage& geometryPage = geometryPages.pages[pageDesc.pageIndex];
+		const KVirtualGeomertyPageClustersData& clustersData = m_ResourcePageClustersDatas[pageDesc.resourceIndex];
+		maxLevel = clustersData.parts[geometryPage.clusterGroupPartStart].level;
+		minLevel = clustersData.parts[geometryPage.clusterGroupPartStart + geometryPage.clusterGroupPartNum - 1].level;
+		assert(minLevel <= maxLevel);
+		return true;
+	}
+	assert(false && "should not reach");
+	minLevel = maxLevel = -1;
+	return false;
+}
+
 void KVirtualGeometryStreamingManager::UpdateStreamingPages(IKCommandBufferPtr primaryBuffer)
 {
 	// 1.LRU sort streaming page and generate pending stream in.
@@ -567,6 +603,8 @@ void KVirtualGeometryStreamingManager::UpdateStreamingPages(IKCommandBufferPtr p
 	{
 		auto it = m_CommitingPages.find(pendingUpload);
 		assert(!IsRootPage(pendingUpload) || it != m_CommitingPages.end());
+		uint32_t minLevel = 0, maxLevel = 0;
+		GetPageLevel(pendingUpload, minLevel, maxLevel);
 		if (it != m_CommitingPages.end())
 		{
 			KVirtualGeometryActivePage* page = it->second;
@@ -687,7 +725,7 @@ uint32_t KVirtualGeometryStreamingManager::AddGeometry(const KVirtualGeometryPag
 		m_Pages.resize(m_NumPages + addedPages);
 		for (uint32_t i = 0; i < addedPages; ++i)
 		{
-			uint32_t index = m_NumPages + i;
+			uint32_t index = addedPages - 1 - i + m_NumPages;
 			m_Pages[index] = new KVirtualGeometryActivePage();
 			m_Pages[index]->index = index;
 			m_Pages[index]->prev = m_Pages[index]->next = m_Pages[index];

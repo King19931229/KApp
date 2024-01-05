@@ -295,18 +295,17 @@ bool KVirtualGeometryManager::AcquireImpl(const char* label, const KMeshRawData&
 
 			if (hierarchy.partIndex != KVirtualGeometryDefine::INVALID_INDEX)
 			{
-				node.isLeaf = true;
 				KMeshClusterGroupPartPtr part = clusterGroupParts[hierarchy.partIndex];
 				uint32_t pageIndex = part->pageIndex;
 				uint32_t groupIndex = part->groupIndex;
 				KMeshClusterGroupPtr group = clusterGroups[groupIndex];
-				// Local page index, just for debug.
-				node.clusterPageIndex = pageIndex;
-				node.clusterStart = part->clusterStart;
-				node.clusterStart = part->clusterStart + clusterNumOfPreviousPages[pageIndex];
+				node.gpuPageIndex = KVirtualGeometryDefine::INVALID_INDEX;
+				node.clusterPageStart = part->clusterStart;
+				node.clusterStart = node.clusterPageStart + clusterNumOfPreviousPages[pageIndex];
 				node.clusterNum = (uint32_t)part->clusters.size();
 				node.groupPageStart = group->pageStart;
 				node.groupPageNum = group->pageEnd - group->pageStart + 1;
+				node.isLeaf = true;
 			}
 			else
 			{

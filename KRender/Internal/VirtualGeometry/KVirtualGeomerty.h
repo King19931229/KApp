@@ -15,8 +15,7 @@ enum VirtualGeometryConstant
 	VG_MESH_SHADER_GROUP_SIZE = 128,
 	MAX_CANDIDATE_NODE = 1024 * 1024,
 	MAX_CANDIDATE_CLUSTERS = 1024 * 1024 * 4,
-	MAX_STREAMING_REQUEST = 256 * 1024,	
-	MAX_PAGE_NUM = 1024 * 1024
+	MAX_STREAMING_REQUEST = 256 * 1024
 };
 
 struct KVirtualGeometryResource
@@ -118,16 +117,20 @@ inline bool operator==(const KVirtualGeometryStreamingRequest& lhs, const KVirtu
 
 struct KMeshClusterHierarchyPackedNode
 {
-	glm::vec4 lodBoundCenterError;
-	glm::vec4 lodBoundHalfExtendRadius;
-	uint32_t children[KVirtualGeometryDefine::MAX_BVH_NODES];
+	// Global page index
+	uint32_t gpuPageIndex = KVirtualGeometryDefine::INVALID_INDEX;
 	uint32_t isLeaf = 0;
+	// Global cluster start index
 	uint32_t clusterStart = KVirtualGeometryDefine::INVALID_INDEX;
 	uint32_t clusterNum = KVirtualGeometryDefine::INVALID_INDEX;
-	uint32_t clusterPageIndex = MAX_PAGE_NUM;
+	// Local page cluster start index
+	uint32_t clusterPageStart = KVirtualGeometryDefine::INVALID_INDEX;
 	uint32_t groupPageStart = KVirtualGeometryDefine::INVALID_INDEX;
 	uint32_t groupPageNum = 0;
-	uint32_t padding[2] = { 0 };
+	uint32_t padding = 0;
+	uint32_t children[KVirtualGeometryDefine::MAX_BVH_NODES];
+	glm::vec4 lodBoundCenterError;
+	glm::vec4 lodBoundHalfExtendRadius;
 };
 
 static_assert(sizeof(KMeshClusterHierarchyPackedNode) == KVirtualGeometryDefine::MAX_BVH_NODES * 4 + 64, "size check");

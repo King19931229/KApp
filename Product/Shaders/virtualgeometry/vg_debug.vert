@@ -24,7 +24,7 @@ void main()
 	uint instanceId = selectedCluster.instanceId;
 
 	ClusterBatchStruct clusterBatch;
-	GetClusterData(selectedCluster, clusterBatch);
+	GetClusterBatchData(selectedCluster, clusterBatch);
 
 	uint resourceIndex = InstanceData[instanceId].resourceIndex;
 	uint resourceVertexStorageByteOffset = ResourceData[resourceIndex].clusterVertexStorageByteOffset;

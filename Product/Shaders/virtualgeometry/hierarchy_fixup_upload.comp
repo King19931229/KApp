@@ -4,11 +4,10 @@ layout(local_size_x = VG_GROUP_SIZE, local_size_y = 1, local_size_z = 1) in;
 void main()
 {
 	uint globalIndex = gl_GlobalInvocationID.x;
-	if (globalIndex < hierarchyDataNum)
+	if (globalIndex < hierarchyFixupNum)
 	{
-		if (HierarchyFixupUpload[globalIndex] != -1)
-		{
-			ClusterHierarchy[globalIndex].clusterPageIndex = HierarchyFixupUpload[globalIndex];
-		}
+		uint hierarchyIndex = HierarchyFixupUpload[2 * globalIndex];
+		uint clusterPageIndex = HierarchyFixupUpload[2 * globalIndex + 1];
+		ClusterHierarchy[hierarchyIndex].gpuPageIndex = clusterPageIndex;
 	}
 }

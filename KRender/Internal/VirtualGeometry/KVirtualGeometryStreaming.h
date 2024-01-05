@@ -34,18 +34,18 @@ inline bool operator==(const KVirtualGeometryStreamingPageDesc& lhs, const KVirt
 struct KVirtualGeometryClusterFixupUpdate
 {
 	uint32_t gpuPageIndex;
-	uint32_t clusterIndex;
+	uint32_t clusterIndexInPage;
 	uint32_t isLeaf;
-	uint32_t padding;
+	uint32_t padding = 0;
 };
 static_assert((sizeof(KVirtualGeometryClusterFixupUpdate) % 16) == 0, "Size must be a multiple of 16");
 
 struct KVirtualGeometryHierarchyFixupUpdate
 {
 	uint32_t gpuPageIndex;
-	uint32_t groupIndex;
+	uint32_t partIndex;
 	uint32_t clusterPageIndex;
-	uint32_t padding;
+	uint32_t padding = 0;
 };
 static_assert((sizeof(KVirtualGeometryHierarchyFixupUpdate) % 16) == 0, "Size must be a multiple of 16");
 
@@ -83,6 +83,7 @@ struct std::hash<KVirtualGeometryStreamingPageDesc>
 struct KVirtualGeometryStreaming
 {
 	glm::uvec4 misc4;
+	glm::uvec4 misc5;
 };
 
 class KVirtualGeometryStreamingManager
@@ -135,6 +136,7 @@ protected:
 	std::vector<KVirtualGeometryHierarchyFixupUpdate> m_HierarchyFixupUpdates;
 
 	bool IsRootPage(const KVirtualGeometryStreamingPageDesc& pageDesc);
+	bool GetPageLevel(const KVirtualGeometryStreamingPageDesc& pageDesc, uint32_t& minLevel, uint32_t& maxLevel);
 
 	void LRUSortPagesByRequests();
 	void UpdateStreamingRequests(IKCommandBufferPtr primaryBuffer);

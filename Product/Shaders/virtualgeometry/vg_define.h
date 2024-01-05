@@ -2,9 +2,9 @@
 #define VG_DEFINE_H
 
 #define INVALID_INDEX -1
-#define BVH_NODES_BITS 2
-#define BVH_MAX_NODES (1 << BVH_NODES_BITS)
-#define BVH_NODE_MASK (BVH_MAX_NODES - 1)
+#define MAX_BVH_NODES_BITS 2
+#define MAX_BVH_NODES (1 << MAX_BVH_NODES_BITS)
+#define BVH_NODE_MASK (MAX_BVH_NODES - 1)
 #define MAX_CANDIDATE_NODE (1024 * 1024)
 #define MAX_CANDIDATE_CLUSTER (1024 * 1024 * 4)
 #define MAX_STREAMING_REQUEST (256 * 1024)
@@ -12,17 +12,20 @@
 #define MAX_STREAMING_PAGE_SIZE (10 * 1024)
 #define MAX_CLUSTER_TRIANGLE_NUM 128
 #define MAX_CLUSTER_VERTEX_NUM 256
-#define MAX_PAGE_NUM (1024 * 1024)
 #define VG_GROUP_SIZE 64
-#define BVH_MAX_GROUP_BATCH_SIZE (VG_GROUP_SIZE / BVH_MAX_NODES)
+#define BVH_MAX_GROUP_BATCH_SIZE (VG_GROUP_SIZE / MAX_BVH_NODES)
 #define CULL_CLUSTER_ALONG_BVH 1
 #define INDIRECT_DRAW_ARGS_OFFSET 0
 #define INDIRECT_MESH_ARGS_OFFSET 0
 #define USE_INSTANCE_CENTER_CULL 1
 
+#define CLUSTER_BATCH_SIZE (16 * 4 + 8 * 4)
+
 #define INSTANCE_CULL_NONE 0
 #define INSTANCE_CULL_MAIN 1
 #define INSTANCE_CULL_POST 2
+
+#define ENABLE_STREAMING 1
 
 #ifndef INSTANCE_CULL_MODE
 #	define INSTANCE_CULL_MODE INSTANCE_CULL_NONE
@@ -56,34 +59,34 @@ struct InstanceStruct
 // Match with KMeshClusterBatch
 struct ClusterBatchStruct
 {
-	vec4 lodBoundCenterError;
-	vec4 lodBoundHalfExtendRadius;
-	vec4 parentBoundCenterError;
-	vec4 parentBoundHalfExtendRadius;
-
+	uint leaf;
 	uint vertexFloatOffset;
 	uint indexIntOffset;
 	uint materialIntOffset;
 	uint partIndex;
 	uint triangleNum;
 	uint batchNum;
-	uint leaf;
 	uint padding;
+	vec4 lodBoundCenterError;
+	vec4 lodBoundHalfExtendRadius;
+	vec4 parentBoundCenterError;
+	vec4 parentBoundHalfExtendRadius;
 };
 
 // Match with KMeshClusterHierarchyPackedNode
 struct ClusterHierarchyStruct
 {
-	vec4 lodBoundCenterError;
-	vec4 lodBoundHalfExtendRadius;
-	uint children[BVH_MAX_NODES];
+	uint gpuPageIndex;
 	uint isLeaf;
 	uint clusterStart;
 	uint clusterNum;
-	uint clusterPageIndex;
+	uint clusterPageStart;
 	uint groupPageStart;
 	uint groupPageNum;
-	uint padding[2];
+	uint padding;
+	uint children[MAX_BVH_NODES];
+	vec4 lodBoundCenterError;
+	vec4 lodBoundHalfExtendRadius;
 };
 
 // Match with KVirtualGeometryResource
@@ -150,8 +153,9 @@ struct CandidateNode
 struct CandidateCluster
 {
 	uint instanceId;
-	uint pageIndex;
+	uint gpuPageIndex;
 	uint clusterIndex;
+	uint clusterIndexInPage;
 };
 
 struct BinningBatch
@@ -193,6 +197,7 @@ layout (binding = BINDING_STREAMING_DATA)
 uniform StreamingData
 {
  	uvec4 misc4;
+	uvec4 misc5;
 };
 
 #define cameraNear misc.x
@@ -200,11 +205,13 @@ uniform StreamingData
 #define lodScale misc.z
 #define numInstance misc2.x
 #define numBinning misc2.y
+#define materialBinningIndex misc3.x
 #define pageDataSize misc4.x
 #define streamingPageNum misc4.y
 #define rootPageNum misc4.z
-#define hierarchyDataNum misc4.w
-#define materialBinningIndex misc3.x
+#define hierarchyNum misc4.w
+#define clusterFixupNum misc5.x
+#define hierarchyFixupNum misc5.y
 
 layout (std430, binding = BINDING_RESOURCE) coherent buffer ResourceBuffer {
 	ResourceStruct ResourceData[];
@@ -336,7 +343,8 @@ uvec4 PackCandidateCluster(CandidateCluster cluster)
 	uvec4 pack = uvec4(0,0,0,0);
 	pack.x = cluster.instanceId;
 	pack.y = cluster.clusterIndex;
-	pack.z = cluster.pageIndex;
+	pack.z = cluster.gpuPageIndex;
+	pack.w = cluster.clusterIndexInPage;
 	return pack;
 }
 
@@ -345,7 +353,8 @@ CandidateCluster UnpackCandidateCluster(uvec4 data)
 	CandidateCluster cluster;
 	cluster.instanceId = data.x;
 	cluster.clusterIndex = data.y;
-	cluster.pageIndex = data.z;
+	cluster.gpuPageIndex = data.z;
+	cluster.clusterIndexInPage = data.w;
 	return cluster;
 }
 
@@ -416,23 +425,57 @@ void GetHierarchyData(in CandidateNode node, out ClusterHierarchyStruct hierarch
 	uint nodeIndex = node.nodeIndex;
 
 	uint hierarchyPackedOffset = ResourceData[resourceIndex].hierarchyPackedOffset;
-	uint hierarchyNodeSize = BVH_MAX_NODES * 4 + 64;
+	uint hierarchyNodeSize = MAX_BVH_NODES * 4 + 64;
 	uint hierarchyOffset = hierarchyPackedOffset / hierarchyNodeSize + nodeIndex;
 
 	hierarchy = ClusterHierarchy[hierarchyOffset];
 }
 
-void GetClusterData(in CandidateCluster cluster, out ClusterBatchStruct clusterBatch)
+void GetClusterBatchData(in CandidateCluster cluster, out ClusterBatchStruct clusterBatch)
 {
+	uint clusterIndexInPage = cluster.clusterIndexInPage;
+	uint gpuPageIndex = cluster.gpuPageIndex;
+
+	uint pageGPUOffset = GPUPageIndexToGPUOffset(gpuPageIndex) / 4;
+
 	uint resourceIndex = InstanceData[cluster.instanceId].resourceIndex;
 	uint clusterIndex = cluster.clusterIndex;
-	uint pageIndex = cluster.pageIndex;
-
 	uint clusterBatchOffset = ResourceData[resourceIndex].clusterBatchPackedOffset;
-	uint clusterBatchSize = 16 * 4 + 8 * 4;
-	uint clusterOffset = clusterBatchOffset / clusterBatchSize + clusterIndex;
-
+	uint clusterOffset = clusterBatchOffset / CLUSTER_BATCH_SIZE + clusterIndex;
 	clusterBatch = ClusterBatch[clusterOffset];
+#if ENABLE_STREAMING
+	// See KMeshClusterBatch
+	clusterBatchOffset = pageGPUOffset + (PageData[pageGPUOffset + 3] + clusterIndexInPage * CLUSTER_BATCH_SIZE) / 4;
+	clusterBatch.leaf = PageData[clusterBatchOffset++];
+	// clusterBatch.vertexFloatOffset = PageData[clusterBatchOffset++];
+	// clusterBatch.indexIntOffset = PageData[clusterBatchOffset++];
+	// clusterBatch.materialIntOffset = PageData[clusterBatchOffset++];
+	clusterBatchOffset += 3;
+	clusterBatch.partIndex = PageData[clusterBatchOffset++];
+	clusterBatch.triangleNum = PageData[clusterBatchOffset++];
+	clusterBatch.batchNum = PageData[clusterBatchOffset++];	
+	clusterBatch.padding = PageData[clusterBatchOffset++];
+
+	clusterBatch.lodBoundCenterError[0] = uintBitsToFloat(PageData[clusterBatchOffset++]);
+	clusterBatch.lodBoundCenterError[1] = uintBitsToFloat(PageData[clusterBatchOffset++]);
+	clusterBatch.lodBoundCenterError[2] = uintBitsToFloat(PageData[clusterBatchOffset++]);
+	clusterBatch.lodBoundCenterError[3] = uintBitsToFloat(PageData[clusterBatchOffset++]);
+
+	clusterBatch.lodBoundHalfExtendRadius[0] = uintBitsToFloat(PageData[clusterBatchOffset++]);
+	clusterBatch.lodBoundHalfExtendRadius[1] = uintBitsToFloat(PageData[clusterBatchOffset++]);
+	clusterBatch.lodBoundHalfExtendRadius[2] = uintBitsToFloat(PageData[clusterBatchOffset++]);
+	clusterBatch.lodBoundHalfExtendRadius[3] = uintBitsToFloat(PageData[clusterBatchOffset++]);
+
+	clusterBatch.parentBoundCenterError[0] = uintBitsToFloat(PageData[clusterBatchOffset++]);
+	clusterBatch.parentBoundCenterError[1] = uintBitsToFloat(PageData[clusterBatchOffset++]);
+	clusterBatch.parentBoundCenterError[2] = uintBitsToFloat(PageData[clusterBatchOffset++]);
+	clusterBatch.parentBoundCenterError[3] = uintBitsToFloat(PageData[clusterBatchOffset++]);
+
+	clusterBatch.parentBoundHalfExtendRadius[0] = uintBitsToFloat(PageData[clusterBatchOffset++]);
+	clusterBatch.parentBoundHalfExtendRadius[1] = uintBitsToFloat(PageData[clusterBatchOffset++]);
+	clusterBatch.parentBoundHalfExtendRadius[2] = uintBitsToFloat(PageData[clusterBatchOffset++]);
+	clusterBatch.parentBoundHalfExtendRadius[3] = uintBitsToFloat(PageData[clusterBatchOffset++]);
+#endif
 }
 
 void GetMaterialIndexAndRange(in uint resourceIndex, in uint index, in ClusterBatchStruct clusterBatch,
@@ -578,7 +621,7 @@ void DecodeClusterBatchDataIndex(in uint triangleIndex, in uint localVertexIndex
 	uint instanceId = selectedCluster.instanceId;
 
 	ClusterBatchStruct clusterBatch;
-	GetClusterData(selectedCluster, clusterBatch);
+	GetClusterBatchData(selectedCluster, clusterBatch);
 
 	uint resourceIndex = InstanceData[instanceId].resourceIndex;
 	uint resourceVertexStorageByteOffset = ResourceData[resourceIndex].clusterVertexStorageByteOffset;
@@ -597,7 +640,7 @@ void DecodeClusterBatchDataVertex(in uint vetexIndex, in uint batchIndex,
 	uint instanceId = selectedCluster.instanceId;
 
 	ClusterBatchStruct clusterBatch;
-	GetClusterData(selectedCluster, clusterBatch);
+	GetClusterBatchData(selectedCluster, clusterBatch);
 
 	uint resourceIndex = InstanceData[instanceId].resourceIndex;
 	uint resourceVertexStorageByteOffset = ResourceData[resourceIndex].clusterVertexStorageByteOffset;
@@ -632,7 +675,7 @@ void DecodeClusterBatchData(in uint triangleIndex, in uint localVertexIndex, in 
 	uint instanceId = selectedCluster.instanceId;
 
 	ClusterBatchStruct clusterBatch;
-	GetClusterData(selectedCluster, clusterBatch);
+	GetClusterBatchData(selectedCluster, clusterBatch);
 
 	uint resourceIndex = InstanceData[instanceId].resourceIndex;
 	uint resourceVertexStorageByteOffset = ResourceData[resourceIndex].clusterVertexStorageByteOffset;

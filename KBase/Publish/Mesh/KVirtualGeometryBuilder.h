@@ -132,8 +132,8 @@ struct KMeshClusterGroup
 	uint32_t index = KVirtualGeometryDefine::INVALID_INDEX;
 	uint32_t pageStart = KVirtualGeometryDefine::INVALID_INDEX;
 	uint32_t pageEnd = KVirtualGeometryDefine::INVALID_INDEX;
-	uint32_t groupPartStart = KVirtualGeometryDefine::INVALID_INDEX;
-	uint32_t groupPartEnd = KVirtualGeometryDefine::INVALID_INDEX;
+	uint32_t partStart = KVirtualGeometryDefine::INVALID_INDEX;
+	uint32_t partEnd = KVirtualGeometryDefine::INVALID_INDEX;
 	float maxParentError = 0;
 	float edgeLength = 0;
 };
@@ -216,6 +216,7 @@ struct KMeshClusterGroupPart
 	uint32_t clusterNum = 0;
 	// Index in hierarchy
 	uint32_t hierarchyIndex = 0;
+	uint32_t index = 0;
 	KAABBBox lodBound;
 	float lodError = 0;
 };
@@ -223,18 +224,18 @@ typedef std::shared_ptr<KMeshClusterGroupPart> KMeshClusterGroupPartPtr;
 
 struct KMeshClusterBatch
 {
-	glm::vec4 lodBoundCenterError;
-	glm::vec4 lodBoundHalfExtendRadius;
-	glm::vec4 parentBoundCenterError;
-	glm::vec4 parentBoundHalfExtendRadius;
+	uint32_t leaf = 0;
 	uint32_t vertexFloatOffset = KVirtualGeometryDefine::INVALID_INDEX;
 	uint32_t indexIntOffset = KVirtualGeometryDefine::INVALID_INDEX;
 	uint32_t materialIntOffset = KVirtualGeometryDefine::INVALID_INDEX;
 	uint32_t partIndex = KVirtualGeometryDefine::INVALID_INDEX;
 	uint32_t triangleNum = 0;
 	uint32_t batchNum = 0;
-	uint32_t leaf = 0;
 	uint32_t padding = 0;
+	glm::vec4 lodBoundCenterError;
+	glm::vec4 lodBoundHalfExtendRadius;
+	glm::vec4 parentBoundCenterError;
+	glm::vec4 parentBoundHalfExtendRadius;
 };
 static_assert((sizeof(KMeshClusterBatch) % 16) == 0, "Size must be a multiple of 16");
 static_assert(sizeof(KMeshClusterBatch) == 16 * 4 + 8 * 4, "must match");
@@ -281,6 +282,10 @@ struct KVirtualGeometryEncoding
 
 struct KVirtualGeometryPageStorage
 {
+	uint32_t vertexStorageByteOffset = 0;
+	uint32_t indexStorageByteOffset = 0;
+	uint32_t materialStorageByteOffset = 0;
+	uint32_t batchStorageByteOffset = 0;
 	KMeshClustersVertexStorage vertexStorage;
 	KMeshClustersIndexStorage indexStorage;
 	KMeshClustersMaterialStorage materialStorage;
@@ -317,6 +322,7 @@ struct KVirtualGeomertyPageClusterGroup
 struct KVirtualGeomertyPageClusterGroupPart
 {
 	uint32_t hierarchyIndex = 0;
+	uint32_t level = 0;
 };
 
 struct KVirtualGeomertyPageClustersData
@@ -354,15 +360,15 @@ struct KVirtualGeometryPage
 
 struct KVirtualGeometryPages
 {
-	uint32_t numRootPage = 0;
 	std::vector<KVirtualGeometryPage> pages;
+	uint32_t numRootPage = 0;
 };
 
 struct KVirtualGeomertyClusterFixup
 {
 	uint32_t fixupPage = KVirtualGeometryDefine::INVALID_INDEX;
 	// Local page cluster index
-	uint32_t clusterIndex = KVirtualGeometryDefine::INVALID_INDEX;
+	uint32_t clusterIndexInPage = KVirtualGeometryDefine::INVALID_INDEX;
 	uint32_t dependencyPageStart = KVirtualGeometryDefine::INVALID_INDEX;
 	uint32_t dependencyPageEnd = 0;
 };
@@ -370,7 +376,7 @@ struct KVirtualGeomertyClusterFixup
 struct KVirtualGeomertyHierarchyFixup
 {
 	uint32_t fixupPage = KVirtualGeometryDefine::INVALID_INDEX;
-	uint32_t groupIndex = KVirtualGeometryDefine::INVALID_INDEX;
+	uint32_t partIndex = KVirtualGeometryDefine::INVALID_INDEX;
 	uint32_t dependencyPageStart = KVirtualGeometryDefine::INVALID_INDEX;
 	uint32_t dependencyPageEnd = 0;
 };
