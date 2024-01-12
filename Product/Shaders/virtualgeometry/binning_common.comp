@@ -22,6 +22,7 @@ void main()
 		GetClusterBatchData(selectedCluster, clusterBatch);
 
 		uint resourceIndex = InstanceData[instanceId].resourceIndex;
+		uint gpuPageIndex = selectedCluster.gpuPageIndex;
 
 		uint batchNum = clusterBatch.batchNum;
 		for (uint i = 0; i < batchNum; i++)
@@ -29,11 +30,11 @@ void main()
 			uint materialIndex = 0;
 			uint rangeBegin = 0;
 			uint rangeEnd = 0;
-			GetMaterialIndexAndRange(resourceIndex, i, clusterBatch, materialIndex, rangeBegin, rangeEnd);
+			GetMaterialIndexAndRange(resourceIndex, gpuPageIndex, i, clusterBatch, materialIndex, rangeBegin, rangeEnd);
 
 			uint binningIndex = InstanceData[instanceId].binningBaseIndex + materialIndex;
 #if defined(BINNING_CLASSIFY)
-			WAVE_INTERLOCK_ADD_ONLY(BinningHeader[binningIndex].x, 1);
+			INTERLOCK_ADD_ONLY(BinningHeader[binningIndex].x, 1);
 #elif defined(BINNING_SCATTER)
 			BinningBatch batch;
 			batch.batchIndex = batchIndex;
@@ -47,7 +48,7 @@ void main()
 			offset += INDIRECT_DRAW_ARGS_OFFSET;
 
 			uint batchOffset = 0;
-			WAVE_INTERLOCK_ADD(IndirectDrawArgs[offset + 1], 1, batchOffset);
+			INTERLOCK_ADD(IndirectDrawArgs[offset + 1], 1, batchOffset);
 			uint binningWriteOffset = BinningHeader[binningIndex].y + batchOffset;
 
 			StoreBinningBatch(binningWriteOffset, batch);
@@ -55,7 +56,7 @@ void main()
 			offset = binningIndex * 3;
 			offset += INDIRECT_MESH_ARGS_OFFSET;
 
-			WAVE_INTERLOCK_ADD_ONLY(IndirectMeshArgs[offset], 1);
+			INTERLOCK_ADD_ONLY(IndirectMeshArgs[offset], 1);
 #endif
 		}
 	}

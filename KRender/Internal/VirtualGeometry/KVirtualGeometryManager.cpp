@@ -177,7 +177,7 @@ bool KVirtualGeometryManager::Init()
 	m_ClusterIndexStorageBuffer.Init("VirtualGeometryIndexStorage", sizeof(uint32_t));
 	m_ClusterMateialStorageBuffer.Init("VirtualGeometryMaterialStorage", sizeof(uint32_t) * KVirtualGeometryEncoding::INT_PER_MATERIAL);
 
-	m_StreamingManager.Init(10, 5);
+	m_StreamingManager.Init(50, 5);
 
 	return true;
 }

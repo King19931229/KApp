@@ -73,7 +73,7 @@ void ProcessClusterBatch(uint groupIndex, uint batchStart, uint batchSize)
 		if (!cullData.bIsVisible)
 		{
 			uint clusterWriteOffset = 0;
-			WAVE_INTERLOCK_ADD(QueueState[QUEUE_STATE_POST_INDEX].clusterWriteOffset, 1, clusterWriteOffset);
+			INTERLOCK_ADD(QueueState[QUEUE_STATE_POST_INDEX].clusterWriteOffset, 1, clusterWriteOffset);
 			if (clusterWriteOffset < MAX_CANDIDATE_CLUSTER)
 			{
 				clusterWriteOffset += MAX_CANDIDATE_CLUSTER;
@@ -85,7 +85,7 @@ void ProcessClusterBatch(uint groupIndex, uint batchStart, uint batchSize)
 		if (cullData.bIsVisible)
 		{
 			uint clusterWriteOffset = 0;
-			WAVE_INTERLOCK_ADD(QueueState[QUEUE_STATE_INDEX].visibleClusterNum, 1, clusterWriteOffset);
+			INTERLOCK_ADD(QueueState[QUEUE_STATE_INDEX].visibleClusterNum, 1, clusterWriteOffset);
 			if (clusterWriteOffset < MAX_CANDIDATE_CLUSTER)
 			{
 				StoreSelectedCluster(clusterWriteOffset, candidateCluster);

@@ -13,7 +13,7 @@ void main()
 	Binning binning = GetBinning(materialBinningIndex, instanceIndex);
 
 	uint triangleIndex = gl_VertexIndex / 3;
-	uint vertexIndex = gl_VertexIndex - triangleIndex * 3;
+	uint localVertexIndex = gl_VertexIndex - triangleIndex * 3;
 
 	// Offset to the batch
 	triangleIndex += binning.rangeBegin;
@@ -26,10 +26,6 @@ void main()
 	ClusterBatchStruct clusterBatch;
 	GetClusterBatchData(selectedCluster, clusterBatch);
 
-	uint resourceIndex = InstanceData[instanceId].resourceIndex;
-	uint resourceVertexStorageByteOffset = ResourceData[resourceIndex].clusterVertexStorageByteOffset;
-	uint resourceIndexStorageByteOffset = ResourceData[resourceIndex].clusterIndexStorageByteOffset;
-
 	uint clusterVertexFloatOffset = clusterBatch.vertexFloatOffset;
 	uint clusterIndexIntOffset = clusterBatch.indexIntOffset;
 	uint clusterTriangleNum = clusterBatch.triangleNum;
@@ -38,26 +34,14 @@ void main()
 
 	if (triangleIndex < batchTriangleEnd)
 	{
-		mat4 localToWorld = InstanceData[instanceId].transform;
-
-		uint indexOffset = resourceIndexStorageByteOffset / 4 + clusterIndexIntOffset + triangleIndex * 3 + vertexIndex;
-		uint index = ClusterIndexData[indexOffset];
-
-		uint vertexOffset = resourceVertexStorageByteOffset / 4 + clusterVertexFloatOffset + index * 8;
-
+		mat4 localToWorld;
 		vec3 position;
-		position[0] = ClusterVertexData[vertexOffset + 0];
-		position[1] = ClusterVertexData[vertexOffset + 1];
-		position[2] = ClusterVertexData[vertexOffset + 2];
-
 		vec3 normal;
-		normal[0] = ClusterVertexData[vertexOffset + 3];
-		normal[1] = ClusterVertexData[vertexOffset + 4];
-		normal[2] = ClusterVertexData[vertexOffset + 5];
-
 		vec2 uv;
-		uv[0] = ClusterVertexData[vertexOffset + 6];
-		uv[1] = ClusterVertexData[vertexOffset + 7];
+
+		uint index;
+		DecodeClusterBatchDataIndex(triangleIndex, localVertexIndex, batchIndex, index);
+		DecodeClusterBatchDataVertex(index, batchIndex, localToWorld, position, normal, uv);
 
 		outWorldPos = (localToWorld * vec4(position, 1.0)).xyz;
 		outPrevWorldPos = (localToWorld * vec4(position, 1.0)).xyz;

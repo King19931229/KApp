@@ -36,4 +36,7 @@
 
 #endif
 
+#define INTERLOCK_ADD(dest, value, originalValue) originalValue = atomicAdd(dest, value);
+#define INTERLOCK_ADD_ONLY(dest, value) atomicAdd(dest, value);
+
 #endif

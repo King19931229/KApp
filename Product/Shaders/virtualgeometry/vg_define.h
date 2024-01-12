@@ -326,7 +326,7 @@ uvec4 PackCandidateNode(CandidateNode node)
 	uvec4 pack = uvec4(0,0,0,0);
 	pack.x = node.instanceId;
 	pack.y = node.nodeIndex;
-	pack.z = pack.w = 1;
+	pack.z = pack.w = 0;
 	return pack;
 }
 
@@ -433,24 +433,16 @@ void GetHierarchyData(in CandidateNode node, out ClusterHierarchyStruct hierarch
 
 void GetClusterBatchData(in CandidateCluster cluster, out ClusterBatchStruct clusterBatch)
 {
+#if ENABLE_STREAMING
 	uint clusterIndexInPage = cluster.clusterIndexInPage;
 	uint gpuPageIndex = cluster.gpuPageIndex;
-
 	uint pageGPUOffset = GPUPageIndexToGPUOffset(gpuPageIndex) / 4;
-
-	uint resourceIndex = InstanceData[cluster.instanceId].resourceIndex;
-	uint clusterIndex = cluster.clusterIndex;
-	uint clusterBatchOffset = ResourceData[resourceIndex].clusterBatchPackedOffset;
-	uint clusterOffset = clusterBatchOffset / CLUSTER_BATCH_SIZE + clusterIndex;
-	clusterBatch = ClusterBatch[clusterOffset];
-#if ENABLE_STREAMING
 	// See KMeshClusterBatch
-	clusterBatchOffset = pageGPUOffset + (PageData[pageGPUOffset + 3] + clusterIndexInPage * CLUSTER_BATCH_SIZE) / 4;
+	uint clusterBatchOffset = pageGPUOffset + (PageData[pageGPUOffset + 3] + clusterIndexInPage * CLUSTER_BATCH_SIZE) / 4;
 	clusterBatch.leaf = PageData[clusterBatchOffset++];
-	// clusterBatch.vertexFloatOffset = PageData[clusterBatchOffset++];
-	// clusterBatch.indexIntOffset = PageData[clusterBatchOffset++];
-	// clusterBatch.materialIntOffset = PageData[clusterBatchOffset++];
-	clusterBatchOffset += 3;
+	clusterBatch.vertexFloatOffset = PageData[clusterBatchOffset++];
+	clusterBatch.indexIntOffset = PageData[clusterBatchOffset++];
+	clusterBatch.materialIntOffset = PageData[clusterBatchOffset++];
 	clusterBatch.partIndex = PageData[clusterBatchOffset++];
 	clusterBatch.triangleNum = PageData[clusterBatchOffset++];
 	clusterBatch.batchNum = PageData[clusterBatchOffset++];	
@@ -475,20 +467,33 @@ void GetClusterBatchData(in CandidateCluster cluster, out ClusterBatchStruct clu
 	clusterBatch.parentBoundHalfExtendRadius[1] = uintBitsToFloat(PageData[clusterBatchOffset++]);
 	clusterBatch.parentBoundHalfExtendRadius[2] = uintBitsToFloat(PageData[clusterBatchOffset++]);
 	clusterBatch.parentBoundHalfExtendRadius[3] = uintBitsToFloat(PageData[clusterBatchOffset++]);
+#else
+	uint resourceIndex = InstanceData[cluster.instanceId].resourceIndex;
+	uint clusterIndex = cluster.clusterIndex;
+	uint clusterBatchOffset = ResourceData[resourceIndex].clusterBatchPackedOffset;
+	uint clusterOffset = clusterBatchOffset / CLUSTER_BATCH_SIZE + clusterIndex;
+	clusterBatch = ClusterBatch[clusterOffset];
 #endif
 }
 
-void GetMaterialIndexAndRange(in uint resourceIndex, in uint index, in ClusterBatchStruct clusterBatch,
+void GetMaterialIndexAndRange(in uint resourceIndex, in uint gpuPageIndex, in uint index, in ClusterBatchStruct clusterBatch,
 	out uint mateiralIndex, out uint rangeBegin, out uint rangeEnd)
 {
+#if ENABLE_STREAMING
+	uint pageGPUOffset = GPUPageIndexToGPUOffset(gpuPageIndex) / 4;
+	uint storageOffset = pageGPUOffset + (PageData[pageGPUOffset + 2]) / 4 + clusterBatch.materialIntOffset;
+	storageOffset += 3 * index;
+	mateiralIndex = PageData[storageOffset];
+	rangeBegin = PageData[storageOffset + 1];
+	rangeEnd = PageData[storageOffset + 2];
+#else
 	uint clusterMaterialStorageByteOffset = ResourceData[resourceIndex].clusterMaterialStorageByteOffset;
 	uint storageOffset = clusterMaterialStorageByteOffset / 4 + clusterBatch.materialIntOffset;
-
 	storageOffset += 3 * index;
-
 	mateiralIndex = ClusterMaterialData[storageOffset];
 	rangeBegin = ClusterMaterialData[storageOffset + 1];
 	rangeEnd = ClusterMaterialData[storageOffset + 2];
+#endif
 }
 
 vec2 GetProjectScale(mat4 localToWorld, mat4 worldToView, vec3 center, float radius)
@@ -622,15 +627,21 @@ void DecodeClusterBatchDataIndex(in uint triangleIndex, in uint localVertexIndex
 
 	ClusterBatchStruct clusterBatch;
 	GetClusterBatchData(selectedCluster, clusterBatch);
+	uint clusterIndexIntOffset = clusterBatch.indexIntOffset;
+#if ENABLE_STREAMING
+	uint gpuPageIndex = selectedCluster.gpuPageIndex;
+	uint pageGPUOffset = GPUPageIndexToGPUOffset(gpuPageIndex) / 4;
 
+	uint indexOffset = pageGPUOffset + (PageData[pageGPUOffset + 1]) / 4 + clusterIndexIntOffset + triangleIndex * 3 + localVertexIndex;
+	index = PageData[indexOffset];
+#else
 	uint resourceIndex = InstanceData[instanceId].resourceIndex;
 	uint resourceVertexStorageByteOffset = ResourceData[resourceIndex].clusterVertexStorageByteOffset;
 	uint resourceIndexStorageByteOffset = ResourceData[resourceIndex].clusterIndexStorageByteOffset;
 
-	uint clusterIndexIntOffset = clusterBatch.indexIntOffset;
-
 	uint indexOffset = resourceIndexStorageByteOffset / 4 + clusterIndexIntOffset + triangleIndex * 3 + localVertexIndex;
 	index = ClusterIndexData[indexOffset];
+#endif
 }
 
 void DecodeClusterBatchDataVertex(in uint vetexIndex, in uint batchIndex,
@@ -641,11 +652,25 @@ void DecodeClusterBatchDataVertex(in uint vetexIndex, in uint batchIndex,
 
 	ClusterBatchStruct clusterBatch;
 	GetClusterBatchData(selectedCluster, clusterBatch);
+	uint clusterVertexFloatOffset = clusterBatch.vertexFloatOffset;
+#if ENABLE_STREAMING
+	uint gpuPageIndex = selectedCluster.gpuPageIndex;
+	uint pageGPUOffset = GPUPageIndexToGPUOffset(gpuPageIndex) / 4;
+	uint vertexOffset = pageGPUOffset + (PageData[pageGPUOffset + 0]) / 4 + clusterVertexFloatOffset + vetexIndex * 8;
 
+	position[0] = uintBitsToFloat(PageData[vertexOffset + 0]);
+	position[1] = uintBitsToFloat(PageData[vertexOffset + 1]);
+	position[2] = uintBitsToFloat(PageData[vertexOffset + 2]);
+
+	normal[0] = uintBitsToFloat(PageData[vertexOffset + 3]);
+	normal[1] = uintBitsToFloat(PageData[vertexOffset + 4]);
+	normal[2] = uintBitsToFloat(PageData[vertexOffset + 5]);
+
+	uv[0] = uintBitsToFloat(PageData[vertexOffset + 6]);
+	uv[1] = uintBitsToFloat(PageData[vertexOffset + 7]);
+#else
 	uint resourceIndex = InstanceData[instanceId].resourceIndex;
 	uint resourceVertexStorageByteOffset = ResourceData[resourceIndex].clusterVertexStorageByteOffset;
-
-	uint clusterVertexFloatOffset = clusterBatch.vertexFloatOffset;
 	uint vertexOffset = resourceVertexStorageByteOffset / 4 + clusterVertexFloatOffset + vetexIndex * 8;
 
 	position[0] = ClusterVertexData[vertexOffset + 0];
@@ -658,7 +683,7 @@ void DecodeClusterBatchDataVertex(in uint vetexIndex, in uint batchIndex,
 
 	uv[0] = ClusterVertexData[vertexOffset + 6];
 	uv[1] = ClusterVertexData[vertexOffset + 7];
-
+#endif
 	localToWorld = InstanceData[instanceId].transform;
 }
 
@@ -678,16 +703,35 @@ void DecodeClusterBatchData(in uint triangleIndex, in uint localVertexIndex, in 
 	GetClusterBatchData(selectedCluster, clusterBatch);
 
 	uint resourceIndex = InstanceData[instanceId].resourceIndex;
+	uint clusterVertexFloatOffset = clusterBatch.vertexFloatOffset;
+	uint clusterIndexIntOffset = clusterBatch.indexIntOffset;
+#if ENABLE_STREAMING
+	uint gpuPageIndex = selectedCluster.gpuPageIndex;
+	uint pageGPUOffset = GPUPageIndexToGPUOffset(gpuPageIndex) / 4;
+
+	uint indexOffset = pageGPUOffset + (PageData[pageGPUOffset + 1]) / 4 + clusterIndexIntOffset + triangleIndex * 3 + localVertexIndex;
+	uint vetexIndex = PageData[indexOffset];
+
+	uint vertexOffset = pageGPUOffset + (PageData[pageGPUOffset + 0]) / 4 + clusterVertexFloatOffset + vetexIndex * 8;
+
+	position[0] = uintBitsToFloat(PageData[vertexOffset + 0]);
+	position[1] = uintBitsToFloat(PageData[vertexOffset + 1]);
+	position[2] = uintBitsToFloat(PageData[vertexOffset + 2]);
+
+	normal[0] = uintBitsToFloat(PageData[vertexOffset + 3]);
+	normal[1] = uintBitsToFloat(PageData[vertexOffset + 4]);
+	normal[2] = uintBitsToFloat(PageData[vertexOffset + 5]);
+
+	uv[0] = uintBitsToFloat(PageData[vertexOffset + 6]);
+	uv[1] = uintBitsToFloat(PageData[vertexOffset + 7]);
+#else
 	uint resourceVertexStorageByteOffset = ResourceData[resourceIndex].clusterVertexStorageByteOffset;
 	uint resourceIndexStorageByteOffset = ResourceData[resourceIndex].clusterIndexStorageByteOffset;
 
-	uint clusterVertexFloatOffset = clusterBatch.vertexFloatOffset;
-	uint clusterIndexIntOffset = clusterBatch.indexIntOffset;
-
 	uint indexOffset = resourceIndexStorageByteOffset / 4 + clusterIndexIntOffset + triangleIndex * 3 + localVertexIndex;
-	uint index = ClusterIndexData[indexOffset];
+	uint vetexIndex = ClusterIndexData[indexOffset];
 
-	uint vertexOffset = resourceVertexStorageByteOffset / 4 + clusterVertexFloatOffset + index * 8;
+	uint vertexOffset = resourceVertexStorageByteOffset / 4 + clusterVertexFloatOffset + vetexIndex * 8;
 
 	position[0] = ClusterVertexData[vertexOffset + 0];
 	position[1] = ClusterVertexData[vertexOffset + 1];
@@ -699,7 +743,7 @@ void DecodeClusterBatchData(in uint triangleIndex, in uint localVertexIndex, in 
 
 	uv[0] = ClusterVertexData[vertexOffset + 6];
 	uv[1] = ClusterVertexData[vertexOffset + 7];
-
+#endif
 	localToWorld = InstanceData[instanceId].transform;
 }
 

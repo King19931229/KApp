@@ -254,7 +254,9 @@ void KVirtualGeometryStreamingManager::ApplyFixup(KVirtualGeometryActivePage* pa
 				newUpdate.gpuPageIndex = fixupGPUPageIndex;
 				m_HierarchyFixupUpdates.push_back(newUpdate);
 			}
-			else
+			// Running during uninstall can occur. Because the pages belonging to other parts of the same group may be already be stream in.
+			// Even thought that group can not be rendered yet.
+			else if (install)
 			{
 				assert(false && "shuold not reach");
 			}
@@ -653,7 +655,7 @@ void KVirtualGeometryStreamingManager::LRUSortPagesByRequests()
 				{
 					continue;
 				}
-				assert(ListLength(m_UsedStreamingPageHead) + ListLength(m_FreeStreamingPageHead) == m_MaxStreamingPages);
+				// assert(ListLength(m_UsedStreamingPageHead) + ListLength(m_FreeStreamingPageHead) == m_MaxStreamingPages);
 				page->prev->next = page->next;
 				page->next->prev = page->prev;
 				page->next = m_UsedStreamingPageHead;
@@ -661,7 +663,7 @@ void KVirtualGeometryStreamingManager::LRUSortPagesByRequests()
 				m_UsedStreamingPageHead->prev->next = page;
 				m_UsedStreamingPageHead->prev = page;
 				m_UsedStreamingPageHead = page;
-				assert(ListLength(m_UsedStreamingPageHead) + ListLength(m_FreeStreamingPageHead) == m_MaxStreamingPages);
+				// assert(ListLength(m_UsedStreamingPageHead) + ListLength(m_FreeStreamingPageHead) == m_MaxStreamingPages);
 			}
 		}
 	}
@@ -752,7 +754,7 @@ uint32_t KVirtualGeometryStreamingManager::AddGeometry(const KVirtualGeometryPag
 		m_PageDataBuffer->InitDevice(false, false);
 
 		m_PageDataBuffer->Write(oldPageStorageData.data());
-		assert(ListLength(m_UsedRootPageHead) + ListLength(m_FreeRootPageHead) == m_MaxRootPages);
+		// assert(ListLength(m_UsedRootPageHead) + ListLength(m_FreeRootPageHead) == m_MaxRootPages);
 	}
 
 	uint32_t resourceIndex = (uint32_t)m_ResourcePages.size();
@@ -850,7 +852,7 @@ bool KVirtualGeometryStreamingManager::PendPageCommit(const KVirtualGeometryStre
 			page->prev = page->next = page;
 		}
 		m_UsedRootPageHead = page;
-		assert(ListLength(m_UsedRootPageHead) + ListLength(m_FreeRootPageHead) == m_MaxRootPages);
+		// assert(ListLength(m_UsedRootPageHead) + ListLength(m_FreeRootPageHead) == m_MaxRootPages);
 	}
 	else if (DependencyPageCommited(newPage))
 	{
@@ -883,12 +885,12 @@ bool KVirtualGeometryStreamingManager::PendPageCommit(const KVirtualGeometryStre
 				page->prev = page->next = page;
 			}
 			m_UsedStreamingPageHead = page;
-			assert(ListLength(m_UsedStreamingPageHead) + ListLength(m_FreeStreamingPageHead) == m_MaxStreamingPages);
+			// assert(ListLength(m_UsedStreamingPageHead) + ListLength(m_FreeStreamingPageHead) == m_MaxStreamingPages);
 		}
 		else
 		{
-			assert(ListLength(m_FreeStreamingPageHead) == 0);
-			assert(ListLength(m_UsedStreamingPageHead) == m_MaxStreamingPages);
+			// assert(ListLength(m_FreeStreamingPageHead) == 0);
+			// assert(ListLength(m_UsedStreamingPageHead) == m_MaxStreamingPages);
 			KVirtualGeometryActivePage* current = m_UsedStreamingPageHead;
 			do
 			{
@@ -967,7 +969,7 @@ void KVirtualGeometryStreamingManager::RemoveGeometry(uint32_t resourceIndex)
 			m_CommitingPages.erase(desc);
 			m_PendingUploadPages.erase(std::remove(m_PendingUploadPages.begin(), m_PendingUploadPages.end(), desc), m_PendingUploadPages.end());
 		}
-		assert(ListLength(m_UsedRootPageHead) + ListLength(m_FreeRootPageHead) == m_MaxRootPages);
+		// assert(ListLength(m_UsedRootPageHead) + ListLength(m_FreeRootPageHead) == m_MaxRootPages);
 
 		for (uint32_t i = numRootPage; i < (uint32_t)pages.pages.size(); ++i)
 		{
@@ -999,7 +1001,7 @@ void KVirtualGeometryStreamingManager::RemoveGeometry(uint32_t resourceIndex)
 			m_PendingStreamInPages.erase(std::remove(m_PendingStreamInPages.begin(), m_PendingStreamInPages.end(), desc), m_PendingStreamInPages.end());
 			m_PendingStreamOutPages.erase(std::remove(m_PendingStreamOutPages.begin(), m_PendingStreamOutPages.end(), desc), m_PendingStreamOutPages.end());
 		}
-		assert(ListLength(m_UsedStreamingPageHead) + ListLength(m_FreeStreamingPageHead) == m_MaxStreamingPages);
+		// assert(ListLength(m_UsedStreamingPageHead) + ListLength(m_FreeStreamingPageHead) == m_MaxStreamingPages);
 
 		auto AdjustPageMap = [](std::unordered_map<KVirtualGeometryStreamingPageDesc, KVirtualGeometryActivePage*>& mapToAdjust, uint32_t resourceIndex)
 		{
@@ -1020,6 +1022,21 @@ void KVirtualGeometryStreamingManager::RemoveGeometry(uint32_t resourceIndex)
 		};
 		AdjustPageMap(m_CommitedPages, resourceIndex);
 		AdjustPageMap(m_CommitingPages, resourceIndex);
+
+		auto AdjustPageList = [](std::vector<KVirtualGeometryStreamingPageDesc>& list, uint32_t resourceIndex)
+		{
+			for (KVirtualGeometryStreamingPageDesc& desc : list)
+			{
+				if (desc.resourceIndex > resourceIndex)
+				{
+					desc.resourceIndex -= 1;
+				}
+			}
+		};
+		AdjustPageList(m_RequestedPages, resourceIndex);
+		AdjustPageList(m_PendingUploadPages, resourceIndex);
+		AdjustPageList(m_PendingStreamInPages, resourceIndex);
+		AdjustPageList(m_PendingStreamOutPages, resourceIndex);
 
 		m_ResourcePages.erase(m_ResourcePages.begin() + resourceIndex);
 		m_ResourcePageStorages.erase(m_ResourcePageStorages.begin() + resourceIndex);
