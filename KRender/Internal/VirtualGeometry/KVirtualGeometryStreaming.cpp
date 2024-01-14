@@ -208,7 +208,8 @@ void KVirtualGeometryStreamingManager::ApplyFixup(KVirtualGeometryActivePage* pa
 
 		for (const KVirtualGeomertyClusterFixup& clusterFixup : clusterFixups)
 		{
-			bool dependencyFit = !install || IsPageCommited(resourceIndex, clusterFixup.dependencyPageStart, clusterFixup.dependencyPageEnd - clusterFixup.dependencyPageStart + 1);
+			bool dependencyPageCommited = IsPageCommited(resourceIndex, clusterFixup.dependencyPageStart, clusterFixup.dependencyPageEnd - clusterFixup.dependencyPageStart + 1);
+			bool dependencyFit = !install || dependencyPageCommited;
 			if (!dependencyFit)
 			{
 				continue;
@@ -235,7 +236,8 @@ void KVirtualGeometryStreamingManager::ApplyFixup(KVirtualGeometryActivePage* pa
 
 		for (const KVirtualGeomertyHierarchyFixup& hierarchyFixup : hierarchyFixups)
 		{
-			bool dependencyFit = !install || IsPageCommited(resourceIndex, hierarchyFixup.dependencyPageStart, hierarchyFixup.dependencyPageEnd - hierarchyFixup.dependencyPageStart + 1);
+			bool dependencyPageCommited = IsPageCommited(resourceIndex, hierarchyFixup.dependencyPageStart, hierarchyFixup.dependencyPageEnd - hierarchyFixup.dependencyPageStart + 1);
+			bool dependencyFit = !install || dependencyPageCommited;
 			if (!dependencyFit)
 			{
 				continue;
@@ -244,22 +246,17 @@ void KVirtualGeometryStreamingManager::ApplyFixup(KVirtualGeometryActivePage* pa
 			KVirtualGeometryStreamingPageDesc fixupDesc;
 			fixupDesc.resourceIndex = resourceIndex;
 			fixupDesc.pageIndex = hierarchyFixup.fixupPage;
-
 			uint32_t fixupGPUPageIndex = -1;
-			if (GetGPUPageIndex(fixupDesc, fixupGPUPageIndex))
-			{
-				KVirtualGeometryHierarchyFixupUpdate newUpdate;
-				newUpdate.partIndex = hierarchyFixup.partIndex;
-				newUpdate.clusterPageIndex = install ? fixupGPUPageIndex : KVirtualGeometryDefine::INVALID_INDEX;
-				newUpdate.gpuPageIndex = fixupGPUPageIndex;
-				m_HierarchyFixupUpdates.push_back(newUpdate);
-			}
+			GetGPUPageIndex(fixupDesc, fixupGPUPageIndex);
 			// Running during uninstall can occur. Because the pages belonging to other parts of the same group may be already be stream in.
 			// Even thought that group can not be rendered yet.
-			else if (install)
-			{
-				assert(false && "shuold not reach");
-			}
+			assert(!install || fixupGPUPageIndex != -1 && "shuold not reach");
+
+			KVirtualGeometryHierarchyFixupUpdate newUpdate;
+			newUpdate.partIndex = hierarchyFixup.partIndex;
+			newUpdate.clusterPageIndex = install ? fixupGPUPageIndex : KVirtualGeometryDefine::INVALID_INDEX;
+			newUpdate.resourceIndex = resourceIndex;
+			m_HierarchyFixupUpdates.push_back(newUpdate);
 		}
 	}
 }
@@ -319,8 +316,60 @@ uint32_t KVirtualGeometryStreamingManager::GPUPageIndexToGPUSize(uint32_t gpuPag
 	}
 }
 
+void KVirtualGeometryStreamingManager::EnsureFixupOrder()
+{
+	std::vector<KVirtualGeometryClusterFixupUpdate> clusterFixupUpdates;
+	clusterFixupUpdates.reserve(m_ClusterFixupUpdates.size());
+	for (size_t i = 0; i < m_ClusterFixupUpdates.size(); ++i)
+	{
+		const KVirtualGeometryClusterFixupUpdate& update = m_ClusterFixupUpdates[i];
+		size_t j = 0;
+		while (j < clusterFixupUpdates.size())
+		{
+			if (clusterFixupUpdates[j].gpuPageIndex == update.gpuPageIndex &&
+				clusterFixupUpdates[j].clusterIndexInPage == update.clusterIndexInPage)
+			{
+				clusterFixupUpdates[j].isLeaf = update.isLeaf;
+				break;
+			}
+			++j;
+		}
+		if (j == clusterFixupUpdates.size())
+		{
+			clusterFixupUpdates.push_back(update);
+		}
+	}
+	m_ClusterFixupUpdates = std::move(clusterFixupUpdates);
+
+	std::vector<KVirtualGeometryHierarchyFixupUpdate> hierarchyFixupUpdates;
+	hierarchyFixupUpdates.reserve(m_HierarchyFixupUpdates.size());
+	for (size_t i = 0; i < m_HierarchyFixupUpdates.size(); ++i)
+	{
+		const KVirtualGeometryHierarchyFixupUpdate& update = m_HierarchyFixupUpdates[i];
+		size_t j = 0;
+		while (j < hierarchyFixupUpdates.size())
+		{
+			if (hierarchyFixupUpdates[j].resourceIndex == update.resourceIndex &&
+				hierarchyFixupUpdates[j].partIndex == update.partIndex)
+			{
+				hierarchyFixupUpdates[j].clusterPageIndex = update.clusterPageIndex;
+				break;
+			}
+			++j;
+		}
+		if (j == hierarchyFixupUpdates.size())
+		{
+			hierarchyFixupUpdates.push_back(update);
+		}
+	}
+	m_HierarchyFixupUpdates = std::move(hierarchyFixupUpdates);
+}
+
 void KVirtualGeometryStreamingManager::ApplyStreamingUpdate(IKCommandBufferPtr primaryBuffer)
 {
+	// 0.Ensure stream out fixup overwrite stream in fixup
+	EnsureFixupOrder();
+
 	uint32_t currentFrame = KRenderGlobal::CurrentInFlightFrameIndex;
 
 	uint32_t pageSize = (uint32_t)m_PageDataBuffer->GetBufferSize();
@@ -450,7 +499,7 @@ void KVirtualGeometryStreamingManager::ApplyStreamingUpdate(IKCommandBufferPtr p
 		for (uint32_t index = 0; index < hierarchyFixupNum; ++index)
 		{
 			const KVirtualGeometryHierarchyFixupUpdate& fixup = m_HierarchyFixupUpdates[index];
-			uint32_t resourceIndex = m_Pages[fixup.gpuPageIndex]->residentPage.resourceIndex;
+			uint32_t resourceIndex = fixup.resourceIndex;
 			uint32_t hierarchyStartOffset = KRenderGlobal::VirtualGeometryManager.GetResource(resourceIndex)->hierarchyPackedOffset / sizeof(KMeshClusterHierarchyPackedNode);
 			const KVirtualGeomertyPageClustersData& clusterData = m_ResourcePageClustersDatas[resourceIndex];
 			uint32_t hierarchyIndex = clusterData.parts[fixup.partIndex].hierarchyIndex;
@@ -894,10 +943,12 @@ bool KVirtualGeometryStreamingManager::PendPageCommit(const KVirtualGeometryStre
 			KVirtualGeometryActivePage* current = m_UsedStreamingPageHead;
 			do
 			{
-				if (current->refCount == 0)
+				if (current->refCount == 0 && !current->pendingPage.IsValid())
 				{
+					const KVirtualGeometryPages& geometryPages = m_ResourcePages[current->residentPage.resourceIndex];
 					bool isPageRequested = m_RequestedCommitedPages.find(current->residentPage) != m_RequestedCommitedPages.end();
-					if (!isPageRequested)
+					bool isRootPage = current->residentPage.pageIndex < geometryPages.numRootPage;
+					if (!isPageRequested && !isRootPage)
 					{
 						page = current;
 						break;

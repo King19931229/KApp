@@ -42,7 +42,7 @@ static_assert((sizeof(KVirtualGeometryClusterFixupUpdate) % 16) == 0, "Size must
 
 struct KVirtualGeometryHierarchyFixupUpdate
 {
-	uint32_t gpuPageIndex;
+	uint32_t resourceIndex;
 	uint32_t partIndex;
 	uint32_t clusterPageIndex;
 	uint32_t padding = 0;
@@ -143,6 +143,7 @@ protected:
 	void UpdateStreamingPages(IKCommandBufferPtr primaryBuffer);
 	void ApplyStreamingUpdate(IKCommandBufferPtr primaryBuffer);
 	void ApplyFixup(KVirtualGeometryActivePage* page, bool install);
+	void EnsureFixupOrder();
 	void UpdatePageRefCount(KVirtualGeometryActivePage* page, bool install);
 	bool PendPageCommit(const KVirtualGeometryStreamingPageDesc& newPage);
 	bool DependencyPageCommited(const KVirtualGeometryStreamingPageDesc& page);
