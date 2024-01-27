@@ -674,3 +674,9 @@ VkBuffer KVulkanUniformBuffer::GetVulkanHandle()
 	KVulkanBuffer& buffer = GetVulkanBuffer();
 	return buffer.GetVulkanHandle();
 }
+
+uint32_t KVulkanUniformBuffer::GetUniqueID() const
+{
+	KVulkanBuffer& buffer = const_cast<KVulkanUniformBuffer*>(this)->GetVulkanBuffer();
+	return buffer.GetUniqueID();
+}

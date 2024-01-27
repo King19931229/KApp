@@ -144,7 +144,7 @@ bool KRTAO::Init(IKRayTraceScene* scene)
 			m_MeanVerticalComputePipeline->BindStorageImage(1, m_MeanVarianceTarget[1]->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_OUT, 0, true);
 			KShaderCompileEnvironment verticalEnv;
 			verticalEnv.parentEnv = &m_RTAOEnv;
-			verticalEnv.macros.push_back({ "VERTICAL", "" });
+			verticalEnv.macros.push_back({"VERTICAL", ""});
 			m_MeanVerticalComputePipeline->Init("ao/mean.comp", verticalEnv);
 
 			for (uint32_t i = 0; i < 2; ++i)

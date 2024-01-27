@@ -29,7 +29,7 @@ constexpr KGBufferDescription GBufferDescription[GBUFFER_TARGET_COUNT]
 	{ GBUFFER_TARGET4, EF_R8G8B8A8_UNORM, "xyz:emissive w:idle" },
 };
 
-constexpr ElementFormat AOFormat = EF_R8_UNORM;
+constexpr ElementFormat AOFormat = EF_R8_UNORM;//EF_R8G8B8A8_UNORM;
 
 class KGBuffer
 {

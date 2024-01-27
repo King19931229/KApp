@@ -169,4 +169,5 @@ public:
 	virtual bool CopyTo(IKUniformBufferPtr pDest);
 
 	VkBuffer GetVulkanHandle();
+	uint32_t GetUniqueID() const;
 };

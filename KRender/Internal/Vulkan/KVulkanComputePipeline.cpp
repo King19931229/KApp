@@ -101,8 +101,8 @@ void KVulkanComputePipeline::BindUniformBuffer(uint32_t location, IKUniformBuffe
 {
 	BindingInfo newBinding;
 	newBinding.uniform.buffer = buffer;
-	newBinding.dynamicWrite = true;
 	newBinding.type = BindingInfo::UNIFROM_BUFFER;
+	newBinding.dynamicWrite = true;
 	m_Bindings[location] = newBinding;
 }
 

@@ -64,12 +64,6 @@ void main()
 #endif
 		);
 
- #if VERTEX_COLOR_INPUT0
- 	parameters.baseColor = color0;
-	parameters.roughness = 1;
-	parameters.metal = 0;
- #endif
-
 	EncodeGBuffer(
 		parameters.position,
 		parameters.normal,

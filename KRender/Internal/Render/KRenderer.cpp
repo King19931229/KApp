@@ -146,6 +146,8 @@ void KRenderer::GPUQueueMiscs::SetThreadNum(uint32_t threadNum)
 
 bool KRenderer::Render(uint32_t chainImageIndex)
 {
+	UpdateCamera();
+
 	if (m_PrevEnableAsyncCompute != m_EnableAsyncCompute)
 	{
 		KRenderGlobal::RenderDevice->Wait();
@@ -735,7 +737,6 @@ bool KRenderer::Execute(uint32_t chainImageIndex)
 
 			if (m_Scene && m_Camera)
 			{
-				UpdateCamera();
 				Render(chainImageIndex);
 			}
 		}

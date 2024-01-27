@@ -199,5 +199,8 @@ void main()
 		case DRD_SCATTERING:
 			outColor = vec4(vec3(0), 1.0);
 			break;
+		case DRD_MOTION:
+			outColor = vec4(motion, 0, 0);
+			break;
 	}
 }

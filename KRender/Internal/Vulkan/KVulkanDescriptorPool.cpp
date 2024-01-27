@@ -50,6 +50,7 @@ void KVulkanDescriptorPool::Move(KVulkanDescriptorPool&& rhs)
 	m_ImageWriteInfo = std::move(rhs.m_ImageWriteInfo);
 	m_StorageBufferWriteInfo = std::move(rhs.m_StorageBufferWriteInfo);
 	m_StorageImageWriteInfo = std::move(rhs.m_StorageImageWriteInfo);
+	m_UniformBufferWriteInfo = std::move(rhs.m_UniformBufferWriteInfo);
 	m_DynamicUniformBufferWriteInfo = std::move(rhs.m_DynamicUniformBufferWriteInfo);
 	m_DynamicStorageBufferWriteInfo = std::move(rhs.m_DynamicStorageBufferWriteInfo);
 
@@ -121,6 +122,7 @@ bool KVulkanDescriptorPool::Init(VkDescriptorSetLayout layout,
 	m_ImageWriteInfo.resize(m_ImageCount);
 	m_StorageImageWriteInfo.resize(m_StorageImageCount);
 	m_StorageBufferWriteInfo.resize(m_StorageBufferCount);
+	m_UniformBufferWriteInfo.resize(m_UniformBufferCount);
 	m_DynamicUniformBufferWriteInfo.resize(m_DynamicUniformBufferCount);
 	m_DynamicStorageBufferWriteInfo.resize(m_DynamicStorageBufferCount);
 
@@ -281,6 +283,10 @@ VkDescriptorSet KVulkanDescriptorPool::Alloc(size_t frameIndex, size_t currentFr
 		ASSERT_RESULT_PIPELINE(samplerBindings.size() <= m_ImageWriteInfo.size());
 		ASSERT_RESULT_PIPELINE(samplerBindings.size() <= m_DescriptorDynamicWriteInfo.size());
 
+		auto& uniformBufferBindings = vulkanPipeline->m_Uniforms;
+		ASSERT_RESULT_PIPELINE(uniformBufferBindings.size() <= m_UniformBufferWriteInfo.size());
+		ASSERT_RESULT_PIPELINE(uniformBufferBindings.size() <= m_DescriptorDynamicWriteInfo.size());
+
 		auto& storageImageBindings = vulkanPipeline->m_StorageImages;
 		ASSERT_RESULT_PIPELINE(storageImageBindings.size() <= m_StorageImageWriteInfo.size());
 		ASSERT_RESULT_PIPELINE(storageImageBindings.size() <= m_DescriptorDynamicWriteInfo.size());
@@ -329,6 +335,15 @@ VkDescriptorSet KVulkanDescriptorPool::Alloc(size_t frameIndex, size_t currentFr
 				KVulkanPipeline::StorageBufferBindingInfo& info = pair.second;
 				KVulkanStorageBuffer* vulkanStorageBuffer = (KVulkanStorageBuffer*)info.buffer.get();
 				KHash::HashCombine(hash, vulkanStorageBuffer->GetUniqueID());
+				KHash::HashCombine(hash, binding);
+			}
+
+			for (auto& pair : uniformBufferBindings)
+			{
+				unsigned int binding = pair.first;
+				KVulkanPipeline::UniformBufferBindingInfo& info = pair.second;
+				KVulkanUniformBuffer* vulkanUniformBuffer = (KVulkanUniformBuffer*)info.buffer.get();
+				KHash::HashCombine(hash, vulkanUniformBuffer->GetUniqueID());
 				KHash::HashCombine(hash, binding);
 			}
 		}
@@ -449,6 +464,30 @@ VkDescriptorSet KVulkanDescriptorPool::Alloc(size_t frameIndex, size_t currentFr
 				storageDescriptorWrite.pBufferInfo = &bufferInfo;
 				storageDescriptorWrite.pImageInfo = nullptr;
 				storageDescriptorWrite.pTexelBufferView = nullptr;
+			}
+
+			for (auto& pair : uniformBufferBindings)
+			{
+				uint32_t binding = pair.first;
+				KVulkanUniformBuffer* vulkanUniformBuffer = (KVulkanUniformBuffer*)pair.second.buffer.get();
+
+				VkDescriptorBufferInfo& bufferWrite = m_UniformBufferWriteInfo[uniformBufferWriteIdx++];
+				bufferWrite.buffer = vulkanUniformBuffer->GetVulkanHandle();
+				bufferWrite.offset = 0;
+				bufferWrite.range = (VkDeviceSize)vulkanUniformBuffer->GetBufferSize();
+
+				VkWriteDescriptorSet& uniformDescriptorWrite = m_DescriptorDynamicWriteInfo[descriptorWriteIdx++];
+				uniformDescriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+				uniformDescriptorWrite.pNext = nullptr;
+				uniformDescriptorWrite.dstSet = set;
+				uniformDescriptorWrite.dstBinding = binding;
+				uniformDescriptorWrite.dstArrayElement = 0;
+				uniformDescriptorWrite.descriptorCount = 1;
+				uniformDescriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+
+				uniformDescriptorWrite.pBufferInfo = &bufferWrite;
+				uniformDescriptorWrite.pImageInfo = nullptr;
+				uniformDescriptorWrite.pTexelBufferView = nullptr;
 			}
 
 			if (descriptorWriteIdx > 0)

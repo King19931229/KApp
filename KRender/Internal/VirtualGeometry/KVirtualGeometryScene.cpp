@@ -1089,11 +1089,12 @@ bool KVirtualGeometryScene::ReloadShader()
 	return true;
 }
 
-KVirtualGeometryScene::InstancePtr KVirtualGeometryScene::GetOrCreateInstance(IKEntity* entity)
+KVirtualGeometryScene::InstancePtr KVirtualGeometryScene::CreateInstance(IKEntity* entity)
 {
 	auto it = m_InstanceMap.find(entity);
 	if (it != m_InstanceMap.end())
 	{
+		assert(false && "shuold not reach");
 		return it->second;
 	}
 	else
@@ -1107,11 +1108,21 @@ KVirtualGeometryScene::InstancePtr KVirtualGeometryScene::GetOrCreateInstance(IK
 	}
 }
 
+KVirtualGeometryScene::InstancePtr KVirtualGeometryScene::GetInstance(IKEntity* entity)
+{
+	auto it = m_InstanceMap.find(entity);
+	if (it != m_InstanceMap.end())
+	{
+		return it->second;
+	}
+	return nullptr;
+}
+
 bool KVirtualGeometryScene::AddInstance(IKEntity* entity, const glm::mat4& transform, KVirtualGeometryResourceRef resource)
 {
 	if (entity)
 	{
-		InstancePtr Instance = GetOrCreateInstance(entity);
+		InstancePtr Instance = CreateInstance(entity);
 		Instance->prevTransform = transform;
 		Instance->transform = transform;
 		Instance->resource = resource;
@@ -1124,8 +1135,11 @@ bool KVirtualGeometryScene::TransformInstance(IKEntity* entity, const glm::mat4&
 {
 	if (entity)
 	{
-		InstancePtr Instance = GetOrCreateInstance(entity);
-		Instance->transform = transform;
+		InstancePtr Instance = GetInstance(entity);
+		if (Instance)
+		{
+			Instance->transform = transform;
+		}
 		return true;
 	}
 	return false;

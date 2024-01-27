@@ -73,4 +73,5 @@ void main()
 	float ao = result.r;
 	ao = pow(ao, rtao_power);
 	imageStore(composedImage, ivec2(gl_GlobalInvocationID.xy), vec4(ao));
+	//imageStore(composedImage, ivec2(gl_GlobalInvocationID.xy), imageLoad(curAOImage, ivec2(gl_GlobalInvocationID.xy)).rrrr);
 }

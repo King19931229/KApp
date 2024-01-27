@@ -60,6 +60,7 @@ protected:
 	std::vector<VkDescriptorImageInfo>  m_ImageWriteInfo;
 	std::vector<VkDescriptorImageInfo>  m_StorageImageWriteInfo;
 	std::vector<VkDescriptorBufferInfo> m_StorageBufferWriteInfo;
+	std::vector<VkDescriptorBufferInfo> m_UniformBufferWriteInfo;
 	std::vector<VkDescriptorBufferInfo> m_DynamicUniformBufferWriteInfo;
 	std::vector<VkDescriptorBufferInfo> m_DynamicStorageBufferWriteInfo;
 

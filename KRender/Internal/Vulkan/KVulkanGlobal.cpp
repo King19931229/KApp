@@ -8,7 +8,7 @@ namespace KVulkanGlobal
 	bool supportKHRMeshShader = false;
 	bool supportDebugMarker = false;
 
-	bool hashDescriptorUpdate = true;
+	bool hashDescriptorUpdate = false;
 
 	VkInstance instance = VK_NULL_HANDLE;
 	VkDevice device = VK_NULL_HANDLE;

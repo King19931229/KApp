@@ -99,7 +99,7 @@ bool KVulkanPipeline::CreateDestcriptionWrite()
 
 		m_WriteDescriptorSet.push_back(write);
 		++idx;
-	}		
+	}
 
 	return true;
 }

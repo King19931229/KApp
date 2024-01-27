@@ -114,7 +114,8 @@ protected:
 
 	bool UpdateInstanceData();
 
-	InstancePtr GetOrCreateInstance(IKEntity* entity);
+	InstancePtr CreateInstance(IKEntity* entity);
+	InstancePtr GetInstance(IKEntity* entity);
 
 	bool AddInstance(IKEntity* entity, const glm::mat4& transform, KVirtualGeometryResourceRef resource);
 	bool TransformInstance(IKEntity* entity, const glm::mat4& transform);

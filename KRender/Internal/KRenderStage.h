@@ -110,6 +110,7 @@ enum DeferredRenderDebug
 	DRD_DIRECT,
 	DRD_INDIRECT,
 	DRD_SCATTERING,
+	DRD_MOTION,
 
 	DRD_COUNT
 };
@@ -152,7 +153,8 @@ constexpr DeferredRenderDebugDescription GDeferredRenderDebugDescription[DRD_COU
 
 	{ DRD_DIRECT, "Direct"},
 	{ DRD_INDIRECT, "Indirect"},
-	{ DRD_SCATTERING, "Scattering"}
+	{ DRD_SCATTERING, "Scattering"},
+	{ DRD_MOTION, "Motion"}
 };
 
 static_assert(GDeferredRenderStageDescription[DRS_STAGE_PRE_PASS].stage == DRS_STAGE_PRE_PASS, "check");
