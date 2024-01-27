@@ -34,6 +34,48 @@ void KMeshCluster::InitBound()
 		maxEdgeLengthSquare = std::max(glm::dot(d, d), maxEdgeLengthSquare);
 	}
 	edgeLength = sqrt(maxEdgeLengthSquare);
+
+	coneCenter = glm::vec4(bound.GetCenter(), 0);
+	coneDirection = glm::vec4(0);
+
+	std::vector<glm::vec3> triangleNormals;
+	triangleNormals.resize(indices.size() / 3);
+
+	for (uint32_t idx = 0; idx < (uint32_t)triangleNormals.size(); ++idx)
+	{
+		uint32_t idxs[] = { indices[3 * idx + 0], indices[3 * idx + 1], indices[3 * idx + 2] };
+		glm::vec3 normal = glm::cross(vertices[idxs[1]].pos - vertices[idxs[0]].pos, vertices[idxs[2]].pos - vertices[idxs[0]].pos);
+		normal = glm::normalize(normal);
+		triangleNormals[idx] = normal;
+		coneDirection += glm::vec4(-normal, 0);
+	}
+
+	if (glm::length(coneDirection) > 0)
+	{
+		coneDirection = glm::normalize(coneDirection);
+	}
+
+	float maxDistance = -std::numeric_limits<float>::max();
+	float minDotProduct = std::numeric_limits<float>::max();
+	for (uint32_t idx = 0; idx < (uint32_t)triangleNormals.size(); ++idx)
+	{
+		float dotProduct = glm::dot(-triangleNormals[idx], glm::vec3(coneDirection));
+		minDotProduct = std::min(dotProduct, minDotProduct);
+		if (minDotProduct < 0)
+		{
+			break;
+		}
+		float distance = glm::dot(triangleNormals[idx], glm::vec3(coneCenter) - vertices[indices[3 * idx + 0]].pos);
+		distance /= -dotProduct;
+		maxDistance = std::max(distance, maxDistance);
+	}
+
+	if (minDotProduct >= 0)
+	{
+		assert(maxDistance >= 0);
+		coneDirection.w = sqrtf(1.0f - minDotProduct * minDotProduct);
+		coneCenter = glm::vec4(glm::vec3(coneCenter) + glm::vec3(coneDirection) * maxDistance, 1);
+	}
 }
 
 void KMeshCluster::InitMaterial()
@@ -1828,6 +1870,9 @@ void KVirtualGeometryBuilder::BuildPageStorage()
 
 				newBatch.parentBoundCenterError = glm::vec4(group->parentLodBound.GetCenter(), group->maxParentError);
 				newBatch.parentBoundHalfExtendRadius = glm::vec4(0.5f * group->parentLodBound.GetExtend(), 0.5f * glm::length(group->parentLodBound.GetExtend()));
+
+				newBatch.coneCenter = cluster->coneCenter;
+				newBatch.coneDirection = cluster->coneDirection;
 
 				newBatch.triangleNum = (uint32_t)cluster->indices.size() / 3;
 

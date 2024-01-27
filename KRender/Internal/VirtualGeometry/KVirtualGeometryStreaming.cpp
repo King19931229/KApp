@@ -10,6 +10,7 @@ KVirtualGeometryStreamingManager::KVirtualGeometryStreamingManager()
 	, m_MaxRootPages(0)
 	, m_CurretRootPages(0)
 	, m_NumPages(0)
+	, m_DiscardRequestCounter(0)
 {
 }
 
@@ -523,65 +524,72 @@ void KVirtualGeometryStreamingManager::UpdateStreamingRequests(IKCommandBufferPt
 {
 	uint32_t currentFrame = KRenderGlobal::CurrentInFlightFrameIndex;
 
-	static KVirtualGeometryStreamingRequest requests[MAX_STREAMING_REQUEST];
-	m_StreamingRequestBuffers[currentFrame]->Read(requests);
-
-	std::unordered_set<KVirtualGeometryStreamingRequest> uniqueStreamingRequests;
-	uint32_t numRequest = requests[0].priority;
-	for (uint32_t i = 0; i < numRequest; ++i)
-	{
-		uniqueStreamingRequests.insert(requests[i + 1]);
-	}
-
-	std::unordered_map<KVirtualGeometryStreamingPageDesc, uint32_t> pageRequestPrioritys;
-	for (const KVirtualGeometryStreamingRequest& streamingRequest : uniqueStreamingRequests)
-	{
-		for (uint32_t i = 0; i < streamingRequest.pageNum; ++i)
-		{
-			KVirtualGeometryStreamingPageDesc desc;
-			desc.resourceIndex = streamingRequest.resourceIndex;
-			desc.pageIndex = streamingRequest.pageStart + i;
-			auto it = pageRequestPrioritys.find(desc);
-			if (it == pageRequestPrioritys.end())
-			{
-				pageRequestPrioritys.insert({ desc, streamingRequest.priority });
-			}
-			else
-			{
-				it->second = std::max(it->second, streamingRequest.priority);
-			}
-		}
-	}
-
-	struct PageRequest
-	{
-		KVirtualGeometryStreamingPageDesc pageDesc;
-		uint32_t priority;
-	};
-	std::vector<PageRequest> pageRequests;
-	pageRequests.reserve(pageRequestPrioritys.size());
-
-	for (auto& pair : pageRequestPrioritys)
-	{
-		PageRequest request;
-		request.pageDesc = pair.first;
-		request.priority = pair.second;
-		pageRequests.push_back(request);
-	}
-
-	std::sort(pageRequests.begin(), pageRequests.end(), [](const PageRequest& lhs, const PageRequest& rhs)
-	{
-		return lhs.priority < rhs.priority;
-	});
-
 	m_RequestedPages.clear();
-	m_RequestedPages.reserve(pageRequests.size());
-	for (size_t i = 0; i < pageRequests.size(); ++i)
+	if (m_DiscardRequestCounter == 0)
 	{
-		if (!IsRootPage(pageRequests[i].pageDesc))
+		static KVirtualGeometryStreamingRequest requests[MAX_STREAMING_REQUEST];
+		m_StreamingRequestBuffers[currentFrame]->Read(requests);
+
+		std::unordered_set<KVirtualGeometryStreamingRequest> uniqueStreamingRequests;
+		uint32_t numRequest = requests[0].priority;
+		for (uint32_t i = 0; i < numRequest; ++i)
 		{
-			m_RequestedPages.push_back(pageRequests[i].pageDesc);
+			uniqueStreamingRequests.insert(requests[i + 1]);
 		}
+
+		std::unordered_map<KVirtualGeometryStreamingPageDesc, uint32_t> pageRequestPrioritys;
+		for (const KVirtualGeometryStreamingRequest& streamingRequest : uniqueStreamingRequests)
+		{
+			for (uint32_t i = 0; i < streamingRequest.pageNum; ++i)
+			{
+				KVirtualGeometryStreamingPageDesc desc;
+				desc.resourceIndex = streamingRequest.resourceIndex;
+				desc.pageIndex = streamingRequest.pageStart + i;
+				auto it = pageRequestPrioritys.find(desc);
+				if (it == pageRequestPrioritys.end())
+				{
+					pageRequestPrioritys.insert({ desc, streamingRequest.priority });
+				}
+				else
+				{
+					it->second = std::max(it->second, streamingRequest.priority);
+				}
+			}
+		}
+
+		struct PageRequest
+		{
+			KVirtualGeometryStreamingPageDesc pageDesc;
+			uint32_t priority;
+		};
+		std::vector<PageRequest> pageRequests;
+		pageRequests.reserve(pageRequestPrioritys.size());
+
+		for (auto& pair : pageRequestPrioritys)
+		{
+			PageRequest request;
+			request.pageDesc = pair.first;
+			request.priority = pair.second;
+			pageRequests.push_back(request);
+		}
+
+		std::sort(pageRequests.begin(), pageRequests.end(), [](const PageRequest& lhs, const PageRequest& rhs)
+		{
+			return lhs.priority < rhs.priority;
+		});
+
+		m_RequestedPages.reserve(pageRequests.size());
+		for (size_t i = 0; i < pageRequests.size(); ++i)
+		{
+			if (!IsRootPage(pageRequests[i].pageDesc))
+			{
+				m_RequestedPages.push_back(pageRequests[i].pageDesc);
+			}
+		}
+	}
+	else
+	{
+		--m_DiscardRequestCounter;
 	}
 
 	primaryBuffer->BeginDebugMarker("VirtualGeometry_StreamingRequestClear", glm::vec4(1.0f));
@@ -1095,5 +1103,7 @@ void KVirtualGeometryStreamingManager::RemoveGeometry(uint32_t resourceIndex)
 		m_ResourcePageDependencies.erase(m_ResourcePageDependencies.begin() + resourceIndex);
 		m_ResourcePageClustersDatas.erase(m_ResourcePageClustersDatas.begin() + resourceIndex);
 		m_CurretRootPages -= numRootPage;
+
+		m_DiscardRequestCounter = KRenderGlobal::NumFramesInFlight;
 	}
 }

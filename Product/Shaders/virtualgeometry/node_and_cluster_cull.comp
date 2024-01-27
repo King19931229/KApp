@@ -39,6 +39,11 @@ void ProcessClusterBatch(uint groupIndex, uint batchStart, uint batchSize)
 
 		FrustumCullData cullData = BoxCullFrustumGeneral(boundCenter, boundHalfExtend, localToWorld, worldToClip, true, false);
 
+		if (enableConeCull != 0 && cullData.bIsVisible)
+		{
+			cullData.bIsVisible = ConeCullVisible(localToWorld, worldToView, clusterBatch.coneCenter, clusterBatch.coneDirection);
+		}
+
 #if CULL_CLUSTER_ALONG_BVH
 		if (cullData.bIsVisible)
 		{

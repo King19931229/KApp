@@ -123,6 +123,8 @@ protected:
 	uint32_t m_MaxRootPages;
 	uint32_t m_CurretRootPages;
 	uint32_t m_NumPages;
+	uint32_t m_DiscardRequestCounter;
+
 	std::unordered_map<KVirtualGeometryStreamingPageDesc, KVirtualGeometryActivePage*> m_CommitedPages;
 	std::unordered_map<KVirtualGeometryStreamingPageDesc, KVirtualGeometryActivePage*> m_CommitingPages;
 	std::unordered_set<KVirtualGeometryStreamingPageDesc> m_RequestedCommitedPages;

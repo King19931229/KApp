@@ -31,7 +31,7 @@ void InitQEM(IKEnginePtr engine)
 	static const ModelInfo modelInfos[] =
 	{
 		{ "Models/OBJ/small_bunny.obj", ".obj", 1000.0f },
-		{ "Models/OBJ/bunny.obj", ".obj", 100.0f },
+		{ "Models/OBJ/small_bunny2.obj", ".obj", 1000.0f },
 		{ "Models/OBJ/dragon.obj", ".obj", 100.0f },
 		{ "Models/OBJ/armadillo.obj", ".obj", 100.0f },
 		{ "Models/OBJ/tyra.obj", ".obj", 1000.0f },
@@ -39,12 +39,12 @@ void InitQEM(IKEnginePtr engine)
 		{ "Models/glTF-Sample-Models/2.0/SciFiHelmet/glTF/SciFiHelmet.gltf", ".gltf", 100.0f }
 	};
 
-#if 1
+#if 0
 	static IKEntityPtr entity = nullptr;
 
 	static KMeshRawData userData;
 	static bool initUserData = false;
-	static const uint32_t fileIndex = 0;
+	static const uint32_t fileIndex = 3;
 	static const char* filePath = modelInfos[fileIndex].path;
 	static const char* fileExt = modelInfos[fileIndex].ext;
 	static const float scale = modelInfos[fileIndex].scale;
@@ -355,7 +355,7 @@ void InitQEM(IKEnginePtr engine)
 		bool initUserData = false;
 
 		std::vector<IKEntityPtr> entites;
-		for (uint32_t fileIndex = 0; fileIndex < 1; ++fileIndex)
+		for (uint32_t fileIndex = 3; fileIndex < 4; ++fileIndex)
 		{
 			KMeshRawData userData;
 			const char* filePath = modelInfos[fileIndex].path;
@@ -374,11 +374,12 @@ void InitQEM(IKEnginePtr engine)
 				userData.components = option.components;
 			}
 
-			for (uint32_t i = 0; i < 30; ++i)
+			const uint32_t count = 30;
+			for (uint32_t i = 0; i < count; ++i)
 			{
-				for (uint32_t j = 0; j < 30; ++j)
+				for (uint32_t j = 0; j < 3; ++j)
 				{
-					for (uint32_t k = 0; k < 30; ++k)
+					for (uint32_t k = 0; k < count; ++k)
 					{
 						IKEntityPtr entity = KECS::EntityManager->CreateEntity();
 						IKComponentBase* component = nullptr;
@@ -388,13 +389,13 @@ void InitQEM(IKEnginePtr engine)
 						}
 						if (entity->RegisterComponent(CT_TRANSFORM, &component))
 						{
-							((IKTransformComponent*)component)->SetScale(glm::vec3(scale * (1.0f + (float)i / 10.0f)));
+							((IKTransformComponent*)component)->SetScale(glm::vec3(scale * (1.0f + (float)i / 30.0f)));
 						}
 						KAABBBox bound;
 						entity->GetBound(bound);
 						if (entity->GetComponent(CT_TRANSFORM, &component))
 						{
-							((IKTransformComponent*)component)->SetPosition(glm::vec3(j * bound.GetExtend().x, i * bound.GetExtend().y, (fileIndex + k) * bound.GetExtend().z));
+							((IKTransformComponent*)component)->SetPosition(glm::vec3(i * bound.GetExtend().x, j * bound.GetExtend().y, (count * (fileIndex - 3) + k) * bound.GetExtend().z));
 						}
 						scene->Add(entity.get());
 						entites.push_back(entity);

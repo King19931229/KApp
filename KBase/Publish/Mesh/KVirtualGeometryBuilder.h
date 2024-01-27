@@ -85,12 +85,15 @@ struct KMeshCluster
 	uint32_t index = KVirtualGeometryDefine::INVALID_INDEX;
 	// LOD level
 	uint32_t level = 0;
+	// Has Cone
+
+	glm::vec3 color;
+	glm::vec4 coneCenter;
+	glm::vec4 coneDirection;
 
 	// lodError是计算Lod所用到的Error 并不是严格意义上真正的Error
 	float lodError = 0;
 	float edgeLength = 0;
-
-	glm::vec3 color;
 
 	KMeshCluster()
 	{}
@@ -236,9 +239,11 @@ struct KMeshClusterBatch
 	glm::vec4 lodBoundHalfExtendRadius;
 	glm::vec4 parentBoundCenterError;
 	glm::vec4 parentBoundHalfExtendRadius;
+	glm::vec4 coneCenter;
+	glm::vec4 coneDirection;
 };
 static_assert((sizeof(KMeshClusterBatch) % 16) == 0, "Size must be a multiple of 16");
-static_assert(sizeof(KMeshClusterBatch) == 16 * 4 + 8 * 4, "must match");
+static_assert(sizeof(KMeshClusterBatch) == 16 * 6 + 8 * 4, "must match");
 
 struct KMeshClustersVertexStorage
 {

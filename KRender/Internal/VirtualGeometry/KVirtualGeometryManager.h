@@ -60,6 +60,7 @@ protected:
 	bool m_UseMeshPipeline;
 	bool m_UseDoubleOcclusion;
 	bool m_PersistentCull;
+	bool m_ConeCull;
 
 	bool AcquireImpl(const char* label, const KMeshRawData& userData, KVirtualGeometryResourceRef& geometry);
 	bool RemoveGeometry(uint32_t index);
@@ -85,6 +86,7 @@ public:
 	bool& GetUseMeshPipeline() { return m_UseMeshPipeline; }
 	bool& GetUseDoubleOcclusion() { return m_UseDoubleOcclusion; }
 	bool& GetUsePersistentCull() { return m_PersistentCull; }
+	bool& GetUseConeCull() { return m_ConeCull; }
 
 	const KShaderCompileEnvironment& GetDefaultBindingEnv() const { return m_DefaultBindingEnv; }
 	const KShaderCompileEnvironment& GetBasepassBindingEnv() const { return m_BasepassBindingEnv; }

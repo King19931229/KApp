@@ -493,6 +493,7 @@ bool KVirtualGeometryScene::UpdateInstanceData()
 
 		globalData.misc2.x = (uint32_t)m_Instances.size();
 		globalData.misc2.y = (uint32_t)m_BinningMaterials.size();
+		globalData.misc2.z = KRenderGlobal::VirtualGeometryManager.GetUseConeCull();
 
 		size_t sceneWidth = 0;
 		size_t sceneHeight = 0;

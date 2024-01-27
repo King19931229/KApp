@@ -19,7 +19,7 @@
 #define INDIRECT_MESH_ARGS_OFFSET 0
 #define USE_INSTANCE_CENTER_CULL 1
 
-#define CLUSTER_BATCH_SIZE (16 * 4 + 8 * 4)
+#define CLUSTER_BATCH_SIZE (16 * 6 + 8 * 4)
 
 #define INSTANCE_CULL_NONE 0
 #define INSTANCE_CULL_MAIN 1
@@ -71,6 +71,8 @@ struct ClusterBatchStruct
 	vec4 lodBoundHalfExtendRadius;
 	vec4 parentBoundCenterError;
 	vec4 parentBoundHalfExtendRadius;
+	vec4 coneCenter;
+	vec4 coneDirection;
 };
 
 // Match with KMeshClusterHierarchyPackedNode
@@ -205,6 +207,7 @@ uniform StreamingData
 #define lodScale misc.z
 #define numInstance misc2.x
 #define numBinning misc2.y
+#define enableConeCull misc2.z
 #define materialBinningIndex misc3.x
 #define pageDataSize misc4.x
 #define streamingPageNum misc4.y
@@ -467,6 +470,16 @@ void GetClusterBatchData(in CandidateCluster cluster, out ClusterBatchStruct clu
 	clusterBatch.parentBoundHalfExtendRadius[1] = uintBitsToFloat(PageData[clusterBatchOffset++]);
 	clusterBatch.parentBoundHalfExtendRadius[2] = uintBitsToFloat(PageData[clusterBatchOffset++]);
 	clusterBatch.parentBoundHalfExtendRadius[3] = uintBitsToFloat(PageData[clusterBatchOffset++]);
+
+	clusterBatch.coneCenter[0] = uintBitsToFloat(PageData[clusterBatchOffset++]);
+	clusterBatch.coneCenter[1] = uintBitsToFloat(PageData[clusterBatchOffset++]);
+	clusterBatch.coneCenter[2] = uintBitsToFloat(PageData[clusterBatchOffset++]);
+	clusterBatch.coneCenter[3] = uintBitsToFloat(PageData[clusterBatchOffset++]);
+
+	clusterBatch.coneDirection[0] = uintBitsToFloat(PageData[clusterBatchOffset++]);
+	clusterBatch.coneDirection[1] = uintBitsToFloat(PageData[clusterBatchOffset++]);
+	clusterBatch.coneDirection[2] = uintBitsToFloat(PageData[clusterBatchOffset++]);
+	clusterBatch.coneDirection[3] = uintBitsToFloat(PageData[clusterBatchOffset++]);
 #else
 	uint resourceIndex = InstanceData[cluster.instanceId].resourceIndex;
 	uint clusterIndex = cluster.clusterIndex;
@@ -597,6 +610,22 @@ bool ShouldVisitChild(mat4 localToWorld, mat4 worldToView, vec3 boundCenter, flo
 {
 	vec2 error = GetProjectScale(localToWorld, worldToView, boundCenter, boundRadius);
 	return error.x < lodScale * maxParentError;
+}
+
+bool ConeCullVisible(mat4 localToWorld, mat4 worldToView, vec4 coneCenter, vec4 coneDirection)
+{
+	if (coneCenter.w != 0)
+	{
+		vec4 centerInView = normalize(worldToView * localToWorld * vec4(coneCenter.xyz, 1.0f));
+		vec4 directionInView = normalize(worldToView * localToWorld * vec4(coneDirection.xyz, 0.0f));
+		float dotProduct = dot(-centerInView.xyz, directionInView.xyz);
+		// coneCenter.w = (abs(coneCenter.w) > 0.95) ? sign(coneCenter.w) : coneCenter.w;
+		return coneCenter.w > 0 ? (dotProduct <= coneDirection.w) : (dotProduct >= coneDirection.w);
+	}
+	else
+	{
+		return true;
+	}
 }
 
 bool SmallEnoughToDraw(mat4 localToWorld, mat4 worldToView, vec3 boundCenter, float boundRadius, float localError)
