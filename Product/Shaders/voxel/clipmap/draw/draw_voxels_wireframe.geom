@@ -23,7 +23,7 @@ uniform Object_DYN_UNIFORM
 	float bias;
 } object;
 
-layout(binding = VOXEL_CLIPMAP_BINDING_NORMAL, rgba8) uniform image3D voxelNormal;
+layout(binding = VOXEL_CLIPMAP_BINDING_NORMAL, rgba8) uniform readonly image3D voxelNormal;
 layout(binding = VOXEL_CLIPMAP_BINDING_DIFFUSE_MAP) uniform sampler3D voxelNormalSampler;
 
 void main()

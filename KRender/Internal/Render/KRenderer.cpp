@@ -194,13 +194,10 @@ bool KRenderer::Render(uint32_t chainImageIndex)
 		if (KRenderGlobal::UsingGIMethod == KRenderGlobal::SVO_GI)
 		{
 			KRenderGlobal::Voxilzer.UpdateVoxel(commandBuffer);
-			KRenderGlobal::Voxilzer.UpdateFrame(commandBuffer);
 		}
-
 		if (KRenderGlobal::UsingGIMethod == KRenderGlobal::CLIPMAP_GI)
 		{
 			KRenderGlobal::ClipmapVoxilzer.UpdateVoxel(commandBuffer);
-			KRenderGlobal::ClipmapVoxilzer.UpdateFrame(commandBuffer);
 		}
 
 		KRenderGlobal::HiZOcclusion.Execute(commandBuffer, cullRes);
@@ -223,6 +220,15 @@ bool KRenderer::Render(uint32_t chainImageIndex)
 
 		KRenderGlobal::GBuffer.TransitionColor(commandBuffer, m_PreGraphics.queue, m_PreGraphics.queue, PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 		KRenderGlobal::GBuffer.TransitionDepthStencil(commandBuffer, m_PreGraphics.queue, m_PreGraphics.queue, PIPELINE_STAGE_LATE_FRAGMENT_TESTS, PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+
+		if (KRenderGlobal::UsingGIMethod == KRenderGlobal::SVO_GI)
+		{
+			KRenderGlobal::Voxilzer.UpdateFrame(commandBuffer);
+		}
+		if (KRenderGlobal::UsingGIMethod == KRenderGlobal::CLIPMAP_GI)
+		{
+			KRenderGlobal::ClipmapVoxilzer.UpdateFrame(commandBuffer);
+		}
 
 		// KRenderGlobal::FrameGraph.Compile();
 		// KRenderGlobal::FrameGraph.Execute(m_PreGraphics.buffer, chainImageIndex);

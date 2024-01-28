@@ -226,15 +226,15 @@ bool KClipmapVoxilzer::RenderVoxel(IKRenderPassPtr renderPass, IKCommandBufferPt
 	if (!m_VoxelDrawEnable)
 		return true;
 
-	KRenderCommand command;
-	command.vertexData = &m_VoxelDrawVertexData;
-	command.indexData = nullptr;
-	command.pipeline = m_VoxelDrawWireFrame ? m_VoxelWireFrameDrawPipeline : m_VoxelDrawPipeline;
-	command.pipeline->GetHandle(renderPass, command.pipelineHandle);
-	command.indexDraw = false;
-
 	for (uint32_t i = 0; i < m_ClipLevelCount; ++i)
 	{
+		KRenderCommand command;
+		command.vertexData = &m_VoxelDrawVertexData;
+		command.indexData = nullptr;
+		command.pipeline = m_VoxelDrawWireFrame ? m_VoxelWireFrameDrawPipeline : m_VoxelDrawPipeline;
+		command.pipeline->GetHandle(renderPass, command.pipelineHandle);
+		command.indexDraw = false;
+
 		struct ObjectData
 		{
 			glm::uvec4 params;

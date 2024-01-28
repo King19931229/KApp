@@ -5,11 +5,11 @@
 
 layout(location = 0) out vec4 albedo;
 
-layout(binding = VOXEL_CLIPMAP_BINDING_ALBEDO, rgba8) uniform image3D voxelAlbedo;
-layout(binding = VOXEL_CLIPMAP_BINDING_NORMAL, rgba8) uniform image3D voxelNormal;
-layout(binding = VOXEL_CLIPMAP_BINDING_EMISSION, rgba8) uniform image3D voxelEmissive;
-layout(binding = VOXEL_CLIPMAP_BINDING_RADIANCE, rgba8) uniform image3D voxelRadiance;
-layout(binding = VOXEL_CLIPMAP_BINDING_VISIBILITY, rgba8) uniform image3D voxelVisibility;
+layout(binding = VOXEL_CLIPMAP_BINDING_ALBEDO, rgba8) uniform readonly image3D voxelAlbedo;
+layout(binding = VOXEL_CLIPMAP_BINDING_NORMAL, rgba8) uniform readonly image3D voxelNormal;
+layout(binding = VOXEL_CLIPMAP_BINDING_EMISSION, rgba8) uniform readonly image3D voxelEmissive;
+layout(binding = VOXEL_CLIPMAP_BINDING_RADIANCE, rgba8) uniform readonly image3D voxelRadiance;
+layout(binding = VOXEL_CLIPMAP_BINDING_VISIBILITY, rgba8) uniform readonly image3D voxelVisibility;
 
 const vec4 colorChannels = vec4(1.0);
 
