@@ -7,28 +7,35 @@ namespace KVulkanInitializer
 {
 	struct BufferSubRegionCopyInfo
 	{
-		uint32_t offset;
-		uint32_t width;
-		uint32_t height;
-		uint32_t mipLevel;
-		uint32_t layer;
+		uint32_t offset = 0;
+		uint32_t width = 0;
+		uint32_t height = 0;
+		uint32_t mipLevel = 0;
+		uint32_t layer = 0;
 	};
 	typedef std::vector<BufferSubRegionCopyInfo> BufferSubRegionCopyInfoList;
 
 	struct ImageSubRegionCopyInfo
 	{
-		uint32_t width;
-		uint32_t height;
-		uint32_t srcFaceIndex;
-		uint32_t dstFaceIndex;
-		uint32_t srcMipLevel;
-		uint32_t dstMipLevel;
+		uint32_t width = 0;
+		uint32_t height = 0;
+		uint32_t srcArrayIndex = 0;
+		uint32_t dstArrayIndex = 0;
+		uint32_t srcMipLevel = 0;
+		uint32_t dstMipLevel = 0;
 	};
 
 	struct ImageBlitInfo
 	{
-		uint32_t size[3];
-		uint32_t layerCount;
+		uint32_t srcWidth = 0;
+		uint32_t srcHeight = 0;
+		uint32_t srcArrayIndex = 0;
+		uint32_t srcMipLevel = 0;
+		uint32_t dstWidth = 0;
+		uint32_t dstHeight = 0;
+		uint32_t dstArrayIndex = 0;
+		uint32_t dstMipLevel = 0;
+		uint32_t linear = 0;
 	};
 
 	struct AccelerationStructureHandle
@@ -122,7 +129,7 @@ namespace KVulkanInitializer
 		VkPipelineStageFlags srcStages, VkPipelineStageFlags dstStages,
 		VkImageLayout oldLayout, VkImageLayout newLayout, VkCommandBuffer commandBuffer);
 
-	void GenerateMipmaps(VkImage image, VkFormat format, int32_t texWidth, int32_t texHeight, int32_t texDepth, uint32_t layers, uint32_t mipLevels);
+	void GenerateMipmaps(VkImage image, VkFormat format, int32_t texWidth, int32_t texHeight, int32_t texDepth, uint32_t baseLayer, uint32_t layers, uint32_t mipLevels);
 
 	void BeginSingleTimeCommand(VkCommandPool commandPool, VkCommandBuffer& commandBuffer);
 	void EndSingleTimeCommand(VkCommandPool commandPool, VkCommandBuffer& commandBuffer);

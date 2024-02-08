@@ -85,6 +85,7 @@
     <ClInclude Include="Internal\Gizmo\KMoveGizmo.h" />
     <ClInclude Include="Internal\Gizmo\KRotateGizmo.h" />
     <ClInclude Include="Internal\Gizmo\KScaleGizmo.h" />
+    <ClInclude Include="Internal\GPUScene\KGPUScene.h" />
     <ClInclude Include="Internal\KConstantDefinition.h" />
     <ClInclude Include="Internal\KConstantGlobal.h" />
     <ClInclude Include="Internal\KDebugConsole.h" />
@@ -206,6 +207,7 @@
     <ClCompile Include="Internal\Gizmo\KMoveGizmo.cpp" />
     <ClCompile Include="Internal\Gizmo\KRotateGizmo.cpp" />
     <ClCompile Include="Internal\Gizmo\KScaleGizmo.cpp" />
+    <ClCompile Include="Internal\GPUScene\KGPUScene.cpp" />
     <ClCompile Include="Internal\KBufferBase.cpp" />
     <ClInclude Include="Internal\KBufferBase.h" />
     <ClCompile Include="Internal\KConstantDefinition.cpp" />

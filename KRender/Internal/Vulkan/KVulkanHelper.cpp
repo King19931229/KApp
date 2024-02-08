@@ -38,6 +38,10 @@ namespace KVulkanHelper
 			imageType = VK_IMAGE_TYPE_2D;
 			imageViewType = VK_IMAGE_VIEW_TYPE_CUBE;
 			return true;
+		case TT_TEXTURE_2D_ARRAY:
+			imageType = VK_IMAGE_TYPE_2D;
+			imageViewType = VK_IMAGE_VIEW_TYPE_2D_ARRAY;
+			return true;
 		case TT_COUNT:
 		default:
 			imageType = VK_IMAGE_TYPE_MAX_ENUM;

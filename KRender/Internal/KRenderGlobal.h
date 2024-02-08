@@ -44,6 +44,7 @@
 #include "Internal/Object/KQuadDataProvider.h"
 
 #include "Internal/RayTrace/KRayTraceScene.h"
+#include "Internal/GPUScene/KGPUScene.h"
 
 #include "Internal/Render/KDeferredRenderer.h"
 
@@ -72,6 +73,8 @@ namespace KRenderGlobal
 	extern KRayTraceManager RayTraceManager;
 
 	extern KVirtualGeometryManager VirtualGeometryManager;
+
+	extern KGPUScene GPUScene;
 
 	extern KDeferredRenderer DeferredRenderer;
 

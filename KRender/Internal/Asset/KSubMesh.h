@@ -46,6 +46,12 @@ public:
 
 	inline DebugPrimitive GetDebugPrimitive() const { return m_DebugPrimitive; }
 	inline IKAccelerationStructurePtr GetIKAccelerationStructure() { return m_AccelerationStructure; }
+	inline const KVertexData* GetVertexData() const { return m_pVertexData; }
+	inline void GetIndexData(KIndexData& indexData, bool& indexDraw) const
+	{
+		indexData = m_IndexData;
+		indexDraw = m_IndexDraw;
+	}
 };
 
 typedef std::shared_ptr<KSubMesh> KSubMeshPtr;

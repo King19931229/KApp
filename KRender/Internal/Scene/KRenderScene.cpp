@@ -74,6 +74,8 @@ bool KRenderScene::InitRenderResource(const KCamera* camera)
 	KRenderGlobal::VirtualGeometryManager.CreateVirtualGeometryScene(m_VGScene);
 	m_VGScene->Init(&KRenderGlobal::Scene, camera);
 
+	KRenderGlobal::GPUScene.Init(this, camera);
+
 	return true;
 }
 
@@ -84,7 +86,9 @@ bool KRenderScene::UnInitRenderResource()
 
 	KRenderGlobal::VirtualGeometryManager.RemoveVirtualGeometryScene(m_VGScene);
 	SAFE_UNINIT(m_VGScene);
-	
+
+	KRenderGlobal::GPUScene.UnInit();
+
 	return true;
 }
 

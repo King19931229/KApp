@@ -337,6 +337,8 @@ bool KPrefilerCubeMap::Compute()
 				primaryBuffer->EndRenderPass();
 
 				primaryBuffer->EndDebugMarker();
+
+				primaryBuffer->Transition(target->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 				primaryBuffer->End();
 
 				primaryBuffer->Flush();

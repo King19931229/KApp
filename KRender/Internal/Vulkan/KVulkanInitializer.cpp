@@ -480,13 +480,13 @@ namespace KVulkanInitializer
 			VkImageCopy copyRegion = {};
 
 			copyRegion.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-			copyRegion.srcSubresource.baseArrayLayer = copyInfo.srcFaceIndex;
+			copyRegion.srcSubresource.baseArrayLayer = copyInfo.srcArrayIndex;
 			copyRegion.srcSubresource.mipLevel = copyInfo.srcMipLevel;
 			copyRegion.srcSubresource.layerCount = 1;
 			copyRegion.srcOffset = { 0, 0, 0 };
 
 			copyRegion.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-			copyRegion.dstSubresource.baseArrayLayer = copyInfo.dstFaceIndex;
+			copyRegion.dstSubresource.baseArrayLayer = copyInfo.dstArrayIndex;
 			copyRegion.dstSubresource.mipLevel = copyInfo.dstMipLevel;
 			copyRegion.dstSubresource.layerCount = 1;
 			copyRegion.dstOffset = { 0, 0, 0 };
@@ -512,17 +512,21 @@ namespace KVulkanInitializer
 		VkCommandBuffer commandBuffer;
 		BeginSingleTimeCommand(KVulkanGlobal::graphicsCommandPool, commandBuffer);
 		{
-			VkOffset3D blitSize;
-			blitSize.x = blitInfo.size[0];
-			blitSize.y = blitInfo.size[1];
-			blitSize.z = blitInfo.size[2];
 			VkImageBlit imageBlitRegion{};
+			
 			imageBlitRegion.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+			imageBlitRegion.srcSubresource.baseArrayLayer = blitInfo.srcArrayIndex;
+			imageBlitRegion.srcSubresource.mipLevel = blitInfo.srcMipLevel;
 			imageBlitRegion.srcSubresource.layerCount = 1;
-			imageBlitRegion.srcOffsets[1] = blitSize;
+			imageBlitRegion.srcOffsets[0] = { 0, 0, 0 };
+			imageBlitRegion.srcOffsets[1] = { (int32_t)blitInfo.srcWidth, (int32_t)blitInfo.srcHeight, 1 };
+
 			imageBlitRegion.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+			imageBlitRegion.dstSubresource.baseArrayLayer = blitInfo.dstArrayIndex;
+			imageBlitRegion.dstSubresource.mipLevel = blitInfo.dstMipLevel;
 			imageBlitRegion.dstSubresource.layerCount = 1;
-			imageBlitRegion.dstOffsets[1] = blitSize;
+			imageBlitRegion.dstOffsets[0] = { 0, 0, 0 };
+			imageBlitRegion.dstOffsets[1] = { (int32_t)blitInfo.dstWidth, (int32_t)blitInfo.dstHeight, 1 };
 
 			vkCmdBlitImage(
 				commandBuffer,
@@ -530,7 +534,7 @@ namespace KVulkanInitializer
 				dstImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 				1,
 				&imageBlitRegion,
-				VK_FILTER_NEAREST);
+				blitInfo.linear ? VK_FILTER_LINEAR : VK_FILTER_NEAREST);
 		}
 		EndSingleTimeCommand(KVulkanGlobal::graphicsCommandPool, commandBuffer);
 	}
@@ -754,7 +758,7 @@ namespace KVulkanInitializer
 		);
 	}
 
-	void GenerateMipmaps(VkImage image, VkFormat format, int32_t texWidth, int32_t texHeight, int32_t texDepth, uint32_t layers, uint32_t mipLevels)
+	void GenerateMipmaps(VkImage image, VkFormat format, int32_t texWidth, int32_t texHeight, int32_t texDepth, uint32_t baseLayer, uint32_t layers, uint32_t mipLevels)
 	{
 		// 检查该format是否支持线性过滤
 		VkFormatProperties formatProperties;
@@ -768,18 +772,18 @@ namespace KVulkanInitializer
 		VkCommandBuffer commandBuffer;
 		BeginSingleTimeCommand(KVulkanGlobal::graphicsCommandPool, commandBuffer);
 		{
-			VkImageMemoryBarrier barrier = {};
-			barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-			barrier.image = image;
-			barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-			barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-			barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-			barrier.subresourceRange.baseArrayLayer = 0;
-			barrier.subresourceRange.layerCount = 1;
-			barrier.subresourceRange.levelCount = 1;
-
-			for (uint32_t layer = 0; layer < layers; ++layer)
+			for (uint32_t layer = baseLayer; layer < baseLayer + layers; ++layer)
 			{
+				VkImageMemoryBarrier barrier = {};
+				barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+				barrier.image = image;
+				barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+				barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+				barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+				barrier.subresourceRange.baseArrayLayer = layer;
+				barrier.subresourceRange.layerCount = 1;
+				barrier.subresourceRange.levelCount = 1;
+
 				int32_t mipWidth = texWidth;
 				int32_t mipHeight = texHeight;
 				int32_t mipDepth = texDepth;
@@ -788,6 +792,7 @@ namespace KVulkanInitializer
 				{
 					// 先用内存屏障对上一层mipmap执行一次Transition 从Transfer目标转换到Transfer源
 					barrier.subresourceRange.baseMipLevel = mipmapLevel - 1;
+
 					barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
 					barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
 					barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;

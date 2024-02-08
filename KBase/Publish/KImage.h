@@ -84,6 +84,7 @@ struct KSubImageInfo
 	size_t uOffset;
 	size_t uSize;
 	size_t uFaceIndex;
+	size_t uSliceIndex;
 	size_t uMipmapIndex;
 
 	KSubImageInfo()
@@ -93,6 +94,7 @@ struct KSubImageInfo
 		uOffset = 0;
 		uSize = 0;
 		uFaceIndex = 0;
+		uSliceIndex = 0;
 		uMipmapIndex = 0;
 	}
 };

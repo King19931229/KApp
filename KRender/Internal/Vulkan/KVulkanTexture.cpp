@@ -106,8 +106,18 @@ bool KVulkanTexture::InitDevice(bool async)
 		using namespace KVulkanGlobal;
 		ASSERT_RESULT(!m_bDeviceInit);
 
-		uint32_t layerCounts = m_TextureType == TT_TEXTURE_CUBE_MAP ? 6 : 1;
-		VkImageCreateFlags createFlags = m_TextureType == TT_TEXTURE_CUBE_MAP ? VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT : 0;
+		uint32_t layerCounts = 1;
+		VkImageCreateFlags createFlags = 0;
+
+		if (m_TextureType == TT_TEXTURE_CUBE_MAP)
+		{
+			layerCounts = 6;
+			createFlags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
+		}
+		else if (m_TextureType == TT_TEXTURE_2D_ARRAY)
+		{
+			layerCounts = (uint32_t)m_Slice;
+		}
 
 		VkImageType imageType = VK_IMAGE_TYPE_MAX_ENUM;
 		VkImageViewType imageViewType = VK_IMAGE_VIEW_TYPE_MAX_ENUM;
@@ -178,17 +188,29 @@ bool KVulkanTexture::InitDevice(bool async)
 						copy.width = static_cast<uint32_t>(info.uWidth);
 						copy.height = static_cast<uint32_t>(info.uHeight);
 						copy.mipLevel = static_cast<uint32_t>(info.uMipmapIndex);
-						copy.layer = static_cast<uint32_t>(info.uFaceIndex);
+						if (m_TextureType == TT_TEXTURE_2D_ARRAY)
+						{
+							copy.layer = static_cast<uint32_t>(info.uSliceIndex);
+						}
+						else if (m_TextureType == TT_TEXTURE_CUBE_MAP)
+						{
+							copy.layer = static_cast<uint32_t>(info.uFaceIndex);
+						}
+						else
+						{
+							copy.layer = 0;
+							assert(subImageInfo.size() == 1 && "must be 1");
+						}
 						copyInfo.push_back(copy);
 					}
 
-					// 拷贝buffer数据到image
+					// 拷贝buffer数据到image					i
 					KVulkanInitializer::CopyVkBufferToVkImageByRegion(stagingBuffer, m_TextureImage, layerCounts, copyInfo);
 
 					if (m_bGenerateMipmap)
 					{
 						KVulkanInitializer::GenerateMipmaps(m_TextureImage, m_TextureFormat, static_cast<int32_t>(m_Width), static_cast<int32_t>(m_Height), static_cast<int32_t>(m_Depth),
-							layerCounts, static_cast<int32_t>(m_Mipmaps));
+							0, layerCounts, static_cast<int32_t>(m_Mipmaps));
 					}
 					else
 					{
@@ -203,7 +225,6 @@ bool KVulkanTexture::InitDevice(bool async)
 
 					// 创建imageview
 					KVulkanInitializer::CreateVkImageView(m_TextureImage, imageViewType, m_TextureFormat, VK_IMAGE_ASPECT_COLOR_BIT, 0, (uint32_t)m_Mipmaps, 0, layerCounts, m_TextureImageView);
-
 					KVulkanInitializer::FreeVkBuffer(stagingBuffer, stagingAllocInfo);
 				}
 
@@ -260,14 +281,16 @@ bool KVulkanTexture::CopyFromFrameBuffer(IKFrameBufferPtr src, uint32_t faceInde
 {
 	if (src && mipLevel < m_Mipmaps)
 	{
-		KVulkanFrameBuffer* frameBufer = (KVulkanFrameBuffer*)src.get();
-		VkImage srcImage = frameBufer->GetImage();
+		KVulkanFrameBuffer* srcFrameBufer = (KVulkanFrameBuffer*)src.get();
+		VkImage srcImage = srcFrameBufer->GetImage();
+
+		KVulkanFrameBuffer* dstFrameBufer = (KVulkanFrameBuffer*)this;
 
 		KVulkanInitializer::TransitionImageLayout(srcImage,
 			m_TextureFormat,
 			0, 1,
 			0, 1,
-			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
 			VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
 
 		KVulkanInitializer::TransitionImageLayout(m_TextureImage,
@@ -277,23 +300,48 @@ bool KVulkanTexture::CopyFromFrameBuffer(IKFrameBufferPtr src, uint32_t faceInde
 			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
 			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 
-		KVulkanInitializer::ImageSubRegionCopyInfo copyInfo = {};
+		bool supportsBlit = srcFrameBufer->SupportBlit() && m_FrameBuffer->SupportBlit();
 
-		copyInfo.width = frameBufer->GetWidth();
-		copyInfo.height = frameBufer->GetHeight();
-		copyInfo.srcMipLevel = 0;
-		copyInfo.srcFaceIndex = 0;
-		copyInfo.dstMipLevel = mipLevel;
-		copyInfo.dstFaceIndex = faceIndex;
+		uint32_t width = std::max(1U, (uint32_t)(m_Width) >> mipLevel);
+		uint32_t height = std::max(1U, (uint32_t)(m_Height) >> mipLevel);
 
-		KVulkanInitializer::CopyVkImageToVkImage(srcImage, m_TextureImage, copyInfo);
+		if (supportsBlit)
+		{
+			KVulkanInitializer::ImageBlitInfo blitInfo = {};
+
+			blitInfo.srcWidth = src->GetWidth();
+			blitInfo.srcHeight = src->GetHeight();
+			blitInfo.dstWidth = width;
+			blitInfo.dstHeight = height;
+			blitInfo.srcMipLevel = 0;
+			blitInfo.srcArrayIndex = 0;
+			blitInfo.dstMipLevel = mipLevel;
+			blitInfo.dstArrayIndex = faceIndex;
+			blitInfo.linear = true;
+
+			KVulkanInitializer::BlitVkImageToVkImage(srcImage, m_TextureImage, blitInfo);
+		}
+		else
+		{
+			assert(width == srcFrameBufer->GetWidth() && height == srcFrameBufer->GetHeight() && "must match");
+			KVulkanInitializer::ImageSubRegionCopyInfo copyInfo = {};
+
+			copyInfo.width = width;
+			copyInfo.height = height;
+			copyInfo.srcMipLevel = 0;
+			copyInfo.srcArrayIndex = 0;
+			copyInfo.dstMipLevel = mipLevel;
+			copyInfo.dstArrayIndex = faceIndex;
+
+			KVulkanInitializer::CopyVkImageToVkImage(srcImage, m_TextureImage, copyInfo);
+		}
 
 		KVulkanInitializer::TransitionImageLayout(srcImage,
 			m_TextureFormat,
 			0, 1,
 			0, 1,
 			VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
 		KVulkanInitializer::TransitionImageLayout(m_TextureImage,
 			m_TextureFormat,
@@ -301,6 +349,88 @@ bool KVulkanTexture::CopyFromFrameBuffer(IKFrameBufferPtr src, uint32_t faceInde
 			mipLevel, 1,
 			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+		return true;
+	}
+	return false;
+}
+
+bool KVulkanTexture::CopyFromFrameBufferToSlice(IKFrameBufferPtr src, uint32_t sliceIndex)
+{
+	if (src && sliceIndex < m_Slice)
+	{
+		KVulkanFrameBuffer* srcFrameBufer = (KVulkanFrameBuffer*)src.get();
+		VkImage srcImage = srcFrameBufer->GetImage();
+
+		KVulkanInitializer::TransitionImageLayout(srcImage,
+			m_TextureFormat,
+			0, 1,
+			0, 1,
+			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+			VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
+
+		KVulkanInitializer::TransitionImageLayout(m_TextureImage,
+			m_TextureFormat,
+			sliceIndex, 1,
+			0, (uint32_t)m_Mipmaps,
+			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+
+		bool supportsBlit = srcFrameBufer->SupportBlit() && m_FrameBuffer->SupportBlit();
+
+		if (supportsBlit)
+		{
+			KVulkanInitializer::ImageBlitInfo blitInfo = {};
+
+			blitInfo.srcWidth = src->GetWidth();
+			blitInfo.srcHeight = src->GetHeight();
+			blitInfo.dstWidth = (uint32_t)m_Width;
+			blitInfo.dstHeight = (uint32_t)m_Height;
+			blitInfo.srcMipLevel = 0;
+			blitInfo.srcArrayIndex = 0;
+			blitInfo.dstMipLevel = 0;
+			blitInfo.dstArrayIndex = sliceIndex;
+			blitInfo.linear = true;
+
+			KVulkanInitializer::BlitVkImageToVkImage(srcImage, m_TextureImage, blitInfo);
+		}
+		else
+		{
+			assert(m_Width == srcFrameBufer->GetWidth() && m_Height == srcFrameBufer->GetHeight() && "must match");
+			KVulkanInitializer::ImageSubRegionCopyInfo copyInfo = {};
+
+			copyInfo.width = (uint32_t)m_Width;
+			copyInfo.height = (uint32_t)m_Height;
+			copyInfo.srcMipLevel = 0;
+			copyInfo.srcArrayIndex = 0;
+			copyInfo.dstMipLevel = 0;
+			copyInfo.dstArrayIndex = sliceIndex;
+
+			KVulkanInitializer::CopyVkImageToVkImage(srcImage, m_TextureImage, copyInfo);
+		}
+
+		KVulkanInitializer::TransitionImageLayout(srcImage,
+			m_TextureFormat,
+			0, 1,
+			0, 1,
+			VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+		if (m_bGenerateMipmap)
+		{
+			KVulkanInitializer::GenerateMipmaps(m_TextureImage, m_TextureFormat,
+				static_cast<int32_t>(m_Width), static_cast<int32_t>(m_Height), static_cast<int32_t>(m_Depth),
+				sliceIndex, 1, static_cast<int32_t>(m_Mipmaps));
+		}
+		else
+		{
+			KVulkanInitializer::TransitionImageLayout(m_TextureImage,
+				m_TextureFormat,
+				sliceIndex, 1,
+				0, (uint32_t)m_Mipmaps,
+				VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+				VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+		}
 
 		return true;
 	}

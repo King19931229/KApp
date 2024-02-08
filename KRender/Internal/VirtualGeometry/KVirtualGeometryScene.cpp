@@ -1099,12 +1099,12 @@ KVirtualGeometryScene::InstancePtr KVirtualGeometryScene::CreateInstance(IKEntit
 	}
 	else
 	{
-		InstancePtr Instance(KNEW Instance());
-		Instance->index = (uint32_t)m_Instances.size();
-		Instance->transform = glm::mat4(0.0f);
-		m_Instances.push_back(Instance);
-		m_InstanceMap.insert({ entity, Instance });
-		return Instance;
+		InstancePtr instance(KNEW Instance());
+		instance->index = (uint32_t)m_Instances.size();
+		instance->transform = glm::mat4(0.0f);
+		m_Instances.push_back(instance);
+		m_InstanceMap.insert({ entity, instance });
+		return instance;
 	}
 }
 
@@ -1122,10 +1122,10 @@ bool KVirtualGeometryScene::AddInstance(IKEntity* entity, const glm::mat4& trans
 {
 	if (entity)
 	{
-		InstancePtr Instance = CreateInstance(entity);
-		Instance->prevTransform = transform;
-		Instance->transform = transform;
-		Instance->resource = resource;
+		InstancePtr instance = CreateInstance(entity);
+		instance->prevTransform = transform;
+		instance->transform = transform;
+		instance->resource = resource;
 		return true;
 	}
 	return false;
@@ -1135,10 +1135,10 @@ bool KVirtualGeometryScene::TransformInstance(IKEntity* entity, const glm::mat4&
 {
 	if (entity)
 	{
-		InstancePtr Instance = GetInstance(entity);
-		if (Instance)
+		InstancePtr instance = GetInstance(entity);
+		if (instance)
 		{
-			Instance->transform = transform;
+			instance->transform = transform;
 		}
 		return true;
 	}

@@ -82,6 +82,9 @@
     <Filter Include="Internal\VirtualGeometry">
       <UniqueIdentifier>{f5231b21-2e5d-4ec1-ba23-50e616d85898}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Internal\GPUScene">
+      <UniqueIdentifier>{11f6578e-72d8-4930-871e-36b83a7f92a3}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Interface\IKRenderDevice.h">
@@ -552,6 +555,10 @@
     <ClInclude Include="Internal\VirtualGeometry\KVirtualGeomerty.h">
       <Filter>Internal\VirtualGeometry</Filter>
     </ClInclude>
+    <ClInclude Include="Internal\VirtualGeometry\KVirtualGeometryStreaming.h" />
+    <ClInclude Include="Internal\GPUScene\KGPUScene.h">
+      <Filter>Internal\GPUScene</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Internal\KRenderDevice.cpp">
@@ -898,6 +905,10 @@
     </ClCompile>
     <ClCompile Include="Internal\VirtualGeometry\KVirtualGeometry.cpp">
       <Filter>Internal\VirtualGeometry</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\VirtualGeometry\KVirtualGeometryStreaming.cpp" />
+    <ClCompile Include="Internal\GPUScene\KGPUScene.cpp">
+      <Filter>Internal\GPUScene</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

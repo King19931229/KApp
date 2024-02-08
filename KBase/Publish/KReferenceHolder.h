@@ -186,3 +186,14 @@ public:
 		m_RefCount = nullptr;
 	}
 };
+
+/*
+template<typename Type>
+struct std::hash<KReferenceHolder<Type>>
+{
+	inline std::size_t operator()(const KReferenceHolder<Type>& holder) const
+	{
+		return (size_t)holder.Get();
+	}
+};
+*/

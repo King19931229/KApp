@@ -324,6 +324,20 @@ bool KVulkanFrameBuffer::InitReadback(VkFormat format, uint32_t width, uint32_t 
 	return true;
 }
 
+bool KVulkanFrameBuffer::SupportBlit() const
+{
+	bool supportsBlit = true;
+	// Check blit support for source and destination
+	VkFormatProperties formatProps;
+	// Check if the device supports blitting from optimal images
+	vkGetPhysicalDeviceFormatProperties(KVulkanGlobal::physicalDevice, m_Format, &formatProps);
+	if (!(formatProps.optimalTilingFeatures & VK_FORMAT_FEATURE_BLIT_SRC_BIT))
+	{
+		supportsBlit = false;
+	}
+	return supportsBlit;
+}
+
 bool KVulkanFrameBuffer::CopyToReadback(IKFrameBuffer* framebuffer)
 {
 	if (framebuffer && framebuffer->IsReadback())
@@ -337,33 +351,25 @@ bool KVulkanFrameBuffer::CopyToReadback(IKFrameBuffer* framebuffer)
 		ASSERT_RESULT(src->GetMipmaps() == dest->GetMipmaps());
 		ASSERT_RESULT(src->GetForamt() == dest->GetForamt());
 
-		bool supportsBlit = true;
-		// Check blit support for source and destination
-		VkFormatProperties formatProps;
-
-		// Check if the device supports blitting from optimal images
-		vkGetPhysicalDeviceFormatProperties(KVulkanGlobal::physicalDevice ,src->m_Format, &formatProps);
-		if (!(formatProps.optimalTilingFeatures & VK_FORMAT_FEATURE_BLIT_SRC_BIT))
-		{
-			supportsBlit = false;
-		}
-
-		// Check if the device supports blitting to linear images 
-		vkGetPhysicalDeviceFormatProperties(KVulkanGlobal::physicalDevice, dest->m_Format, &formatProps);
-		if (!(formatProps.linearTilingFeatures & VK_FORMAT_FEATURE_BLIT_DST_BIT))
-		{
-			supportsBlit = false;
-		}
+		bool supportsBlit = framebuffer->SupportBlit() && this->SupportBlit();
 
 		KVulkanInitializer::TransitionImageLayout(src->m_Image, src->m_Format, 0, src->m_Layers, 0, src->m_Mipmaps, src->m_ImageLayout, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
 		KVulkanInitializer::TransitionImageLayout(dest->m_Image, dest->m_Format, 0, dest->m_Layers, 0, dest->m_Mipmaps, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 
+		assert(dest->GetDepth() == 1);
+
 		if (supportsBlit)
 		{
 			KVulkanInitializer::ImageBlitInfo blitInfo = {};
-			blitInfo.size[0] = src->GetWidth();
-			blitInfo.size[1] = dest->GetWidth();
-			blitInfo.size[2] = dest->GetDepth();
+	
+			blitInfo.srcWidth = src->GetWidth();
+			blitInfo.srcHeight = src->GetHeight();
+			blitInfo.dstHeight = m_Width;
+			blitInfo.dstHeight = m_Height;
+			blitInfo.srcMipLevel = 0;
+			blitInfo.srcArrayIndex = 0;
+			blitInfo.dstMipLevel = 0;
+			blitInfo.dstArrayIndex = 0;
 
 			KVulkanInitializer::BlitVkImageToVkImage(src->m_Image, dest->m_Image, blitInfo);
 		}
@@ -374,9 +380,9 @@ bool KVulkanFrameBuffer::CopyToReadback(IKFrameBuffer* framebuffer)
 			copyInfo.width = src->GetWidth();
 			copyInfo.height = src->GetHeight();
 			copyInfo.srcMipLevel = 0;
-			copyInfo.srcFaceIndex = 0;
+			copyInfo.srcArrayIndex = 0;
 			copyInfo.dstMipLevel = 0;
-			copyInfo.dstFaceIndex = 0;
+			copyInfo.dstArrayIndex = 0;
 
 			KVulkanInitializer::CopyVkImageToVkImage(src->m_Image, dest->m_Image, copyInfo);
 		}

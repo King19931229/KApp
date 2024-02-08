@@ -257,6 +257,7 @@ KTextureBase::KTextureBase()
 	: m_Width(0),
 	m_Height(0),
 	m_Depth(0),
+	m_Slice(0),
 	m_Mipmaps(0),
 	m_Format(EF_UNKNOWN),
 	m_TextureType(TT_UNKNOWN),
@@ -277,6 +278,7 @@ bool KTextureBase::InitProperty(bool generateMipmap)
 	m_Width = m_ImageData.uWidth;
 	m_Height = m_ImageData.uHeight;
 	m_Depth = m_ImageData.uDepth;
+	m_Slice = m_ImageData.uSlice;
 
 	// 已经存在mipmap数据或者格式为压缩格式就不硬生成mipmap
 	if (m_ImageData.uMipmap > 1 || m_ImageData.bCompressed)
@@ -296,6 +298,10 @@ bool KTextureBase::InitProperty(bool generateMipmap)
 	{
 		m_TextureType = TT_TEXTURE_CUBE_MAP;
 	}
+	else if (m_ImageData.uSlice > 1)
+	{
+		m_TextureType = TT_TEXTURE_2D_ARRAY;
+	}
 	else if (m_Depth ==	1)
 	{
 		m_TextureType = TT_TEXTURE_2D;
@@ -305,7 +311,7 @@ bool KTextureBase::InitProperty(bool generateMipmap)
 		m_TextureType = TT_TEXTURE_3D;
 	}
 
-	if(ImageFormatToElementFormat(m_ImageData.eFormat, m_Format))
+	if (ImageFormatToElementFormat(m_ImageData.eFormat, m_Format))
 	{
 		return true;
 	}
@@ -414,7 +420,7 @@ bool KTextureBase::InitMemoryFromData(const void* pRawData, const std::string& n
 				subImageInfo.uWidth = width;
 				subImageInfo.uHeight = height;
 				subImageInfo.uOffset = pImageData->GetSize() * face / faceCount;
-				subImageInfo.uSize = pImageData->GetSize();
+				subImageInfo.uSize = pImageData->GetSize() / faceCount;
 				subImageInfo.uFaceIndex = face;
 				subImageInfo.uMipmapIndex = 0;
 				m_ImageData.pData->GetSubImageInfo().push_back(subImageInfo);
@@ -444,6 +450,49 @@ bool KTextureBase::InitMemoryFromData(const void* pRawData, const std::string& n
 	{
 		return loadImpl();
 	}
+}
+
+bool KTextureBase::InitMemoryFrom2DArray(const std::string& name, size_t width, size_t height, size_t slices, ImageFormat format, bool bGenerateMipmap)
+{
+	ReleaseMemory();
+
+	size_t formatSize = 0;
+	if (ImageFormatToSize(format, formatSize))
+	{
+		KImageDataPtr pImageData = KImageDataPtr(KNEW KImageData(width * height * slices * formatSize));
+		memset(pImageData->GetData(), 0, pImageData->GetSize());
+
+		m_ImageData.eFormat = format;
+		m_ImageData.uWidth = width;
+		m_ImageData.uHeight = height;
+		m_ImageData.uSlice = slices;
+		m_ImageData.uDepth = 1;
+		m_ImageData.uMipmap = 1;//std::floor(std::log(std::max(std::max(width, height), (size_t)1)) / std::log(2)) + 1;
+		m_ImageData.bCompressed = false;
+		m_ImageData.bCubemap = false;
+		m_ImageData.pData = pImageData;
+
+		for (size_t slice = 0; slice < slices; ++slice)
+		{
+			KSubImageInfo subImageInfo;
+			subImageInfo.uWidth = width;
+			subImageInfo.uHeight = height;
+			subImageInfo.uOffset = pImageData->GetSize() * slice / slices;
+			subImageInfo.uSize = pImageData->GetSize() / slices;
+			subImageInfo.uSliceIndex = slice;
+			subImageInfo.uMipmapIndex = 0;
+			m_ImageData.pData->GetSubImageInfo().push_back(subImageInfo);
+		}
+
+		if (InitProperty(bGenerateMipmap))
+		{
+			m_Path = name;
+			m_ResourceState = RS_MEMORY_LOADED;
+			return true;
+		}
+	}
+
+	return false;
 }
 
 bool KTextureBase::UnInit()

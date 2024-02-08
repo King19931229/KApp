@@ -19,6 +19,8 @@ namespace KRenderGlobal
 
 	KVirtualGeometryManager VirtualGeometryManager;
 
+	KGPUScene GPUScene;
+
 	KDeferredRenderer DeferredRenderer;
 
 	KSkyBox SkyBox;

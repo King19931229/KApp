@@ -179,6 +179,7 @@ bool KRenderCore::InitController()
 		{
 			m_Device->Wait();
 			KRenderGlobal::VirtualGeometryManager.ReloadShader();
+			KRenderGlobal::GPUScene.ReloadShader();
 		}
 		if (key == INPUT_KEY_R)
 		{
@@ -251,7 +252,6 @@ bool KRenderCore::InitRenderResource()
 	}
 
 	KRenderGlobal::Scene.InitRenderResource(&m_Camera);
-	KRenderGlobal::RTAO.Init(KRenderGlobal::Scene.GetRayTraceScene().get());
 
 	return true;
 }

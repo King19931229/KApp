@@ -80,6 +80,8 @@ public:
 	bool IsStorageImage() const override { return m_ImageLayout == VK_IMAGE_LAYOUT_GENERAL; }
 	bool IsReadback() const override { return m_ImageLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL; }
 
+	bool SupportBlit() const override;
+
 	inline VkImage GetImage() const { return m_Image; }
 	VkImageView GetImageView() const;
 	inline VkImage GetMSAAImage() const { return m_MSAAImage; }

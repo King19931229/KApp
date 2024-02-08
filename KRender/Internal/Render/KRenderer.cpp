@@ -171,6 +171,8 @@ bool KRenderer::Render(uint32_t chainImageIndex)
 	commandBuffer = m_Shadow.pool->Request(CBL_PRIMARY);
 	commandBuffer->BeginPrimary();
 	{
+		KRenderGlobal::GPUScene.Execute(commandBuffer);
+
 		KRenderGlobal::CascadedShadowMap.UpdateShadowMap();
 
 		KMultithreadingRenderContext multithreadRenderContext;
@@ -372,6 +374,8 @@ bool KRenderer::Init(const KRendererInitContext& initContext)
 	KRenderGlobal::DeferredRenderer.Init(camera, width, height);
 
 	KRenderGlobal::DepthOfField.Init(width, height, 0.5f);
+
+	KRenderGlobal::RTAO.Init(KRenderGlobal::Scene.GetRayTraceScene().get());
 
 	// 需要先创建资源 之后会在Tick时候执行Compile把无用的释放掉
 	KRenderGlobal::FrameGraph.Alloc();

@@ -10,6 +10,7 @@ struct KCodecResult
 	size_t uWidth;
 	size_t uHeight;
 	size_t uDepth;
+	size_t uSlice;
 	size_t uMipmap;
 
 	bool bCompressed;
@@ -24,6 +25,7 @@ struct KCodecResult
 		uHeight = 0;
 		uDepth = 1;
 		uMipmap = 1;
+		uSlice = 1;
 		bCompressed = false;
 		bCubemap = false;
 		b3DTexture = false;
