@@ -152,7 +152,7 @@
       <AdditionalIncludeDirectories>../;../KBase;../KRender;../Dependency/Python27/Include;../Dependency/Python27/PCStatic;../Dependency/rapidjson/include/;../Dependency/glm-0.9.8.0/;../Dependency/rttr-0.9.7/src/;../Dependency/imgui/;../Dependency/metis-5.1.0/include/</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <MinimalRebuild>false</MinimalRebuild>
-      <DisableSpecificWarnings>4819</DisableSpecificWarnings>
+      <DisableSpecificWarnings>4819;26812</DisableSpecificWarnings>
       <AdditionalOptions>/source-charset:utf-8 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
@@ -172,7 +172,7 @@
       <AdditionalIncludeDirectories>../;../KBase;../KRender;../Dependency/Python27/Include;../Dependency/Python27/PCStatic;../Dependency/rapidjson/include/;../Dependency/glm-0.9.8.0/;../Dependency/rttr-0.9.7/src/;../Dependency/imgui/;../Dependency/metis-5.1.0/include/</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <MinimalRebuild>false</MinimalRebuild>
-      <DisableSpecificWarnings>4819</DisableSpecificWarnings>
+      <DisableSpecificWarnings>4819;26812</DisableSpecificWarnings>
       <AdditionalOptions>/source-charset:utf-8 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
@@ -193,7 +193,7 @@
       <PreprocessorDefinitions>WIN32;GLM_FORCE_RADIANS;GLM_FORCE_DEPTH_ZERO_TO_ONE;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>../;../KBase;../KRender;../Dependency/Python27/Include;../Dependency/Python27/PCStatic;../Dependency/rapidjson/include/;../Dependency/glm-0.9.8.0/;../Dependency/rttr-0.9.7/src/;../Dependency/imgui/;../Dependency/metis-5.1.0/include/</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <DisableSpecificWarnings>4819</DisableSpecificWarnings>
+      <DisableSpecificWarnings>4819;26812</DisableSpecificWarnings>
       <AdditionalOptions>/source-charset:utf-8 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
@@ -215,7 +215,7 @@
       <PreprocessorDefinitions>WIN32;GLM_FORCE_RADIANS;GLM_FORCE_DEPTH_ZERO_TO_ONE;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>../;../KBase;../KRender;../Dependency/Python27/Include;../Dependency/Python27/PCStatic;../Dependency/rapidjson/include/;../Dependency/glm-0.9.8.0/;../Dependency/rttr-0.9.7/src/;../Dependency/imgui/;../Dependency/metis-5.1.0/include/</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <DisableSpecificWarnings>4819</DisableSpecificWarnings>
+      <DisableSpecificWarnings>4819;26812</DisableSpecificWarnings>
       <AdditionalOptions>/source-charset:utf-8 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>

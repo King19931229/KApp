@@ -6,6 +6,14 @@
 namespace KVertexDefinition
 {
 	static VertexDetail VERTEX_DETAILS[VF_COUNT];
+	static const char* VERTEX_FORMAT_NAME[VF_COUNT] =
+	{
+		#define VERTEX_FORMAT_SCENE(FORMAT) #FORMAT,
+		#define VERTEX_FORMAT_OTHER(FORMAT) #FORMAT,
+		#include "Interface/KVertexFormat.inl"
+		#undef VERTEX_FORMAT_OTHER
+		#undef VERTEX_FORMAT_SCENE
+	};
 
 	static bool VERTEX_DETAIL_INIT = false;
 
@@ -85,6 +93,12 @@ namespace KVertexDefinition
 				VERTEX_DETAILS[VF_VIRTUAL_GEOMETRY_VERTEX].vertexSize = sizeof(VIRTUAL_GEOMERTY_VERTEX_POS_3F_NORM_3F_UV_2F);
 				static_assert(sizeof(VIRTUAL_GEOMERTY_VERTEX_POS_3F_NORM_3F_UV_2F) == KVirtualGeometryEncoding::FLOAT_PER_VERTEX * sizeof(float), "must match");
 			}
+
+			for (uint32_t i = 0; i < VF_COUNT; ++i)
+			{
+				VERTEX_DETAILS[i].name = VERTEX_FORMAT_NAME[i];
+			}
+
 			VERTEX_DETAIL_INIT = true;
 		}
 	}

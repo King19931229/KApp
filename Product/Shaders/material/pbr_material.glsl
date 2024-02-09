@@ -6,6 +6,34 @@
 #define worldToClip camera.viewProj
 #endif
 
+#ifdef GPU_SCENE
+
+#if HAS_MATERIAL_TEXTURE0
+layout(binding = BINDING_TEXTURE0) uniform sampler2DArray diffuseArraySampler;
+#endif
+
+#if HAS_MATERIAL_TEXTURE1
+layout(binding = BINDING_TEXTURE1) uniform sampler2DArray normalArraySampler;
+#endif
+
+#if HAS_MATERIAL_TEXTURE2
+#if PBR_MATERIAL_SPECULAR_GLOSINESS
+layout(binding = BINDING_TEXTURE2) uniform sampler2DArray specularGlosinessArraySampler;
+#else
+layout(binding = BINDING_TEXTURE2) uniform sampler2DArray metalRoughnessArraySampler;
+#endif
+#endif
+
+#if HAS_MATERIAL_TEXTURE3
+layout(binding = BINDING_TEXTURE3) uniform sampler2DArray emissiveArraySampler;
+#endif
+
+#if HAS_MATERIAL_TEXTURE4
+layout(binding = BINDING_TEXTURE4) uniform sampler2DArray aoArraySampler;
+#endif
+
+#else
+
 #if HAS_MATERIAL_TEXTURE0
 layout(binding = BINDING_TEXTURE0) uniform sampler2D diffuseSampler;
 #endif
@@ -29,6 +57,23 @@ layout(binding = BINDING_TEXTURE3) uniform sampler2D emissiveSampler;
 #if HAS_MATERIAL_TEXTURE4
 layout(binding = BINDING_TEXTURE4) uniform sampler2D aoSampler;
 #endif
+
+layout(binding = BINDING_SHADING)
+uniform Shading_DYN_UNIFORM
+{
+	vec4 baseColorFactor;
+#if PBR_MATERIAL_SPECULAR_GLOSINESS
+	vec4 diffuseFactor;
+	vec4 specularFactor;
+#endif
+	vec4 emissiveFactor;
+	float metallicFactor;
+	float roughnessFactor;
+	float alphaMask;
+	float alphaMaskCutoff;
+} shading;
+
+#endif // GPU_SCENE
 
 #define MANUAL_SRGB 0
 #define SRGB_FAST_APPROXIMATION 1
@@ -65,21 +110,6 @@ vec4 SRGBtoLINEAR(vec4 srgbIn)
 	return srgbIn;
 #endif //MANUAL_SRGB
 }
-
-layout(binding = BINDING_SHADING)
-uniform Shading_DYN_UNIFORM
-{
-	vec4 baseColorFactor;
-#if PBR_MATERIAL_SPECULAR_GLOSINESS
-	vec4 diffuseFactor;
-	vec4 specularFactor;
-#endif
-	vec4 emissiveFactor;
-	float metallicFactor;
-	float roughnessFactor;
-	float alphaMask;
-	float alphaMaskCutoff;
-} shading;
 
 MaterialPixelParameters ComputeMaterialPixelParameters(
 	  vec3 worldPos

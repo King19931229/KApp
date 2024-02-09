@@ -101,6 +101,7 @@ namespace KVertexDefinition
 	{
 		VertexSemanticDetailList semanticDetails;
 		size_t vertexSize;
+		const char* name;
 	};
 	const VertexDetail& GetVertexDetail(VertexFormat format);	
 }

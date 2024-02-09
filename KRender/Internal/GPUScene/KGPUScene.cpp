@@ -3,6 +3,8 @@
 #include "Internal/ECS/Component/KTransformComponent.h"
 #include "Internal/KRenderGlobal.h"
 
+#define COMPUTE_HASH_CONSTRUCT_MEGA_BUFFER 0
+
 KGPUScene::KGPUScene()
 	: m_Scene(nullptr)
 	, m_Camera(nullptr)
@@ -218,10 +220,14 @@ void KGPUScene::RebuildEntitySubMeshAndMaterialIndex()
 
 void KGPUScene::RebuildMegaBuffer()
 {
+	std::unordered_map<uint64_t, uint32_t> vertexBufferOffset[VF_COUNT];
+	std::unordered_set<uint64_t> vertexBufferWrite[VF_COUNT];
 	uint32_t vertexBufferTotalSize[VF_COUNT] = { 0 };
 	uint32_t vertexBufferWriteSize[VF_COUNT] = { 0 };
 	uint32_t vertexBufferVertexCount[VF_COUNT] = { 0 };
 
+	std::unordered_map<uint64_t, uint32_t> indexBufferOffset;
+	std::unordered_set<uint64_t> indexBufferWrite;
 	uint32_t indexBufferTotalSize = 0;
 	uint32_t indexBufferWriteSize = 0;
 	uint32_t indexBufferCount = 0;
@@ -234,28 +240,76 @@ void KGPUScene::RebuildMegaBuffer()
 		for (size_t index = 0; index < vertexData->vertexFormats.size(); ++index)
 		{
 			VertexFormat vertexFormat = vertexData->vertexFormats[index];
+			IKVertexBufferPtr vertexBuffer = vertexData->vertexBuffers[index];
+
 			const KVertexDefinition::VertexDetail& detail = KVertexDefinition::GetVertexDetail(vertexFormat);
-			vertexBufferTotalSize[vertexFormat] += (uint32_t)(detail.vertexSize * vertexCount);
-			vertexBufferVertexCount[vertexFormat] += vertexCount;
+
+			uint64_t hash = 0;
+#if COMPUTE_HASH_CONSTRUCT_MEGA_BUFFER
+			void* pData = nullptr;
+			vertexBuffer->Map(&pData);
+			pData = POINTER_OFFSET(pData, vertexData->vertexStart * detail.vertexSize);
+			hash = KHash::BKDR((const char*)pData, vertexData->vertexCount * detail.vertexSize);
+			vertexBuffer->UnMap();
+#else
+			hash = (uint64_t)vertexBuffer.get();
+#endif
+
+			auto it = vertexBufferOffset[vertexFormat].find(hash);
+			if (it == vertexBufferOffset[vertexFormat].end())
+			{
+				vertexBufferOffset[vertexFormat].insert({ hash, vertexBufferTotalSize[vertexFormat] });
+				vertexBufferTotalSize[vertexFormat] += (uint32_t)(vertexData->vertexCount * detail.vertexSize);
+				vertexBufferVertexCount[vertexFormat] += vertexCount;
+			}
 		}
-		item.vertexCount = vertexCount;
 
 		uint32_t indexCount = 0;
 		KIndexData indexData;
 		bool indexDraw = false;
 		item.subMesh->GetIndexData(indexData, indexDraw);
-		if (indexDraw)
 		{
-			indexCount = indexData.indexCount;
+			uint64_t hash = 0;
+
+			if (indexDraw)
+			{
+#if COMPUTE_HASH_CONSTRUCT_MEGA_BUFFER
+				void* pData = nullptr;
+				indexData.indexBuffer->Map(&pData);
+				pData = POINTER_OFFSET(pData, indexData.indexStart * ((indexData.indexBuffer->GetIndexType() == IT_16) ? sizeof(uint16_t) : sizeof(uint32_t)));
+				hash = KHash::BKDR((const char*)pData, indexData.indexCount * ((indexData.indexBuffer->GetIndexType() == IT_16) ? sizeof(uint16_t) : sizeof(uint32_t)));
+				indexData.indexBuffer->UnMap();
+#else
+				hash = (uint64_t)indexData.indexBuffer.get();
+#endif
+				indexCount = indexData.indexCount;
+			}
+			else
+			{
+				std::vector<uint32_t> indices;
+				indices.reserve(vertexData->vertexCount);
+				for (uint32_t i = 0; i < vertexData->vertexCount; ++i)
+				{
+					indices.push_back(i + vertexData->vertexStart);
+				}
+				hash = KHash::BKDR((const char*)indices.data(), vertexData->vertexCount * sizeof(uint32_t));
+
+				indexCount = vertexData->vertexCount;
+			}
+
+			auto it = indexBufferOffset.find(hash);
+			if (it == indexBufferOffset.end())
+			{
+				indexBufferOffset.insert({ hash, indexBufferTotalSize });
+				indexBufferTotalSize += indexCount * sizeof(uint32_t);
+				indexBufferCount += indexCount;
+			}
 		}
-		else
-		{
-			indexCount = vertexData->vertexCount;
-		}
+
+		// Assign vertexCount and indexCount
+		item.vertexCount = vertexCount;
 		item.indexCount = indexCount;
-		indexBufferCount += indexCount;
 	}
-	indexBufferTotalSize = sizeof(uint32_t) * indexBufferCount;
 
 	for (uint32_t vertexFormat = 0; vertexFormat < VF_COUNT; ++vertexFormat)
 	{
@@ -268,6 +322,7 @@ void KGPUScene::RebuildMegaBuffer()
 			{
 				m_MegaBuffer.vertexBuffers[vertexFormat]->InitMemory(vertexBufferVertexCount[vertexFormat], detail.vertexSize, nullptr);
 				m_MegaBuffer.vertexBuffers[vertexFormat]->InitDevice(false);
+				m_MegaBuffer.vertexBuffers[vertexFormat]->SetDebugName((std::string("GPUSceneVertexData_") + detail.name).c_str());
 			}
 			assert(m_MegaBuffer.vertexBuffers[vertexFormat]->GetBufferSize() == vertexBufferTotalSize[vertexFormat]);
 		}
@@ -279,13 +334,14 @@ void KGPUScene::RebuildMegaBuffer()
 		KRenderGlobal::RenderDevice->CreateIndexBuffer(m_MegaBuffer.indexBuffer);
 		m_MegaBuffer.indexBuffer->InitMemory(IT_32, indexBufferCount, nullptr);
 		m_MegaBuffer.indexBuffer->InitDevice(false);
+		m_MegaBuffer.indexBuffer->SetDebugName("GPUSceneIndexData");
 		assert(m_MegaBuffer.indexBuffer->GetBufferSize() == indexBufferTotalSize);
 	}
 
 	for (uint32_t vertexFormat = 0; vertexFormat < VF_COUNT; ++vertexFormat)
 	{
 		IKVertexBufferPtr destVertexBuffer = m_MegaBuffer.vertexBuffers[vertexFormat];
-		if (!destVertexBuffer)
+		if (destVertexBuffer->GetBufferSize() == 0)
 		{
 			continue;
 		}
@@ -303,32 +359,53 @@ void KGPUScene::RebuildMegaBuffer()
 
 			for (size_t index = 0; index < vertexData->vertexFormats.size(); ++index)
 			{
-				if (vertexData->vertexFormats[index] == vertexFormat)
+				if (vertexData->vertexFormats[index] != vertexFormat)
 				{
-					IKVertexBufferPtr srcVertexBuffer = vertexData->vertexBuffers[index];
+					continue;
+				}
 
-					uint32_t destWriteOffset = vertexBufferWriteSize[vertexFormat];
+				IKVertexBufferPtr srcVertexBuffer = vertexData->vertexBuffers[index];
 
-					uint32_t srcVertexOffset = (uint32_t)(vertexStart * detail.vertexSize);
-					uint32_t srcVertexSize = (uint32_t)(vertexCount * detail.vertexSize);
+				uint64_t hash = 0;
 
-					item.vertexBufferOffset[vertexFormat] = destWriteOffset;
-					item.vertexBufferSize[vertexFormat] = srcVertexSize;
+				uint32_t srcVertexOffset = (uint32_t)(vertexStart * detail.vertexSize);
+				uint32_t srcVertexSize = (uint32_t)(vertexCount * detail.vertexSize);
 
-					void* pSrcVertexData = nullptr;
-					srcVertexBuffer->Map(&pSrcVertexData);
-					pSrcVertexData = POINTER_OFFSET(pSrcVertexData, srcVertexOffset);
+				uint32_t destWriteOffset = 0;
 
+				void* pSrcVertexData = nullptr;
+				srcVertexBuffer->Map(&pSrcVertexData);
+#if COMPUTE_HASH_CONSTRUCT_MEGA_BUFFER
+				pSrcVertexData = POINTER_OFFSET(pSrcVertexData, srcVertexOffset);
+				hash = KHash::BKDR((const char*)pSrcVertexData, srcVertexSize);
+#else
+				hash = (uint64_t)srcVertexBuffer.get();
+#endif
+				// Find the location to write
+				auto it = vertexBufferOffset[vertexFormat].find(hash);
+				assert(it != vertexBufferOffset[vertexFormat].end());
+				if (it != vertexBufferOffset[vertexFormat].end())
+				{
+					destWriteOffset = it->second;
+				}
+
+				// Copy only when necessary
+				if (vertexBufferWrite[vertexFormat].find(hash) == vertexBufferWrite[vertexFormat].end())
+				{
 					void* pDestVertexData = nullptr;
 					pDestVertexData = POINTER_OFFSET(pMegaVertexData, destWriteOffset);
-
 					memcpy(pDestVertexData, pSrcVertexData, srcVertexSize);
-
-					srcVertexBuffer->UnMap();
-					vertexBufferWriteSize[vertexFormat] += item.vertexBufferSize[vertexFormat];
-
-					break;
+					vertexBufferWrite[vertexFormat].insert(hash);
+					vertexBufferWriteSize[vertexFormat] += srcVertexSize;
 				}
+
+				srcVertexBuffer->UnMap();
+				
+				// Assign vertexBufferOffset and vertexBufferSize
+				item.vertexBufferOffset[vertexFormat] = destWriteOffset;
+				item.vertexBufferSize[vertexFormat] = srcVertexSize;
+
+				break;
 			}
 		}
 
@@ -339,8 +416,6 @@ void KGPUScene::RebuildMegaBuffer()
 	{
 		void* pMegaIndexData = nullptr;
 		m_MegaBuffer.indexBuffer->Map(&pMegaIndexData);
-
-		void* pDestIndexData = pMegaIndexData;
 
 		for (SubMeshItem& item : m_SubMeshes)
 		{
@@ -366,38 +441,97 @@ void KGPUScene::RebuildMegaBuffer()
 					pSrcIndexData = POINTER_OFFSET(pSrcIndexData, indexStart * sizeof(uint32_t));
 				}
 
-				for (uint32_t i = 0; i < indexCount; ++i)
+				uint64_t hash = 0;
+#if COMPUTE_HASH_CONSTRUCT_MEGA_BUFFER
+				if (indexData.indexBuffer->GetIndexType() == IT_16)
 				{
-					if (indexData.indexBuffer->GetIndexType() == IT_16)
+					hash = KHash::BKDR((const char*)pSrcIndexData, indexCount * sizeof(uint16_t));
+				}
+				else
+				{
+					hash = KHash::BKDR((const char*)pSrcIndexData, indexCount * sizeof(uint32_t));
+				}
+#else
+				hash = (uint64_t)indexData.indexBuffer.get();
+#endif
+
+				uint32_t destWriteOffset = 0;
+
+				// Find the location to write
+				auto it = indexBufferOffset.find(hash);
+				assert(it != indexBufferOffset.end());
+				if (it != indexBufferOffset.end())
+				{
+					destWriteOffset = it->second;
+				}
+
+				// Copy only when necessary
+				if (indexBufferWrite.find(hash) == indexBufferWrite.end())
+				{
+					void* pDestIndexData = pMegaIndexData;
+					pDestIndexData = POINTER_OFFSET(pDestIndexData, destWriteOffset);
+
+					for (uint32_t i = 0; i < indexCount; ++i)
 					{
-						*(uint32_t*)pDestIndexData = *(uint16_t*)pSrcIndexData;
-						pSrcIndexData = POINTER_OFFSET(pSrcIndexData, sizeof(uint16_t));
+						if (indexData.indexBuffer->GetIndexType() == IT_16)
+						{
+							*(uint32_t*)pDestIndexData = *(uint16_t*)pSrcIndexData;
+							pSrcIndexData = POINTER_OFFSET(pSrcIndexData, sizeof(uint16_t));
+						}
+						else
+						{
+							*(uint32_t*)pDestIndexData = *(uint32_t*)pSrcIndexData;
+							pSrcIndexData = POINTER_OFFSET(pSrcIndexData, sizeof(uint32_t));
+						}
+						pDestIndexData = POINTER_OFFSET(pDestIndexData, sizeof(uint32_t));
+						indexBufferWriteSize += sizeof(uint32_t);
 					}
-					else
-					{
-						*(uint32_t*)pDestIndexData = *(uint32_t*)pSrcIndexData;
-						pSrcIndexData = POINTER_OFFSET(pSrcIndexData, sizeof(uint32_t));
-					}
-					pDestIndexData = POINTER_OFFSET(pDestIndexData, sizeof(uint32_t));
-					indexBufferWriteSize += sizeof(uint32_t);
+					indexBufferWrite.insert(hash);
 				}
 				indexData.indexBuffer->UnMap();
+
+				item.indexBufferSize = indexCount * sizeof(uint32_t);
 			}
 			else
 			{
 				const KVertexData* vertexData = item.subMesh->GetVertexData();
 				uint32_t vertexStart = vertexData->vertexStart;
 				uint32_t vertexCount = vertexData->vertexCount;
-
-				for (uint32_t i = 0; i < vertexCount; ++i)
+	
+				std::vector<uint32_t> indices;
+				indices.reserve(vertexData->vertexCount);
+				for (uint32_t i = 0; i < vertexData->vertexCount; ++i)
 				{
-					*(uint32_t*)pDestIndexData = vertexStart + i;
-					pDestIndexData = POINTER_OFFSET(pDestIndexData, sizeof(uint32_t));
-					indexBufferWriteSize += sizeof(uint32_t);
+					indices.push_back(i + vertexData->vertexStart);
 				}
-			}
+				uint32_t hash = KHash::BKDR((const char*)indices.data(), vertexData->vertexCount * sizeof(uint32_t));
 
-			item.indexBufferSize = indexBufferWriteSize - item.indexBufferOffset;
+				uint32_t destWriteOffset = 0;
+				// Find the location to write
+				auto it = indexBufferOffset.find(hash);
+				assert(it != indexBufferOffset.end());
+				if (it != indexBufferOffset.end())
+				{
+					destWriteOffset = it->second;
+				}
+
+				void* pDestIndexData = pMegaIndexData;
+				pDestIndexData = POINTER_OFFSET(pDestIndexData, destWriteOffset);
+
+				// Copy only when necessary
+				if (indexBufferWrite.find(hash) == indexBufferWrite.end())
+				{
+					for (uint32_t i = 0; i < vertexCount; ++i)
+					{
+						*(uint32_t*)pDestIndexData = vertexStart + i;
+						pDestIndexData = POINTER_OFFSET(pDestIndexData, sizeof(uint32_t));
+						indexBufferWriteSize += sizeof(uint32_t);
+					}
+					indexBufferWrite.insert(hash);
+				}
+
+				item.indexBufferSize = vertexCount * sizeof(uint32_t);
+			}
 		}
 
 		m_MegaBuffer.indexBuffer->UnMap();

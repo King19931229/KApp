@@ -742,7 +742,7 @@ bool KMaterial::ReadXMLContent(std::vector<char>& content)
 	return true;
 }
 
-bool SetupMaterialGeneratedCode(const std::string& file, std::string& code)
+static bool SetupMaterialGeneratedCode(const std::string& file, std::string& code)
 {
 	IKFileSystemPtr system = KFileSystem::Manager->GetFileSystem(FSD_SHADER);
 	ASSERT_RESULT(system);

@@ -229,7 +229,7 @@
       <AdditionalIncludeDirectories>./;../;../Dependency/FreeImage/;../Dependency/boost/include/;../Dependency/Python27/Include/;../Dependency/Python27/PCStatic/;../Dependency/assimp-3.3.1/include/;../Dependency/zip-0.1.16/src/;../Dependency/rapidjson/include/;../Dependency/tinyxml2/;../Dependency/glm-0.9.8.0/;../Dependency/rttr-0.9.7/src/;../Dependency/tinygltf/;../Dependency/astc-encoder/Source/;../Dependency/metis-5.1.0/include/</AdditionalIncludeDirectories>
       <MinimalRebuild>false</MinimalRebuild>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <DisableSpecificWarnings>4819</DisableSpecificWarnings>
+      <DisableSpecificWarnings>4819;26812</DisableSpecificWarnings>
       <AdditionalOptions>/source-charset:utf-8 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
@@ -253,7 +253,7 @@
       <AdditionalIncludeDirectories>./;../;../Dependency/FreeImage/;../Dependency/boost/include/;../Dependency/Python27/Include/;../Dependency/Python27/PCStatic/;../Dependency/assimp-3.3.1/include/;../Dependency/zip-0.1.16/src/;../Dependency/rapidjson/include/;../Dependency/tinyxml2/;../Dependency/glm-0.9.8.0/;../Dependency/rttr-0.9.7/src/;../Dependency/tinygltf/;../Dependency/astc-encoder/Source/;../Dependency/metis-5.1.0/include/</AdditionalIncludeDirectories>
       <MinimalRebuild>false</MinimalRebuild>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <DisableSpecificWarnings>4819</DisableSpecificWarnings>
+      <DisableSpecificWarnings>4819;26812</DisableSpecificWarnings>
       <AdditionalOptions>/source-charset:utf-8 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
@@ -278,7 +278,7 @@
       <PreprocessorDefinitions>WIN32;_CRT_SECURE_NO_WARNINGS;_WINSOCK_DEPRECATED_NO_WARNINGS;NDEBUG;_LIB;FREEIMAGE_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>./;../;../Dependency/FreeImage/;../Dependency/boost/include/;../Dependency/Python27/Include/;../Dependency/Python27/PCStatic/;../Dependency/assimp-3.3.1/include/;../Dependency/zip-0.1.16/src/;../Dependency/rapidjson/include/;../Dependency/tinyxml2/;../Dependency/glm-0.9.8.0/;../Dependency/rttr-0.9.7/src/;../Dependency/tinygltf/;../Dependency/astc-encoder/Source/;../Dependency/metis-5.1.0/include/</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <DisableSpecificWarnings>4819</DisableSpecificWarnings>
+      <DisableSpecificWarnings>4819;26812</DisableSpecificWarnings>
       <SDLCheck>true</SDLCheck>
       <AdditionalOptions>/source-charset:utf-8 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
@@ -304,7 +304,7 @@
       <PreprocessorDefinitions>WIN32;_CRT_SECURE_NO_WARNINGS;_WINSOCK_DEPRECATED_NO_WARNINGS;NDEBUG;_LIB;FREEIMAGE_LIB;GLM_FORCE_RADIANS;GLM_FORCE_DEPTH_ZERO_TO_ONE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>./;../;../Dependency/FreeImage/;../Dependency/boost/include/;../Dependency/Python27/Include/;../Dependency/Python27/PCStatic/;../Dependency/assimp-3.3.1/include/;../Dependency/zip-0.1.16/src/;../Dependency/rapidjson/include/;../Dependency/tinyxml2/;../Dependency/glm-0.9.8.0/;../Dependency/rttr-0.9.7/src/;../Dependency/tinygltf/;../Dependency/astc-encoder/Source/;../Dependency/metis-5.1.0/include/</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <DisableSpecificWarnings>4819</DisableSpecificWarnings>
+      <DisableSpecificWarnings>4819;26812</DisableSpecificWarnings>
       <SDLCheck>true</SDLCheck>
       <AdditionalOptions>/source-charset:utf-8 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>

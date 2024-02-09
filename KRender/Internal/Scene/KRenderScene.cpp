@@ -76,6 +76,8 @@ bool KRenderScene::InitRenderResource(const KCamera* camera)
 
 	KRenderGlobal::GPUScene.Init(this, camera);
 
+	KRenderGlobal::RTAO.Init(KRenderGlobal::Scene.GetRayTraceScene().get());
+
 	return true;
 }
 

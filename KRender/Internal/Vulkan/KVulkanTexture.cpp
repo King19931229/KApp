@@ -199,7 +199,6 @@ bool KVulkanTexture::InitDevice(bool async)
 						else
 						{
 							copy.layer = 0;
-							assert(subImageInfo.size() == 1 && "must be 1");
 						}
 						copyInfo.push_back(copy);
 					}

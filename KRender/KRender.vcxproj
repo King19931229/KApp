@@ -374,7 +374,7 @@
       <AdditionalIncludeDirectories>./;../;../Dependency/Python27/Include/;../Dependency/Python27/PCStatic/;../Dependency/glm-0.9.8.0/;../Dependency/glfw3/include/;../Dependency/imgui/;../Dependency/rttr-0.9.7/src/;../Dependency/glslang/;../Dependency/SPIRV-Cross/;../Dependency/NsightAftermath/include/;../Dependency/NsightAftermath/VkNsightAftermath/;../Dependency/metis-5.1.0/include/;$(VK_SDK_PATH)/Include</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <MinimalRebuild>false</MinimalRebuild>
-      <DisableSpecificWarnings>4819</DisableSpecificWarnings>
+      <DisableSpecificWarnings>4819;26812</DisableSpecificWarnings>
       <SDLCheck>true</SDLCheck>
       <AdditionalOptions>/source-charset:utf-8 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
@@ -397,7 +397,7 @@
       <AdditionalIncludeDirectories>./;../;../Dependency/Python27/Include/;../Dependency/Python27/PCStatic/;../Dependency/glm-0.9.8.0/;../Dependency/glfw3/include/;../Dependency/imgui/;../Dependency/rttr-0.9.7/src/;../Dependency/glslang/;../Dependency/SPIRV-Cross/;../Dependency/NsightAftermath/include/;../Dependency/NsightAftermath/VkNsightAftermath/;../Dependency/metis-5.1.0/include/;$(VK_SDK_PATH)/Include</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <MinimalRebuild>false</MinimalRebuild>
-      <DisableSpecificWarnings>4819</DisableSpecificWarnings>
+      <DisableSpecificWarnings>4819;26812</DisableSpecificWarnings>
       <SDLCheck>true</SDLCheck>
       <AdditionalOptions>/source-charset:utf-8 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
@@ -422,7 +422,7 @@
       <PreprocessorDefinitions>WIN32;GLM_FORCE_RADIANS;GLM_FORCE_DEPTH_ZERO_TO_ONE;_LIB;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>./;../;../Dependency/Python27/Include/;../Dependency/Python27/PCStatic/;../Dependency/glm-0.9.8.0/;../Dependency/glfw3/include/;../Dependency/imgui/;../Dependency/rttr-0.9.7/src/;../Dependency/glslang/;../Dependency/SPIRV-Cross/;../Dependency/NsightAftermath/include/;../Dependency/NsightAftermath/VkNsightAftermath/;../Dependency/metis-5.1.0/include/;$(VK_SDK_PATH)/Include</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <DisableSpecificWarnings>4819</DisableSpecificWarnings>
+      <DisableSpecificWarnings>4819;26812</DisableSpecificWarnings>
       <SDLCheck>true</SDLCheck>
       <AdditionalOptions>/source-charset:utf-8 %(AdditionalOptions)</AdditionalOptions>
       <WholeProgramOptimization>false</WholeProgramOptimization>
@@ -448,7 +448,7 @@
       <PreprocessorDefinitions>WIN32;GLM_FORCE_RADIANS;GLM_FORCE_DEPTH_ZERO_TO_ONE;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>./;../;../Dependency/Python27/Include/;../Dependency/Python27/PCStatic/;../Dependency/glm-0.9.8.0/;../Dependency/glfw3/include/;../Dependency/imgui/;../Dependency/rttr-0.9.7/src/;../Dependency/glslang/;../Dependency/SPIRV-Cross/;../Dependency/NsightAftermath/include/;../Dependency/NsightAftermath/VkNsightAftermath/;../Dependency/metis-5.1.0/include/;$(VK_SDK_PATH)/Include</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <DisableSpecificWarnings>4819</DisableSpecificWarnings>
+      <DisableSpecificWarnings>4819;26812</DisableSpecificWarnings>
       <SDLCheck>true</SDLCheck>
       <AdditionalOptions>/source-charset:utf-8 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>

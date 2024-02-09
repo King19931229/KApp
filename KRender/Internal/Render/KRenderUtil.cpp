@@ -172,21 +172,9 @@ namespace KRenderUtil
 			VertexFormat format = command.vertexData->vertexFormats[i];
 			IKVertexBufferPtr buffer = command.vertexData->vertexBuffers[i];
 
-			uint32_t binding = ~0;
+			uint32_t binding = SBT_POINT_NORMAL_UV + format;
 
-			switch (format)
-			{
-				case VF_POINT_NORMAL_UV:
-					binding = SBT_POSITION_NORMAL_UV;
-					break;
-				case VF_TANGENT_BINORMAL:
-					binding = SBT_TANGENT_BINORMAL;
-					break;
-				default:
-					break;
-			}
-
-			if (binding != ~0)
+			if (format < VF_SCENE_COUNT)
 			{
 				usage.binding = binding;
 				usage.buffer = buffer;
