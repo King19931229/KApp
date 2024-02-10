@@ -61,8 +61,9 @@ size_t KShaderMap::CalcHash(const VertexFormat* formats, size_t count, const KTe
 std::mutex KShaderMap::STATIC_RESOURCE_LOCK;
 KShaderMap::MacrosMap KShaderMap::VS_MACROS_MAP;
 KShaderMap::MacrosMap KShaderMap::VS_INSTANCE_MACROS_MAP;
-KShaderMap::MacrosMap KShaderMap::MS_MACROS_MAP;
+KShaderMap::MacrosMap KShaderMap::VS_GPUSCENE_MACROS_MAP;
 KShaderMap::MacrosMap KShaderMap::FS_MACROS_MAP;
+KShaderMap::MacrosMap KShaderMap::FS_GPUSCENE_MACROS_MAP;
 KShaderMap::MacrosSet KShaderMap::MACROS_SET;
 
 void KShaderMap::InitializePermuationMap()
@@ -98,6 +99,7 @@ KShaderMap::~KShaderMap()
 {
 	ASSERT_RESULT(m_VSShaderMap.empty());
 	ASSERT_RESULT(m_VSInstanceShaderMap.empty());
+	ASSERT_RESULT(m_VSGPUSceneShaderMap.empty());
 	ASSERT_RESULT(m_FSShaderMap.empty());
 }
 
@@ -112,11 +114,13 @@ void KShaderMap::EnsureMacroMap(const bool* macrosToEnable)
 
 		Macros vsNoninstanceMacros;
 		Macros vsInstanceMacros;
+		Macros vsGPUSceneMacros;
 		Macros fsMacros;
-		Macros msMacros;
+		Macros fsGPUSceneMacros;
 
 		vsNoninstanceMacros.reserve(MACRO_SIZE);
 		vsInstanceMacros.reserve(MACRO_SIZE);
+		vsGPUSceneMacros.reserve(MACRO_SIZE);
 
 		for (size_t i = 0; i < MACRO_SIZE; ++i)
 		{
@@ -137,23 +141,23 @@ void KShaderMap::EnsureMacroMap(const bool* macrosToEnable)
 			{
 				vsInstanceMacros.push_back({ PERMUTATING_MACRO[i].macro, pEnableOrDisable });
 				vsNoninstanceMacros.push_back({ PERMUTATING_MACRO[i].macro, pEnableOrDisable });
-				msMacros.push_back({ PERMUTATING_MACRO[i].macro, pEnableOrDisable });
+				vsGPUSceneMacros.push_back({ PERMUTATING_MACRO[i].macro, pEnableOrDisable });
 			}
 			fsMacros.push_back({ PERMUTATING_MACRO[i].macro, pEnableOrDisable });
+			fsGPUSceneMacros.push_back({ PERMUTATING_MACRO[i].macro, pEnableOrDisable });
 		}
 
 		vsNoninstanceMacros.push_back({ INSTANCE_INPUT_MACRO, "0" });
 		vsInstanceMacros.push_back({ INSTANCE_INPUT_MACRO, "1" });
-		msMacros.push_back({ INSTANCE_INPUT_MACRO, "0" });
 
-		vsNoninstanceMacros.push_back({ MESHLET_INPUT_MACRO, "0" });
-		vsInstanceMacros.push_back({ MESHLET_INPUT_MACRO, "0" });
-		msMacros.push_back({ MESHLET_INPUT_MACRO, "1" });
+		vsGPUSceneMacros.push_back({ GPUSCENE_INPUT_MACRO, "1" });
+		fsGPUSceneMacros.push_back({ GPUSCENE_INPUT_MACRO, "1" });
 
 		VS_MACROS_MAP[hash] = std::make_shared<Macros>(std::move(vsNoninstanceMacros));
 		VS_INSTANCE_MACROS_MAP[hash] = std::make_shared<Macros>(std::move(vsInstanceMacros));
-		MS_MACROS_MAP[hash] = std::make_shared<Macros>(std::move(msMacros));
+		VS_GPUSCENE_MACROS_MAP[hash] = std::make_shared<Macros>(std::move(vsGPUSceneMacros));
 		FS_MACROS_MAP[hash] = std::make_shared<Macros>(std::move(fsMacros));
+		FS_GPUSCENE_MACROS_MAP[hash] = std::make_shared<Macros>(std::move(fsGPUSceneMacros));
 	}
 }
 
@@ -181,7 +185,6 @@ bool KShaderMap::Init(const KShaderMapInitContext& context, bool async)
 
 	m_VSFile = context.vsFile;
 	m_FSFile = context.fsFile;
-	m_MSFile = context.msFile;
 	m_Includes = context.IncludeSource;
 
 	m_Async = false;
@@ -190,7 +193,6 @@ bool KShaderMap::Init(const KShaderMapInitContext& context, bool async)
 
 	m_VSTemplateShader = GetVSShader(templateFormat, ARRAY_SIZE(templateFormat));
 	m_FSTemplateShader = GetFSShader(templateFormat, ARRAY_SIZE(templateFormat), nullptr);
-	if (!m_MSFile.empty()) m_MSTemplateShader = GetMSShader(templateFormat, ARRAY_SIZE(templateFormat));
 
 	m_Async = async;
 
@@ -201,14 +203,12 @@ bool KShaderMap::UnInit()
 {
 	m_VSTemplateShader = nullptr;
 	m_FSTemplateShader = nullptr;
-	m_MSTemplateShader = nullptr;
 
 	m_VSFile.clear();
 	m_FSFile.clear();
-	m_MSFile.clear();
 	m_Includes.clear();
 
-	for (ShaderMap* shadermap : { &m_VSShaderMap, &m_VSInstanceShaderMap, &m_FSShaderMap, &m_MSShaderMap })
+	for (ShaderMap* shadermap : { &m_VSShaderMap, &m_VSInstanceShaderMap, &m_FSShaderMap, &m_VSGPUSceneShaderMap, &m_FSGPUSceneShaderMap })
 	{
 		for (auto& pair : *shadermap)
 		{
@@ -223,14 +223,14 @@ bool KShaderMap::UnInit()
 
 bool KShaderMap::Reload()
 {
-	for (ShaderMap* shadermap : { &m_VSShaderMap, &m_VSInstanceShaderMap, &m_FSShaderMap, &m_MSShaderMap })
+	for (ShaderMap* shadermap : { &m_VSShaderMap, &m_VSInstanceShaderMap, &m_FSShaderMap, &m_VSGPUSceneShaderMap, &m_FSGPUSceneShaderMap })
 	{
 		for (auto& pair : *shadermap)
 		{
 			KShaderRef& shader = pair.second;
 			(*shader)->Reload();
 		}
-	}
+	};
 	return true;
 }
 
@@ -301,7 +301,7 @@ bool KShaderMap::IsAllFSLoaded()
 	return false;
 }
 
-bool KShaderMap::IsBothLoaded(const VertexFormat* formats, size_t count, const KTextureBinding* textureBinding)
+bool KShaderMap::IsPermutationLoaded(const VertexFormat* formats, size_t count, const KTextureBinding* textureBinding)
 {
 	size_t vsHash = CalcHash(formats, count, nullptr);
 	if (m_VSShaderMap.find(vsHash) == m_VSShaderMap.end()) return false;
@@ -331,143 +331,62 @@ const KShaderInformation* KShaderMap::GetFSInformation()
 	return nullptr;
 }
 
-const KShaderInformation* KShaderMap::GetMSInformation()
+IKShaderPtr KShaderMap::GetShaderImplement(ShaderType shaderType, ShaderMap& shaderMap, MacrosMap& marcoMap, const VertexFormat* formats, size_t count, const KTextureBinding* textureBinding)
 {
-	if (m_MSTemplateShader)
+	if (formats && count && (shaderType == ST_VERTEX || shaderType == ST_FRAGMENT))
 	{
-		return &m_MSTemplateShader->GetInformation();
+		size_t hash = CalcHash(formats, count, textureBinding);
+		auto it = shaderMap.find(hash);
+		if (it != shaderMap.end())
+		{
+			return *it->second;
+		}
+		else
+		{
+			auto itMacro = marcoMap.find(hash);
+			if (itMacro != marcoMap.end())
+			{
+				const Macros& macros = *itMacro->second;
+				KShaderRef shader;
+
+				KShaderCompileEnvironment env;
+				env.macros = macros;
+				env.includes = m_Includes;
+
+				const std::string& shaderFile = (shaderType == ST_VERTEX) ? m_VSFile.c_str() : m_FSFile.c_str();
+
+				if (KRenderGlobal::ShaderManager.Acquire(shaderType, shaderFile.c_str(), env, shader, m_Async))
+				{
+					shaderMap[hash] = shader;
+					return *shader;
+				}
+			}
+		}
 	}
 	return nullptr;
 }
 
 IKShaderPtr KShaderMap::GetVSShader(const VertexFormat* formats, size_t count)
 {
-	if (formats && count)
-	{
-		size_t hash = CalcHash(formats, count, nullptr);
-		auto it = m_VSShaderMap.find(hash);
-		if (it != m_VSShaderMap.end())
-		{
-			return *it->second;
-		}
-		else
-		{
-			auto itMacro = VS_MACROS_MAP.find(hash);
-			if (itMacro != VS_MACROS_MAP.end())
-			{
-				const Macros& macros = *itMacro->second;
-				KShaderRef vsShader;
-
-				KShaderCompileEnvironment env;
-				env.macros = macros;
-				env.includes = m_Includes;
-
-				if (KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, m_VSFile.c_str(), env, vsShader, m_Async))
-				{
-					m_VSShaderMap[hash] = vsShader;
-					return *vsShader;
-				}
-			}
-		}
-	}
-	return nullptr;
+	return GetShaderImplement(ST_VERTEX, m_VSShaderMap, VS_MACROS_MAP, formats, count, nullptr);
 }
 
 IKShaderPtr KShaderMap::GetVSInstanceShader(const VertexFormat* formats, size_t count)
 {
-	if (formats && count)
-	{
-		size_t hash = CalcHash(formats, count, nullptr);
-		auto it = m_VSInstanceShaderMap.find(hash);
-		if (it != m_VSInstanceShaderMap.end())
-		{
-			return *it->second;
-		}
-		else
-		{
-			auto itMacro = VS_INSTANCE_MACROS_MAP.find(hash);
-			if (itMacro != VS_INSTANCE_MACROS_MAP.end())
-			{
-				const Macros& macros = *itMacro->second;
-				KShaderRef vsInstanceShader;
-
-				KShaderCompileEnvironment env;
-				env.macros = macros;
-				env.includes = m_Includes;
-
-				if (KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, m_VSFile.c_str(), env, vsInstanceShader, m_Async))
-				{
-					m_VSInstanceShaderMap[hash] = vsInstanceShader;
-					return *vsInstanceShader;
-				}
-			}
-		}
-	}
-	return nullptr;
+	return GetShaderImplement(ST_VERTEX, m_VSInstanceShaderMap, VS_INSTANCE_MACROS_MAP, formats, count, nullptr);
 }
 
-IKShaderPtr KShaderMap::GetMSShader(const VertexFormat* formats, size_t count)
+IKShaderPtr KShaderMap::GetVSGPUSceneShader(const VertexFormat* formats, size_t count)
 {
-	if (formats && count && !m_MSFile.empty())
-	{
-		size_t hash = CalcHash(formats, count, nullptr);
-		auto it = m_MSShaderMap.find(hash);
-		if (it != m_MSShaderMap.end())
-		{
-			return *it->second;
-		}
-		else
-		{
-			auto itMacro = MS_MACROS_MAP.find(hash);
-			if (itMacro != MS_MACROS_MAP.end())
-			{
-				const Macros& macros = *itMacro->second;
-				KShaderRef msShader;
-
-				KShaderCompileEnvironment env;
-				env.macros = macros;
-				env.includes = m_Includes;
-
-				if (KRenderGlobal::ShaderManager.Acquire(ST_MESH, m_MSFile.c_str(), env, msShader, m_Async))
-				{
-					m_MSShaderMap[hash] = msShader;
-					return *msShader;
-				}
-			}
-		}
-	}
-	return nullptr;
+	return GetShaderImplement(ST_VERTEX, m_VSGPUSceneShaderMap, VS_GPUSCENE_MACROS_MAP, formats, count, nullptr);
 }
 
 IKShaderPtr KShaderMap::GetFSShader(const VertexFormat* formats, size_t count, const KTextureBinding* textureBinding)
 {
-	if (formats && count)
-	{
-		size_t hash = CalcHash(formats, count, textureBinding);
-		auto it = m_FSShaderMap.find(hash);
-		if (it != m_FSShaderMap.end())
-		{
-			return *it->second;
-		}
-		else
-		{
-			auto itMacro = FS_MACROS_MAP.find(hash);
-			if (itMacro != FS_MACROS_MAP.end())
-			{
-				const Macros& macros = *itMacro->second;
-				KShaderRef fsShader;
+	return GetShaderImplement(ST_FRAGMENT, m_FSShaderMap, FS_MACROS_MAP, formats, count, textureBinding);
+}
 
-				KShaderCompileEnvironment env;
-				env.macros = macros;
-				env.includes = m_Includes;
-
-				if (KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, m_FSFile.c_str(), env, fsShader, m_Async))
-				{
-					m_FSShaderMap[hash] = fsShader;
-					return *fsShader;
-				}
-			}
-		}
-	}
-	return nullptr;
+IKShaderPtr KShaderMap::GetFSGPUSceneShader(const VertexFormat* formats, size_t count, const KTextureBinding* textureBinding)
+{
+	return GetShaderImplement(ST_FRAGMENT, m_FSGPUSceneShaderMap, FS_GPUSCENE_MACROS_MAP, formats, count, textureBinding);
 }

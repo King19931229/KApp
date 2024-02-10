@@ -33,6 +33,17 @@ protected:
 	std::vector<MaterialItem> m_Materials;
 	std::unordered_map<IKMaterialPtr, uint32_t> m_MaterialToIndex;
 
+	struct MegaShaderItem
+	{
+		IKShaderPtr vsShader;
+		IKShaderPtr fsShader;
+		std::vector<IKStorageBufferPtr> shaderParameterBuffer;
+		uint32_t shaderParameterIndexCounter = 0;
+		uint32_t refCount = 0;
+	};
+	std::vector<MegaShaderItem> m_MegaShaders;
+	std::unordered_map<uint64_t, uint32_t> m_MegaShaderToIndex;
+
 	struct SceneEntity
 	{
 		uint32_t index = 0;
@@ -41,6 +52,8 @@ protected:
 		std::vector<KMaterialSubMeshPtr> materialSubMeshes;
 		std::vector<uint32_t> subMeshIndices;
 		std::vector<uint32_t> materialIndices;
+		std::vector<uint32_t> megaShaderIndices;
+		std::vector<uint32_t> shaderParameterIndices;
 	};
 	typedef std::shared_ptr<SceneEntity> SceneEntityPtr;
 	std::unordered_map<IKEntity*, SceneEntityPtr> m_EntityMap;
@@ -62,11 +75,15 @@ protected:
 	RenderComponentObserverFunc m_OnRenderComponentChangedFunc;
 	void OnRenderComponentChanged(IKRenderComponent* renderComponent, bool init);
 
+	uint64_t ComputeHashByMaterialSubMesh(KSubMeshPtr subMesh, IKMaterialPtr material);
+
 	uint32_t CreateOrGetSubMeshIndex(KSubMeshPtr subMesh, bool create);
 	uint32_t CreateOrGetMaterialIndex(IKMaterialPtr material, bool create);
+	uint32_t CreateOrGetMegaShaderIndex(KSubMeshPtr subMesh, IKMaterialPtr material, bool create);
 
 	void RemoveSubMesh(KSubMeshPtr subMesh);
 	void RemoveMaterial(IKMaterialPtr material);
+	void RemoveMegaShader(KSubMeshPtr subMesh, IKMaterialPtr material);
 
 	SceneEntityPtr CreateEntity(IKEntity* entity);
 	SceneEntityPtr GetEntity(IKEntity* entity);

@@ -26,13 +26,17 @@ layout(location = 10) in vec3 color4;
 layout(location = 11) in vec3 color5;
 #endif
 
+#ifdef GPU_SCENE
+layout(location = 12) in flat uint darwIndex;
+#endif
+
 layout(location = 0) out vec4 RT0;
 layout(location = 1) out vec4 RT1;
 layout(location = 2) out vec4 RT2;
 layout(location = 3) out vec4 RT3;
 layout(location = 4) out vec4 RT4;
 
-/* Shader compiler will replace this into the texcode of the material */
+/* Shader compiler will replace this into the textcode of the material */
 #include "material_generate_code.h"
 
 void EncodeGBuffer(vec3 pos, vec3 normal, vec2 motion, vec3 baseColor, vec3 emissive, float metal, float roughness, float ao)

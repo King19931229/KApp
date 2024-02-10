@@ -26,7 +26,6 @@ void main()
 {
 	uv = texcoord0;
 
-	mat4 worldMatrix = WORLD_MATRIX;
 	vec4 worldNormal = worldMatrix * vec4(normal, 0.0);
 
 #if TANGENT_BINORMAL_INPUT

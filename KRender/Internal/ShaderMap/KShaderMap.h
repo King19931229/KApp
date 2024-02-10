@@ -7,7 +7,7 @@
 #include <mutex>
 
 static constexpr char* INSTANCE_INPUT_MACRO = "INSTANCE_INPUT";
-static constexpr char* MESHLET_INPUT_MACRO = "MESHLET_INPUT";
+static constexpr char* GPUSCENE_INPUT_MACRO = "GPU_SCENE";
 
 struct KShaderMapMacro
 {
@@ -107,7 +107,6 @@ struct KShaderMapInitContext
 {
 	std::string vsFile;
 	std::string fsFile;
-	std::string msFile;
 	std::vector<std::tuple<std::string, std::string>> IncludeSource;
 };
 
@@ -117,15 +116,14 @@ protected:
 	typedef std::unordered_map<size_t, KShaderRef> ShaderMap;
 	ShaderMap m_VSShaderMap;
 	ShaderMap m_VSInstanceShaderMap;
-	ShaderMap m_MSShaderMap;
+	ShaderMap m_VSGPUSceneShaderMap;
 	ShaderMap m_FSShaderMap;
+	ShaderMap m_FSGPUSceneShaderMap;
 
 	IKShaderPtr m_VSTemplateShader;
 	IKShaderPtr m_FSTemplateShader;
-	IKShaderPtr m_MSTemplateShader;
 
 	std::string m_VSFile;
-	std::string m_MSFile;
 	std::string m_FSFile;
 	std::vector<IKShader::IncludeSource> m_Includes;
 
@@ -139,8 +137,9 @@ protected:
 	static std::mutex STATIC_RESOURCE_LOCK;
 	static MacrosMap VS_MACROS_MAP;
 	static MacrosMap VS_INSTANCE_MACROS_MAP;
-	static MacrosMap MS_MACROS_MAP;
+	static MacrosMap VS_GPUSCENE_MACROS_MAP;
 	static MacrosMap FS_MACROS_MAP;
+	static MacrosMap FS_GPUSCENE_MACROS_MAP;
 	static MacrosSet MACROS_SET;
 
 	static size_t GenHash(const bool* macrosToEnable);
@@ -148,6 +147,8 @@ protected:
 
 	static void EnsureMacroMap(const bool* macrosToEnable);
 	static void PermutateMacro(bool* macrosToEnable, size_t permutateIndex);
+
+	IKShaderPtr GetShaderImplement(ShaderType shaderType, ShaderMap& shaderMap, MacrosMap& marcoMap, const VertexFormat* formats, size_t count, const KTextureBinding* textureBinding);
 public:
 	KShaderMap();
 	~KShaderMap();
@@ -164,21 +165,17 @@ public:
 	bool IsAllFSLoaded();
 	bool IsVSTemplateLoaded();
 	bool IsFSTemplateLoaded();
-	bool IsBothLoaded(const VertexFormat* formats, size_t count, const KTextureBinding* textureBinding);
+	bool IsPermutationLoaded(const VertexFormat* formats, size_t count, const KTextureBinding* textureBinding);
 
 	const std::string& GetVSPath() const { return m_VSFile; }
-	const std::string& GetMSPath() const { return m_MSFile; }
 	const std::string& GetFSPath() const { return m_FSFile; }
-
-	bool HasMSShader() const { return !m_MSFile.empty(); }
 
 	const KShaderInformation* GetVSInformation();
 	const KShaderInformation* GetFSInformation();
-	const KShaderInformation* GetMSInformation();
 
 	IKShaderPtr GetVSShader(const VertexFormat* formats, size_t count);
 	IKShaderPtr GetVSInstanceShader(const VertexFormat* formats, size_t count);
-	// TODO 更换成Semantic
-	IKShaderPtr GetMSShader(const VertexFormat* formats, size_t count);
+	IKShaderPtr GetVSGPUSceneShader(const VertexFormat* formats, size_t count);
 	IKShaderPtr GetFSShader(const VertexFormat* formats, size_t count, const KTextureBinding* textureBinding);
+	IKShaderPtr GetFSGPUSceneShader(const VertexFormat* formats, size_t count, const KTextureBinding* textureBinding);
 };

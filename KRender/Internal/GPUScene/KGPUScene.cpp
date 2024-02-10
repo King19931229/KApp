@@ -55,9 +55,9 @@ uint32_t KGPUScene::CreateOrGetSubMeshIndex(KSubMeshPtr subMesh, bool create)
 		index = it->second;
 		m_SubMeshes[index].refCount += create;
 	}
-	else
+	else if (create)
 	{
-		m_SceneDirty = create;
+		m_SceneDirty = true;
 		SubMeshItem newItem;
 		newItem.refCount = 1;
 		newItem.subMesh = subMesh;
@@ -78,9 +78,9 @@ uint32_t KGPUScene::CreateOrGetMaterialIndex(IKMaterialPtr material, bool create
 		index = it->second;
 		m_Materials[index].refCount += create;
 	}
-	else
+	else if (create)
 	{
-		m_SceneDirty = create;
+		m_SceneDirty = true;
 		MaterialItem newItem;
 		newItem.refCount = 1;
 		newItem.material = material;
@@ -89,6 +89,68 @@ uint32_t KGPUScene::CreateOrGetMaterialIndex(IKMaterialPtr material, bool create
 		m_MaterialToIndex[material] = index;
 	}
 	assert(index != -1);
+	return index;
+}
+
+uint64_t KGPUScene::ComputeHashByMaterialSubMesh(KSubMeshPtr subMesh, IKMaterialPtr material)
+{
+	uint64_t hash = 0;
+
+	KHash::HashCombine(hash, material->GetVSInformation()->Hash());
+	KHash::HashCombine(hash, material->GetFSInformation()->Hash());
+
+	const KVertexData* vertexData = subMesh->GetVertexData();
+	for (VertexFormat format : vertexData->vertexFormats)
+	{
+		KHash::HashCombine(hash, format);
+	}
+
+	const IKMaterialTextureBindingPtr textureBinding = material->GetTextureBinding();
+	for (uint32_t i = 0; i < MAX_MATERIAL_TEXTURE_BINDING; ++i)
+	{
+		if (textureBinding->GetTexture(i))
+		{
+			KHash::HashCombine(hash, 0xFF);
+		}
+		else
+		{
+			KHash::HashCombine(hash, 0xAF);
+		}
+	}
+
+	return hash;
+}
+
+uint32_t KGPUScene::CreateOrGetMegaShaderIndex(KSubMeshPtr subMesh, IKMaterialPtr material, bool create)
+{
+	uint64_t hash = ComputeHashByMaterialSubMesh(subMesh, material);
+
+	uint32_t index = -1;
+	auto it = m_MegaShaderToIndex.find(hash);
+	if (it != m_MegaShaderToIndex.end())
+	{
+		index = it->second;
+		m_MegaShaders[index].refCount += create;
+	}
+	else if (create)
+	{
+		m_SceneDirty = true;
+		MegaShaderItem newItem;
+		newItem.refCount = 1;
+		index = (uint32_t)m_MegaShaders.size();
+
+		const KVertexData* vertexData = subMesh->GetVertexData();
+		IKShaderPtr vs = material->GetVSGPUSceneShader(vertexData->vertexFormats.data(), vertexData->vertexFormats.size());
+		IKShaderPtr fs = material->GetFSGPUSceneShader(vertexData->vertexFormats.data(), vertexData->vertexFormats.size());
+
+		newItem.vsShader = vs;
+		newItem.fsShader = fs;
+
+		m_MegaShaders.push_back(newItem);
+		m_MegaShaderToIndex[hash] = index;
+	}
+	assert(index != -1);
+
 	return index;
 }
 
@@ -146,6 +208,35 @@ void KGPUScene::RemoveMaterial(IKMaterialPtr material)
 	}
 }
 
+void KGPUScene::RemoveMegaShader(KSubMeshPtr subMesh, IKMaterialPtr material)
+{
+	uint64_t hash = ComputeHashByMaterialSubMesh(subMesh, material);
+
+	uint32_t removeIndex = -1;
+	auto it = m_MegaShaderToIndex.find(hash);
+	if (it != m_MegaShaderToIndex.end())
+	{
+		uint32_t index = it->second;
+		m_MegaShaders[index].refCount -= 1;
+		if (m_MegaShaders[index].refCount == 0)
+		{
+			m_MegaShaderToIndex.erase(it);
+			removeIndex = index;
+		}
+	}
+	if (removeIndex != -1)
+	{
+		m_SceneDirty = true;
+		for (auto& pair : m_MegaShaderToIndex)
+		{
+			if (pair.second > removeIndex)
+			{
+				pair.second -= 1;
+			}
+		}
+	}
+}
+
 bool KGPUScene::AddEntity(IKEntity* entity, const glm::mat4& transform, const std::vector<KMaterialSubMeshPtr>& subMeshes)
 {
 	if (entity)
@@ -158,6 +249,7 @@ bool KGPUScene::AddEntity(IKEntity* entity, const glm::mat4& transform, const st
 		{
 			CreateOrGetSubMeshIndex(materialSubMesh->GetSubMesh(), true);
 			CreateOrGetMaterialIndex(materialSubMesh->GetMaterial().Get(), true);
+			CreateOrGetMegaShaderIndex(materialSubMesh->GetSubMesh(), materialSubMesh->GetMaterial().Get(), true);
 		}
 		return true;
 	}
@@ -191,6 +283,7 @@ bool KGPUScene::RemoveEntity(IKEntity* entity)
 		{
 			RemoveSubMesh(materialSubMesh->GetSubMesh());
 			RemoveMaterial(materialSubMesh->GetMaterial().Get());
+			RemoveMegaShader(materialSubMesh->GetSubMesh(), materialSubMesh->GetMaterial().Get());
 		}
 
 		for (uint32_t i = index + 1; i < m_Entities.size(); ++i)
@@ -209,11 +302,13 @@ void KGPUScene::RebuildEntitySubMeshAndMaterialIndex()
 	{
 		sceneEntity->subMeshIndices.resize(sceneEntity->materialSubMeshes.size());
 		sceneEntity->materialIndices.resize(sceneEntity->materialSubMeshes.size());
+		sceneEntity->megaShaderIndices.resize(sceneEntity->materialSubMeshes.size());
 		for (size_t i = 0; i < sceneEntity->materialSubMeshes.size(); ++i)
 		{
 			KMaterialSubMeshPtr materialSubMesh = sceneEntity->materialSubMeshes[i];
 			sceneEntity->subMeshIndices[i] = CreateOrGetSubMeshIndex(materialSubMesh->GetSubMesh(), false);
 			sceneEntity->materialIndices[i] = CreateOrGetMaterialIndex(materialSubMesh->GetMaterial().Get(), false);
+			sceneEntity->megaShaderIndices[i] = CreateOrGetMegaShaderIndex(materialSubMesh->GetSubMesh(), materialSubMesh->GetMaterial().Get(), false);
 		}
 	}
 }
@@ -654,6 +749,12 @@ bool KGPUScene::UnInit()
 
 	m_Materials.clear();
 	m_MaterialToIndex.clear();
+
+	m_Materials.clear();
+	m_MaterialToIndex.clear();
+
+	m_MegaShaders.clear();
+	m_MegaShaderToIndex.clear();
 
 	m_EntityMap.clear();
 	m_Entities.clear();

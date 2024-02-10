@@ -130,21 +130,8 @@ bool KMaterialSubMesh::CreateMaterialPipeline()
 
 		IKShaderPtr vsShader = m_Material->GetVSShader(vertexData->vertexFormats.data(), vertexData->vertexFormats.size());
 		IKShaderPtr fsShader = m_Material->GetFSShader(vertexData->vertexFormats.data(), vertexData->vertexFormats.size());
-		IKShaderPtr msShader = m_Material->GetMSShader(vertexData->vertexFormats.data(), vertexData->vertexFormats.size());
-		// TODD FIX?
-		IKShaderPtr mfsShader = m_Material->GetFSShader(vertexData->vertexFormats.data(), vertexData->vertexFormats.size());
 
 		if (vsShader->GetResourceState() != RS_DEVICE_LOADED || fsShader->GetResourceState() != RS_DEVICE_LOADED)
-		{
-			return false;
-		}
-
-		if (msShader && msShader->GetResourceState() != RS_DEVICE_LOADED)
-		{
-			return false;
-		}
-
-		if (mfsShader && mfsShader->GetResourceState() != RS_DEVICE_LOADED)
 		{
 			return false;
 		}
@@ -159,7 +146,6 @@ bool KMaterialSubMesh::CreateMaterialPipeline()
 		enum
 		{
 			DEFAULT_IDX,
-			MESH_IDX,
 			INSTANCE_IDX,
 			IDX_COUNT
 		};
@@ -171,12 +157,10 @@ bool KMaterialSubMesh::CreateMaterialPipeline()
 		{
 			case MSM_OPAQUE:
 				pipelines[DEFAULT_IDX] = &m_Pipelines[RENDER_STAGE_OPAQUE];
-				pipelines[MESH_IDX] = msShader ? &m_Pipelines[RENDER_STAGE_OPAQUE_MESH] : nullptr;
 				pipelines[INSTANCE_IDX] = &m_Pipelines[RENDER_STAGE_OPAQUE_INSTANCE];
 				break;
 			case MSM_TRANSRPANT:
 				pipelines[DEFAULT_IDX] = &m_Pipelines[RENDER_STAGE_TRANSPRANT];
-				pipelines[MESH_IDX] = nullptr;
 				pipelines[INSTANCE_IDX] = nullptr;
 				break;
 			default:
@@ -195,10 +179,6 @@ bool KMaterialSubMesh::CreateMaterialPipeline()
 				if (i == DEFAULT_IDX)
 				{
 					pipeline = m_Material->CreatePipeline(vertexData->vertexFormats.data(), vertexData->vertexFormats.size());
-				}
-				else if (i == MESH_IDX)
-				{
-					pipeline = m_Material->CreateMeshPipeline(vertexData->vertexFormats.data(), vertexData->vertexFormats.size());
 				}
 				else if (i == INSTANCE_IDX)
 				{

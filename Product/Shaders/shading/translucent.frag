@@ -9,6 +9,10 @@ layout(location = 4) in vec3 worldTangent;
 layout(location = 5) in vec3 worldBinormal;
 #endif
 
+#ifdef GPU_SCENE
+layout(location = 12) in flat uint darwIndex;
+#endif
+
 #define BINDING_STATIC_CSM0 BINDING_TEXTURE5
 #define BINDING_STATIC_CSM1 BINDING_TEXTURE6
 #define BINDING_STATIC_CSM2 BINDING_TEXTURE7

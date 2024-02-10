@@ -178,56 +178,37 @@ KTextureBinding KMaterial::ConvertToTextureBinding(const IKMaterialTextureBindin
 	return textureBinding;
 }
 
-IKShaderPtr KMaterial::GetVSShaderImpl(KShaderMap& shaderMap, const VertexFormat* formats, size_t count)
-{
-	return shaderMap.GetVSShader(formats, count);
-}
-
-IKShaderPtr KMaterial::GetVSInstanceShaderImpl(KShaderMap& shaderMap, const VertexFormat* formats, size_t count)
-{
-	return shaderMap.GetVSInstanceShader(formats, count);
-}
-
-IKShaderPtr KMaterial::GetFSShaderImpl(KShaderMap& shaderMap, const VertexFormat* formats, size_t count)
-{
-	KTextureBinding textureBinding = ConvertToTextureBinding(m_TextureBinding.get());
-	return shaderMap.GetFSShader(formats, count, &textureBinding);
-}
-
-IKShaderPtr KMaterial::GetMSShaderImpl(KShaderMap& shaderMap, const VertexFormat* formats, size_t count)
-{
-	return shaderMap.GetMSShader(formats, count);
-}
-
 IKShaderPtr KMaterial::GetVSShader(const VertexFormat* formats, size_t count)
 {
-	return GetVSShaderImpl(m_ShaderMap, formats, count);
+	return m_ShaderMap.GetVSShader(formats, count);
 }
 
 IKShaderPtr KMaterial::GetVSInstanceShader(const VertexFormat* formats, size_t count)
 {
-	return GetVSInstanceShaderImpl(m_ShaderMap, formats, count);
+	return m_ShaderMap.GetVSInstanceShader(formats, count);
+}
+
+IKShaderPtr KMaterial::GetVSGPUSceneShader(const VertexFormat* formats, size_t count)
+{
+	return m_ShaderMap.GetVSGPUSceneShader(formats, count);
+}
+
+IKShaderPtr KMaterial::GetFSGPUSceneShader(const VertexFormat* formats, size_t count)
+{
+	KTextureBinding textureBinding = ConvertToTextureBinding(m_TextureBinding.get());
+	return m_ShaderMap.GetFSGPUSceneShader(formats, count, &textureBinding);
 }
 
 IKShaderPtr KMaterial::GetFSShader(const VertexFormat* formats, size_t count)
 {
-	return GetFSShaderImpl(m_ShaderMap, formats, count);
-}
-
-IKShaderPtr KMaterial::GetMSShader(const VertexFormat* formats, size_t count)
-{
-	return GetMSShaderImpl(m_ShaderMap, formats, count);
-}
-
-bool KMaterial::HasMSShader() const
-{
-	return m_ShaderMap.HasMSShader();
+	KTextureBinding textureBinding = ConvertToTextureBinding(m_TextureBinding.get());
+	return m_ShaderMap.GetFSShader(formats, count, &textureBinding);
 }
 
 bool KMaterial::IsShaderLoaded(const VertexFormat* formats, size_t count)
 {
 	KTextureBinding textureBinding = ConvertToTextureBinding(m_TextureBinding.get());
-	return m_ShaderMap.IsBothLoaded(formats, count, &textureBinding);
+	return m_ShaderMap.IsPermutationLoaded(formats, count, &textureBinding);
 }
 
 const IKMaterialTextureBindingPtr KMaterial::GetTextureBinding()
@@ -290,8 +271,14 @@ const KShaderInformation::Constant* KMaterial::GetShadingInfo()
 	}
 }
 
-void KMaterial::BindSampler(IKPipelinePtr pipeline, const KShaderInformation& info)
+const KShaderInformation* KMaterial::GetVSInformation()
 {
+	return m_ShaderMap.GetVSInformation();
+}
+
+const KShaderInformation* KMaterial::GetFSInformation()
+{
+	return m_ShaderMap.GetFSInformation();
 }
 
 IKPipelinePtr KMaterial::CreatePipelineInternal(const PipelineCreateContext& context, const VertexFormat* formats, size_t count, IKShaderPtr vertexShader, IKShaderPtr fragmentShader)
@@ -364,80 +351,6 @@ IKPipelinePtr KMaterial::CreatePipelineInternal(const PipelineCreateContext& con
 			}
 		}
 
-		for (const KShaderInformation& info : { vsInfo, fsInfo })
-		{
-			BindSampler(pipeline, info);
-		}
-
-		return pipeline;
-	}
-
-	return nullptr;
-}
-
-IKPipelinePtr KMaterial::CreateMeshPipelineInternal(const PipelineCreateContext& context, const VertexFormat* formats, size_t count, IKShaderPtr meshShader, IKShaderPtr fragmentShader)
-{
-	if (GetParameter())
-	{
-		IKPipelinePtr pipeline = nullptr;
-		KRenderGlobal::RenderDevice->CreatePipeline(pipeline);
-		pipeline->SetShader(ST_MESH, meshShader);
-		pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
-		pipeline->SetShader(ST_FRAGMENT, fragmentShader);
-
-		if (m_ShadingMode == MSM_OPAQUE)
-		{
-			pipeline->SetBlendEnable(false);
-		}
-		else
-		{
-			pipeline->SetBlendEnable(true);
-			pipeline->SetColorBlend(BF_SRC_ALPHA, BF_ONE_MINUS_SRC_ALPHA, BO_ADD);
-		}
-
-		if (m_DoubleSide)
-		{
-			pipeline->SetCullMode(CM_NONE);
-		}
-		else
-		{
-			pipeline->SetCullMode(CM_BACK);
-		}
-
-		pipeline->SetFrontFace(FF_CLOCKWISE);
-		pipeline->SetPolygonMode(PM_FILL);
-
-		pipeline->SetColorWrite(true, true, true, true);
-
-		pipeline->SetDepthFunc(CF_LESS_OR_EQUAL, true, true);
-
-		const KShaderInformation& fsInfo = fragmentShader->GetInformation();
-
-		uint32_t bindingFlags[CBT_STATIC_COUNT] = { 0 };
-
-		for (const KShaderInformation::Constant& constant : fsInfo.constants)
-		{
-			if (constant.bindingIndex >= CBT_STATIC_BEGIN && constant.bindingIndex <= CBT_STATIC_END)
-			{
-				bindingFlags[constant.bindingIndex - CBT_STATIC_BEGIN] |= ST_FRAGMENT;
-			}
-		}
-
-		for (uint32_t i = 0; i < CBT_STATIC_COUNT; ++i)
-		{
-			if (bindingFlags[i])
-			{
-				ConstantBufferType bufferType = (ConstantBufferType)(CBT_STATIC_BEGIN + i);
-				IKUniformBufferPtr staticConstantBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(bufferType);
-				pipeline->SetConstantBuffer(bufferType, bindingFlags[i], staticConstantBuffer);
-			}
-		}
-
-		for (const KShaderInformation& info : { fsInfo })
-		{
-			BindSampler(pipeline, info);
-		}
-
 		return pipeline;
 	}
 
@@ -452,18 +365,6 @@ IKPipelinePtr KMaterial::CreatePipelineImpl(KShaderMap& shaderMap, const Pipelin
 	if (vsShader && fsShader)
 	{
 		return CreatePipelineInternal(context, formats, count, vsShader, fsShader);
-	}
-	return nullptr;
-}
-
-IKPipelinePtr KMaterial::CreateMeshPipelineImpl(KShaderMap& shaderMap, const PipelineCreateContext& context, const VertexFormat* formats, size_t count)
-{
-	KTextureBinding textureBinding = ConvertToTextureBinding(m_TextureBinding.get());
-	IKShaderPtr msShader = shaderMap.GetMSShader(formats, count);
-	IKShaderPtr fsShader = shaderMap.GetFSShader(formats, count, &textureBinding);
-	if (msShader && fsShader)
-	{
-		return CreateMeshPipelineInternal(context, formats, count, msShader, fsShader);
 	}
 	return nullptr;
 }
@@ -493,11 +394,6 @@ IKPipelinePtr KMaterial::CreatePipeline(const VertexFormat* formats, size_t coun
 	return CreatePipelineImpl(m_ShaderMap, {}, formats, count);
 }
 
-IKPipelinePtr KMaterial::CreateMeshPipeline(const VertexFormat* formats, size_t count)
-{
-	return CreateMeshPipelineImpl(m_ShaderMap, {}, formats, count);
-}
-
 IKPipelinePtr KMaterial::CreateInstancePipeline(const VertexFormat* formats, size_t count)
 {
 	return CreateInstancePipelineImpl(m_ShaderMap, {}, formats, count);
@@ -510,17 +406,6 @@ IKPipelinePtr KMaterial::CreateCSMPipeline(const VertexFormat* formats, size_t c
 		PipelineCreateContext context;
 		context.depthBiasEnable = true;
 		return CreatePipelineImpl(staticCSM ? m_StaticCSMShaderMap : m_DynamicCSMShaderMap, context, formats, count);
-	}
-	return nullptr;
-}
-
-IKPipelinePtr KMaterial::CreateCSMMeshPipeline(const VertexFormat* formats, size_t count, bool staticCSM)
-{
-	if (m_ShadingMode == MSM_OPAQUE)
-	{
-		PipelineCreateContext context;
-		context.depthBiasEnable = true;
-		return CreateMeshPipelineImpl(staticCSM ? m_StaticCSMShaderMap : m_DynamicCSMShaderMap, context, formats, count);
 	}
 	return nullptr;
 }

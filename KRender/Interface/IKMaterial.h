@@ -87,25 +87,26 @@ struct IKMaterial
 
 	virtual IKShaderPtr GetVSShader(const VertexFormat* formats, size_t count) = 0;
 	virtual IKShaderPtr GetVSInstanceShader(const VertexFormat* formats, size_t count) = 0;
+	virtual IKShaderPtr GetVSGPUSceneShader(const VertexFormat* formats, size_t count) = 0;
 	virtual IKShaderPtr GetFSShader(const VertexFormat* formats, size_t count) = 0;
-	virtual IKShaderPtr GetMSShader(const VertexFormat* formats, size_t count) = 0;
+	virtual IKShaderPtr GetFSGPUSceneShader(const VertexFormat* formats, size_t count) = 0;
 
-	virtual bool HasMSShader() const = 0;
 	virtual bool IsShaderLoaded(const VertexFormat* formats, size_t count) = 0;
 
 	virtual const IKMaterialParameterPtr GetParameter() = 0;
 	virtual const IKMaterialTextureBindingPtr GetTextureBinding() = 0;
 	virtual const KShaderInformation::Constant* GetShadingInfo() = 0;
 
+	virtual const KShaderInformation* GetVSInformation() = 0;
+	virtual const KShaderInformation* GetFSInformation() = 0;
+
 	virtual MaterialShadingMode GetShadingMode() const = 0;
 	virtual void SetShadingMode(MaterialShadingMode mode) = 0;
 
 	virtual IKPipelinePtr CreatePipeline(const VertexFormat* formats, size_t count) = 0;
-	virtual IKPipelinePtr CreateMeshPipeline(const VertexFormat* formats, size_t count) = 0;
 	virtual IKPipelinePtr CreateInstancePipeline(const VertexFormat* formats, size_t coun) = 0;
 
 	virtual IKPipelinePtr CreateCSMPipeline(const VertexFormat* formats, size_t count, bool staticCSM) = 0;
-	virtual IKPipelinePtr CreateCSMMeshPipeline(const VertexFormat* formats, size_t count, bool staticCSM) = 0;
 	virtual IKPipelinePtr CreateCSMInstancePipeline(const VertexFormat* formats, size_t count, bool staticCSM) = 0;
 
 	virtual bool InitFromFile(const std::string& path, bool async) = 0;

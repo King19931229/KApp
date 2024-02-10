@@ -28,20 +28,12 @@ layout(location = 10) out vec3 out_color4;
 layout(location = 11) out vec3 out_color5;
 #endif
 
-#if !INSTANCE_INPUT
-layout(binding = BINDING_OBJECT)
-uniform Object_DYN_UNIFORM
-{
-	mat4 model;
-	mat4 prev_model;
-}object;
+#ifdef GPU_SCENE
+layout(location = 12) out flat uint out_darwIndex;
 #endif
 
 void main()
 {
-	mat4 worldMatrix = WORLD_MATRIX;
-	mat4 prevWorldMatrix = PREV_WORLD_MATRIX;
-
 	vec4 worldNormal = normalize(worldMatrix * vec4(normal, 0.0));
 
 #if TANGENT_BINORMAL_INPUT
@@ -83,6 +75,10 @@ void main()
 
 #if VERTEX_COLOR_INPUT5
 	out_color5 = color5;
+#endif
+
+#ifdef GPU_SCENE
+	out_darwIndex = darwIndex;
 #endif
 
 	gl_Position = camera.viewProj * worldPos;

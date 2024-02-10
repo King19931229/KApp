@@ -19,8 +19,6 @@ void main()
 {
 	uv = texcoord0;
 
-	mat4 worldMatrix = WORLD_MATRIX;
-
 #if TANGENT_BINORMAL_INPUT
 	vec3 T = normalize(mat3(worldMatrix) * tangent);
 	vec3 B = normalize(mat3(worldMatrix) * binormal);
