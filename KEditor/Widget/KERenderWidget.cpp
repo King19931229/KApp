@@ -96,6 +96,8 @@ bool KERenderWidget::QtKeyToInputKeyboard(Qt::Key button, InputKeyboard& keyboar
 		return true;
 	case Qt::Key_Delete:
 		keyboard = INPUT_KEY_DELETE;
+	case Qt::Key_Space:
+		keyboard = INPUT_KEY_SPACE;
 		return true;
 
 	default:

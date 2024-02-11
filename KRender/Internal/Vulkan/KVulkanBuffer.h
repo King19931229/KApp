@@ -32,6 +32,7 @@ protected:
 	KVulkanHeapAllocator::AllocInfo m_AllocInfo;
 	VkBufferUsageFlags m_Usages;
 	KVulkanStageBuffer m_StageBuffer;
+	std::string m_DebugName;
 	uint32_t m_BufferSize;
 	uint32_t m_UniqueID;
 	bool m_bHostVisible;

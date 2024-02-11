@@ -43,6 +43,7 @@ public:
 	bool UnRegisterComponent(ComponentType type) override;
 	bool UnRegisterAllComponent() override;
 
+	bool GetLocalBound(KAABBBox& bound) override;
 	bool GetBound(KAABBBox& bound) override;
 	bool GetTransform(glm::mat4& transform) override;
 	bool SetTransform(const glm::mat4& transform) override;

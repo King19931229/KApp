@@ -4,9 +4,38 @@
 #include "Interface/IKRenderScene.h"
 #include "Internal/Asset/KMaterialSubMesh.h"
 
+struct KGPUSceneInstance
+{
+	glm::mat4 transform;
+	glm::mat4 prevTransform;
+	glm::vec4 boundCenter;
+	glm::vec4 boundHalfExtend;
+	glm::uvec4 miscs;
+};
+static_assert((sizeof(KGPUSceneInstance) % 16) == 0, "Size must be a multiple of 16");
+
+struct KGPUSceneState
+{
+	uint32_t visibleWriteOffset = 0;
+	uint32_t padding[3];
+};
+static_assert((sizeof(KGPUSceneState) % 16) == 0, "Size must be a multiple of 16");
+
+enum GPUSceneBinding
+{
+	#define GPUSCENE_BINDING(SEMANTIC) GPUSCENE_BINDING_##SEMANTIC,
+	#include "KGPUSceneBinding.inl"
+	#undef GPUSCENE_BINDING
+};
+
 class KGPUScene
 {
 protected:
+	enum
+	{
+		GPUSCENE_GROUP_SIZE = 64
+	};
+
 	IKRenderScene* m_Scene;
 	const KCamera* m_Camera;
 
@@ -38,22 +67,24 @@ protected:
 		IKShaderPtr vsShader;
 		IKShaderPtr fsShader;
 		std::vector<IKStorageBufferPtr> shaderParameterBuffer;
-		uint32_t shaderParameterIndexCounter = 0;
 		uint32_t refCount = 0;
 	};
 	std::vector<MegaShaderItem> m_MegaShaders;
 	std::unordered_map<uint64_t, uint32_t> m_MegaShaderToIndex;
 
+	std::vector<KGPUSceneInstance> m_Instances;
+
 	struct SceneEntity
 	{
 		uint32_t index = 0;
+		KAABBBox localBound;
 		glm::mat4 prevTransform;
 		glm::mat4 transform;
 		std::vector<KMaterialSubMeshPtr> materialSubMeshes;
 		std::vector<uint32_t> subMeshIndices;
 		std::vector<uint32_t> materialIndices;
 		std::vector<uint32_t> megaShaderIndices;
-		std::vector<uint32_t> shaderParameterIndices;
+		std::vector<uint32_t> shaderLocalIndices;
 	};
 	typedef std::shared_ptr<SceneEntity> SceneEntityPtr;
 	std::unordered_map<IKEntity*, SceneEntityPtr> m_EntityMap;
@@ -61,13 +92,28 @@ protected:
 
 	struct MegaBufferCollection
 	{
-		IKVertexBufferPtr vertexBuffers[VF_COUNT] = { nullptr };
-		IKIndexBufferPtr indexBuffer = nullptr;
+		IKStorageBufferPtr vertexBuffers[VF_COUNT] = { nullptr };
+		IKStorageBufferPtr indexBuffer = nullptr;
 	} m_MegaBuffer;
 
 	IKTexturePtr m_TextureArrays[MAX_MATERIAL_TEXTURE_BINDING];
 
-	bool m_SceneDirty;
+	std::vector<IKStorageBufferPtr> m_SceneStateBuffers;
+	std::vector<IKStorageBufferPtr> m_InstanceDataBuffers;
+	std::vector<IKStorageBufferPtr> m_InstanceCullResultBuffers;
+	std::vector<IKComputePipelinePtr> m_InitStatePipelines;
+	std::vector<IKComputePipelinePtr> m_InstanceCullPipelines;
+
+	enum DataDirtyBitMask
+	{
+		MEGA_BUFFER_DIRTY = 1,
+		TEXTURE_ARRAY_DIRTY = 2,
+		MEGA_SHADER_DIRTY = 4,
+		INSTANCE_BUFFER_DIRTY = 8
+	};
+	uint32_t m_DataDirtyBits = 0;
+
+	KShaderCompileEnvironment m_ComputeBindingEnv;
 
 	EntityObserverFunc m_OnSceneChangedFunc;
 	void OnSceneChanged(EntitySceneOp op, IKEntity* entity);
@@ -88,13 +134,20 @@ protected:
 	SceneEntityPtr CreateEntity(IKEntity* entity);
 	SceneEntityPtr GetEntity(IKEntity* entity);
 
-	bool AddEntity(IKEntity* entity, const glm::mat4& transform, const std::vector<KMaterialSubMeshPtr>& subMeshes);
+	bool AddEntity(IKEntity* entity, const KAABBBox& localBound, const glm::mat4& transform, const std::vector<KMaterialSubMeshPtr>& subMeshes);
 	bool TransformEntity(IKEntity* entity, const glm::mat4& transform);
 	bool RemoveEntity(IKEntity* entity);
 
-	void RebuildEntitySubMeshAndMaterialIndex();
+	void RebuildDirtyBuffer();
+	void UpdateInstanceDataBuffer();
+
+	void RebuildEntityDataIndex();
 	void RebuildMegaBuffer();
 	void RebuildTextureArray();
+	void RebuildInstance();
+
+	void InitializeBuffers();
+	void InitializePipelines();
 public:
 	KGPUScene();
 	~KGPUScene();

@@ -27,6 +27,7 @@ public:
 	virtual bool UnRegisterAllComponent() = 0;
 
 	// Utility function
+	virtual bool GetLocalBound(KAABBBox& bound) = 0;
 	virtual bool GetBound(KAABBBox& bound) = 0;
 	virtual bool GetTransform(glm::mat4& transform) = 0;
 	virtual bool SetTransform(const glm::mat4& transform) = 0;

@@ -167,6 +167,11 @@ bool KVulkanBuffer::InitDevice(VkBufferUsageFlags usages, const void* pData, uin
 		m_StageBuffer.UnInit();
 	}
 
+	if (m_DebugName.c_str())
+	{
+		KVulkanHelper::DebugUtilsSetObjectName(KVulkanGlobal::device, (uint64_t)m_vkBuffer, VK_OBJECT_TYPE_BUFFER, m_DebugName.c_str());
+	}
+
 	m_UniqueID = ++ms_UniqueIDCounter;
 
 	return true;
@@ -188,15 +193,12 @@ bool KVulkanBuffer::UnInit()
 
 bool KVulkanBuffer::SetDebugName(const char* pName)
 {
-	if (m_vkBuffer != VK_NULL_HANDEL && pName)
+	m_DebugName = pName;
+	if (m_vkBuffer != VK_NULL_HANDEL && m_DebugName.c_str())
 	{
-		KVulkanHelper::DebugUtilsSetObjectName(KVulkanGlobal::device, (uint64_t)m_vkBuffer, VK_OBJECT_TYPE_BUFFER, pName);
-		return true;
+		KVulkanHelper::DebugUtilsSetObjectName(KVulkanGlobal::device, (uint64_t)m_vkBuffer, VK_OBJECT_TYPE_BUFFER, m_DebugName.c_str());
 	}
-	else
-	{
-		return false;
-	}
+	return true;
 }
 
 bool KVulkanBuffer::Map(void** ppData)

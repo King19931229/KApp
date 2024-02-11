@@ -8,8 +8,16 @@
 KGPUScene::KGPUScene()
 	: m_Scene(nullptr)
 	, m_Camera(nullptr)
-	, m_SceneDirty(false)
+	, m_DataDirtyBits(0)
 {
+#define GPUSCENE_BINDING_TO_STR(x) #x
+
+#define GPUSCENE_BINDING(SEMANTIC) m_ComputeBindingEnv.macros.push_back( {GPUSCENE_BINDING_TO_STR(GPUSCENE_BINDING_##SEMANTIC), std::to_string(GPUSCENE_BINDING_##SEMANTIC) });
+#include "KGPUSceneBinding.inl"
+#undef GPUSCENE_BINDING
+
+#undef GPUSCENE_BINDING_TO_STR
+
 	m_OnSceneChangedFunc = std::bind(&KGPUScene::OnSceneChanged, this, std::placeholders::_1, std::placeholders::_2);
 	m_OnRenderComponentChangedFunc = std::bind(&KGPUScene::OnRenderComponentChanged, this, std::placeholders::_1, std::placeholders::_2);
 }
@@ -57,7 +65,7 @@ uint32_t KGPUScene::CreateOrGetSubMeshIndex(KSubMeshPtr subMesh, bool create)
 	}
 	else if (create)
 	{
-		m_SceneDirty = true;
+		m_DataDirtyBits |= MEGA_BUFFER_DIRTY;
 		SubMeshItem newItem;
 		newItem.refCount = 1;
 		newItem.subMesh = subMesh;
@@ -80,7 +88,7 @@ uint32_t KGPUScene::CreateOrGetMaterialIndex(IKMaterialPtr material, bool create
 	}
 	else if (create)
 	{
-		m_SceneDirty = true;
+		m_DataDirtyBits |= TEXTURE_ARRAY_DIRTY;
 		MaterialItem newItem;
 		newItem.refCount = 1;
 		newItem.material = material;
@@ -134,17 +142,15 @@ uint32_t KGPUScene::CreateOrGetMegaShaderIndex(KSubMeshPtr subMesh, IKMaterialPt
 	}
 	else if (create)
 	{
-		m_SceneDirty = true;
-		MegaShaderItem newItem;
-		newItem.refCount = 1;
+		m_DataDirtyBits |= MEGA_SHADER_DIRTY;
 		index = (uint32_t)m_MegaShaders.size();
 
 		const KVertexData* vertexData = subMesh->GetVertexData();
-		IKShaderPtr vs = material->GetVSGPUSceneShader(vertexData->vertexFormats.data(), vertexData->vertexFormats.size());
-		IKShaderPtr fs = material->GetFSGPUSceneShader(vertexData->vertexFormats.data(), vertexData->vertexFormats.size());
 
-		newItem.vsShader = vs;
-		newItem.fsShader = fs;
+		MegaShaderItem newItem;
+		newItem.refCount = 1;
+		newItem.vsShader = material->GetVSGPUSceneShader(vertexData->vertexFormats.data(), vertexData->vertexFormats.size());
+		newItem.fsShader = material->GetFSGPUSceneShader(vertexData->vertexFormats.data(), vertexData->vertexFormats.size());
 
 		m_MegaShaders.push_back(newItem);
 		m_MegaShaderToIndex[hash] = index;
@@ -170,7 +176,7 @@ void KGPUScene::RemoveSubMesh(KSubMeshPtr subMesh)
 	}
 	if (removeIndex != -1)
 	{
-		m_SceneDirty = true;
+		m_DataDirtyBits |= MEGA_BUFFER_DIRTY;
 		for (auto& pair : m_SubMeshToIndex)
 		{
 			if (pair.second > removeIndex)
@@ -197,7 +203,7 @@ void KGPUScene::RemoveMaterial(IKMaterialPtr material)
 	}
 	if (removeIndex != -1)
 	{
-		m_SceneDirty = true;
+		m_DataDirtyBits |= TEXTURE_ARRAY_DIRTY;
 		for (auto& pair : m_MaterialToIndex)
 		{
 			if (pair.second > removeIndex)
@@ -226,7 +232,7 @@ void KGPUScene::RemoveMegaShader(KSubMeshPtr subMesh, IKMaterialPtr material)
 	}
 	if (removeIndex != -1)
 	{
-		m_SceneDirty = true;
+		m_DataDirtyBits |= MEGA_SHADER_DIRTY;
 		for (auto& pair : m_MegaShaderToIndex)
 		{
 			if (pair.second > removeIndex)
@@ -237,7 +243,7 @@ void KGPUScene::RemoveMegaShader(KSubMeshPtr subMesh, IKMaterialPtr material)
 	}
 }
 
-bool KGPUScene::AddEntity(IKEntity* entity, const glm::mat4& transform, const std::vector<KMaterialSubMeshPtr>& subMeshes)
+bool KGPUScene::AddEntity(IKEntity* entity, const KAABBBox& localBound, const glm::mat4& transform, const std::vector<KMaterialSubMeshPtr>& subMeshes)
 {
 	if (entity)
 	{
@@ -251,6 +257,8 @@ bool KGPUScene::AddEntity(IKEntity* entity, const glm::mat4& transform, const st
 			CreateOrGetMaterialIndex(materialSubMesh->GetMaterial().Get(), true);
 			CreateOrGetMegaShaderIndex(materialSubMesh->GetSubMesh(), materialSubMesh->GetMaterial().Get(), true);
 		}
+		sceneEntity->localBound = localBound;
+		m_DataDirtyBits |= INSTANCE_BUFFER_DIRTY;
 		return true;
 	}
 	return false;
@@ -263,6 +271,7 @@ bool KGPUScene::TransformEntity(IKEntity* entity, const glm::mat4& transform)
 		SceneEntityPtr sceneEntity = GetEntity(entity);
 		if (sceneEntity)
 		{
+			sceneEntity->prevTransform = transform;
 			sceneEntity->transform = transform;
 		}
 		return true;
@@ -292,23 +301,30 @@ bool KGPUScene::RemoveEntity(IKEntity* entity)
 		}
 		m_EntityMap.erase(it);
 		m_Entities.erase(m_Entities.begin() + index);
+		m_DataDirtyBits |= INSTANCE_BUFFER_DIRTY;
 	}
 	return true;
 }
 
-void KGPUScene::RebuildEntitySubMeshAndMaterialIndex()
+void KGPUScene::RebuildEntityDataIndex()
 {
+	std::vector<uint32_t> shadeLocalIndexCounters;
+	shadeLocalIndexCounters.resize(m_MegaShaders.size());
+
 	for (SceneEntityPtr sceneEntity : m_Entities)
 	{
 		sceneEntity->subMeshIndices.resize(sceneEntity->materialSubMeshes.size());
 		sceneEntity->materialIndices.resize(sceneEntity->materialSubMeshes.size());
 		sceneEntity->megaShaderIndices.resize(sceneEntity->materialSubMeshes.size());
+		sceneEntity->shaderLocalIndices.resize(sceneEntity->materialSubMeshes.size());
+
 		for (size_t i = 0; i < sceneEntity->materialSubMeshes.size(); ++i)
 		{
 			KMaterialSubMeshPtr materialSubMesh = sceneEntity->materialSubMeshes[i];
 			sceneEntity->subMeshIndices[i] = CreateOrGetSubMeshIndex(materialSubMesh->GetSubMesh(), false);
 			sceneEntity->materialIndices[i] = CreateOrGetMaterialIndex(materialSubMesh->GetMaterial().Get(), false);
 			sceneEntity->megaShaderIndices[i] = CreateOrGetMegaShaderIndex(materialSubMesh->GetSubMesh(), materialSubMesh->GetMaterial().Get(), false);
+			sceneEntity->shaderLocalIndices[i] = shadeLocalIndexCounters[sceneEntity->megaShaderIndices[i]]++;
 		}
 	}
 }
@@ -409,33 +425,34 @@ void KGPUScene::RebuildMegaBuffer()
 	for (uint32_t vertexFormat = 0; vertexFormat < VF_COUNT; ++vertexFormat)
 	{
 		const KVertexDefinition::VertexDetail& detail = KVertexDefinition::GetVertexDetail((VertexFormat)vertexFormat);
-		if (!m_MegaBuffer.vertexBuffers[vertexFormat] || m_MegaBuffer.vertexBuffers[vertexFormat]->GetBufferSize() != vertexBufferTotalSize[vertexFormat])
+		if (m_MegaBuffer.vertexBuffers[vertexFormat]->GetBufferSize() != vertexBufferTotalSize[vertexFormat])
 		{
-			SAFE_UNINIT(m_MegaBuffer.vertexBuffers[vertexFormat]);
-			KRenderGlobal::RenderDevice->CreateVertexBuffer(m_MegaBuffer.vertexBuffers[vertexFormat]);
+			m_MegaBuffer.vertexBuffers[vertexFormat]->UnInit();
 			if (vertexBufferTotalSize[vertexFormat] > 0)
 			{
-				m_MegaBuffer.vertexBuffers[vertexFormat]->InitMemory(vertexBufferVertexCount[vertexFormat], detail.vertexSize, nullptr);
-				m_MegaBuffer.vertexBuffers[vertexFormat]->InitDevice(false);
+				m_MegaBuffer.vertexBuffers[vertexFormat]->InitMemory(vertexBufferTotalSize[vertexFormat], nullptr);
+				m_MegaBuffer.vertexBuffers[vertexFormat]->InitDevice(false, false);
 				m_MegaBuffer.vertexBuffers[vertexFormat]->SetDebugName((std::string("GPUSceneVertexData_") + detail.name).c_str());
 			}
 			assert(m_MegaBuffer.vertexBuffers[vertexFormat]->GetBufferSize() == vertexBufferTotalSize[vertexFormat]);
 		}
 	}
 
-	if (!m_MegaBuffer.indexBuffer || m_MegaBuffer.indexBuffer->GetBufferSize() != indexBufferTotalSize)
+	if (m_MegaBuffer.indexBuffer->GetBufferSize() != indexBufferTotalSize)
 	{
-		SAFE_UNINIT(m_MegaBuffer.indexBuffer);
-		KRenderGlobal::RenderDevice->CreateIndexBuffer(m_MegaBuffer.indexBuffer);
-		m_MegaBuffer.indexBuffer->InitMemory(IT_32, indexBufferCount, nullptr);
-		m_MegaBuffer.indexBuffer->InitDevice(false);
-		m_MegaBuffer.indexBuffer->SetDebugName("GPUSceneIndexData");
+		m_MegaBuffer.indexBuffer->UnInit();
+		if (indexBufferCount > 0)
+		{
+			m_MegaBuffer.indexBuffer->InitMemory(indexBufferTotalSize, nullptr);
+			m_MegaBuffer.indexBuffer->InitDevice(false, false);
+			m_MegaBuffer.indexBuffer->SetDebugName("GPUSceneIndexData");
+		}
 		assert(m_MegaBuffer.indexBuffer->GetBufferSize() == indexBufferTotalSize);
 	}
 
 	for (uint32_t vertexFormat = 0; vertexFormat < VF_COUNT; ++vertexFormat)
 	{
-		IKVertexBufferPtr destVertexBuffer = m_MegaBuffer.vertexBuffers[vertexFormat];
+		IKStorageBufferPtr destVertexBuffer = m_MegaBuffer.vertexBuffers[vertexFormat];
 		if (destVertexBuffer->GetBufferSize() == 0)
 		{
 			continue;
@@ -689,6 +706,47 @@ void KGPUScene::RebuildTextureArray()
 	}
 }
 
+void KGPUScene::RebuildInstance()
+{
+	m_Instances.clear();
+
+	for (SceneEntityPtr entity : m_Entities)
+	{
+		KGPUSceneInstance newInstance;
+
+		newInstance.boundCenter = glm::vec4(entity->localBound.GetCenter(), 0);
+		newInstance.boundHalfExtend = glm::vec4(entity->localBound.GetExtend() * 0.5f, 0);
+		newInstance.prevTransform = entity->prevTransform;
+		newInstance.transform = entity->transform;
+	
+		for (size_t i = 0; i < entity->materialSubMeshes.size(); ++i)
+		{
+			newInstance.miscs[0] = entity->index;
+			newInstance.miscs[1] = entity->subMeshIndices[i];
+			newInstance.miscs[2] = entity->megaShaderIndices[i];
+			newInstance.miscs[3] = entity->shaderLocalIndices[i];
+
+			m_Instances.push_back(newInstance);
+		}
+	}
+
+	for (size_t i = 0; i < m_InstanceDataBuffers.size(); ++i)
+	{
+		IKStorageBufferPtr buffer = m_InstanceDataBuffers[i];
+		buffer->UnInit();
+		buffer->InitMemory(m_Instances.size() * sizeof(KGPUSceneInstance), m_Instances.data());
+		buffer->InitDevice(false, false);
+	}
+
+	for (size_t i = 0; i < m_InstanceCullResultBuffers.size(); ++i)
+	{
+		IKStorageBufferPtr buffer = m_InstanceCullResultBuffers[i];
+		buffer->UnInit();
+		buffer->InitMemory(sizeof(uint32_t) * m_Instances.size(), nullptr);
+		buffer->InitDevice(false, false);
+	}
+}
+
 void KGPUScene::OnSceneChanged(EntitySceneOp op, IKEntity* entity)
 {
 	KRenderComponent* renderComponent = nullptr;
@@ -700,11 +758,13 @@ void KGPUScene::OnSceneChanged(EntitySceneOp op, IKEntity* entity)
 	if (op == ESO_ADD)
 	{
 		const glm::mat4& transform = transformComponent->GetFinal();
+		KAABBBox localBound;
+		entity->GetLocalBound(localBound);
 		renderComponent->RegisterCallback(&m_OnRenderComponentChangedFunc);
 		const std::vector<KMaterialSubMeshPtr>& subMeshes = renderComponent->GetMaterialSubMeshs();
 		if (subMeshes.size() > 0)
 		{
-			AddEntity(entity, transform, subMeshes);
+			AddEntity(entity, localBound, transform, subMeshes);
 		}
 	}
 	if (op == ESO_REMOVE)
@@ -723,11 +783,71 @@ void KGPUScene::OnRenderComponentChanged(IKRenderComponent* renderComponent, boo
 {
 }
 
+void KGPUScene::InitializeBuffers()
+{
+	uint32_t numFrames = KRenderGlobal::NumFramesInFlight;
+
+	m_SceneStateBuffers.resize(numFrames);
+	m_InstanceDataBuffers.resize(numFrames);
+	m_InstanceCullResultBuffers.resize(numFrames);
+
+	for (uint32_t i = 0; i < numFrames; ++i)
+	{
+		KRenderGlobal::RenderDevice->CreateStorageBuffer(m_SceneStateBuffers[i]);
+		m_SceneStateBuffers[i]->SetDebugName((std::string("GPUSceneStateData_") + std::to_string(i)).c_str());
+		m_SceneStateBuffers[i]->InitMemory(sizeof(KGPUSceneState), nullptr);
+		m_SceneStateBuffers[i]->InitDevice(false, false);
+
+		KRenderGlobal::RenderDevice->CreateStorageBuffer(m_InstanceDataBuffers[i]);
+		m_InstanceDataBuffers[i]->InitMemory(sizeof(KGPUSceneInstance), nullptr);
+		m_InstanceDataBuffers[i]->InitDevice(false, false);
+		m_InstanceDataBuffers[i]->SetDebugName((std::string("GPUSceneInstanceData_") + std::to_string(i)).c_str());
+
+		KRenderGlobal::RenderDevice->CreateStorageBuffer(m_InstanceCullResultBuffers[i]);
+		m_InstanceCullResultBuffers[i]->InitMemory(sizeof(uint32_t), nullptr);
+		m_InstanceCullResultBuffers[i]->InitDevice(false, false);
+		m_InstanceCullResultBuffers[i]->SetDebugName((std::string("GPUSceneInstanceCullResult_") + std::to_string(i)).c_str());
+	}
+
+	for (uint32_t vertexFormat = 0; vertexFormat < VF_COUNT; ++vertexFormat)
+	{
+		const KVertexDefinition::VertexDetail& detail = KVertexDefinition::GetVertexDetail((VertexFormat)vertexFormat);
+		KRenderGlobal::RenderDevice->CreateStorageBuffer(m_MegaBuffer.vertexBuffers[vertexFormat]);
+		m_MegaBuffer.vertexBuffers[vertexFormat]->SetDebugName((std::string("GPUSceneVertexData_") + detail.name).c_str());
+	}
+
+	KRenderGlobal::RenderDevice->CreateStorageBuffer(m_MegaBuffer.indexBuffer);
+	m_MegaBuffer.indexBuffer->SetDebugName("GPUSceneIndexData");
+}
+
+void KGPUScene::InitializePipelines()
+{
+	uint32_t numFrames = KRenderGlobal::NumFramesInFlight;
+	m_InitStatePipelines.resize(numFrames);
+	m_InstanceCullPipelines.resize(numFrames);
+	for (uint32_t i = 0; i < numFrames; ++i)
+	{
+		KRenderGlobal::RenderDevice->CreateComputePipeline(m_InitStatePipelines[i]);
+		m_InitStatePipelines[i]->BindStorageBuffer(GPUSCENE_BINDING_SCENE_STATE, m_SceneStateBuffers[i], COMPUTE_RESOURCE_OUT, true);
+		m_InitStatePipelines[i]->Init("gpuscene/init_state.comp", m_ComputeBindingEnv);
+
+		KRenderGlobal::RenderDevice->CreateComputePipeline(m_InstanceCullPipelines[i]);
+		m_InstanceCullPipelines[i]->BindDynamicUniformBuffer(GPUSCENE_BINDING_OBJECT);
+		m_InstanceCullPipelines[i]->BindStorageBuffer(GPUSCENE_BINDING_SCENE_STATE, m_SceneStateBuffers[i], COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, true);
+		m_InstanceCullPipelines[i]->BindStorageBuffer(GPUSCENE_BINDING_INSTANCE_DATA, m_InstanceDataBuffers[i], COMPUTE_RESOURCE_IN, true);
+		m_InstanceCullPipelines[i]->BindStorageBuffer(GPUSCENE_BINDING_INSTANCE_CULL_RESULT, m_InstanceCullResultBuffers[i], COMPUTE_RESOURCE_OUT, true);
+		m_InstanceCullPipelines[i]->Init("gpuscene/instance_cull.comp", m_ComputeBindingEnv);
+	}
+}
+
 bool KGPUScene::Init(IKRenderScene* scene, const KCamera* camera)
 {
 	UnInit();
 	if (scene && camera)
 	{
+		InitializeBuffers();
+		InitializePipelines();
+
 		m_Scene = scene;
 		m_Camera = camera;
 
@@ -759,7 +879,7 @@ bool KGPUScene::UnInit()
 	m_EntityMap.clear();
 	m_Entities.clear();
 
-	m_SceneDirty = false;
+	m_DataDirtyBits = 0;
 
 	for (uint32_t i = 0; i < VF_COUNT; ++i)
 	{
@@ -772,17 +892,92 @@ bool KGPUScene::UnInit()
 		SAFE_UNINIT(m_TextureArrays[slot]);
 	}
 
+	SAFE_UNINIT_CONTAINER(m_SceneStateBuffers);
+	SAFE_UNINIT_CONTAINER(m_InstanceDataBuffers);
+	SAFE_UNINIT_CONTAINER(m_InstanceCullResultBuffers);
+
+	SAFE_UNINIT_CONTAINER(m_InitStatePipelines);
+	SAFE_UNINIT_CONTAINER(m_InstanceCullPipelines)
+
 	return true;
+}
+
+void KGPUScene::RebuildDirtyBuffer()
+{
+	if (m_DataDirtyBits)
+	{
+		KRenderGlobal::RenderDevice->Wait();
+		RebuildEntityDataIndex();
+	}
+	if (m_DataDirtyBits & MEGA_BUFFER_DIRTY)
+	{
+		RebuildMegaBuffer();
+	}
+	if (m_DataDirtyBits & TEXTURE_ARRAY_DIRTY)
+	{
+		RebuildTextureArray();
+	}
+	if (m_DataDirtyBits & INSTANCE_BUFFER_DIRTY)
+	{
+		RebuildInstance();
+	}
+	m_DataDirtyBits = 0;
+}
+
+void KGPUScene::UpdateInstanceDataBuffer()
+{
+	uint32_t frameIndex = KRenderGlobal::CurrentInFlightFrameIndex;
+	IKStorageBufferPtr instanceDataBuffer = m_InstanceDataBuffers[frameIndex];
+	assert(instanceDataBuffer->GetBufferSize() == m_Instances.size() * sizeof(KGPUSceneInstance));
+
+	for (KGPUSceneInstance& instance : m_Instances)
+	{
+		uint32_t entityIndex = instance.miscs[0];
+		SceneEntityPtr sceneEntity = m_Entities[entityIndex];
+		instance.prevTransform = sceneEntity->prevTransform;
+		instance.transform = sceneEntity->transform;
+	}
+	
+	instanceDataBuffer->Write(m_Instances.data());
 }
 
 bool KGPUScene::Execute(IKCommandBufferPtr primaryBuffer)
 {
-	if (m_SceneDirty)
+	RebuildDirtyBuffer();
+	UpdateInstanceDataBuffer();
+
+	uint32_t currentFrameIndex = KRenderGlobal::CurrentInFlightFrameIndex;
+
 	{
-		RebuildEntitySubMeshAndMaterialIndex();
-		RebuildMegaBuffer();
-		RebuildTextureArray();
-		m_SceneDirty = false;
+		primaryBuffer->BeginDebugMarker("GPUScene_InitState", glm::vec4(1));
+		m_InitStatePipelines[currentFrameIndex]->Execute(primaryBuffer, 1, 1, 1, nullptr);
+		primaryBuffer->EndDebugMarker();
+	}
+
+	{
+		primaryBuffer->BeginDebugMarker("GPUScene_InstanceCull", glm::vec4(1));
+		uint32_t numDispatch = ((uint32_t)m_Instances.size() + GPUSCENE_GROUP_SIZE - 1) / GPUSCENE_GROUP_SIZE;
+
+		struct
+		{
+			glm::mat4 view;
+			glm::mat4 proj;
+			glm::mat4 viewProj;
+		} cameraObjectUsage;
+		static_assert((sizeof(cameraObjectUsage) % 16) == 0, "Size must be a multiple of 16");
+
+		cameraObjectUsage.view = m_Camera->GetViewMatrix();
+		cameraObjectUsage.proj = m_Camera->GetProjectiveMatrix();
+		cameraObjectUsage.viewProj = m_Camera->GetProjectiveMatrix() * m_Camera->GetViewMatrix();
+
+		KDynamicConstantBufferUsage objectUsage;
+		objectUsage.binding = GPUSCENE_BINDING_OBJECT;
+		objectUsage.range = sizeof(cameraObjectUsage);
+
+		KRenderGlobal::DynamicConstantBufferManager.Alloc(&cameraObjectUsage, objectUsage);
+
+		m_InstanceCullPipelines[currentFrameIndex]->Execute(primaryBuffer, numDispatch, 1, 1, &objectUsage);
+		primaryBuffer->EndDebugMarker();
 	}
 
 	return true;
@@ -790,4 +985,12 @@ bool KGPUScene::Execute(IKCommandBufferPtr primaryBuffer)
 
 void KGPUScene::ReloadShader()
 {
+	for (IKComputePipelinePtr& pipeline : m_InitStatePipelines)
+	{
+		pipeline->Reload();
+	}
+	for (IKComputePipelinePtr& pipeline : m_InstanceCullPipelines)
+	{
+		pipeline->Reload();
+	}
 }

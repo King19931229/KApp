@@ -179,6 +179,10 @@ bool KRenderCore::InitController()
 		{
 			m_Device->Wait();
 			KRenderGlobal::VirtualGeometryManager.ReloadShader();
+		}
+		if (key == INPUT_KEY_SPACE)
+		{
+			m_Device->Wait();
 			KRenderGlobal::GPUScene.ReloadShader();
 		}
 		if (key == INPUT_KEY_R)
@@ -186,6 +190,7 @@ bool KRenderCore::InitController()
 			m_Device->Wait();
 			KRenderGlobal::RayTraceManager.ReloadShader();
 			KRenderGlobal::VirtualGeometryManager.ReloadShader();
+			KRenderGlobal::GPUScene.ReloadShader();
 			KRenderGlobal::RTAO.ReloadShader();
 			if (KRenderGlobal::UsingGIMethod == KRenderGlobal::CLIPMAP_GI)
 			{

@@ -1,0 +1,33 @@
+#include "gpuscene_define.h"
+#include "gpuscene_binding.h"
+#include "culling.h"
+#include "wave.h"
+
+layout(binding = GPUSCENE_BINDING_OBJECT)
+uniform Camera_DYN_UNIFORM
+{
+	mat4 view;
+	mat4 proj;
+	mat4 viewProj;
+} camera;
+
+layout(local_size_x = GPUSCENE_GROUP_SIZE, local_size_y = 1, local_size_z = 1) in;
+void main()
+{
+	uint globalIndex = gl_GlobalInvocationID.x;
+
+	vec4 boundCenter = InstanceData[globalIndex].boundCenter;
+	vec4 boundHalfExtend = InstanceData[globalIndex].boundHalfExtend;
+
+	mat4 localToWorld = InstanceData[globalIndex].transform;
+	mat4 worldToClip = camera.viewProj;
+
+	FrustumCullData cullData = BoxCullFrustumGeneral(boundCenter.xyz, boundHalfExtend.xyz, localToWorld, worldToClip, true, false);
+
+	if (cullData.bIsVisible)
+	{
+		uint visibleWriteOffset = 0;
+		INTERLOCK_ADD(SceneStateData[0].visibleWriteOffset, 1, visibleWriteOffset);
+		InstanceCullResult[visibleWriteOffset] = globalIndex;
+	}
+}

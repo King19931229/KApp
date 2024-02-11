@@ -155,6 +155,30 @@ bool KEntity::SetTransform(const glm::mat4& transform)
 	return false;
 }
 
+bool KEntity::GetLocalBound(KAABBBox& bound)
+{
+	IKComponentBase* component = nullptr;
+	IKRenderComponent* renderComponent = nullptr;
+
+	if (GetComponent(CT_RENDER, &component))
+	{
+		renderComponent = (IKRenderComponent*)component;
+	}
+
+	bound.SetNull();
+
+	if (renderComponent)
+	{
+		KAABBBox renderLocalBound;
+		if (renderComponent->GetLocalBound(renderLocalBound))
+		{
+			bound = bound.Merge(renderLocalBound);
+		}
+	}
+
+	return true;
+}
+
 bool KEntity::GetBound(KAABBBox& bound)
 {
 	IKComponentBase* component = nullptr;

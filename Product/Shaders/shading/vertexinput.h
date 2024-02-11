@@ -5,19 +5,7 @@
 
 #ifdef GPU_SCENE
 
-struct InstanceStruct
-{
-	mat4 transform;
-	mat4 prevTransform;
-	vec4 boundCenter;
-	vec4 boundHalfExtend;
-	uvec4 materialInfo;
-};
-
-struct DrawingInstanceStruct
-{
-	uvec4 data;
-};
+#include "gpuscene/gpuscene_define.h"
 
 layout(std430, binding = BINDING_POINT_NORMAL_UV) readonly buffer PointNormalUVPackBuffer { float PointNormalUVData[]; };
 

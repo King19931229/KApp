@@ -114,6 +114,10 @@ bool KGLFWRenderWindow::GLFWKeyToInputKeyboard(int key, InputKeyboard& board)
 		board = INPUT_KEY_DELETE;
 		return true;
 
+	case GLFW_KEY_SPACE:
+		board = INPUT_KEY_SPACE;
+		return true;
+
 	default:
 		return false;
 	}
