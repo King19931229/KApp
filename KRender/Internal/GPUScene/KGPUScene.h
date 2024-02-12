@@ -16,10 +16,21 @@ static_assert((sizeof(KGPUSceneInstance) % 16) == 0, "Size must be a multiple of
 
 struct KGPUSceneState
 {
-	uint32_t visibleWriteOffset = 0;
-	uint32_t padding[3];
+	uint32_t megaShaderNum = 0;
+	uint32_t instanceCount = 0;
+	uint32_t groupAllocateOffset = 0;
+	uint32_t padding = 0;
 };
 static_assert((sizeof(KGPUSceneState) % 16) == 0, "Size must be a multiple of 16");
+
+struct KGPUSceneMegaShaderState
+{
+	uint32_t instanceCount = 0;
+	uint32_t groupWriteOffset = 0;
+	uint32_t groupWriteNum = 0;
+	uint32_t padding = 0;
+};
+static_assert((sizeof(KGPUSceneMegaShaderState) % 16) == 0, "Size must be a multiple of 16");
 
 enum GPUSceneBinding
 {
@@ -66,7 +77,10 @@ protected:
 	{
 		IKShaderPtr vsShader;
 		IKShaderPtr fsShader;
-		std::vector<IKStorageBufferPtr> shaderParameterBuffer;
+		std::vector<IKStorageBufferPtr> parametersBuffers;
+		std::vector<uint32_t> materialIndices;
+		uint32_t parameterDataSize = 0;
+		uint32_t parameterDataCount = 0;
 		uint32_t refCount = 0;
 	};
 	std::vector<MegaShaderItem> m_MegaShaders;
@@ -100,16 +114,22 @@ protected:
 
 	std::vector<IKStorageBufferPtr> m_SceneStateBuffers;
 	std::vector<IKStorageBufferPtr> m_InstanceDataBuffers;
+	std::vector<IKStorageBufferPtr> m_GroupDataBuffers;
+	std::vector<IKStorageBufferPtr> m_IndirectArgsBuffers;
 	std::vector<IKStorageBufferPtr> m_InstanceCullResultBuffers;
+	std::vector<IKStorageBufferPtr> m_MegaShaderStateBuffers;
+
 	std::vector<IKComputePipelinePtr> m_InitStatePipelines;
 	std::vector<IKComputePipelinePtr> m_InstanceCullPipelines;
+	std::vector<IKComputePipelinePtr> m_GroupAllocatePipelines;
+	std::vector<IKComputePipelinePtr> m_GroupScatterPipelines;
 
 	enum DataDirtyBitMask
 	{
 		MEGA_BUFFER_DIRTY = 1,
 		TEXTURE_ARRAY_DIRTY = 2,
 		MEGA_SHADER_DIRTY = 4,
-		INSTANCE_BUFFER_DIRTY = 8
+		INSTANCE_DIRTY = 8
 	};
 	uint32_t m_DataDirtyBits = 0;
 
@@ -143,8 +163,10 @@ protected:
 
 	void RebuildEntityDataIndex();
 	void RebuildMegaBuffer();
+	void RebuildMegaShaderState();
 	void RebuildTextureArray();
 	void RebuildInstance();
+	void RebuildParameter();
 
 	void InitializeBuffers();
 	void InitializePipelines();

@@ -13,11 +13,22 @@ struct InstanceStruct
 	uvec4 miscs;
 };
 
-// Must match KGPUSceneState;
+// Must match KGPUSceneState
 struct SceneStateStruct
 {
-	uint visibleWriteOffset;
-	uint padding[3];
+	uint megaShaderNum;
+	uint instanceCount;
+	uint groupAllocateOffset;
+	uint padding;
+};
+
+// Must match KGPUSceneMegaShaderState
+struct MegaShaderStateStruct
+{
+	uint instanceCount;
+	uint groupWriteOffset;
+	uint groupWriteNum;
+	uint padding;
 };
 
 struct DrawingInstanceStruct

@@ -1,0 +1,20 @@
+#include "gpuscene_define.h"
+#include "gpuscene_binding.h"
+#include "wave.h"
+
+layout(local_size_x = GPUSCENE_GROUP_SIZE, local_size_y = 1, local_size_z = 1) in;
+void main()
+{
+	uint globalIndex = gl_GlobalInvocationID.x;
+	if (globalIndex < SceneStateData[0].instanceCount)
+	{
+		uint instanceIndex = InstanceCullResult[globalIndex];
+		uint megaShaderIndex = InstanceData[instanceIndex].miscs[2];
+
+		uint groupLocalIndex = 0;
+		INTERLOCK_ADD(MegaShaderState[megaShaderIndex].groupWriteNum, 1, groupLocalIndex);
+
+		uint groupWriteOffset = MegaShaderState[megaShaderIndex].groupWriteOffset;
+		GroupData[groupWriteOffset + groupLocalIndex] = instanceIndex;
+	}
+}

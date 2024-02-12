@@ -15,19 +15,26 @@ layout(local_size_x = GPUSCENE_GROUP_SIZE, local_size_y = 1, local_size_z = 1) i
 void main()
 {
 	uint globalIndex = gl_GlobalInvocationID.x;
+	uint instanceIndex = globalIndex;
 
-	vec4 boundCenter = InstanceData[globalIndex].boundCenter;
-	vec4 boundHalfExtend = InstanceData[globalIndex].boundHalfExtend;
+	vec4 boundCenter = InstanceData[instanceIndex].boundCenter;
+	vec4 boundHalfExtend = InstanceData[instanceIndex].boundHalfExtend;
 
-	mat4 localToWorld = InstanceData[globalIndex].transform;
+	mat4 localToWorld = InstanceData[instanceIndex].transform;
 	mat4 worldToClip = camera.viewProj;
 
 	FrustumCullData cullData = BoxCullFrustumGeneral(boundCenter.xyz, boundHalfExtend.xyz, localToWorld, worldToClip, true, false);
 
 	if (cullData.bIsVisible)
 	{
-		uint visibleWriteOffset = 0;
-		INTERLOCK_ADD(SceneStateData[0].visibleWriteOffset, 1, visibleWriteOffset);
-		InstanceCullResult[visibleWriteOffset] = globalIndex;
+		uint visibleInstanceIndex = 0;
+		INTERLOCK_ADD(SceneStateData[0].instanceCount, 1, visibleInstanceIndex);
+
+		uint megaShaderIndex = InstanceData[instanceIndex].miscs[2];
+		INTERLOCK_ADD_ONLY(MegaShaderState[megaShaderIndex].instanceCount, 1);
+
+		InstanceCullResult[visibleInstanceIndex] = instanceIndex;
+
+		IndrectArgs[0] = atomicMax(IndrectArgs[0], (visibleInstanceIndex + GPUSCENE_GROUP_SIZE) / GPUSCENE_GROUP_SIZE);
 	}
 }
