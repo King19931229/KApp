@@ -24,6 +24,8 @@ protected:
 	KIndexData					m_IndexData;
 	bool						m_IndexDraw;
 
+	KAABBBox					m_Bound;
+
 	IKAccelerationStructurePtr	m_AccelerationStructure;
 	bool						m_NeedAccelerationStructure;
 
@@ -34,8 +36,8 @@ public:
 	KSubMesh(KMesh* parent);
 	~KSubMesh();
 
-	bool Init(const KVertexData* vertexData, const KIndexData& indexData, KMaterialRef material);
-	bool InitDebug(DebugPrimitive primtive, const KVertexData* vertexData, const KIndexData* indexData);
+	bool Init(const KVertexData* vertexData, const KIndexData& indexData, KMaterialRef material, const KAABBBox& bound);
+	bool InitDebug(DebugPrimitive primtive, const KVertexData* vertexData, const KIndexData* indexData, const KAABBBox& bound);
 	bool UnInit();
 
 	bool CreateAccelerationStructure();
@@ -43,6 +45,8 @@ public:
 
 	bool CreateMeshlet();
 	bool DestroyMeshlet();
+
+	const KAABBBox& GetBound() const { return m_Bound; }
 
 	inline DebugPrimitive GetDebugPrimitive() const { return m_DebugPrimitive; }
 	inline IKAccelerationStructurePtr GetIKAccelerationStructure() { return m_AccelerationStructure; }

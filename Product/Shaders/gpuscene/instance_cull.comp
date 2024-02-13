@@ -17,8 +17,10 @@ void main()
 	uint globalIndex = gl_GlobalInvocationID.x;
 	uint instanceIndex = globalIndex;
 
-	vec4 boundCenter = InstanceData[instanceIndex].boundCenter;
-	vec4 boundHalfExtend = InstanceData[instanceIndex].boundHalfExtend;
+	uint meshIndex = InstanceData[instanceIndex].miscs[1];
+
+	vec4 boundCenter = MeshState[meshIndex].boundCenter;
+	vec4 boundHalfExtend = MeshState[meshIndex].boundHalfExtend;
 
 	mat4 localToWorld = InstanceData[instanceIndex].transform;
 	mat4 worldToClip = camera.viewProj;

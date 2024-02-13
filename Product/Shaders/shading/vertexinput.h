@@ -42,49 +42,115 @@ layout(std430, binding = BINDING_COLOR5) readonly buffer Color5PackBuffer { floa
 
 layout(std430, binding = BINDING_INDEX) readonly buffer IndexPackBuffer { uint IndexData[]; };
 
+layout(std430, binding = BINDING_MESH_STATE) buffer MeshStateBuffer { MeshStateStruct MeshState[]; };
 layout(std430, binding = BINDING_INSTANCE_DATA) readonly buffer InstanceDataPackBuffer { InstanceStruct InstanceData[]; };
 
-// layout(std430, binding = BINDING_MATERIAL_PARAMETER) readonly buffer MaterialParameterPackBuffer { float MaterialParameterData[]; };
-layout(std430, binding = BINDING_DRAWING_INSTANCE) readonly buffer DrawingInstancePackBuffer { DrawingInstanceStruct DrawingInstanceData[]; };
+layout(std430, binding = BINDING_MATERIAL_PARAMETER) readonly buffer MaterialParameterPackBuffer { float MaterialParameterData[]; };
+layout(std430, binding = BINDING_MATERIAL_TEXTURE_BINDING) readonly buffer MaterialTextureBindingPackBuffer { MaterialTextureBindingStruct MaterialTextureBinding[]; };
 
-uint instanceIndex = DrawingInstanceData[gl_InstanceIndex].data[0];
-uint meshIndex = DrawingInstanceData[gl_InstanceIndex].data[1];
-uint shaderIndex = DrawingInstanceData[gl_InstanceIndex].data[2];
-uint darwIndex = DrawingInstanceData[gl_InstanceIndex].data[3];
+layout(std430, binding = BINDING_DRAWING_GROUP) readonly buffer DrawingGruopPackBuffer { uint DrawingGruop[]; };
+
+layout(std430, binding = BINDING_MEGA_SHADER_STATE) readonly buffer MegaShaderStateBuffer { MegaShaderStateStruct MegaShaderState[]; };
+
+layout(binding = BINDING_OBJECT)
+uniform Object_DYN_UNIFORM
+{
+	mat4 view;
+	mat4 proj;
+	mat4 projProj;
+	uint megaShaderIndex;
+	uint padding[3];
+} gpuscene;
+
+uint groupIndex = MegaShaderState[gpuscene.megaShaderIndex].groupWriteOffset + gl_InstanceIndex;
+uint instanceIndex = DrawingGruop[groupIndex];
+
+uint meshIndex = InstanceData[instanceIndex].miscs[1];
+uint shaderIndex = InstanceData[instanceIndex].miscs[2];
+uint darwIndex = InstanceData[instanceIndex].miscs[3];
 
 mat4 worldMatrix = InstanceData[instanceIndex].transform;
 mat4 prevWorldMatrix = InstanceData[instanceIndex].prevTransform;
 
-vec3 position = vec3(PointNormalUVData[meshIndex * 8],PointNormalUVData[meshIndex * 8 + 1],PointNormalUVData[meshIndex * 8 + 2]);
-vec3 normal = vec3(PointNormalUVData[meshIndex * 8 + 3],PointNormalUVData[meshIndex * 8 + 4],PointNormalUVData[meshIndex * 8 + 5]);
-vec2 texcoord0 = vec2(PointNormalUVData[meshIndex * 8 + 6],PointNormalUVData[meshIndex * 8 + 7]);
+uint indexCount = MeshState[meshIndex].miscs[0];
+uint vertexCount = MeshState[meshIndex].miscs[1];
+uint indexOffset = MeshState[meshIndex].miscs[2];
+
+uint vertexIndex[10] =
+{
+	MeshState[meshIndex].miscs[3 + 0] + IndexData[indexOffset + gl_VertexIndex],
+	MeshState[meshIndex].miscs[3 + 1] + IndexData[indexOffset + gl_VertexIndex],
+	MeshState[meshIndex].miscs[3 + 2] + IndexData[indexOffset + gl_VertexIndex],
+	MeshState[meshIndex].miscs[3 + 3] + IndexData[indexOffset + gl_VertexIndex],
+	MeshState[meshIndex].miscs[3 + 4] + IndexData[indexOffset + gl_VertexIndex],
+	MeshState[meshIndex].miscs[3 + 5] + IndexData[indexOffset + gl_VertexIndex],
+	MeshState[meshIndex].miscs[3 + 6] + IndexData[indexOffset + gl_VertexIndex],
+	MeshState[meshIndex].miscs[3 + 7] + IndexData[indexOffset + gl_VertexIndex],
+	MeshState[meshIndex].miscs[3 + 8] + IndexData[indexOffset + gl_VertexIndex],
+	MeshState[meshIndex].miscs[3 + 9] + IndexData[indexOffset + gl_VertexIndex]
+};
+
+vec3 position = gl_VertexIndex < indexCount
+	? vec3(PointNormalUVData[vertexIndex[0] * 8],PointNormalUVData[vertexIndex[0] * 8 + 1],PointNormalUVData[vertexIndex[0] * 8 + 2])
+	: vec3(0);
+
+vec3 normal = gl_VertexIndex < indexCount
+	? vec3(PointNormalUVData[vertexIndex[0] * 8 + 3],PointNormalUVData[vertexIndex[0] * 8 + 4],PointNormalUVData[vertexIndex[0] * 8 + 5])
+	: vec3(0);
+
+vec2 texcoord0 = gl_VertexIndex < indexCount
+	? vec2(PointNormalUVData[vertexIndex[0] * 8 + 6],PointNormalUVData[vertexIndex[0] * 8 + 7])
+	: vec2(0);
 
 #if TANGENT_BINORMAL_INPUT
-vec3 tangent = vec3(TangentBinormalData[meshIndex * 6],TangentBinormalData[meshIndex * 6 + 1],TangentBinormalData[meshIndex * 6 + 2]);
-vec3 binormal = vec3(TangentBinormalData[meshIndex * 6 + 3],TangentBinormalData[meshIndex * 6 + 4],TangentBinormalData[meshIndex * 6 + 5]);
+vec3 tangent = gl_VertexIndex < indexCount
+	? vec3(TangentBinormalData[vertexIndex[1] * 6],TangentBinormalData[vertexIndex[1] * 6 + 1],TangentBinormalData[vertexIndex[1] * 6 + 2])
+	: vec3(0);
+
+vec3 binormal = gl_VertexIndex < indexCount
+	? vec3(TangentBinormalData[vertexIndex[1] * 6 + 3],TangentBinormalData[vertexIndex[1] * 6 + 4],TangentBinormalData[vertexIndex[1] * 6 + 5])
+	: vec3(0);
+#endif
+
+#if BLEND_WEIGHT_INPUT
+
 #endif
 
 #if UV2_INPUT
-vec2 texcoord1 = vec2(UV2Data[meshIndex * 2], UV2Data[meshIndex * 2 + 1]);
+vec2 texcoord1 = gl_VertexIndex < indexCount
+	? vec2(UV2Data[vertexIndex[3] * 2], UV2Data[vertexIndex[3] * 2 + 1])
+	: vec2(0);
 #endif
 
 #if VERTEX_COLOR_INPUT0
-vec3 color0 = vec3(Color0Data[meshIndex * 3],Color0Data[meshIndex * 3 + 1],Color0Data[meshIndex * 3 + 2]);
+vec3 color0 = gl_VertexIndex < indexCount
+	? vec3(Color0Data[vertexIndex[4] * 3],Color0Data[vertexIndex[4] * 3 + 1],Color0Data[vertexIndex[4] * 3 + 2])
+	: vec3(0);
 #endif
 #if VERTEX_COLOR_INPUT1
-vec3 color1 = vec3(Color1Data[meshIndex * 3],Color1Data[meshIndex * 3 + 1],Color1Data[meshIndex * 3 + 2]);
+vec3 color1 = gl_VertexIndex < indexCount
+	? vec3(Color1Data[vertexIndex[5] * 3],Color1Data[vertexIndex[5] * 3 + 1],Color1Data[vertexIndex[5] * 3 + 2])
+	: vec3(0);
 #endif
 #if VERTEX_COLOR_INPUT2
-vec3 color2 = vec3(Color2Data[meshIndex * 3],Color2Data[meshIndex * 3 + 1],Color2Data[meshIndex * 3 + 2]);
+vec3 color2 = gl_VertexIndex < indexCount
+	? vec3(Color2Data[vertexIndex[6] * 3],Color2Data[vertexIndex[6] * 3 + 1],Color2Data[vertexIndex[6] * 3 + 2])
+	: vec3(0);
 #endif
 #if VERTEX_COLOR_INPUT3
-vec3 color3 = vec3(Color3Data[meshIndex * 3],Color3Data[meshIndex * 3 + 1],Color3Data[meshIndex * 3 + 2]);
+vec3 color3 = gl_VertexIndex < indexCount
+	? vec3(Color3Data[vertexIndex[7] * 3],Color3Data[vertexIndex[7] * 3 + 1],Color3Data[vertexIndex[7] * 3 + 2])
+	: vec3(0);
 #endif
 #if VERTEX_COLOR_INPUT4
-vec3 color4 = vec3(Color4Data[meshIndex * 3],Color4Data[meshIndex * 3 + 1],Color4Data[meshIndex * 3 + 2]);
+vec3 color4 = gl_VertexIndex < indexCount
+	? vec3(Color4Data[vertexIndex[8] * 3],Color4Data[vertexIndex[8] * 3 + 1],Color4Data[vertexIndex[8] * 3 + 2])
+	: vec3(0);
 #endif
 #if VERTEX_COLOR_INPUT5
-vec3 color5 = vec3(Color5Data[meshIndex * 3],Color5Data[meshIndex * 3 + 1],Color5Data[meshIndex * 3 + 2]);
+vec3 color5 = gl_VertexIndex < indexCount
+	? vec3(Color5Data[vertexIndex[9] * 3],Color5Data[vertexIndex[9] * 3 + 1],Color5Data[vertexIndex[9] * 3 + 2])
+	: vec3(0);
 #endif
 
 #else

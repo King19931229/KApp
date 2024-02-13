@@ -10,9 +10,32 @@ struct KGPUSceneInstance
 	glm::mat4 prevTransform;
 	glm::vec4 boundCenter;
 	glm::vec4 boundHalfExtend;
+	enum
+	{
+		ENEITY_INDEX = 0,
+		SUBMESH_INDEX,
+		MEGA_SHADER_INDEX,
+		SHADER_DRAW_INDEX
+	};
 	glm::uvec4 miscs;
 };
 static_assert((sizeof(KGPUSceneInstance) % 16) == 0, "Size must be a multiple of 16");
+
+struct KGPUSceneMeshState
+{
+	glm::vec4 boundCenter;
+	glm::vec4 boundHalfExtend;
+	enum
+	{
+		INDEX_COUNT_INDEX,
+		VERTEX_COUNT_INDEX,
+		INDEX_BUFFER_OFFSET,
+		VERTEX_BUFFER_OFFSET
+	};
+	uint32_t miscs[16];
+	static_assert(VERTEX_BUFFER_OFFSET + VF_SCENE_COUNT <= 16, "Must not overflow");
+};
+static_assert((sizeof(KGPUSceneMeshState) % 16) == 0, "Size must be a multiple of 16");
 
 struct KGPUSceneState
 {
@@ -22,6 +45,12 @@ struct KGPUSceneState
 	uint32_t padding = 0;
 };
 static_assert((sizeof(KGPUSceneState) % 16) == 0, "Size must be a multiple of 16");
+
+struct KGPUSceneMaterialTextureBinding
+{
+	uint32_t binding[MAX_MATERIAL_TEXTURE_BINDING] = { 0 };
+};
+static_assert((sizeof(KGPUSceneMaterialTextureBinding) % 16) == 0, "Size must be a multiple of 16");
 
 struct KGPUSceneMegaShaderState
 {
@@ -39,6 +68,13 @@ enum GPUSceneBinding
 	#undef GPUSCENE_BINDING
 };
 
+enum GPUSceneRenderStage
+{
+	GPUSCENE_RENDER_STAGE_BASEPASS_MAIN,
+	GPUSCENE_RENDER_STAGE_BASEPASS_POST,
+	GPUSCENE_RENDER_STAGE_COUNT
+};
+
 class KGPUScene
 {
 protected:
@@ -53,9 +89,8 @@ protected:
 	struct SubMeshItem
 	{
 		KSubMeshPtr subMesh;
-		KAABBBox bound;
-		uint32_t vertexBufferOffset[VF_COUNT] = { 0 };
-		uint32_t vertexBufferSize[VF_COUNT] = { 0 };
+		uint32_t vertexBufferOffset[VF_SCENE_COUNT] = { 0 };
+		uint32_t vertexBufferSize[VF_SCENE_COUNT] = { 0 };
 		uint32_t vertexCount = 0;
 		uint32_t indexBufferOffset = 0;
 		uint32_t indexBufferSize = 0;
@@ -77,16 +112,19 @@ protected:
 	{
 		IKShaderPtr vsShader;
 		IKShaderPtr fsShader;
+		std::vector<IKPipelinePtr> darwPipelines[GPUSCENE_RENDER_STAGE_COUNT];
 		std::vector<IKStorageBufferPtr> parametersBuffers;
+		std::vector<IKStorageBufferPtr> materialIndicesBuffers;
 		std::vector<uint32_t> materialIndices;
 		uint32_t parameterDataSize = 0;
-		uint32_t parameterDataCount = 0;
+		uint32_t dataCount = 0;
 		uint32_t refCount = 0;
 	};
 	std::vector<MegaShaderItem> m_MegaShaders;
 	std::unordered_map<uint64_t, uint32_t> m_MegaShaderToIndex;
 
 	std::vector<KGPUSceneInstance> m_Instances;
+	std::vector<KGPUSceneMeshState> m_MeshStates;
 
 	struct SceneEntity
 	{
@@ -98,7 +136,7 @@ protected:
 		std::vector<uint32_t> subMeshIndices;
 		std::vector<uint32_t> materialIndices;
 		std::vector<uint32_t> megaShaderIndices;
-		std::vector<uint32_t> shaderLocalIndices;
+		std::vector<uint32_t> shaderDrawIndices;
 	};
 	typedef std::shared_ptr<SceneEntity> SceneEntityPtr;
 	std::unordered_map<IKEntity*, SceneEntityPtr> m_EntityMap;
@@ -108,9 +146,18 @@ protected:
 	{
 		IKStorageBufferPtr vertexBuffers[VF_COUNT] = { nullptr };
 		IKStorageBufferPtr indexBuffer = nullptr;
+		IKStorageBufferPtr meshStateBuffer = nullptr;
 	} m_MegaBuffer;
 
-	IKTexturePtr m_TextureArrays[MAX_MATERIAL_TEXTURE_BINDING];
+	std::vector<KGPUSceneMaterialTextureBinding> m_MaterialTextureBindings;
+
+	struct TextureArrayCollection
+	{
+		KSamplerRef samplers[MAX_MATERIAL_TEXTURE_BINDING];
+		uint32_t dimension[MAX_MATERIAL_TEXTURE_BINDING] = { 0 };
+		IKTexturePtr textureArrays[MAX_MATERIAL_TEXTURE_BINDING] = { nullptr };
+		IKStorageBufferPtr materialTextureBindingBuffer = nullptr;
+	} m_TextureArray;
 
 	std::vector<IKStorageBufferPtr> m_SceneStateBuffers;
 	std::vector<IKStorageBufferPtr> m_InstanceDataBuffers;
@@ -163,10 +210,11 @@ protected:
 
 	void RebuildEntityDataIndex();
 	void RebuildMegaBuffer();
+	void RebuildMeshStateBuffer();
 	void RebuildMegaShaderState();
 	void RebuildTextureArray();
 	void RebuildInstance();
-	void RebuildParameter();
+	void RebuildMegaShaderBuffer();
 
 	void InitializeBuffers();
 	void InitializePipelines();
@@ -178,6 +226,9 @@ public:
 	bool UnInit();
 
 	bool Execute(IKCommandBufferPtr primaryBuffer);
+
+	bool BasePassMain(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer);
+	bool BasePassPost(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer);
 
 	void ReloadShader();
 };

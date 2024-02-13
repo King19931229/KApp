@@ -203,6 +203,9 @@ bool KMesh::InitFromImportResult(const KMeshRawData& result, const std::vector<V
 
 	m_VertexData.bound.SetNull();
 
+	std::vector<glm::vec3> positions;
+	positions.resize(result.vertexCount);
+
 	for (size_t i = 0; i < m_VertexData.vertexFormats.size(); ++i)
 	{
 		const VertexFormat& format = m_VertexData.vertexFormats[i];
@@ -221,27 +224,23 @@ bool KMesh::InitFromImportResult(const KMeshRawData& result, const std::vector<V
 		if (format == VF_POINT_NORMAL_UV)
 		{
 			const auto& detail = KVertexDefinition::GetVertexDetail(format);
-
-			auto it = std::find_if(detail.semanticDetails.cbegin(), detail.semanticDetails.cend(), [](
-				const KVertexDefinition::VertexSemanticDetail& semanticDetail)
-				{
-					return semanticDetail.semantic == VS_POSITION;
-				});
+			auto it = std::find_if(detail.semanticDetails.cbegin(), detail.semanticDetails.cend(), [](const KVertexDefinition::VertexSemanticDetail& semanticDetail) { return semanticDetail.semantic == VS_POSITION; });
 			if (it != detail.semanticDetails.cend())
 			{
 				const auto& semanticDetail = *it;
 				ElementFormat eleFormat = semanticDetail.elementFormat;
 				size_t eleOffset = semanticDetail.offset;
-
 				for (uint32_t i = 0; i < result.vertexCount; ++i)
 				{
 					if (eleFormat == EF_R32G32B32_FLOAT)
 					{
-						const glm::vec3* posData = reinterpret_cast<const glm::vec3*>(dataSource.data() + i * detail.vertexSize + eleOffset);
-						m_VertexData.bound = m_VertexData.bound.Merge(*posData);
+						const glm::vec3& position = *reinterpret_cast<const glm::vec3*>(dataSource.data() + i * detail.vertexSize + eleOffset);
+						m_VertexData.bound = m_VertexData.bound.Merge(position);
+						positions[i] = position;
 					}
 					else
 					{
+						positions[i] = glm::vec3(0);
 						assert(false && "impossible");
 					}
 				}
@@ -279,6 +278,8 @@ bool KMesh::InitFromImportResult(const KMeshRawData& result, const std::vector<V
 		indexData.indexStart = 0;
 		indexData.indexCount = subPart.indexCount;
 
+		KAABBBox bound;
+
 		if (indexData.indexCount > 0)
 		{
 			ASSERT_RESULT(KRenderGlobal::RenderDevice->CreateIndexBuffer(indexData.indexBuffer));
@@ -289,9 +290,31 @@ bool KMesh::InitFromImportResult(const KMeshRawData& result, const std::vector<V
 			));
 			ASSERT_RESULT(indexData.indexBuffer->InitDevice(false));
 			indexData.indexBuffer->SetDebugName((label + "_IB_" + std::to_string(i)).c_str());
+
+			for (uint32_t i = 0; i < subPart.indexCount; ++i)
+			{
+				uint32_t index = -1;
+				if (indexType == IT_16)
+				{
+					index = *(uint16_t*)POINTER_OFFSET(result.indicesData.data(), indexSize * (subPart.indexBase + i));
+				}
+				else
+				{
+					index = *(uint32_t*)POINTER_OFFSET(result.indicesData.data(), indexSize * (subPart.indexBase + i));
+				}
+				assert(index < positions.size());
+				bound = bound.Merge(positions[index]);
+			}
+		}
+		else
+		{
+			for (uint32_t i = 0; i < subPart.vertexCount; ++i)
+			{
+				bound = bound.Merge(positions[subPart.vertexBase + i]);
+			}
 		}
 
-		ASSERT_RESULT(subMesh->Init(&m_VertexData, indexData, material));
+		ASSERT_RESULT(subMesh->Init(&m_VertexData, indexData, material, bound));
 		indexData.Reset();
 	}
 
@@ -433,7 +456,7 @@ bool KMesh::InitFromUtility(const KDebugUtilityInfo& info)
 
 	if (info.indices.empty())
 	{
-		subMesh->InitDebug(info.primtive, &m_VertexData, nullptr);
+		subMesh->InitDebug(info.primtive, &m_VertexData, nullptr, bound);
 	}
 	else
 	{
@@ -448,7 +471,7 @@ bool KMesh::InitFromUtility(const KDebugUtilityInfo& info)
 		indexData.indexStart = 0;
 		indexData.indexCount = (uint32_t)info.indices.size();
 
-		subMesh->InitDebug(info.primtive, &m_VertexData, &indexData);
+		subMesh->InitDebug(info.primtive, &m_VertexData, &indexData, bound);
 	}
 
 	UpdateTriangleMesh();

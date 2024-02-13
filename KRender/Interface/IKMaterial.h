@@ -1,6 +1,7 @@
 #pragma once
 #include "KRender/Interface/IKShader.h"
 #include "KRender/Interface/IKTexture.h"
+#include "KRender/Interface/IKSampler.h"
 #include "KRender/Interface/IKPipeline.h"
 #include "KBase/Interface/IKAssetLoader.h"
 #include <cstdint>

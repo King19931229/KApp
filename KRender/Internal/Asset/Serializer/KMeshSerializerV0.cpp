@@ -475,7 +475,7 @@ bool KMeshSerializerV0::LoadFromStream(KMesh* pMesh, const std::string& meshPath
 
 		const KIndexData& indexData = indexDatas[drawInfo.indexDataIdx];
 		// TODO
-		ASSERT_RESULT(submesh->Init(&pMesh->m_VertexData, indexData, KMaterialRef()));
+		ASSERT_RESULT(submesh->Init(&pMesh->m_VertexData, indexData, KMaterialRef(), KAABBBox()));
 	}
 
 	return true;

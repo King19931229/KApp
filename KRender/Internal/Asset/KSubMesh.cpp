@@ -20,7 +20,7 @@ KSubMesh::~KSubMesh()
 {
 }
 
-bool KSubMesh::Init(const KVertexData* vertexData, const KIndexData& indexData, KMaterialRef material)
+bool KSubMesh::Init(const KVertexData* vertexData, const KIndexData& indexData, KMaterialRef material, const KAABBBox& bound)
 {
 	UnInit();
 
@@ -28,6 +28,7 @@ bool KSubMesh::Init(const KVertexData* vertexData, const KIndexData& indexData, 
 	m_pVertexData = vertexData;
 	m_IndexData = indexData;
 	m_IndexDraw = indexData.indexBuffer && indexData.indexCount > 0;
+	m_Bound = bound;
 
 	if (m_NeedAccelerationStructure)
 	{
@@ -42,13 +43,14 @@ bool KSubMesh::Init(const KVertexData* vertexData, const KIndexData& indexData, 
 	return true;
 }
 
-bool KSubMesh::InitDebug(DebugPrimitive primtive, const KVertexData* vertexData, const KIndexData* indexData)
+bool KSubMesh::InitDebug(DebugPrimitive primtive, const KVertexData* vertexData, const KIndexData* indexData, const KAABBBox& bound)
 {
 	UnInit();
 
 	m_Material.Release();
 	m_pVertexData = vertexData;
 	m_DebugPrimitive = primtive;
+	m_Bound = bound;
 
 	if (indexData != nullptr)
 	{

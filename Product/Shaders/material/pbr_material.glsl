@@ -8,13 +8,19 @@ mat4 worldToClip = camera.viewProj;
 
 #ifdef GPU_SCENE
 
+#include "gpuscene/gpuscene_define.h"
+
 layout(std430, binding = BINDING_MATERIAL_PARAMETER) readonly buffer MaterialParameterPackBuffer { float MaterialParameterData[]; };
+layout(std430, binding = BINDING_MATERIAL_TEXTURE_BINDING) readonly buffer MaterialTextureBindingPackBuffer { MaterialTextureBindingStruct MaterialTextureBinding[]; };
+layout(std430, binding = BINDING_MATERIAL_INDEX) readonly buffer MaterialIndexPackBuffer { uint MaterialIndex[]; };
+
+uint materialIndex = MaterialIndex[darwIndex];
 
 #if HAS_MATERIAL_TEXTURE0
 layout(binding = BINDING_TEXTURE0) uniform sampler2DArray diffuseArraySampler;
 vec4 SampleDiffuse(in vec2 texCoord)
 {
-	return texture(diffuseArraySampler, vec3(texCoord, float(0)));
+	return texture(diffuseArraySampler, vec3(texCoord, float(MaterialTextureBinding[materialIndex].binding[0])));
 }
 #endif
 
@@ -22,7 +28,7 @@ vec4 SampleDiffuse(in vec2 texCoord)
 layout(binding = BINDING_TEXTURE1) uniform sampler2DArray normalArraySampler;
 vec4 SampleNormal(in vec2 texCoord)
 {
-	return texture(normalArraySampler, vec3(texCoord, float(0)));
+	return texture(normalArraySampler, vec3(texCoord, float(MaterialTextureBinding[materialIndex].binding[1])));
 }
 #endif
 
@@ -31,13 +37,13 @@ vec4 SampleNormal(in vec2 texCoord)
 layout(binding = BINDING_TEXTURE2) uniform sampler2DArray specularGlosinessArraySampler;
 vec4 SampleSpecularGlosiness(in vec2 texCoord)
 {
-	return texture(specularGlosinessArraySampler, vec3(texCoord, float(0)));
+	return texture(specularGlosinessArraySampler, vec3(texCoord, float(MaterialTextureBinding[materialIndex].binding[2])));
 }
 #else
 layout(binding = BINDING_TEXTURE2) uniform sampler2DArray metalRoughnessArraySampler;
 vec4 SampleMetalRoughness(in vec2 texCoord)
 {
-	return texture(metalRoughnessArraySampler, vec3(texCoord, float(0)));
+	return texture(metalRoughnessArraySampler, vec3(texCoord, float(MaterialTextureBinding[materialIndex].binding[2])));
 }
 #endif
 #endif
@@ -46,7 +52,7 @@ vec4 SampleMetalRoughness(in vec2 texCoord)
 layout(binding = BINDING_TEXTURE3) uniform sampler2DArray emissiveArraySampler;
 vec4 SampleEmissive(in vec2 texCoord)
 {
-	return texture(emissiveArraySampler, vec3(texCoord, float(0)));
+	return texture(emissiveArraySampler, vec3(texCoord, float(MaterialTextureBinding[materialIndex].binding[3])));
 }
 #endif
 
@@ -54,7 +60,7 @@ vec4 SampleEmissive(in vec2 texCoord)
 layout(binding = BINDING_TEXTURE4) uniform sampler2DArray aoArraySampler;
 vec4 SampleAO(in vec2 texCoord)
 {
-	return texture(aoArraySampler, vec3(texCoord, float(0)));
+	return texture(aoArraySampler, vec3(texCoord, float(MaterialTextureBinding[materialIndex].binding[4])));
 }
 #endif
 

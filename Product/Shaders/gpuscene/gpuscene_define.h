@@ -3,7 +3,7 @@
 
 #define GPUSCENE_GROUP_SIZE 64
 
-// Must match KGPUSDceneInstance
+// Must match KGPUSceneInstance
 struct InstanceStruct
 {
 	mat4 transform;
@@ -11,6 +11,14 @@ struct InstanceStruct
 	vec4 boundCenter;
 	vec4 boundHalfExtend;
 	uvec4 miscs;
+};
+
+// Must match KGPUSceneMeshState
+struct MeshStateStruct
+{
+	vec4 boundCenter;
+	vec4 boundHalfExtend;
+	uint miscs[16];
 };
 
 // Must match KGPUSceneState
@@ -31,9 +39,10 @@ struct MegaShaderStateStruct
 	uint padding;
 };
 
-struct DrawingInstanceStruct
+// Must match KGPUSceneMaterialTextureBinding
+struct MaterialTextureBindingStruct
 {
-	uvec4 data;
+	uint binding[16];
 };
 
 #endif

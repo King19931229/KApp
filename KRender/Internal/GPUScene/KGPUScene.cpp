@@ -153,6 +153,66 @@ uint32_t KGPUScene::CreateOrGetMegaShaderIndex(KSubMeshPtr subMesh, IKMaterialPt
 		newItem.vsShader = material->GetVSGPUSceneShader(vertexData->vertexFormats.data(), vertexData->vertexFormats.size());
 		newItem.fsShader = material->GetFSGPUSceneShader(vertexData->vertexFormats.data(), vertexData->vertexFormats.size());
 		newItem.parameterDataSize = constantInfo->size;
+		newItem.dataCount = 0;
+
+		newItem.parametersBuffers.resize(KRenderGlobal::NumFramesInFlight);
+		newItem.materialIndicesBuffers.resize(KRenderGlobal::NumFramesInFlight);
+		for (uint32_t i = 0; i < KRenderGlobal::NumFramesInFlight; ++i)
+		{
+			KRenderGlobal::RenderDevice->CreateStorageBuffer(newItem.parametersBuffers[i]);
+			KRenderGlobal::RenderDevice->CreateStorageBuffer(newItem.materialIndicesBuffers[i]);
+		}
+
+		for (uint32_t i = 0; i < GPUSCENE_RENDER_STAGE_COUNT; ++i)
+		{
+			newItem.darwPipelines[i].resize(KRenderGlobal::NumFramesInFlight);
+		}
+
+		for (GPUSceneRenderStage stage : {GPUSCENE_RENDER_STAGE_BASEPASS_MAIN})
+		{
+			for (uint32_t frameIndex = 0; frameIndex < KRenderGlobal::NumFramesInFlight; ++frameIndex)
+			{
+				IKPipelinePtr pipeline = nullptr;
+				KRenderGlobal::RenderDevice->CreatePipeline(pipeline);
+
+				pipeline->SetVertexBinding((vertexData->vertexFormats).data(), vertexData->vertexFormats.size());
+				pipeline->SetShader(ST_VERTEX, newItem.vsShader);
+
+				pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
+				pipeline->SetBlendEnable(false);
+				pipeline->SetCullMode(CM_BACK);
+				pipeline->SetFrontFace(FF_COUNTER_CLOCKWISE);
+				pipeline->SetPolygonMode(PM_FILL);
+				pipeline->SetColorWrite(true, true, true, true);
+				pipeline->SetDepthFunc(CF_LESS_OR_EQUAL, true, true);
+
+				pipeline->SetShader(ST_FRAGMENT, newItem.fsShader);
+
+				for (uint32_t vertexFormat = 0; vertexFormat < VF_SCENE_COUNT; ++vertexFormat)
+				{
+					pipeline->SetStorageBuffer(SHADER_BINDING_POINT_NORMAL_UV + vertexFormat, ST_VERTEX, m_MegaBuffer.vertexBuffers[vertexFormat]);
+				}
+				pipeline->SetStorageBuffer(SHADER_BINDING_INDEX, ST_VERTEX, m_MegaBuffer.indexBuffer);
+				pipeline->SetStorageBuffer(SHADER_BINDING_MESH_STATE, ST_VERTEX, m_MegaBuffer.meshStateBuffer);
+
+				pipeline->SetStorageBuffer(SHADER_BINDING_INSTANCE_DATA, ST_VERTEX, m_InstanceDataBuffers[frameIndex]);
+				pipeline->SetStorageBuffer(SHADER_BINDING_DRAWING_GROUP, ST_VERTEX, m_GroupDataBuffers[frameIndex]);
+
+				pipeline->SetStorageBuffer(SHADER_BINDING_MATERIAL_PARAMETER, ST_FRAGMENT, newItem.parametersBuffers[frameIndex]);
+				pipeline->SetStorageBuffer(SHADER_BINDING_MATERIAL_INDEX, ST_FRAGMENT, newItem.materialIndicesBuffers[frameIndex]);
+				pipeline->SetStorageBuffer(SHADER_BINDING_MATERIAL_TEXTURE_BINDING, ST_FRAGMENT, m_TextureArray.materialTextureBindingBuffer);
+				pipeline->SetStorageBuffer(SHADER_BINDING_MEGA_SHADER_STATE, ST_FRAGMENT, m_MegaShaderStateBuffers[frameIndex]);
+
+				for (uint32_t i = 0; i < MAX_MATERIAL_TEXTURE_BINDING; ++i)
+				{
+					pipeline->SetSampler(SHADER_BINDING_TEXTURE0 + i, m_TextureArray.textureArrays[i]->GetFrameBuffer(), m_TextureArray.samplers[i].Get(), true);
+				}
+
+				ASSERT_RESULT(pipeline->Init());
+
+				newItem.darwPipelines[stage][frameIndex] = pipeline;
+			}
+		}
 
 		m_MegaShaders.push_back(newItem);
 		m_MegaShaderToIndex[hash] = index;
@@ -245,6 +305,7 @@ void KGPUScene::RemoveMegaShader(KSubMeshPtr subMesh, IKMaterialPtr material)
 			}
 		}
 		SAFE_UNINIT_CONTAINER(m_MegaShaders[removeIndex].parametersBuffers);
+		SAFE_UNINIT_CONTAINER(m_MegaShaders[removeIndex].materialIndicesBuffers);
 		m_MegaShaders.erase(m_MegaShaders.begin() + removeIndex);
 	}
 }
@@ -324,7 +385,7 @@ void KGPUScene::RebuildEntityDataIndex()
 		sceneEntity->subMeshIndices.resize(sceneEntity->materialSubMeshes.size());
 		sceneEntity->materialIndices.resize(sceneEntity->materialSubMeshes.size());
 		sceneEntity->megaShaderIndices.resize(sceneEntity->materialSubMeshes.size());
-		sceneEntity->shaderLocalIndices.resize(sceneEntity->materialSubMeshes.size());
+		sceneEntity->shaderDrawIndices.resize(sceneEntity->materialSubMeshes.size());
 
 		for (size_t i = 0; i < sceneEntity->materialSubMeshes.size(); ++i)
 		{
@@ -332,9 +393,9 @@ void KGPUScene::RebuildEntityDataIndex()
 			sceneEntity->subMeshIndices[i] = CreateOrGetSubMeshIndex(materialSubMesh->GetSubMesh(), false);
 			sceneEntity->materialIndices[i] = CreateOrGetMaterialIndex(materialSubMesh->GetMaterial().Get(), false);
 			sceneEntity->megaShaderIndices[i] = CreateOrGetMegaShaderIndex(materialSubMesh->GetSubMesh(), materialSubMesh->GetMaterial().Get(), false);
-			// Modify mega shader material index
+			// Assign mega shader material index
 			MegaShaderItem& megaShader = m_MegaShaders[sceneEntity->megaShaderIndices[i]];
-			sceneEntity->shaderLocalIndices[i] = (uint32_t)megaShader.materialIndices.size();
+			sceneEntity->shaderDrawIndices[i] = (uint32_t)megaShader.materialIndices.size();
 			megaShader.materialIndices.push_back(sceneEntity->materialIndices[i]);
 		}
 	}
@@ -342,11 +403,11 @@ void KGPUScene::RebuildEntityDataIndex()
 
 void KGPUScene::RebuildMegaBuffer()
 {
-	std::unordered_map<uint64_t, uint32_t> vertexBufferOffset[VF_COUNT];
-	std::unordered_set<uint64_t> vertexBufferWrite[VF_COUNT];
-	uint32_t vertexBufferTotalSize[VF_COUNT] = { 0 };
-	uint32_t vertexBufferWriteSize[VF_COUNT] = { 0 };
-	uint32_t vertexBufferVertexCount[VF_COUNT] = { 0 };
+	std::unordered_map<uint64_t, uint32_t> vertexBufferOffset[VF_SCENE_COUNT];
+	std::unordered_set<uint64_t> vertexBufferWrite[VF_SCENE_COUNT];
+	uint32_t vertexBufferTotalSize[VF_SCENE_COUNT] = { 0 };
+	uint32_t vertexBufferWriteSize[VF_SCENE_COUNT] = { 0 };
+	uint32_t vertexBufferVertexCount[VF_SCENE_COUNT] = { 0 };
 
 	std::unordered_map<uint64_t, uint32_t> indexBufferOffset;
 	std::unordered_set<uint64_t> indexBufferWrite;
@@ -433,7 +494,7 @@ void KGPUScene::RebuildMegaBuffer()
 		item.indexCount = indexCount;
 	}
 
-	for (uint32_t vertexFormat = 0; vertexFormat < VF_COUNT; ++vertexFormat)
+	for (uint32_t vertexFormat = 0; vertexFormat < VF_SCENE_COUNT; ++vertexFormat)
 	{
 		const KVertexDefinition::VertexDetail& detail = KVertexDefinition::GetVertexDetail((VertexFormat)vertexFormat);
 		if (m_MegaBuffer.vertexBuffers[vertexFormat]->GetBufferSize() != vertexBufferTotalSize[vertexFormat])
@@ -461,7 +522,7 @@ void KGPUScene::RebuildMegaBuffer()
 		assert(m_MegaBuffer.indexBuffer->GetBufferSize() == indexBufferTotalSize);
 	}
 
-	for (uint32_t vertexFormat = 0; vertexFormat < VF_COUNT; ++vertexFormat)
+	for (uint32_t vertexFormat = 0; vertexFormat < VF_SCENE_COUNT; ++vertexFormat)
 	{
 		IKStorageBufferPtr destVertexBuffer = m_MegaBuffer.vertexBuffers[vertexFormat];
 		if (destVertexBuffer->GetBufferSize() == 0)
@@ -662,6 +723,37 @@ void KGPUScene::RebuildMegaBuffer()
 	}
 }
 
+void KGPUScene::RebuildMeshStateBuffer()
+{
+	m_MeshStates.clear();
+	m_MeshStates.reserve(m_SubMeshes.size());
+
+	for (SubMeshItem& subMeshItem : m_SubMeshes)
+	{
+		KAABBBox subMeshBound = subMeshItem.subMesh->GetBound();
+
+		KGPUSceneMeshState newMeshState;
+
+		newMeshState.boundCenter = glm::vec4(subMeshBound.GetCenter(), 0);
+		newMeshState.boundHalfExtend = glm::vec4(subMeshBound.GetExtend() * 0.5f, 0);
+
+		newMeshState.miscs[KGPUSceneMeshState::INDEX_COUNT_INDEX] = subMeshItem.indexCount;
+		newMeshState.miscs[KGPUSceneMeshState::VERTEX_COUNT_INDEX] = subMeshItem.vertexCount;
+		newMeshState.miscs[KGPUSceneMeshState::INDEX_BUFFER_OFFSET] = subMeshItem.indexBufferOffset / sizeof(uint32_t);
+
+		for (uint32_t i = 0; i < VF_SCENE_COUNT; ++i)
+		{
+			newMeshState.miscs[KGPUSceneMeshState::VERTEX_BUFFER_OFFSET + i] = subMeshItem.vertexBufferOffset[i] / sizeof(float);
+		}
+
+		m_MeshStates.push_back(newMeshState);
+	}
+
+	m_MegaBuffer.meshStateBuffer->UnInit();
+	m_MegaBuffer.meshStateBuffer->InitMemory(sizeof(KGPUSceneMeshState) * m_MeshStates.size(), m_MeshStates.data());
+	m_MegaBuffer.meshStateBuffer->InitDevice(false, false);
+}
+
 void KGPUScene::RebuildMegaShaderState()
 {
 	for (size_t i = 0; i < m_MegaShaderStateBuffers.size(); ++i)
@@ -680,9 +772,14 @@ void KGPUScene::RebuildTextureArray()
 		std::unordered_map<IKTexturePtr, uint32_t> textureLocation;
 	} creationInfos[MAX_MATERIAL_TEXTURE_BINDING];
 
-	for (MaterialItem& item : m_Materials)
+	m_MaterialTextureBindings.resize(m_Materials.size());
+
+	for (size_t materialIndex = 0; materialIndex < m_Materials.size(); ++materialIndex)
 	{
-		IKMaterialPtr material = item.material;
+		MaterialItem& materialItem = m_Materials[materialIndex];
+		KGPUSceneMaterialTextureBinding& materialTextureBinding = m_MaterialTextureBindings[materialIndex];
+
+		IKMaterialPtr material = materialItem.material;
 		IKMaterialTextureBindingPtr textureBinding = material->GetTextureBinding();
 		uint32_t slots = textureBinding->GetNumSlot();
 		assert(slots <= MAX_MATERIAL_TEXTURE_BINDING);
@@ -692,37 +789,46 @@ void KGPUScene::RebuildTextureArray()
 			IKTexturePtr texture = textureBinding->GetTexture(i);
 			if (texture)
 			{
+				uint32_t location = -1;
 				auto it = creationInfo.textureLocation.find(texture);
 				if (it == creationInfo.textureLocation.end())
 				{
-					uint32_t location = (uint32_t)creationInfo.textures.size();
+					location = (uint32_t)creationInfo.textures.size();
 					creationInfo.textures.push_back(texture);
-					creationInfo.textureLocation.insert({ texture, location });
 				}
 				else
 				{
-					creationInfo.textureLocation.insert({ texture, it->second });
+					location = it->second;
 				}
+				creationInfo.textureLocation.insert({ texture, location });
+				materialTextureBinding.binding[i] = location;
+			}
+			else
+			{
+				materialTextureBinding.binding[i] = -1;
 			}
 		}
 	}
 
-	for (uint32_t i = 0; i < MAX_MATERIAL_TEXTURE_BINDING; ++i)
+	m_TextureArray.materialTextureBindingBuffer->UnInit();
+	m_TextureArray.materialTextureBindingBuffer->InitMemory(sizeof(KGPUSceneMaterialTextureBinding) * m_MaterialTextureBindings.size(), m_MaterialTextureBindings.data());
+	m_TextureArray.materialTextureBindingBuffer->InitDevice(false, false);
+
+	for (uint32_t slot = 0; slot < MAX_MATERIAL_TEXTURE_BINDING; ++slot)
 	{
-		const TextureArrayCreation& creationInfo = creationInfos[i];
-		if (!m_TextureArrays[i] || m_TextureArrays[i]->GetSlice() < (uint32_t)creationInfo.textures.size())
+		const TextureArrayCreation& creationInfo = creationInfos[slot];
+		if (m_TextureArray.textureArrays[slot]->GetSlice() < (uint32_t)creationInfo.textures.size())
 		{
-			SAFE_UNINIT(m_TextureArrays[i]);
-			KRenderGlobal::RenderDevice->CreateTexture(m_TextureArrays[i]);
+			m_TextureArray.textureArrays[slot]->UnInit();
 			if (creationInfo.textures.size() > 0)
 			{
-				m_TextureArrays[i]->InitMemoryFrom2DArray("GPUSceneTextureArray_" + std::to_string(i), 2048, 2048, (uint32_t)creationInfo.textures.size(), IF_R8G8B8A8, true);
-				m_TextureArrays[i]->InitDevice(false);
+				m_TextureArray.textureArrays[slot]->InitMemoryFrom2DArray("GPUSceneTextureArray_" + std::to_string(slot), m_TextureArray.dimension[slot], m_TextureArray.dimension[slot], (uint32_t)creationInfo.textures.size(), IF_R8G8B8A8, true);
+				m_TextureArray.textureArrays[slot]->InitDevice(false);
 			}
 		}
 		for (uint32_t sliceIndex = 0; sliceIndex < (uint32_t)creationInfo.textures.size(); ++sliceIndex)
 		{
-			m_TextureArrays[i]->CopyFromFrameBufferToSlice(creationInfo.textures[sliceIndex]->GetFrameBuffer(), sliceIndex);
+			m_TextureArray.textureArrays[slot]->CopyFromFrameBufferToSlice(creationInfo.textures[sliceIndex]->GetFrameBuffer(), sliceIndex);
 		}
 	}
 }
@@ -742,11 +848,10 @@ void KGPUScene::RebuildInstance()
 	
 		for (size_t i = 0; i < entity->materialSubMeshes.size(); ++i)
 		{
-			newInstance.miscs[0] = entity->index;
-			newInstance.miscs[1] = entity->subMeshIndices[i];
-			newInstance.miscs[2] = entity->megaShaderIndices[i];
-			newInstance.miscs[3] = entity->shaderLocalIndices[i];
-
+			newInstance.miscs[KGPUSceneInstance::ENEITY_INDEX] = entity->index;
+			newInstance.miscs[KGPUSceneInstance::SUBMESH_INDEX] = entity->subMeshIndices[i];
+			newInstance.miscs[KGPUSceneInstance::MEGA_SHADER_INDEX] = entity->megaShaderIndices[i];
+			newInstance.miscs[KGPUSceneInstance::SHADER_DRAW_INDEX] = entity->shaderDrawIndices[i];
 			m_Instances.push_back(newInstance);
 		}
 	}
@@ -776,26 +881,24 @@ void KGPUScene::RebuildInstance()
 	}
 }
 
-void KGPUScene::RebuildParameter()
+void KGPUScene::RebuildMegaShaderBuffer()
 {
 	for (MegaShaderItem& shaderItem : m_MegaShaders)
 	{
-		if (shaderItem.parameterDataCount < shaderItem.refCount)
+		if (shaderItem.dataCount < shaderItem.refCount)
 		{
-			shaderItem.parameterDataCount = KMath::SmallestPowerOf2GreaterEqualThan(shaderItem.refCount);
-			if (shaderItem.parametersBuffers.size() == 0)
-			{
-				shaderItem.parametersBuffers.resize(KRenderGlobal::NumFramesInFlight);
-				for (uint32_t i = 0; i < KRenderGlobal::NumFramesInFlight; ++i)
-				{
-					KRenderGlobal::RenderDevice->CreateStorageBuffer(shaderItem.parametersBuffers[i]);
-				}
-			}
+			shaderItem.dataCount = KMath::SmallestPowerOf2GreaterEqualThan(shaderItem.refCount);
 			for (size_t i = 0; i < shaderItem.parametersBuffers.size(); ++i)
 			{
 				shaderItem.parametersBuffers[i]->UnInit();
-				shaderItem.parametersBuffers[i]->InitMemory(shaderItem.parameterDataSize * shaderItem.parameterDataCount, nullptr);
+				shaderItem.parametersBuffers[i]->InitMemory(shaderItem.parameterDataSize * shaderItem.dataCount, nullptr);
 				shaderItem.parametersBuffers[i]->InitDevice(false, false);
+			}
+			for (size_t i = 0; i < shaderItem.materialIndicesBuffers.size(); ++i)
+			{
+				shaderItem.materialIndicesBuffers[i]->UnInit();
+				shaderItem.materialIndicesBuffers[i]->InitMemory(sizeof(uint32_t) * shaderItem.dataCount, nullptr);
+				shaderItem.materialIndicesBuffers[i]->InitDevice(false, false);
 			}
 		}
 	}
@@ -881,7 +984,7 @@ void KGPUScene::InitializeBuffers()
 		m_MegaShaderStateBuffers[i]->SetDebugName((std::string("GPUSceneMegaShaderState_") + std::to_string(i)).c_str());
 	}
 
-	for (uint32_t vertexFormat = 0; vertexFormat < VF_COUNT; ++vertexFormat)
+	for (uint32_t vertexFormat = 0; vertexFormat < VF_SCENE_COUNT; ++vertexFormat)
 	{
 		const KVertexDefinition::VertexDetail& detail = KVertexDefinition::GetVertexDetail((VertexFormat)vertexFormat);
 		KRenderGlobal::RenderDevice->CreateStorageBuffer(m_MegaBuffer.vertexBuffers[vertexFormat]);
@@ -890,6 +993,16 @@ void KGPUScene::InitializeBuffers()
 
 	KRenderGlobal::RenderDevice->CreateStorageBuffer(m_MegaBuffer.indexBuffer);
 	m_MegaBuffer.indexBuffer->SetDebugName("GPUSceneIndexData");
+
+	KRenderGlobal::RenderDevice->CreateStorageBuffer(m_MegaBuffer.meshStateBuffer);
+	m_MegaBuffer.meshStateBuffer->SetDebugName("GPUSceneMeshState");
+	m_MegaBuffer.meshStateBuffer->InitMemory(sizeof(KGPUSceneMeshState), nullptr);
+	m_MegaBuffer.meshStateBuffer->InitDevice(false, false);
+
+	KRenderGlobal::RenderDevice->CreateStorageBuffer(m_TextureArray.materialTextureBindingBuffer);
+	m_TextureArray.materialTextureBindingBuffer->InitMemory(sizeof(KGPUSceneMaterialTextureBinding), nullptr);
+	m_TextureArray.materialTextureBindingBuffer->InitDevice(false, false);
+	m_TextureArray.materialTextureBindingBuffer->SetDebugName("GPUSceneMaterialTextureBinding");
 }
 
 void KGPUScene::InitializePipelines()
@@ -912,6 +1025,7 @@ void KGPUScene::InitializePipelines()
 		KRenderGlobal::RenderDevice->CreateComputePipeline(m_InstanceCullPipelines[i]);
 		m_InstanceCullPipelines[i]->BindDynamicUniformBuffer(GPUSCENE_BINDING_OBJECT);
 		m_InstanceCullPipelines[i]->BindStorageBuffer(GPUSCENE_BINDING_SCENE_STATE, m_SceneStateBuffers[i], COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, true);
+		m_InstanceCullPipelines[i]->BindStorageBuffer(GPUSCENE_BINDING_MESH_STATE, m_MegaBuffer.meshStateBuffer, COMPUTE_RESOURCE_IN, true);
 		m_InstanceCullPipelines[i]->BindStorageBuffer(GPUSCENE_BINDING_INSTANCE_DATA, m_InstanceDataBuffers[i], COMPUTE_RESOURCE_IN, true);
 		m_InstanceCullPipelines[i]->BindStorageBuffer(GPUSCENE_BINDING_INSTANCE_CULL_RESULT, m_InstanceCullResultBuffers[i], COMPUTE_RESOURCE_OUT, true);
 		m_InstanceCullPipelines[i]->BindStorageBuffer(GPUSCENE_BINDING_INDIRECT_ARGS, m_IndirectArgsBuffers[i], COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, true);
@@ -938,6 +1052,25 @@ bool KGPUScene::Init(IKRenderScene* scene, const KCamera* camera)
 	UnInit();
 	if (scene && camera)
 	{
+		for (uint32_t slot = 0; slot < MAX_MATERIAL_TEXTURE_BINDING; ++slot)
+		{
+			m_TextureArray.dimension[slot] = 2048;
+
+			KSamplerDescription desc;
+			desc.minMipmap = 0;
+			desc.maxMipmap = (unsigned short)std::log2(m_TextureArray.dimension[slot]);
+			desc.anisotropic = true;
+			desc.anisotropicCount = 16;
+			desc.addressU = desc.addressV = desc.addressW = AM_REPEAT;
+			desc.minFilter = desc.magFilter = FM_LINEAR;
+
+			KRenderGlobal::SamplerManager.Acquire(desc, m_TextureArray.samplers[slot]);
+
+			KRenderGlobal::RenderDevice->CreateTexture(m_TextureArray.textureArrays[slot]);
+			m_TextureArray.textureArrays[slot]->InitMemoryFrom2DArray("GPUSceneTextureArray_" + std::to_string(slot), m_TextureArray.dimension[slot], m_TextureArray.dimension[slot], 1, IF_R8G8B8A8, true);
+			m_TextureArray.textureArrays[slot]->InitDevice(false);
+		}
+
 		InitializeBuffers();
 		InitializePipelines();
 
@@ -968,7 +1101,12 @@ bool KGPUScene::UnInit()
 
 	for (MegaShaderItem& megaShader : m_MegaShaders)
 	{
+		for (uint32_t i = 0; i < GPUSCENE_RENDER_STAGE_COUNT; ++i)
+		{
+			SAFE_UNINIT_CONTAINER(megaShader.darwPipelines[i]);
+		}
 		SAFE_UNINIT_CONTAINER(megaShader.parametersBuffers);
+		SAFE_UNINIT_CONTAINER(megaShader.materialIndicesBuffers);
 	}
 
 	m_MegaShaders.clear();
@@ -979,16 +1117,19 @@ bool KGPUScene::UnInit()
 
 	m_DataDirtyBits = 0;
 
-	for (uint32_t i = 0; i < VF_COUNT; ++i)
+	for (uint32_t i = 0; i < VF_SCENE_COUNT; ++i)
 	{
 		SAFE_UNINIT(m_MegaBuffer.vertexBuffers[i]);
 	}
 	SAFE_UNINIT(m_MegaBuffer.indexBuffer);
+	SAFE_UNINIT(m_MegaBuffer.meshStateBuffer);
 
 	for (uint32_t slot = 0; slot < MAX_MATERIAL_TEXTURE_BINDING; ++slot)
 	{
-		SAFE_UNINIT(m_TextureArrays[slot]);
+		SAFE_UNINIT(m_TextureArray.textureArrays[slot]);
+		m_TextureArray.samplers[slot].Release();
 	}
+	SAFE_UNINIT(m_TextureArray.materialTextureBindingBuffer);
 
 	SAFE_UNINIT_CONTAINER(m_SceneStateBuffers);
 	SAFE_UNINIT_CONTAINER(m_InstanceDataBuffers);
@@ -1015,6 +1156,7 @@ void KGPUScene::RebuildDirtyBuffer()
 	if (m_DataDirtyBits & MEGA_BUFFER_DIRTY)
 	{
 		RebuildMegaBuffer();
+		RebuildMeshStateBuffer();
 	}
 	if (m_DataDirtyBits & MEGA_SHADER_DIRTY)
 	{
@@ -1027,7 +1169,7 @@ void KGPUScene::RebuildDirtyBuffer()
 	if (m_DataDirtyBits & INSTANCE_DIRTY)
 	{
 		RebuildInstance();
-		RebuildParameter();
+		RebuildMegaShaderBuffer();
 	}
 	m_DataDirtyBits = 0;
 }
@@ -1040,7 +1182,7 @@ void KGPUScene::UpdateInstanceDataBuffer()
 
 	for (KGPUSceneInstance& instance : m_Instances)
 	{
-		uint32_t entityIndex = instance.miscs[0];
+		uint32_t entityIndex = instance.miscs[KGPUSceneInstance::ENEITY_INDEX];
 		SceneEntityPtr sceneEntity = m_Entities[entityIndex];
 		instance.prevTransform = sceneEntity->prevTransform;
 		instance.transform = sceneEntity->transform;
@@ -1113,6 +1255,16 @@ bool KGPUScene::Execute(IKCommandBufferPtr primaryBuffer)
 
 	primaryBuffer->EndDebugMarker();
 
+	return true;
+}
+
+bool KGPUScene::BasePassMain(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer)
+{
+	return true;
+}
+
+bool KGPUScene::BasePassPost(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer)
+{
 	return true;
 }
 

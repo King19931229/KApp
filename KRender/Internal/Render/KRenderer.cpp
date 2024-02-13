@@ -388,10 +388,12 @@ bool KRenderer::Init(const KRendererInitContext& initContext)
 	m_BasePassMainCallFunc = [](IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer)
 	{
 		KRenderGlobal::Scene.GetVirtualGeometryScene()->BasePassMain(renderPass, primaryBuffer);
+		KRenderGlobal::GPUScene.BasePassMain(renderPass, primaryBuffer);
 	};
 	m_BasePassPostCallFunc = [](IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer)
 	{
 		KRenderGlobal::Scene.GetVirtualGeometryScene()->BasePassPost(renderPass, primaryBuffer);
+		KRenderGlobal::GPUScene.BasePassPost(renderPass, primaryBuffer);
 	};
 
 	m_DebugCallFunc = [](IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer)
