@@ -400,8 +400,8 @@ bool KVulkanCommandBuffer::Render(const KRenderCommand& command)
 		{
 			if (command.indirectArgsBuffer)
 			{
-				KVulkanGlobal::vkCmdDrawMeshTasksIndirectEXT(commandBuffer, indirectBuffer, command.indrectOffset * sizeof(VkDrawMeshTasksIndirectCommandEXT), 1, sizeof(VkDrawMeshTasksIndirectCommandEXT));
-				// KVulkanGlobal::vkCmdDrawMeshTasksIndirectNV(commandBuffer, indirectBuffer, command.indrectOffset * sizeof(VkDrawMeshTasksIndirectCommandNV), 1, sizeof(VkDrawMeshTasksIndirectCommandNV));
+				KVulkanGlobal::vkCmdDrawMeshTasksIndirectEXT(commandBuffer, indirectBuffer, command.indirectOffset * sizeof(VkDrawMeshTasksIndirectCommandEXT), command.indirectCount, sizeof(VkDrawMeshTasksIndirectCommandEXT));
+				// KVulkanGlobal::vkCmdDrawMeshTasksIndirectNV(commandBuffer, indirectBuffer, command.indirectOffset * sizeof(VkDrawMeshTasksIndirectCommandNV), command.indirectCount, sizeof(VkDrawMeshTasksIndirectCommandNV));
 			}
 			else
 			{
@@ -447,7 +447,7 @@ bool KVulkanCommandBuffer::Render(const KRenderCommand& command)
 				{
 					if (command.indirectArgsBuffer)
 					{
-						vkCmdDrawIndexedIndirect(commandBuffer, indirectBuffer, command.indrectOffset * sizeof(VkDrawIndexedIndirectCommand), 1, sizeof(VkDrawIndexedIndirectCommand));
+						vkCmdDrawIndexedIndirect(commandBuffer, indirectBuffer, command.indirectOffset * sizeof(VkDrawIndexedIndirectCommand), command.indirectCount, sizeof(VkDrawIndexedIndirectCommand));
 					}
 					else
 					{
@@ -458,7 +458,7 @@ bool KVulkanCommandBuffer::Render(const KRenderCommand& command)
 				{
 					if (command.indirectArgsBuffer)
 					{
-						vkCmdDrawIndirect(commandBuffer, indirectBuffer, command.indrectOffset * sizeof(VkDrawIndirectCommand), 1, sizeof(VkDrawIndirectCommand));
+						vkCmdDrawIndirect(commandBuffer, indirectBuffer, command.indirectOffset * sizeof(VkDrawIndirectCommand), command.indirectCount, sizeof(VkDrawIndirectCommand));
 					}
 					else
 					{

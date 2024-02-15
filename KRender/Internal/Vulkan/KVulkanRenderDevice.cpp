@@ -617,6 +617,8 @@ bool KVulkanRenderDevice::CreateLogicalDevice()
 			m_Properties.anisotropySupport = false;
 			deviceFeatures.samplerAnisotropy = VK_FALSE;
 		}
+		// MultiDrawIndirect支持
+		deviceFeatures.multiDrawIndirect = VK_TRUE;
 
 		auto QueryVkFormatSupport = [this](VkFormat* formats, size_t arraySize)
 		{

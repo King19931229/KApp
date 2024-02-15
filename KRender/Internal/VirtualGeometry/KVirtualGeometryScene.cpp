@@ -929,7 +929,8 @@ bool KVirtualGeometryScene::BasePass(IKRenderPassPtr renderPass, IKCommandBuffer
 			command.indexDraw = false;
 			command.indirectDraw = true;
 			command.meshShaderDraw = true;
-			command.indrectOffset = (uint32_t)i;
+			command.indirectOffset = (uint32_t)i;
+			command.indirectCount = 1;
 			primaryBuffer->Render(command);
 		}
 		else
@@ -939,7 +940,8 @@ bool KVirtualGeometryScene::BasePass(IKRenderPassPtr renderPass, IKCommandBuffer
 			command.pipeline->GetHandle(renderPass, command.pipelineHandle);
 			command.indexDraw = false;
 			command.indirectDraw = true;
-			command.indrectOffset = (uint32_t)i;
+			command.indirectOffset = (uint32_t)i;
+			command.indirectCount = 1;
 			primaryBuffer->Render(command);
 		}
 	}
@@ -986,7 +988,8 @@ bool KVirtualGeometryScene::DebugRender(IKRenderPassPtr renderPass, IKCommandBuf
 		command.pipeline->GetHandle(renderPass, command.pipelineHandle);
 		command.indexDraw = false;
 		command.indirectDraw = true;
-		command.indrectOffset = (uint32_t)i;
+		command.indirectOffset = (uint32_t)i;
+		command.indirectCount = 1;
 
 		KVirtualGeometryMaterial material;
 		material.miscs3.x = (uint32_t)i;

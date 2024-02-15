@@ -4,10 +4,10 @@
 layout(local_size_x = GPUSCENE_GROUP_SIZE, local_size_y = 1, local_size_z = 1) in;
 void main()
 {
-	IndrectArgs[0] = 0;
-	IndrectArgs[1] = 1;
-	IndrectArgs[2] = 1;
-	IndrectArgs[3] = 1;
+	DispatchArgs[0] = 0;
+	DispatchArgs[1] = 1;
+	DispatchArgs[2] = 1;
+	DispatchArgs[3] = 1;
 
 	SceneStateData[0].instanceCount = 0;
 	SceneStateData[0].groupAllocateOffset = 0;

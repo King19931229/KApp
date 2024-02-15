@@ -153,14 +153,16 @@ uint32_t KGPUScene::CreateOrGetMegaShaderIndex(KSubMeshPtr subMesh, IKMaterialPt
 		newItem.vsShader = material->GetVSGPUSceneShader(vertexData->vertexFormats.data(), vertexData->vertexFormats.size());
 		newItem.fsShader = material->GetFSGPUSceneShader(vertexData->vertexFormats.data(), vertexData->vertexFormats.size());
 		newItem.parameterDataSize = constantInfo->size;
-		newItem.dataCount = 0;
+		newItem.parameterDataCount = 0;
 
 		newItem.parametersBuffers.resize(KRenderGlobal::NumFramesInFlight);
 		newItem.materialIndicesBuffers.resize(KRenderGlobal::NumFramesInFlight);
+		newItem.indirectDrawArgsBuffers.resize(KRenderGlobal::NumFramesInFlight);
 		for (uint32_t i = 0; i < KRenderGlobal::NumFramesInFlight; ++i)
 		{
 			KRenderGlobal::RenderDevice->CreateStorageBuffer(newItem.parametersBuffers[i]);
 			KRenderGlobal::RenderDevice->CreateStorageBuffer(newItem.materialIndicesBuffers[i]);
+			KRenderGlobal::RenderDevice->CreateStorageBuffer(newItem.indirectDrawArgsBuffers[i]);
 		}
 
 		for (uint32_t i = 0; i < GPUSCENE_RENDER_STAGE_COUNT; ++i)
@@ -170,12 +172,16 @@ uint32_t KGPUScene::CreateOrGetMegaShaderIndex(KSubMeshPtr subMesh, IKMaterialPt
 
 		for (GPUSceneRenderStage stage : {GPUSCENE_RENDER_STAGE_BASEPASS_MAIN})
 		{
+			if (material->GetShadingMode() == MSM_TRANSRPANT)
+			{
+				continue;
+			}
 			for (uint32_t frameIndex = 0; frameIndex < KRenderGlobal::NumFramesInFlight; ++frameIndex)
 			{
 				IKPipelinePtr pipeline = nullptr;
 				KRenderGlobal::RenderDevice->CreatePipeline(pipeline);
 
-				pipeline->SetVertexBinding((vertexData->vertexFormats).data(), vertexData->vertexFormats.size());
+				pipeline->SetVertexBinding(nullptr, 0);
 				pipeline->SetShader(ST_VERTEX, newItem.vsShader);
 
 				pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
@@ -187,7 +193,7 @@ uint32_t KGPUScene::CreateOrGetMegaShaderIndex(KSubMeshPtr subMesh, IKMaterialPt
 				pipeline->SetDepthFunc(CF_LESS_OR_EQUAL, true, true);
 
 				pipeline->SetShader(ST_FRAGMENT, newItem.fsShader);
-
+				// TODO: Bind on need
 				for (uint32_t vertexFormat = 0; vertexFormat < VF_SCENE_COUNT; ++vertexFormat)
 				{
 					pipeline->SetStorageBuffer(SHADER_BINDING_POINT_NORMAL_UV + vertexFormat, ST_VERTEX, m_MegaBuffer.vertexBuffers[vertexFormat]);
@@ -203,6 +209,10 @@ uint32_t KGPUScene::CreateOrGetMegaShaderIndex(KSubMeshPtr subMesh, IKMaterialPt
 				pipeline->SetStorageBuffer(SHADER_BINDING_MATERIAL_TEXTURE_BINDING, ST_FRAGMENT, m_TextureArray.materialTextureBindingBuffer);
 				pipeline->SetStorageBuffer(SHADER_BINDING_MEGA_SHADER_STATE, ST_FRAGMENT, m_MegaShaderStateBuffers[frameIndex]);
 
+				IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_CAMERA);
+				pipeline->SetConstantBuffer(SHADER_BINDING_CAMERA, ST_VERTEX | ST_FRAGMENT, cameraBuffer);
+
+				// TODO: Bind on need
 				for (uint32_t i = 0; i < MAX_MATERIAL_TEXTURE_BINDING; ++i)
 				{
 					pipeline->SetSampler(SHADER_BINDING_TEXTURE0 + i, m_TextureArray.textureArrays[i]->GetFrameBuffer(), m_TextureArray.samplers[i].Get(), true);
@@ -211,6 +221,24 @@ uint32_t KGPUScene::CreateOrGetMegaShaderIndex(KSubMeshPtr subMesh, IKMaterialPt
 				ASSERT_RESULT(pipeline->Init());
 
 				newItem.darwPipelines[stage][frameIndex] = pipeline;
+			}
+		}
+
+		{
+			newItem.calcDrawArgsPipelines.resize(KRenderGlobal::NumFramesInFlight);
+			for (uint32_t frameIndex = 0; frameIndex < KRenderGlobal::NumFramesInFlight; ++frameIndex)
+			{
+				IKComputePipelinePtr pipeline = nullptr;
+				KRenderGlobal::RenderDevice->CreateComputePipeline(pipeline);
+				pipeline->BindStorageBuffer(GPUSCENE_BINDING_SCENE_STATE, m_SceneStateBuffers[frameIndex], COMPUTE_RESOURCE_IN, true);
+				pipeline->BindStorageBuffer(GPUSCENE_BINDING_INSTANCE_DATA, m_InstanceDataBuffers[frameIndex], COMPUTE_RESOURCE_IN, true);
+				pipeline->BindStorageBuffer(GPUSCENE_BINDING_MESH_STATE, m_MegaBuffer.meshStateBuffer, COMPUTE_RESOURCE_IN, true);
+				pipeline->BindStorageBuffer(GPUSCENE_BINDING_MEGA_SHADER_STATE, m_MegaShaderStateBuffers[frameIndex], COMPUTE_RESOURCE_IN, true);
+				pipeline->BindStorageBuffer(GPUSCENE_BINDING_GROUP_DATA, m_GroupDataBuffers[frameIndex], COMPUTE_RESOURCE_IN, true);
+				pipeline->BindStorageBuffer(GPUSCENE_BINDING_INDIRECT_DRAW_ARGS, newItem.indirectDrawArgsBuffers[frameIndex], COMPUTE_RESOURCE_OUT, true);
+				pipeline->BindDynamicUniformBuffer(GPUSCENE_BINDING_OBJECT);
+				pipeline->Init("gpuscene/calc_draw_args.comp", m_ComputeBindingEnv);
+				newItem.calcDrawArgsPipelines[frameIndex] = pipeline;
 			}
 		}
 
@@ -496,17 +524,13 @@ void KGPUScene::RebuildMegaBuffer()
 
 	for (uint32_t vertexFormat = 0; vertexFormat < VF_SCENE_COUNT; ++vertexFormat)
 	{
-		const KVertexDefinition::VertexDetail& detail = KVertexDefinition::GetVertexDetail((VertexFormat)vertexFormat);
-		if (m_MegaBuffer.vertexBuffers[vertexFormat]->GetBufferSize() != vertexBufferTotalSize[vertexFormat])
+		if (vertexBufferTotalSize[vertexFormat] > 0 && m_MegaBuffer.vertexBuffers[vertexFormat]->GetBufferSize() != vertexBufferTotalSize[vertexFormat])
 		{
+			const KVertexDefinition::VertexDetail& detail = KVertexDefinition::GetVertexDetail((VertexFormat)vertexFormat);
 			m_MegaBuffer.vertexBuffers[vertexFormat]->UnInit();
-			if (vertexBufferTotalSize[vertexFormat] > 0)
-			{
-				m_MegaBuffer.vertexBuffers[vertexFormat]->InitMemory(vertexBufferTotalSize[vertexFormat], nullptr);
-				m_MegaBuffer.vertexBuffers[vertexFormat]->InitDevice(false, false);
-				m_MegaBuffer.vertexBuffers[vertexFormat]->SetDebugName((std::string("GPUSceneVertexData_") + detail.name).c_str());
-			}
-			assert(m_MegaBuffer.vertexBuffers[vertexFormat]->GetBufferSize() == vertexBufferTotalSize[vertexFormat]);
+			m_MegaBuffer.vertexBuffers[vertexFormat]->InitMemory(vertexBufferTotalSize[vertexFormat], nullptr);
+			m_MegaBuffer.vertexBuffers[vertexFormat]->InitDevice(false, false);
+			m_MegaBuffer.vertexBuffers[vertexFormat]->SetDebugName((std::string("GPUSceneVertexData_") + detail.name).c_str());
 		}
 	}
 
@@ -524,11 +548,12 @@ void KGPUScene::RebuildMegaBuffer()
 
 	for (uint32_t vertexFormat = 0; vertexFormat < VF_SCENE_COUNT; ++vertexFormat)
 	{
-		IKStorageBufferPtr destVertexBuffer = m_MegaBuffer.vertexBuffers[vertexFormat];
-		if (destVertexBuffer->GetBufferSize() == 0)
+		if (vertexBufferTotalSize[vertexFormat] == 0)
 		{
 			continue;
 		}
+
+		IKStorageBufferPtr destVertexBuffer = m_MegaBuffer.vertexBuffers[vertexFormat];
 
 		void* pMegaVertexData = nullptr;
 		destVertexBuffer->Map(&pMegaVertexData);
@@ -885,21 +910,52 @@ void KGPUScene::RebuildMegaShaderBuffer()
 {
 	for (MegaShaderItem& shaderItem : m_MegaShaders)
 	{
-		if (shaderItem.dataCount < shaderItem.refCount)
+		if (shaderItem.parameterDataCount < shaderItem.refCount)
 		{
-			shaderItem.dataCount = KMath::SmallestPowerOf2GreaterEqualThan(shaderItem.refCount);
+			shaderItem.parameterDataCount = KMath::SmallestPowerOf2GreaterEqualThan(shaderItem.refCount);
 			for (size_t i = 0; i < shaderItem.parametersBuffers.size(); ++i)
 			{
 				shaderItem.parametersBuffers[i]->UnInit();
-				shaderItem.parametersBuffers[i]->InitMemory(shaderItem.parameterDataSize * shaderItem.dataCount, nullptr);
+				shaderItem.parametersBuffers[i]->InitMemory(shaderItem.parameterDataSize * shaderItem.parameterDataCount, nullptr);
 				shaderItem.parametersBuffers[i]->InitDevice(false, false);
 			}
 			for (size_t i = 0; i < shaderItem.materialIndicesBuffers.size(); ++i)
 			{
 				shaderItem.materialIndicesBuffers[i]->UnInit();
-				shaderItem.materialIndicesBuffers[i]->InitMemory(sizeof(uint32_t) * shaderItem.dataCount, nullptr);
+				shaderItem.materialIndicesBuffers[i]->InitMemory(sizeof(uint32_t) * shaderItem.parameterDataCount, nullptr);
 				shaderItem.materialIndicesBuffers[i]->InitDevice(false, false);
 			}
+		}
+		if (shaderItem.drawArgsDataCount < m_Instances.size())
+		{
+			shaderItem.drawArgsDataCount = (uint32_t)KMath::SmallestPowerOf2GreaterEqualThan(m_Instances.size());
+			for (size_t i = 0; i < shaderItem.indirectDrawArgsBuffers.size(); ++i)
+			{
+				shaderItem.indirectDrawArgsBuffers[i]->UnInit();
+				shaderItem.indirectDrawArgsBuffers[i]->InitMemory(sizeof(uint32_t) * 4 * shaderItem.drawArgsDataCount, nullptr);
+				shaderItem.indirectDrawArgsBuffers[i]->InitDevice(true, false);
+			}
+		}
+
+		for (size_t i = 0; i < shaderItem.materialIndicesBuffers.size(); ++i)
+		{
+			void* pData = nullptr;
+			shaderItem.materialIndicesBuffers[i]->Map(&pData);
+			memcpy(pData, shaderItem.materialIndices.data(), shaderItem.materialIndices.size() * sizeof(uint32_t));
+			shaderItem.materialIndicesBuffers[i]->UnMap();
+		}
+
+		for (size_t i = 0; i < shaderItem.parametersBuffers.size(); ++i)
+		{
+			shaderItem.parametersBuffers[i]->SetDebugName((std::string("KGPUSceneShaderParameter_") + std::to_string(i)).c_str());
+		}
+		for (size_t i = 0; i < shaderItem.materialIndicesBuffers.size(); ++i)
+		{
+			shaderItem.materialIndicesBuffers[i]->SetDebugName((std::string("KGPUSceneShaderMaterialIndices_") + std::to_string(i)).c_str());
+		}
+		for (size_t i = 0; i < shaderItem.indirectDrawArgsBuffers.size(); ++i)
+		{
+			shaderItem.indirectDrawArgsBuffers[i]->SetDebugName((std::string("KGPUSceneIndirectDrawArgs_") + std::to_string(i)).c_str());
 		}
 	}
 }
@@ -947,16 +1003,17 @@ void KGPUScene::InitializeBuffers()
 	m_SceneStateBuffers.resize(numFrames);
 	m_InstanceDataBuffers.resize(numFrames);
 	m_GroupDataBuffers.resize(numFrames);
-	m_IndirectArgsBuffers.resize(numFrames);
+	m_DispatchArgsBuffers.resize(numFrames);
 	m_InstanceCullResultBuffers.resize(numFrames);
 	m_MegaShaderStateBuffers.resize(numFrames);
 
 	for (uint32_t i = 0; i < numFrames; ++i)
 	{
 		KRenderGlobal::RenderDevice->CreateStorageBuffer(m_SceneStateBuffers[i]);
-		m_SceneStateBuffers[i]->SetDebugName((std::string("GPUSceneStateData_") + std::to_string(i)).c_str());
 		m_SceneStateBuffers[i]->InitMemory(sizeof(KGPUSceneState), nullptr);
 		m_SceneStateBuffers[i]->InitDevice(false, false);
+		m_SceneStateBuffers[i]->SetDebugName((std::string("GPUSceneStateData_") + std::to_string(i)).c_str());
+		m_SceneStateBuffers[i]->SetDebugName((std::string("GPUSceneStateData_") + std::to_string(i)).c_str());
 
 		KRenderGlobal::RenderDevice->CreateStorageBuffer(m_InstanceDataBuffers[i]);
 		m_InstanceDataBuffers[i]->InitMemory(sizeof(KGPUSceneInstance), nullptr);
@@ -968,10 +1025,10 @@ void KGPUScene::InitializeBuffers()
 		m_GroupDataBuffers[i]->InitDevice(false, false);
 		m_GroupDataBuffers[i]->SetDebugName((std::string("GPUSceneGroupData_") + std::to_string(i)).c_str());
 
-		KRenderGlobal::RenderDevice->CreateStorageBuffer(m_IndirectArgsBuffers[i]);
-		m_IndirectArgsBuffers[i]->InitMemory(sizeof(glm::uvec4), nullptr);
-		m_IndirectArgsBuffers[i]->InitDevice(true, false);
-		m_IndirectArgsBuffers[i]->SetDebugName((std::string("GPUSceneIndirectArgs_") + std::to_string(i)).c_str());
+		KRenderGlobal::RenderDevice->CreateStorageBuffer(m_DispatchArgsBuffers[i]);
+		m_DispatchArgsBuffers[i]->InitMemory(sizeof(uint32_t) * 4, nullptr);
+		m_DispatchArgsBuffers[i]->InitDevice(true, false);
+		m_DispatchArgsBuffers[i]->SetDebugName((std::string("GPUSceneIndirectDispatchArgs_") + std::to_string(i)).c_str());
 
 		KRenderGlobal::RenderDevice->CreateStorageBuffer(m_InstanceCullResultBuffers[i]);
 		m_InstanceCullResultBuffers[i]->InitMemory(sizeof(uint32_t), nullptr);
@@ -988,16 +1045,20 @@ void KGPUScene::InitializeBuffers()
 	{
 		const KVertexDefinition::VertexDetail& detail = KVertexDefinition::GetVertexDetail((VertexFormat)vertexFormat);
 		KRenderGlobal::RenderDevice->CreateStorageBuffer(m_MegaBuffer.vertexBuffers[vertexFormat]);
+		m_MegaBuffer.vertexBuffers[vertexFormat]->InitMemory(detail.vertexSize, nullptr);
+		m_MegaBuffer.vertexBuffers[vertexFormat]->InitDevice(false, false);
 		m_MegaBuffer.vertexBuffers[vertexFormat]->SetDebugName((std::string("GPUSceneVertexData_") + detail.name).c_str());
 	}
 
 	KRenderGlobal::RenderDevice->CreateStorageBuffer(m_MegaBuffer.indexBuffer);
+	m_MegaBuffer.indexBuffer->InitMemory(sizeof(uint32_t), nullptr);
+	m_MegaBuffer.indexBuffer->InitDevice(false, false);
 	m_MegaBuffer.indexBuffer->SetDebugName("GPUSceneIndexData");
 
 	KRenderGlobal::RenderDevice->CreateStorageBuffer(m_MegaBuffer.meshStateBuffer);
-	m_MegaBuffer.meshStateBuffer->SetDebugName("GPUSceneMeshState");
 	m_MegaBuffer.meshStateBuffer->InitMemory(sizeof(KGPUSceneMeshState), nullptr);
 	m_MegaBuffer.meshStateBuffer->InitDevice(false, false);
+	m_MegaBuffer.meshStateBuffer->SetDebugName("GPUSceneMeshState");
 
 	KRenderGlobal::RenderDevice->CreateStorageBuffer(m_TextureArray.materialTextureBindingBuffer);
 	m_TextureArray.materialTextureBindingBuffer->InitMemory(sizeof(KGPUSceneMaterialTextureBinding), nullptr);
@@ -1011,6 +1072,7 @@ void KGPUScene::InitializePipelines()
 
 	m_InitStatePipelines.resize(numFrames);
 	m_InstanceCullPipelines.resize(numFrames);
+	m_CalcDispatchArgsPipelines.resize(numFrames);
 	m_GroupAllocatePipelines.resize(numFrames);
 	m_GroupScatterPipelines.resize(numFrames);
 
@@ -1019,7 +1081,7 @@ void KGPUScene::InitializePipelines()
 		KRenderGlobal::RenderDevice->CreateComputePipeline(m_InitStatePipelines[i]);
 		m_InitStatePipelines[i]->BindStorageBuffer(GPUSCENE_BINDING_SCENE_STATE, m_SceneStateBuffers[i], COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, true);
 		m_InitStatePipelines[i]->BindStorageBuffer(GPUSCENE_BINDING_MEGA_SHADER_STATE, m_MegaShaderStateBuffers[i], COMPUTE_RESOURCE_OUT, true);
-		m_InitStatePipelines[i]->BindStorageBuffer(GPUSCENE_BINDING_INDIRECT_ARGS, m_IndirectArgsBuffers[i], COMPUTE_RESOURCE_OUT, true);
+		m_InitStatePipelines[i]->BindStorageBuffer(GPUSCENE_BINDING_INDIRECT_DISPATCH_ARGS, m_DispatchArgsBuffers[i], COMPUTE_RESOURCE_OUT, true);
 		m_InitStatePipelines[i]->Init("gpuscene/init_state.comp", m_ComputeBindingEnv);
 
 		KRenderGlobal::RenderDevice->CreateComputePipeline(m_InstanceCullPipelines[i]);
@@ -1028,9 +1090,14 @@ void KGPUScene::InitializePipelines()
 		m_InstanceCullPipelines[i]->BindStorageBuffer(GPUSCENE_BINDING_MESH_STATE, m_MegaBuffer.meshStateBuffer, COMPUTE_RESOURCE_IN, true);
 		m_InstanceCullPipelines[i]->BindStorageBuffer(GPUSCENE_BINDING_INSTANCE_DATA, m_InstanceDataBuffers[i], COMPUTE_RESOURCE_IN, true);
 		m_InstanceCullPipelines[i]->BindStorageBuffer(GPUSCENE_BINDING_INSTANCE_CULL_RESULT, m_InstanceCullResultBuffers[i], COMPUTE_RESOURCE_OUT, true);
-		m_InstanceCullPipelines[i]->BindStorageBuffer(GPUSCENE_BINDING_INDIRECT_ARGS, m_IndirectArgsBuffers[i], COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, true);
+		m_InstanceCullPipelines[i]->BindStorageBuffer(GPUSCENE_BINDING_INDIRECT_DISPATCH_ARGS, m_DispatchArgsBuffers[i], COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, true);
 		m_InstanceCullPipelines[i]->BindStorageBuffer(GPUSCENE_BINDING_MEGA_SHADER_STATE, m_MegaShaderStateBuffers[i], COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, true);
 		m_InstanceCullPipelines[i]->Init("gpuscene/instance_cull.comp", m_ComputeBindingEnv);
+
+		KRenderGlobal::RenderDevice->CreateComputePipeline(m_CalcDispatchArgsPipelines[i]);
+		m_CalcDispatchArgsPipelines[i]->BindStorageBuffer(GPUSCENE_BINDING_SCENE_STATE, m_SceneStateBuffers[i], COMPUTE_RESOURCE_IN, true);
+		m_CalcDispatchArgsPipelines[i]->BindStorageBuffer(GPUSCENE_BINDING_INDIRECT_DISPATCH_ARGS, m_DispatchArgsBuffers[i], COMPUTE_RESOURCE_OUT, true);
+		m_CalcDispatchArgsPipelines[i]->Init("gpuscene/calc_dispatch_args.comp", m_ComputeBindingEnv);
 
 		KRenderGlobal::RenderDevice->CreateComputePipeline(m_GroupAllocatePipelines[i]);
 		m_GroupAllocatePipelines[i]->BindStorageBuffer(GPUSCENE_BINDING_SCENE_STATE, m_SceneStateBuffers[i], COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, true);
@@ -1107,6 +1174,8 @@ bool KGPUScene::UnInit()
 		}
 		SAFE_UNINIT_CONTAINER(megaShader.parametersBuffers);
 		SAFE_UNINIT_CONTAINER(megaShader.materialIndicesBuffers);
+		SAFE_UNINIT_CONTAINER(megaShader.indirectDrawArgsBuffers);
+		SAFE_UNINIT_CONTAINER(megaShader.calcDrawArgsPipelines);
 	}
 
 	m_MegaShaders.clear();
@@ -1134,12 +1203,13 @@ bool KGPUScene::UnInit()
 	SAFE_UNINIT_CONTAINER(m_SceneStateBuffers);
 	SAFE_UNINIT_CONTAINER(m_InstanceDataBuffers);
 	SAFE_UNINIT_CONTAINER(m_GroupDataBuffers);
-	SAFE_UNINIT_CONTAINER(m_IndirectArgsBuffers);
+	SAFE_UNINIT_CONTAINER(m_DispatchArgsBuffers);
 	SAFE_UNINIT_CONTAINER(m_InstanceCullResultBuffers);
 	SAFE_UNINIT_CONTAINER(m_MegaShaderStateBuffers);
 
 	SAFE_UNINIT_CONTAINER(m_InitStatePipelines);
 	SAFE_UNINIT_CONTAINER(m_InstanceCullPipelines);
+	SAFE_UNINIT_CONTAINER(m_CalcDispatchArgsPipelines);
 	SAFE_UNINIT_CONTAINER(m_GroupAllocatePipelines);
 	SAFE_UNINIT_CONTAINER(m_GroupScatterPipelines);
 
@@ -1217,7 +1287,6 @@ bool KGPUScene::Execute(IKCommandBufferPtr primaryBuffer)
 	{
 		primaryBuffer->BeginDebugMarker("GPUScene_InstanceCull", glm::vec4(1));
 		uint32_t numDispatch = ((uint32_t)m_Instances.size() + GPUSCENE_GROUP_SIZE - 1) / GPUSCENE_GROUP_SIZE;
-
 		struct
 		{
 			glm::mat4 view;
@@ -1241,6 +1310,12 @@ bool KGPUScene::Execute(IKCommandBufferPtr primaryBuffer)
 	}
 
 	{
+		primaryBuffer->BeginDebugMarker("GPUScene_CalcDispatchArgs", glm::vec4(1));
+		m_CalcDispatchArgsPipelines[currentFrameIndex]->Execute(primaryBuffer, 1, 1, 1, nullptr);
+		primaryBuffer->EndDebugMarker();
+	}
+
+	{
 		primaryBuffer->BeginDebugMarker("GPUScene_GroupAllocate", glm::vec4(1));
 		uint32_t numDispatch = (megaShaderNum + GPUSCENE_GROUP_SIZE - 1) / GPUSCENE_GROUP_SIZE;
 		m_GroupAllocatePipelines[currentFrameIndex]->Execute(primaryBuffer, numDispatch, 1, 1, nullptr);
@@ -1249,8 +1324,35 @@ bool KGPUScene::Execute(IKCommandBufferPtr primaryBuffer)
 
 	{
 		primaryBuffer->BeginDebugMarker("GPUScene_GroupScatter", glm::vec4(1));
-		m_GroupScatterPipelines[currentFrameIndex]->ExecuteIndirect(primaryBuffer, m_IndirectArgsBuffers[currentFrameIndex], nullptr);
+		m_GroupScatterPipelines[currentFrameIndex]->ExecuteIndirect(primaryBuffer, m_DispatchArgsBuffers[currentFrameIndex], nullptr);
 		primaryBuffer->EndDebugMarker();
+	}
+
+	{
+		struct
+		{
+			uint32_t index = 0;
+			uint32_t padding[3] = { 0 };
+		} megaShaderUsage;
+		static_assert((sizeof(megaShaderUsage) % 16) == 0, "Size must be a multiple of 16");
+
+		for (uint32_t i = 0; i < m_MegaShaders.size(); ++i)
+		{
+			primaryBuffer->BeginDebugMarker((std::string("GPUScene_MegaShaderCalcDrawArgs_") + std::to_string(i)).c_str(), glm::vec4(1));
+
+			MegaShaderItem& megaShader = m_MegaShaders[i];
+			megaShaderUsage.index = i;
+
+			KDynamicConstantBufferUsage objectUsage;
+			objectUsage.binding = GPUSCENE_BINDING_OBJECT;
+			objectUsage.range = sizeof(megaShaderUsage);
+
+			KRenderGlobal::DynamicConstantBufferManager.Alloc(&megaShaderUsage, objectUsage);
+
+			megaShader.calcDrawArgsPipelines[currentFrameIndex]->ExecuteIndirect(primaryBuffer, m_DispatchArgsBuffers[currentFrameIndex], &objectUsage);
+
+			primaryBuffer->EndDebugMarker();
+		}
 	}
 
 	primaryBuffer->EndDebugMarker();
@@ -1260,6 +1362,69 @@ bool KGPUScene::Execute(IKCommandBufferPtr primaryBuffer)
 
 bool KGPUScene::BasePassMain(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer)
 {
+	primaryBuffer->BeginDebugMarker("GPUScene_BasePass_Main", glm::vec4(1));
+
+	uint32_t frameIndex = KRenderGlobal::CurrentInFlightFrameIndex;
+
+	KGPUSceneDrawParameter drawParameter;
+
+	for (size_t i = 0; i < m_MegaShaders.size(); ++i)
+	{
+		const MegaShaderItem& megaShader = m_MegaShaders[i];
+		if (!megaShader.darwPipelines[GPUSCENE_RENDER_STAGE_BASEPASS_MAIN][frameIndex])
+		{
+			continue;
+		}
+
+		KDynamicConstantBufferUsage objectUsage;
+		objectUsage.binding = SHADER_BINDING_OBJECT;
+		objectUsage.range = sizeof(drawParameter);
+
+		drawParameter.megaShaderIndex = (uint32_t)i;
+		KRenderGlobal::DynamicConstantBufferManager.Alloc(&drawParameter, objectUsage);
+
+		{
+			void* pData = nullptr;
+			megaShader.parametersBuffers[frameIndex]->Map(&pData);
+			for (uint32_t materialIndex : megaShader.materialIndices)
+			{
+				const MaterialItem& materialItem = m_Materials[materialIndex];
+				const IKMaterialPtr material = materialItem.material;
+				const IKMaterialParameterPtr parameter = material->GetParameter();
+				if (parameter)
+				{
+					const KShaderInformation::Constant* constant = material->GetShadingInfo();
+					if (constant && constant->size)
+					{
+						for (const KShaderInformation::Constant::ConstantMember& member : constant->members)
+						{
+							IKMaterialValuePtr value = parameter->GetValue(member.name);
+							ASSERT_RESULT(value);
+							memcpy(POINTER_OFFSET(pData, member.offset), value->GetData(), member.size);
+						}
+					}
+				}
+				pData = POINTER_OFFSET(pData, megaShader.parameterDataSize);
+			}
+			megaShader.parametersBuffers[frameIndex]->UnMap();
+		}
+
+		{
+			KRenderCommand command;
+			command.dynamicConstantUsages.push_back(objectUsage);
+			command.pipeline = megaShader.darwPipelines[GPUSCENE_RENDER_STAGE_BASEPASS_MAIN][frameIndex];
+			command.indirectArgsBuffer = megaShader.indirectDrawArgsBuffers[frameIndex];
+			command.pipeline->GetHandle(renderPass, command.pipelineHandle);
+			command.indexDraw = false;
+			command.indirectDraw = true;
+			command.indirectOffset = 0;
+			command.indirectCount = (uint32_t)m_Instances.size();
+			primaryBuffer->Render(command);
+		}
+	}
+
+	primaryBuffer->EndDebugMarker();
+
 	return true;
 }
 
@@ -1278,6 +1443,10 @@ void KGPUScene::ReloadShader()
 	{
 		pipeline->Reload();
 	}
+	for (IKComputePipelinePtr& pipeline : m_CalcDispatchArgsPipelines)
+	{
+		pipeline->Reload();
+	}
 	for (IKComputePipelinePtr& pipeline : m_GroupAllocatePipelines)
 	{
 		pipeline->Reload();
@@ -1285,5 +1454,21 @@ void KGPUScene::ReloadShader()
 	for (IKComputePipelinePtr& pipeline : m_GroupScatterPipelines)
 	{
 		pipeline->Reload();
+	}
+	for (MegaShaderItem& megaShader : m_MegaShaders)
+	{
+		for (IKComputePipelinePtr& pipeline : megaShader.calcDrawArgsPipelines)
+		{
+			pipeline->Reload();
+		}
+		megaShader.vsShader->Reload();
+		megaShader.fsShader->Reload();
+		for (IKPipelinePtr& pipeline : megaShader.darwPipelines[GPUSCENE_RENDER_STAGE_BASEPASS_MAIN])
+		{
+			if (pipeline)
+			{
+				pipeline->Reload();
+			}
+		}
 	}
 }

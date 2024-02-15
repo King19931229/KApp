@@ -451,84 +451,39 @@ void KDeferredRenderer::BuildRenderCommand(KMultithreadingRenderContext& renderC
 	std::vector<KMaterialSubMeshInstance> instances;
 	BuildMaterialSubMeshInstance(deferredRenderStage, cullRes, instances);
 
-	for (KMaterialSubMeshInstance& subMeshInstance : instances)
+	if (deferredRenderStage != DRS_STAGE_MAIN_BASE_PASS)
 	{
-		const std::vector<KVertexDefinition::INSTANCE_DATA_MATRIX4F>& instances = subMeshInstance.instanceData;
-
-		ASSERT_RESULT(!instances.empty());
-
-		if (instanceRenderStage != RENDER_STAGE_UNKNOWN && instances.size() > 1)
+		for (KMaterialSubMeshInstance& subMeshInstance : instances)
 		{
-			KRenderCommand command;
-			if (subMeshInstance.materialSubMesh->GetRenderCommand(instanceRenderStage, command))
+			const std::vector<KVertexDefinition::INSTANCE_DATA_MATRIX4F>& instances = subMeshInstance.instanceData;
+
+			ASSERT_RESULT(!instances.empty());
+
+			if (instanceRenderStage != RENDER_STAGE_UNKNOWN && instances.size() > 1)
 			{
-				if (!KRenderUtil::AssignShadingParameter(command, subMeshInstance.materialSubMesh->GetMaterial()))
+				KRenderCommand command;
+				if (subMeshInstance.materialSubMesh->GetRenderCommand(instanceRenderStage, command))
 				{
-					return;
-				}
+					if (!KRenderUtil::AssignShadingParameter(command, subMeshInstance.materialSubMesh->GetMaterial()))
+					{
+						return;
+					}
 
-				std::vector<KInstanceBufferManager::AllocResultBlock> allocRes;
-				ASSERT_RESULT(KRenderGlobal::InstanceBufferManager.GetVertexSize() == sizeof(instances[0]));
-				ASSERT_RESULT(KRenderGlobal::InstanceBufferManager.Alloc(instances.size(), instances.data(), allocRes));
+					std::vector<KInstanceBufferManager::AllocResultBlock> allocRes;
+					ASSERT_RESULT(KRenderGlobal::InstanceBufferManager.GetVertexSize() == sizeof(instances[0]));
+					ASSERT_RESULT(KRenderGlobal::InstanceBufferManager.Alloc(instances.size(), instances.data(), allocRes));
 
-				command.instanceDraw = true;
-				command.instanceUsages.resize(allocRes.size());
-				for (size_t i = 0; i < allocRes.size(); ++i)
-				{
-					KInstanceBufferUsage& usage = command.instanceUsages[i];
-					KInstanceBufferManager::AllocResultBlock& allocResult = allocRes[i];
-					usage.buffer = allocResult.buffer;
-					usage.start = allocResult.start;
-					usage.count = allocResult.count;
-					usage.offset = allocResult.offset;
-				}
-
-				++statistics.drawcalls;
-
-				if (command.indexDraw)
-				{
-					statistics.primtives += command.indexData->indexCount;
-					statistics.faces += command.indexData->indexCount / 3;
-				}
-				else
-				{
-					statistics.primtives += command.vertexData->vertexCount;
-					statistics.faces += command.vertexData->vertexCount / 3;
-				}
-
-				HandleRenderCommandBinding(deferredRenderStage, command);
-				command.pipeline->GetHandle(m_RenderPass[deferredRenderStage], command.pipelineHandle);
-
-				if (command.Complete())
-				{
-					commands.push_back(std::move(command));
-				}
-			}
-		}
-		else
-		{
-			KRenderCommand command;
-			if (subMeshInstance.materialSubMesh->GetRenderCommand(renderStage, command))
-			{
-				if (!KRenderUtil::AssignShadingParameter(command, subMeshInstance.materialSubMesh->GetMaterial()))
-				{
-					return;
-				}
-
-				for (size_t idx = 0; idx < instances.size(); ++idx)
-				{
-					const KVertexDefinition::INSTANCE_DATA_MATRIX4F& instance = instances[idx];
-
-					KConstantDefinition::OBJECT objectData;
-					objectData.MODEL = glm::transpose(glm::mat4(instance.ROW0, instance.ROW1, instance.ROW2, glm::vec4(0, 0, 0, 1)));
-					objectData.PRVE_MODEL = glm::transpose(glm::mat4(instance.PREV_ROW0, instance.PREV_ROW1, instance.PREV_ROW2, glm::vec4(0, 0, 0, 1)));
-					
-					KDynamicConstantBufferUsage objectUsage;
-					objectUsage.binding = SHADER_BINDING_OBJECT;
-					objectUsage.range = sizeof(objectData);
-					KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, objectUsage);
-
-					command.dynamicConstantUsages.push_back(objectUsage);
+					command.instanceDraw = true;
+					command.instanceUsages.resize(allocRes.size());
+					for (size_t i = 0; i < allocRes.size(); ++i)
+					{
+						KInstanceBufferUsage& usage = command.instanceUsages[i];
+						KInstanceBufferManager::AllocResultBlock& allocResult = allocRes[i];
+						usage.buffer = allocResult.buffer;
+						usage.start = allocResult.start;
+						usage.count = allocResult.count;
+						usage.offset = allocResult.offset;
+					}
 
 					++statistics.drawcalls;
 
@@ -549,6 +504,54 @@ void KDeferredRenderer::BuildRenderCommand(KMultithreadingRenderContext& renderC
 					if (command.Complete())
 					{
 						commands.push_back(std::move(command));
+					}
+				}
+			}
+			else
+			{
+				KRenderCommand command;
+				if (subMeshInstance.materialSubMesh->GetRenderCommand(renderStage, command))
+				{
+					if (!KRenderUtil::AssignShadingParameter(command, subMeshInstance.materialSubMesh->GetMaterial()))
+					{
+						return;
+					}
+
+					for (size_t idx = 0; idx < instances.size(); ++idx)
+					{
+						const KVertexDefinition::INSTANCE_DATA_MATRIX4F& instance = instances[idx];
+
+						KConstantDefinition::OBJECT objectData;
+						objectData.MODEL = glm::transpose(glm::mat4(instance.ROW0, instance.ROW1, instance.ROW2, glm::vec4(0, 0, 0, 1)));
+						objectData.PRVE_MODEL = glm::transpose(glm::mat4(instance.PREV_ROW0, instance.PREV_ROW1, instance.PREV_ROW2, glm::vec4(0, 0, 0, 1)));
+
+						KDynamicConstantBufferUsage objectUsage;
+						objectUsage.binding = SHADER_BINDING_OBJECT;
+						objectUsage.range = sizeof(objectData);
+						KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, objectUsage);
+
+						command.dynamicConstantUsages.push_back(objectUsage);
+
+						++statistics.drawcalls;
+
+						if (command.indexDraw)
+						{
+							statistics.primtives += command.indexData->indexCount;
+							statistics.faces += command.indexData->indexCount / 3;
+						}
+						else
+						{
+							statistics.primtives += command.vertexData->vertexCount;
+							statistics.faces += command.vertexData->vertexCount / 3;
+						}
+
+						HandleRenderCommandBinding(deferredRenderStage, command);
+						command.pipeline->GetHandle(m_RenderPass[deferredRenderStage], command.pipelineHandle);
+
+						if (command.Complete())
+						{
+							commands.push_back(std::move(command));
+						}
 					}
 				}
 			}

@@ -34,6 +34,23 @@ layout(location = 12) out flat uint out_darwIndex;
 
 void main()
 {
+#if GPU_SCENE
+	if (MegaShaderState[gpuscene.megaShaderIndex].groupWriteOffset + gl_InstanceIndex >=
+		MegaShaderState[gpuscene.megaShaderIndex].instanceCount)
+	{
+		gl_Position = vec4(1, 1, 1, -1);
+		return;
+	}
+
+	if (gl_VertexIndex >= indexCount)
+	{
+		gl_Position = vec4(1, 1, 1, -1);
+		return;
+	}
+
+	out_darwIndex = darwIndex;
+#endif
+
 	vec4 worldNormal = normalize(worldMatrix * vec4(normal, 0.0));
 
 #if TANGENT_BINORMAL_INPUT
@@ -75,10 +92,6 @@ void main()
 
 #if VERTEX_COLOR_INPUT5
 	out_color5 = color5;
-#endif
-
-#ifdef GPU_SCENE
-	out_darwIndex = darwIndex;
 #endif
 
 	gl_Position = camera.viewProj * worldPos;

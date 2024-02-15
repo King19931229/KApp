@@ -1,0 +1,42 @@
+#include "gpuscene_define.h"
+#include "gpuscene_binding.h"
+#include "wave.h"
+
+layout(binding = GPUSCENE_BINDING_OBJECT)
+uniform Object_DYN_UNIFORM
+{
+	uint index;
+} megaShader;
+
+layout(local_size_x = GPUSCENE_GROUP_SIZE, local_size_y = 1, local_size_z = 1) in;
+void main()
+{
+	uint megaShaderIndex = megaShader.index;
+	uint groupNum = MegaShaderState[megaShaderIndex].groupWriteNum;
+	uint groupOffset = MegaShaderState[megaShaderIndex].groupWriteOffset;
+
+	uint globalIndex = gl_GlobalInvocationID.x;
+	if (globalIndex < groupNum)
+	{
+		uint instanceIndex = GroupData[groupOffset + globalIndex];
+		uint meshIndex = InstanceData[instanceIndex].miscs[1];
+
+		uint indexCount = MeshState[meshIndex].miscs[0];
+
+		// vertexCount
+		IndrectDrawArgs[4 * globalIndex] = indexCount;
+		// instanceCount
+		IndrectDrawArgs[4 * globalIndex + 1] = 1;
+		// firstVertex
+		IndrectDrawArgs[4 * globalIndex + 2] = 0;
+		// firstInstance
+		IndrectDrawArgs[4 * globalIndex + 3] = globalIndex;
+	}
+	else
+	{
+		IndrectDrawArgs[4 * globalIndex] = 0;
+		IndrectDrawArgs[4 * globalIndex + 1] = 0;
+		IndrectDrawArgs[4 * globalIndex + 2] = 0;
+		IndrectDrawArgs[4 * globalIndex + 3] = groupNum;
+	}
+}

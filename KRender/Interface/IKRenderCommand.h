@@ -183,7 +183,8 @@ struct KRenderCommand
 
 	uint32_t threadIndex;
 
-	uint32_t indrectOffset;
+	uint32_t indirectOffset;
+	uint32_t indirectCount;
 	IKStorageBufferPtr indirectArgsBuffer;
 
 	IKPipelinePtr pipeline;
@@ -206,7 +207,8 @@ struct KRenderCommand
 		textureBinding = nullptr;
 
 		threadIndex = 0;
-		indrectOffset = 0;
+		indirectOffset = 0;
+		indirectCount = 0;
 		indirectArgsBuffer = nullptr;
 
 		pipeline = nullptr;

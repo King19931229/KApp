@@ -1,0 +1,11 @@
+#include "gpuscene_define.h"
+#include "gpuscene_binding.h"
+
+layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
+void main()
+{
+	DispatchArgs[0] = (SceneStateData[0].instanceCount + GPUSCENE_GROUP_SIZE - 1) / GPUSCENE_GROUP_SIZE;
+	DispatchArgs[1] = 1;
+	DispatchArgs[2] = 1;
+	DispatchArgs[3] = 1;
+}

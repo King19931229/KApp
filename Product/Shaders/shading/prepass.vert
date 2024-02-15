@@ -6,9 +6,23 @@ layout(location = 12) out flat uint out_darwIndex;
 
 void main()
 {
-#ifdef GPU_SCENE
+#if GPU_SCENE
+	if (MegaShaderState[gpuscene.megaShaderIndex].groupWriteOffset + gl_InstanceIndex >=
+		MegaShaderState[gpuscene.megaShaderIndex].instanceCount)
+	{
+		gl_Position = vec4(1, 1, 1, -1);
+		return;
+	}
+
+	if (gl_VertexIndex >= indexCount)
+	{
+		gl_Position = vec4(1, 1, 1, -1);
+		return;
+	}
+
 	out_darwIndex = darwIndex;
 #endif
+
 	vec4 worldPos = worldMatrix * vec4(position, 1.0);
 	gl_Position = camera.viewProj * worldPos;
 }

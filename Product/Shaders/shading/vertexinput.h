@@ -9,36 +9,23 @@
 
 layout(std430, binding = BINDING_POINT_NORMAL_UV) readonly buffer PointNormalUVPackBuffer { float PointNormalUVData[]; };
 
-#if TANGENT_BINORMAL_INPUT
 layout(std430, binding = BINDING_TANGENT_BINORMAL) readonly buffer TangentBinormalPackBuffer { float TangentBinormalData[]; };
-#endif
 
-#if BLEND_WEIGHT_INPUT
 layout(std430, binding = BINDING_BLEND_WEIGHTS_INDICES) readonly buffer BlendWeightsIndicesPackBuffer { float BlendWeightsIndicesData[]; };
-#endif
 
-#if UV2_INPUT
 layout(std430, binding = BINDING_UV2) readonly buffer UV2PackBuffer { float UV2Data[]; };
-#endif
 
-#if VERTEX_COLOR_INPUT0
 layout(std430, binding = BINDING_COLOR0) readonly buffer Color0PackBuffer { float Color0Data[]; };
-#endif
-#if VERTEX_COLOR_INPUT1
+
 layout(std430, binding = BINDING_COLOR1) readonly buffer Color1PackBuffer { float Color1Data[]; };
-#endif
-#if VERTEX_COLOR_INPUT2
+
 layout(std430, binding = BINDING_COLOR2) readonly buffer Color2PackBuffer { float Color2Data[]; };
-#endif
-#if VERTEX_COLOR_INPUT3
+
 layout(std430, binding = BINDING_COLOR3) readonly buffer Color3PackBuffer { float Color3Data[]; };
-#endif
-#if VERTEX_COLOR_INPUT4
+
 layout(std430, binding = BINDING_COLOR4) readonly buffer Color4PackBuffer { float Color4Data[]; };
-#endif
-#if VERTEX_COLOR_INPUT5
+
 layout(std430, binding = BINDING_COLOR5) readonly buffer Color5PackBuffer { float Color5Data[]; };
-#endif
 
 layout(std430, binding = BINDING_INDEX) readonly buffer IndexPackBuffer { uint IndexData[]; };
 
@@ -52,17 +39,14 @@ layout(std430, binding = BINDING_DRAWING_GROUP) readonly buffer DrawingGruopPack
 
 layout(std430, binding = BINDING_MEGA_SHADER_STATE) readonly buffer MegaShaderStateBuffer { MegaShaderStateStruct MegaShaderState[]; };
 
+// Must match KGPUSceneDrawParameter
 layout(binding = BINDING_OBJECT)
 uniform Object_DYN_UNIFORM
 {
-	mat4 view;
-	mat4 proj;
-	mat4 projProj;
 	uint megaShaderIndex;
-	uint padding[3];
 } gpuscene;
 
-uint groupIndex = MegaShaderState[gpuscene.megaShaderIndex].groupWriteOffset + gl_InstanceIndex;
+uint groupIndex = (MegaShaderState[gpuscene.megaShaderIndex].groupWriteOffset + gl_InstanceIndex) < MegaShaderState[gpuscene.megaShaderIndex].instanceCount ? (MegaShaderState[gpuscene.megaShaderIndex].groupWriteOffset + gl_InstanceIndex) : 0;
 uint instanceIndex = DrawingGruop[groupIndex];
 
 uint meshIndex = InstanceData[instanceIndex].miscs[1];

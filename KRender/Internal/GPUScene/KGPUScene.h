@@ -61,6 +61,11 @@ struct KGPUSceneMegaShaderState
 };
 static_assert((sizeof(KGPUSceneMegaShaderState) % 16) == 0, "Size must be a multiple of 16");
 
+struct KGPUSceneDrawParameter
+{
+	uint32_t megaShaderIndex = 0;
+};
+
 enum GPUSceneBinding
 {
 	#define GPUSCENE_BINDING(SEMANTIC) GPUSCENE_BINDING_##SEMANTIC,
@@ -115,9 +120,12 @@ protected:
 		std::vector<IKPipelinePtr> darwPipelines[GPUSCENE_RENDER_STAGE_COUNT];
 		std::vector<IKStorageBufferPtr> parametersBuffers;
 		std::vector<IKStorageBufferPtr> materialIndicesBuffers;
+		std::vector<IKStorageBufferPtr> indirectDrawArgsBuffers;
+		std::vector<IKComputePipelinePtr> calcDrawArgsPipelines;
 		std::vector<uint32_t> materialIndices;
 		uint32_t parameterDataSize = 0;
-		uint32_t dataCount = 0;
+		uint32_t parameterDataCount = 0;
+		uint32_t drawArgsDataCount = 0;
 		uint32_t refCount = 0;
 	};
 	std::vector<MegaShaderItem> m_MegaShaders;
@@ -162,12 +170,13 @@ protected:
 	std::vector<IKStorageBufferPtr> m_SceneStateBuffers;
 	std::vector<IKStorageBufferPtr> m_InstanceDataBuffers;
 	std::vector<IKStorageBufferPtr> m_GroupDataBuffers;
-	std::vector<IKStorageBufferPtr> m_IndirectArgsBuffers;
+	std::vector<IKStorageBufferPtr> m_DispatchArgsBuffers;
 	std::vector<IKStorageBufferPtr> m_InstanceCullResultBuffers;
 	std::vector<IKStorageBufferPtr> m_MegaShaderStateBuffers;
 
 	std::vector<IKComputePipelinePtr> m_InitStatePipelines;
 	std::vector<IKComputePipelinePtr> m_InstanceCullPipelines;
+	std::vector<IKComputePipelinePtr> m_CalcDispatchArgsPipelines;
 	std::vector<IKComputePipelinePtr> m_GroupAllocatePipelines;
 	std::vector<IKComputePipelinePtr> m_GroupScatterPipelines;
 

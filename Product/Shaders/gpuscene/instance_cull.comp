@@ -36,7 +36,5 @@ void main()
 		INTERLOCK_ADD_ONLY(MegaShaderState[megaShaderIndex].instanceCount, 1);
 
 		InstanceCullResult[visibleInstanceIndex] = instanceIndex;
-
-		IndrectArgs[0] = atomicMax(IndrectArgs[0], (visibleInstanceIndex + GPUSCENE_GROUP_SIZE) / GPUSCENE_GROUP_SIZE);
 	}
 }
