@@ -345,7 +345,14 @@ bool KGPUScene::AddEntity(IKEntity* entity, const KAABBBox& localBound, const gl
 		SceneEntityPtr sceneEntity = CreateEntity(entity);
 		sceneEntity->prevTransform = transform;
 		sceneEntity->transform = transform;
-		sceneEntity->materialSubMeshes = subMeshes;
+		sceneEntity->materialSubMeshes.reserve(subMeshes.size());
+		for (KMaterialSubMeshPtr materialSubMesh : subMeshes)
+		{
+			if (materialSubMesh->GetSubMesh() && materialSubMesh->GetMaterial())
+			{
+				sceneEntity->materialSubMeshes.push_back(materialSubMesh);
+			}
+		}
 		for (KMaterialSubMeshPtr materialSubMesh : sceneEntity->materialSubMeshes)
 		{
 			CreateOrGetSubMeshIndex(materialSubMesh->GetSubMesh(), true);
@@ -768,7 +775,8 @@ void KGPUScene::RebuildMeshStateBuffer()
 
 		for (uint32_t i = 0; i < VF_SCENE_COUNT; ++i)
 		{
-			newMeshState.miscs[KGPUSceneMeshState::VERTEX_BUFFER_OFFSET + i] = subMeshItem.vertexBufferOffset[i] / sizeof(float);
+			const KVertexDefinition::VertexDetail& detail = KVertexDefinition::GetVertexDetail((VertexFormat)i);
+			newMeshState.miscs[KGPUSceneMeshState::VERTEX_BUFFER_OFFSET + i] = subMeshItem.vertexBufferOffset[i] / (uint32_t)detail.vertexSize;
 		}
 
 		m_MeshStates.push_back(newMeshState);
@@ -1246,19 +1254,22 @@ void KGPUScene::RebuildDirtyBuffer()
 
 void KGPUScene::UpdateInstanceDataBuffer()
 {
-	uint32_t frameIndex = KRenderGlobal::CurrentInFlightFrameIndex;
-	IKStorageBufferPtr instanceDataBuffer = m_InstanceDataBuffers[frameIndex];
-	assert(instanceDataBuffer->GetBufferSize() == m_Instances.size() * sizeof(KGPUSceneInstance));
-
-	for (KGPUSceneInstance& instance : m_Instances)
+	if (m_Instances.size() > 0)
 	{
-		uint32_t entityIndex = instance.miscs[KGPUSceneInstance::ENEITY_INDEX];
-		SceneEntityPtr sceneEntity = m_Entities[entityIndex];
-		instance.prevTransform = sceneEntity->prevTransform;
-		instance.transform = sceneEntity->transform;
+		uint32_t frameIndex = KRenderGlobal::CurrentInFlightFrameIndex;
+		IKStorageBufferPtr instanceDataBuffer = m_InstanceDataBuffers[frameIndex];
+		assert(instanceDataBuffer->GetBufferSize() >= m_Instances.size() * sizeof(KGPUSceneInstance));
+
+		for (KGPUSceneInstance& instance : m_Instances)
+		{
+			uint32_t entityIndex = instance.miscs[KGPUSceneInstance::ENEITY_INDEX];
+			SceneEntityPtr sceneEntity = m_Entities[entityIndex];
+			instance.prevTransform = sceneEntity->prevTransform;
+			instance.transform = sceneEntity->transform;
+		}
+
+		instanceDataBuffer->Write(m_Instances.data());
 	}
-	
-	instanceDataBuffer->Write(m_Instances.data());
 }
 
 bool KGPUScene::Execute(IKCommandBufferPtr primaryBuffer)
@@ -1385,6 +1396,11 @@ bool KGPUScene::BasePassMain(IKRenderPassPtr renderPass, IKCommandBufferPtr prim
 
 		{
 			void* pData = nullptr;
+			/*
+			std::vector<char> datas;
+			datas.resize(megaShader.parametersBuffers[frameIndex]->GetBufferSize());
+			pData = datas.data();
+			*/
 			megaShader.parametersBuffers[frameIndex]->Map(&pData);
 			for (uint32_t materialIndex : megaShader.materialIndices)
 			{
@@ -1407,6 +1423,7 @@ bool KGPUScene::BasePassMain(IKRenderPassPtr renderPass, IKCommandBufferPtr prim
 				pData = POINTER_OFFSET(pData, megaShader.parameterDataSize);
 			}
 			megaShader.parametersBuffers[frameIndex]->UnMap();
+			// megaShader.parametersBuffers[frameIndex]->Write(datas.data());
 		}
 
 		{

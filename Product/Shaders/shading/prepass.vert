@@ -7,19 +7,11 @@ layout(location = 12) out flat uint out_darwIndex;
 void main()
 {
 #if GPU_SCENE
-	if (MegaShaderState[gpuscene.megaShaderIndex].groupWriteOffset + gl_InstanceIndex >=
-		MegaShaderState[gpuscene.megaShaderIndex].instanceCount)
+if (gl_InstanceIndex >=	MegaShaderState[gpuscene.megaShaderIndex].instanceCount || gl_VertexIndex >= indexCount)
 	{
 		gl_Position = vec4(1, 1, 1, -1);
 		return;
 	}
-
-	if (gl_VertexIndex >= indexCount)
-	{
-		gl_Position = vec4(1, 1, 1, -1);
-		return;
-	}
-
 	out_darwIndex = darwIndex;
 #endif
 

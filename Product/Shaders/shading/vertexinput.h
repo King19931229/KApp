@@ -46,7 +46,7 @@ uniform Object_DYN_UNIFORM
 	uint megaShaderIndex;
 } gpuscene;
 
-uint groupIndex = (MegaShaderState[gpuscene.megaShaderIndex].groupWriteOffset + gl_InstanceIndex) < MegaShaderState[gpuscene.megaShaderIndex].instanceCount ? (MegaShaderState[gpuscene.megaShaderIndex].groupWriteOffset + gl_InstanceIndex) : 0;
+uint groupIndex = gl_InstanceIndex < MegaShaderState[gpuscene.megaShaderIndex].instanceCount ? (MegaShaderState[gpuscene.megaShaderIndex].groupWriteOffset + gl_InstanceIndex) : 0;
 uint instanceIndex = DrawingGruop[groupIndex];
 
 uint meshIndex = InstanceData[instanceIndex].miscs[1];

@@ -37,6 +37,6 @@ void main()
 		IndrectDrawArgs[4 * globalIndex] = 0;
 		IndrectDrawArgs[4 * globalIndex + 1] = 0;
 		IndrectDrawArgs[4 * globalIndex + 2] = 0;
-		IndrectDrawArgs[4 * globalIndex + 3] = groupNum;
+		IndrectDrawArgs[4 * globalIndex + 3] = 0;
 	}
 }

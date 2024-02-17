@@ -203,7 +203,7 @@ bool KVulkanTexture::InitDevice(bool async)
 						copyInfo.push_back(copy);
 					}
 
-					// 拷贝buffer数据到image					i
+					// 拷贝buffer数据到image
 					KVulkanInitializer::CopyVkBufferToVkImageByRegion(stagingBuffer, m_TextureImage, layerCounts, copyInfo);
 
 					if (m_bGenerateMipmap)
@@ -414,22 +414,11 @@ bool KVulkanTexture::CopyFromFrameBufferToSlice(IKFrameBufferPtr src, uint32_t s
 			0, 1,
 			VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
 			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-
-		if (m_bGenerateMipmap)
-		{
-			KVulkanInitializer::GenerateMipmaps(m_TextureImage, m_TextureFormat,
-				static_cast<int32_t>(m_Width), static_cast<int32_t>(m_Height), static_cast<int32_t>(m_Depth),
-				sliceIndex, 1, static_cast<int32_t>(m_Mipmaps));
-		}
-		else
-		{
-			KVulkanInitializer::TransitionImageLayout(m_TextureImage,
-				m_TextureFormat,
-				sliceIndex, 1,
-				0, (uint32_t)m_Mipmaps,
-				VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-				VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-		}
+		
+		// 强制硬件生成Mip，这里没有按Mip传入Slice的接口，每个Slice都必须有更新好的Mip
+		KVulkanInitializer::GenerateMipmaps(m_TextureImage, m_TextureFormat,
+			static_cast<int32_t>(m_Width), static_cast<int32_t>(m_Height), static_cast<int32_t>(m_Depth),
+			sliceIndex, 1, static_cast<int32_t>(m_Mipmaps));
 
 		return true;
 	}

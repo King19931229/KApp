@@ -451,7 +451,10 @@ void KDeferredRenderer::BuildRenderCommand(KMultithreadingRenderContext& renderC
 	std::vector<KMaterialSubMeshInstance> instances;
 	BuildMaterialSubMeshInstance(deferredRenderStage, cullRes, instances);
 
-	if (deferredRenderStage != DRS_STAGE_MAIN_BASE_PASS)
+	IKRenderPassPtr renderPass = m_RenderPass[deferredRenderStage];
+	renderContext.primaryBuffer->BeginDebugMarker(debugMarker, glm::vec4(1));
+
+	if (!KRenderGlobal::UseGPUScene || deferredRenderStage != DRS_STAGE_MAIN_BASE_PASS)
 	{
 		for (KMaterialSubMeshInstance& subMeshInstance : instances)
 		{
@@ -557,10 +560,6 @@ void KDeferredRenderer::BuildRenderCommand(KMultithreadingRenderContext& renderC
 			}
 		}
 	}
-
-	renderContext.primaryBuffer->BeginDebugMarker(debugMarker, glm::vec4(1));
-
-	IKRenderPassPtr renderPass = m_RenderPass[deferredRenderStage];
 
 	if (renderContext.enableMultithreading)
 	{

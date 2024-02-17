@@ -55,6 +55,8 @@ namespace KRenderGlobal
 	bool DisableRayTrace = false;
 	bool SupportAnisotropySample = true;
 
+	bool UseGPUScene = true;
+
 	uint32_t CurrentInFlightFrameIndex = 0;
 	uint32_t CurrentFrameNum = 0;
 	uint32_t NumFramesInFlight = 2;

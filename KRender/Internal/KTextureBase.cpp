@@ -298,7 +298,7 @@ bool KTextureBase::InitProperty(bool generateMipmap)
 	{
 		m_TextureType = TT_TEXTURE_CUBE_MAP;
 	}
-	else if (m_ImageData.uSlice > 1)
+	else if (m_ImageData.bTextureArray)
 	{
 		m_TextureType = TT_TEXTURE_2D_ARRAY;
 	}
@@ -467,9 +467,10 @@ bool KTextureBase::InitMemoryFrom2DArray(const std::string& name, size_t width, 
 		m_ImageData.uHeight = height;
 		m_ImageData.uSlice = slices;
 		m_ImageData.uDepth = 1;
-		m_ImageData.uMipmap = 1;//std::floor(std::log(std::max(std::max(width, height), (size_t)1)) / std::log(2)) + 1;
+		m_ImageData.uMipmap = 1;
 		m_ImageData.bCompressed = false;
 		m_ImageData.bCubemap = false;
+		m_ImageData.bTextureArray = true;
 		m_ImageData.pData = pImageData;
 
 		for (size_t slice = 0; slice < slices; ++slice)

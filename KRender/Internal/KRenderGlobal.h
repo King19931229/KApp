@@ -110,6 +110,8 @@ namespace KRenderGlobal
 	extern bool DisableRayTrace;
 	extern bool SupportAnisotropySample;
 
+	extern bool UseGPUScene;
+
 	extern uint32_t CurrentInFlightFrameIndex;
 	extern uint32_t CurrentFrameNum;
 	extern uint32_t NumFramesInFlight;
