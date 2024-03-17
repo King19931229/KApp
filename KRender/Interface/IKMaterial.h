@@ -63,9 +63,11 @@ struct IKMaterialTextureBinding
 	virtual bool SetTexture(uint8_t slot, const std::string& name, const KCodecResult& result, const KMeshTextureSampler& sampler) = 0;
 	virtual bool SetErrorTexture(uint8_t slot) = 0;
 	virtual bool UnsetTextrue(uint8_t slot) = 0;
+	virtual bool SetIsVirtualTexture(uint8_t slot, bool isVirtual) = 0;
 
 	virtual IKTexturePtr GetTexture(uint8_t slot) const = 0;
 	virtual IKSamplerPtr GetSampler(uint8_t slot) const = 0;
+	virtual bool GetIsVirtualTexture(uint8_t slot) const = 0;
 
 	virtual bool Duplicate(IKMaterialTextureBindingPtr& parameter) = 0;
 	virtual bool Paste(const IKMaterialTextureBindingPtr& parameter) = 0;

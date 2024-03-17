@@ -4,6 +4,10 @@
 
 KMaterialTextureBinding::KMaterialTextureBinding()
 {
+	for (size_t i = 0; i < ARRAY_SIZE(m_IsVirtual); ++i)
+	{
+		m_IsVirtual[i] = false;
+	}
 }
 
 KMaterialTextureBinding::~KMaterialTextureBinding()
@@ -144,6 +148,16 @@ bool KMaterialTextureBinding::UnsetTextrue(uint8_t slot)
 	return false;
 }
 
+bool KMaterialTextureBinding::SetIsVirtualTexture(uint8_t slot, bool isVirtual)
+{
+	if (slot < GetNumSlot())
+	{
+		m_IsVirtual[slot] = isVirtual;
+		return true;
+	}
+	return false;
+}
+
 IKTexturePtr KMaterialTextureBinding::GetTexture(uint8_t slot) const
 {
 	if (slot < GetNumSlot())
@@ -160,6 +174,15 @@ IKSamplerPtr KMaterialTextureBinding::GetSampler(uint8_t slot) const
 		return *m_Samplers[slot];
 	}
 	return nullptr;
+}
+
+bool KMaterialTextureBinding::GetIsVirtualTexture(uint8_t slot) const
+{
+	if (slot < GetNumSlot())
+	{
+		return m_IsVirtual[slot];
+	}
+	return false;
 }
 
 bool KMaterialTextureBinding::Duplicate(IKMaterialTextureBindingPtr& parameter)

@@ -89,7 +89,8 @@ bool KRTAO::Init(IKRayTraceScene* scene)
 
 			renderDevice->CreateRenderTarget(m_BlurTempTarget);
 
-			Resize();
+			IKSwapChain* chain = KRenderGlobal::RenderDevice->GetSwapChain();
+			Resize(chain->GetWidth(), chain->GetHeight());
 
 			m_Camera = scene->GetCamera();
 			m_PrevCamMat = glm::mat4(0.0f);
@@ -410,20 +411,12 @@ bool KRTAO::ReloadShader()
 	return false;
 }
 
-void KRTAO::Resize()
+void KRTAO::Resize(uint32_t width, uint32_t height)
 {
 	if (m_AtrousAOTarget)
 	{
-		IKSwapChain* chain = KRenderGlobal::RenderDevice->GetSwapChain();
-
-		uint32_t newWidth = m_Width;
-		uint32_t newHeight = m_Height;
-
-		if (chain->GetWidth() && chain->GetHeight())
-		{
-			newWidth = chain->GetWidth() / 2;
-			newHeight = chain->GetHeight() / 2;
-		}
+		uint32_t newWidth = width ? (width / 2) : m_Width;
+		uint32_t newHeight = height ? (height / 2) : m_Height;
 
 		if (m_Width != newWidth || m_Height != newHeight)
 		{

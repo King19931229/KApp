@@ -25,6 +25,7 @@
 #include "Internal/Object/KVolumetricFog.h"
 
 #include "Internal/VirtualGeometry/KVirtualGeometryManager.h"
+#include "Internal/VirtualTexture/KVirtualTextureManager.h"
 
 #include "Internal/Scene/KRenderScene.h"
 #include "Internal/Render/KRenderer.h"
@@ -73,6 +74,7 @@ namespace KRenderGlobal
 	extern KRayTraceManager RayTraceManager;
 
 	extern KVirtualGeometryManager VirtualGeometryManager;
+	extern KVirtualTextureManager VirtualTextureManager;
 
 	extern KGPUScene GPUScene;
 
@@ -109,8 +111,6 @@ namespace KRenderGlobal
 	extern bool EnableDebugRender;
 	extern bool DisableRayTrace;
 	extern bool SupportAnisotropySample;
-
-	extern bool UseGPUScene;
 
 	extern uint32_t CurrentInFlightFrameIndex;
 	extern uint32_t CurrentFrameNum;

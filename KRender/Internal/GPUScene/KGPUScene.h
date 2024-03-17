@@ -49,6 +49,7 @@ static_assert((sizeof(KGPUSceneState) % 16) == 0, "Size must be a multiple of 16
 struct KGPUSceneMaterialTextureBinding
 {
 	uint32_t binding[MAX_MATERIAL_TEXTURE_BINDING] = { 0 };
+	uint32_t slice[MAX_MATERIAL_TEXTURE_BINDING] = { 0 };
 };
 static_assert((sizeof(KGPUSceneMaterialTextureBinding) % 16) == 0, "Size must be a multiple of 16");
 
@@ -85,7 +86,8 @@ class KGPUScene
 protected:
 	enum
 	{
-		GPUSCENE_GROUP_SIZE = 64
+		GPUSCENE_GROUP_SIZE = 64,
+		MAX_TEXTURE_ARRAY_NUM = 6
 	};
 
 	IKRenderScene* m_Scene;
@@ -161,9 +163,9 @@ protected:
 
 	struct TextureArrayCollection
 	{
-		KSamplerRef samplers[MAX_MATERIAL_TEXTURE_BINDING];
-		uint32_t dimension[MAX_MATERIAL_TEXTURE_BINDING] = { 0 };
-		IKTexturePtr textureArrays[MAX_MATERIAL_TEXTURE_BINDING] = { nullptr };
+		KSamplerRef samplers[MAX_TEXTURE_ARRAY_NUM];
+		uint32_t dimension[MAX_TEXTURE_ARRAY_NUM] = { 0 };
+		IKTexturePtr textureArrays[MAX_TEXTURE_ARRAY_NUM] = { nullptr };
 		IKStorageBufferPtr materialTextureBindingBuffer = nullptr;
 	} m_TextureArray;
 
@@ -180,6 +182,8 @@ protected:
 	std::vector<IKComputePipelinePtr> m_GroupAllocatePipelines;
 	std::vector<IKComputePipelinePtr> m_GroupScatterPipelines;
 
+	KShaderCompileEnvironment m_ComputeBindingEnv;
+
 	enum DataDirtyBitMask
 	{
 		MEGA_BUFFER_DIRTY = 1,
@@ -187,9 +191,9 @@ protected:
 		MEGA_SHADER_DIRTY = 4,
 		INSTANCE_DIRTY = 8
 	};
-	uint32_t m_DataDirtyBits = 0;
+	uint32_t m_DataDirtyBits;
 
-	KShaderCompileEnvironment m_ComputeBindingEnv;
+	bool m_Enable;
 
 	EntityObserverFunc m_OnSceneChangedFunc;
 	void OnSceneChanged(EntitySceneOp op, IKEntity* entity);
@@ -227,6 +231,8 @@ protected:
 
 	void InitializeBuffers();
 	void InitializePipelines();
+
+	bool& IsEnable() { return m_Enable; }
 public:
 	KGPUScene();
 	~KGPUScene();
@@ -240,4 +246,6 @@ public:
 	bool BasePassPost(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer);
 
 	void ReloadShader();
+
+	bool& GetEnable() { return m_Enable; }
 };

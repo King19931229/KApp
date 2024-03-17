@@ -9,6 +9,7 @@ KGPUScene::KGPUScene()
 	: m_Scene(nullptr)
 	, m_Camera(nullptr)
 	, m_DataDirtyBits(0)
+	, m_Enable(false)
 {
 #define GPUSCENE_BINDING_TO_STR(x) #x
 
@@ -212,8 +213,7 @@ uint32_t KGPUScene::CreateOrGetMegaShaderIndex(KSubMeshPtr subMesh, IKMaterialPt
 				IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_CAMERA);
 				pipeline->SetConstantBuffer(SHADER_BINDING_CAMERA, ST_VERTEX | ST_FRAGMENT, cameraBuffer);
 
-				// TODO: Bind on need
-				for (uint32_t i = 0; i < MAX_MATERIAL_TEXTURE_BINDING; ++i)
+				for (uint32_t i = 0; i < MAX_TEXTURE_ARRAY_NUM; ++i)
 				{
 					pipeline->SetSampler(SHADER_BINDING_TEXTURE0 + i, m_TextureArray.textureArrays[i]->GetFrameBuffer(), m_TextureArray.samplers[i].Get(), true);
 				}
@@ -803,9 +803,19 @@ void KGPUScene::RebuildTextureArray()
 	{
 		std::vector<IKTexturePtr> textures;
 		std::unordered_map<IKTexturePtr, uint32_t> textureLocation;
-	} creationInfos[MAX_MATERIAL_TEXTURE_BINDING];
+	} creationInfos[MAX_TEXTURE_ARRAY_NUM];
 
 	m_MaterialTextureBindings.resize(m_Materials.size());
+
+	auto FindBestFitArrayIndex = [this](uint32_t width, uint32_t height)
+	{
+		uint32_t dimension = std::max(width, height);
+		uint32_t smallestDimension = m_TextureArray.dimension[0];
+		dimension = (dimension < smallestDimension) ? smallestDimension : dimension;
+		uint32_t arrayIndex = (uint32_t)roundf(std::log2((float)dimension / (float)smallestDimension));
+		arrayIndex = std::min(arrayIndex, (uint32_t)(MAX_TEXTURE_ARRAY_NUM - 1));
+		return arrayIndex;
+	};
 
 	for (size_t materialIndex = 0; materialIndex < m_Materials.size(); ++materialIndex)
 	{
@@ -816,12 +826,13 @@ void KGPUScene::RebuildTextureArray()
 		IKMaterialTextureBindingPtr textureBinding = material->GetTextureBinding();
 		uint32_t slots = textureBinding->GetNumSlot();
 		assert(slots <= MAX_MATERIAL_TEXTURE_BINDING);
-		for (uint32_t i = 0; i < slots; ++i)
+		for (uint32_t slotIndex = 0; slotIndex < slots; ++slotIndex)
 		{
-			TextureArrayCreation& creationInfo = creationInfos[i];
-			IKTexturePtr texture = textureBinding->GetTexture(i);
+			IKTexturePtr texture = textureBinding->GetTexture(slotIndex);
 			if (texture)
 			{
+				uint32_t arrayIndex = FindBestFitArrayIndex((uint32_t)texture->GetWidth(), (uint32_t)texture->GetHeight());
+				TextureArrayCreation& creationInfo = creationInfos[arrayIndex];
 				uint32_t location = -1;
 				auto it = creationInfo.textureLocation.find(texture);
 				if (it == creationInfo.textureLocation.end())
@@ -834,11 +845,14 @@ void KGPUScene::RebuildTextureArray()
 					location = it->second;
 				}
 				creationInfo.textureLocation.insert({ texture, location });
-				materialTextureBinding.binding[i] = location;
+
+				materialTextureBinding.binding[slotIndex] = arrayIndex;
+				materialTextureBinding.slice[slotIndex] = location;
 			}
 			else
 			{
-				materialTextureBinding.binding[i] = -1;
+				materialTextureBinding.binding[slotIndex] = -1;
+				materialTextureBinding.slice[slotIndex] = -1;
 			}
 		}
 	}
@@ -847,21 +861,21 @@ void KGPUScene::RebuildTextureArray()
 	m_TextureArray.materialTextureBindingBuffer->InitMemory(sizeof(KGPUSceneMaterialTextureBinding) * m_MaterialTextureBindings.size(), m_MaterialTextureBindings.data());
 	m_TextureArray.materialTextureBindingBuffer->InitDevice(false, false);
 
-	for (uint32_t slot = 0; slot < MAX_MATERIAL_TEXTURE_BINDING; ++slot)
+	for (uint32_t arrayIndex = 0; arrayIndex < MAX_TEXTURE_ARRAY_NUM; ++arrayIndex)
 	{
-		const TextureArrayCreation& creationInfo = creationInfos[slot];
-		if (m_TextureArray.textureArrays[slot]->GetSlice() < (uint32_t)creationInfo.textures.size())
+		const TextureArrayCreation& creationInfo = creationInfos[arrayIndex];
+		if (m_TextureArray.textureArrays[arrayIndex]->GetSlice() < (uint32_t)creationInfo.textures.size())
 		{
-			m_TextureArray.textureArrays[slot]->UnInit();
+			m_TextureArray.textureArrays[arrayIndex]->UnInit();
 			if (creationInfo.textures.size() > 0)
 			{
-				m_TextureArray.textureArrays[slot]->InitMemoryFrom2DArray("GPUSceneTextureArray_" + std::to_string(slot), m_TextureArray.dimension[slot], m_TextureArray.dimension[slot], (uint32_t)creationInfo.textures.size(), IF_R8G8B8A8, true);
-				m_TextureArray.textureArrays[slot]->InitDevice(false);
+				m_TextureArray.textureArrays[arrayIndex]->InitMemoryFrom2DArray("GPUSceneTextureArray_" + std::to_string(arrayIndex), m_TextureArray.dimension[arrayIndex], m_TextureArray.dimension[arrayIndex], (uint32_t)creationInfo.textures.size(), IF_R8G8B8A8, true);
+				m_TextureArray.textureArrays[arrayIndex]->InitDevice(false);
 			}
 		}
 		for (uint32_t sliceIndex = 0; sliceIndex < (uint32_t)creationInfo.textures.size(); ++sliceIndex)
 		{
-			m_TextureArray.textureArrays[slot]->CopyFromFrameBufferToSlice(creationInfo.textures[sliceIndex]->GetFrameBuffer(), sliceIndex);
+			m_TextureArray.textureArrays[arrayIndex]->CopyFromFrameBufferToSlice(creationInfo.textures[sliceIndex]->GetFrameBuffer(), sliceIndex);
 		}
 	}
 }
@@ -1127,23 +1141,22 @@ bool KGPUScene::Init(IKRenderScene* scene, const KCamera* camera)
 	UnInit();
 	if (scene && camera)
 	{
-		for (uint32_t slot = 0; slot < MAX_MATERIAL_TEXTURE_BINDING; ++slot)
+		for (uint32_t arrayIndex = 0; arrayIndex < MAX_TEXTURE_ARRAY_NUM; ++arrayIndex)
 		{
-			m_TextureArray.dimension[slot] = 2048;
+			m_TextureArray.dimension[arrayIndex] = 128 * (1 << arrayIndex);
 
 			KSamplerDescription desc;
 			desc.minMipmap = 0;
-			desc.maxMipmap = (unsigned short)std::log2(m_TextureArray.dimension[slot]);
+			desc.maxMipmap = (unsigned short)std::log2(m_TextureArray.dimension[arrayIndex]);
 			desc.anisotropic = true;
 			desc.anisotropicCount = 16;
 			desc.addressU = desc.addressV = desc.addressW = AM_REPEAT;
 			desc.minFilter = desc.magFilter = FM_LINEAR;
 
-			KRenderGlobal::SamplerManager.Acquire(desc, m_TextureArray.samplers[slot]);
-
-			KRenderGlobal::RenderDevice->CreateTexture(m_TextureArray.textureArrays[slot]);
-			m_TextureArray.textureArrays[slot]->InitMemoryFrom2DArray("GPUSceneTextureArray_" + std::to_string(slot), m_TextureArray.dimension[slot], m_TextureArray.dimension[slot], 1, IF_R8G8B8A8, true);
-			m_TextureArray.textureArrays[slot]->InitDevice(false);
+			KRenderGlobal::SamplerManager.Acquire(desc, m_TextureArray.samplers[arrayIndex]);
+			KRenderGlobal::RenderDevice->CreateTexture(m_TextureArray.textureArrays[arrayIndex]);
+			m_TextureArray.textureArrays[arrayIndex]->InitMemoryFrom2DArray("GPUSceneTextureArray_" + std::to_string(arrayIndex), m_TextureArray.dimension[arrayIndex], m_TextureArray.dimension[arrayIndex], 1, IF_R8G8B8A8, true);
+			m_TextureArray.textureArrays[arrayIndex]->InitDevice(false);
 		}
 
 		InitializeBuffers();
@@ -1201,7 +1214,7 @@ bool KGPUScene::UnInit()
 	SAFE_UNINIT(m_MegaBuffer.indexBuffer);
 	SAFE_UNINIT(m_MegaBuffer.meshStateBuffer);
 
-	for (uint32_t slot = 0; slot < MAX_MATERIAL_TEXTURE_BINDING; ++slot)
+	for (uint32_t slot = 0; slot < MAX_TEXTURE_ARRAY_NUM; ++slot)
 	{
 		SAFE_UNINIT(m_TextureArray.textureArrays[slot]);
 		m_TextureArray.samplers[slot].Release();
@@ -1274,6 +1287,11 @@ void KGPUScene::UpdateInstanceDataBuffer()
 
 bool KGPUScene::Execute(IKCommandBufferPtr primaryBuffer)
 {
+	if (!m_Enable)
+	{
+		return true;
+	}
+
 	RebuildDirtyBuffer();
 	UpdateInstanceDataBuffer();
 
@@ -1373,6 +1391,11 @@ bool KGPUScene::Execute(IKCommandBufferPtr primaryBuffer)
 
 bool KGPUScene::BasePassMain(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer)
 {
+	if (!m_Enable)
+	{
+		return true;
+	}
+
 	primaryBuffer->BeginDebugMarker("GPUScene_BasePass_Main", glm::vec4(1));
 
 	uint32_t frameIndex = KRenderGlobal::CurrentInFlightFrameIndex;
@@ -1447,6 +1470,10 @@ bool KGPUScene::BasePassMain(IKRenderPassPtr renderPass, IKCommandBufferPtr prim
 
 bool KGPUScene::BasePassPost(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer)
 {
+	if (!m_Enable)
+	{
+		return true;
+	}
 	return true;
 }
 

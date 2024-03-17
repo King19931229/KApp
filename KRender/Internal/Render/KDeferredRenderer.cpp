@@ -454,7 +454,7 @@ void KDeferredRenderer::BuildRenderCommand(KMultithreadingRenderContext& renderC
 	IKRenderPassPtr renderPass = m_RenderPass[deferredRenderStage];
 	renderContext.primaryBuffer->BeginDebugMarker(debugMarker, glm::vec4(1));
 
-	if (!KRenderGlobal::UseGPUScene || deferredRenderStage != DRS_STAGE_MAIN_BASE_PASS)
+	if (!KRenderGlobal::GPUScene.GetEnable() || deferredRenderStage != DRS_STAGE_MAIN_BASE_PASS)
 	{
 		for (KMaterialSubMeshInstance& subMeshInstance : instances)
 		{

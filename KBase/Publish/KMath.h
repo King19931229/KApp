@@ -136,6 +136,12 @@ namespace KMath
 	}
 
 	template<typename T>
+	bool IsPowerOf2(T x)
+	{
+		return (x & (x - 1)) == 0;
+	}
+
+	template<typename T>
 	T SmallestPowerOf2GreaterEqualThan(T x)
 	{
 		T result = 1;

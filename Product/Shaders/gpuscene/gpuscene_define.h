@@ -43,6 +43,7 @@ struct MegaShaderStateStruct
 struct MaterialTextureBindingStruct
 {
 	uint binding[16];
+	uint slice[16];
 };
 
 #endif

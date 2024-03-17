@@ -388,18 +388,12 @@ bool KRenderer::Init(const KRendererInitContext& initContext)
 	m_BasePassMainCallFunc = [](IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer)
 	{
 		KRenderGlobal::Scene.GetVirtualGeometryScene()->BasePassMain(renderPass, primaryBuffer);
-		if (KRenderGlobal::UseGPUScene)
-		{
-			KRenderGlobal::GPUScene.BasePassMain(renderPass, primaryBuffer);
-		}
+		KRenderGlobal::GPUScene.BasePassMain(renderPass, primaryBuffer);
 	};
 	m_BasePassPostCallFunc = [](IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer)
 	{
 		KRenderGlobal::Scene.GetVirtualGeometryScene()->BasePassPost(renderPass, primaryBuffer);
-		if (KRenderGlobal::UseGPUScene)
-		{
-			KRenderGlobal::GPUScene.BasePassPost(renderPass, primaryBuffer);
-		}
+		KRenderGlobal::GPUScene.BasePassPost(renderPass, primaryBuffer);
 	};
 
 	m_DebugCallFunc = [](IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer)
@@ -721,8 +715,9 @@ void KRenderer::OnSwapChainRecreate(uint32_t width, uint32_t height)
 	KRenderGlobal::VolumetricFog.Resize(width, height);
 	KRenderGlobal::ScreenSpaceReflection.Resize(width, height);
 	KRenderGlobal::DepthOfField.Resize(width, height);
-	KRenderGlobal::RTAO.Resize();
+	KRenderGlobal::RTAO.Resize(width, height);
 	KRenderGlobal::RayTraceManager.Resize(width, height);
+	KRenderGlobal::VirtualTextureManager.Resize(width, height);
 }
 
 bool KRenderer::Update()

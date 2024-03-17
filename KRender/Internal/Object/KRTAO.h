@@ -120,5 +120,5 @@ public:
 	AoControl& GetAoParameters() { return m_AOParameters; }
 
 	bool ReloadShader();
-	void Resize();
+	void Resize(uint32_t width, uint32_t height);
 };

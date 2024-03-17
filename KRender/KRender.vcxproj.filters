@@ -85,6 +85,9 @@
     <Filter Include="Internal\GPUScene">
       <UniqueIdentifier>{11f6578e-72d8-4930-871e-36b83a7f92a3}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Internal\VirtualTexture">
+      <UniqueIdentifier>{f3083cb1-683c-4457-b816-35029062a9b5}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Interface\IKRenderDevice.h">
@@ -559,6 +562,12 @@
     <ClInclude Include="Internal\GPUScene\KGPUScene.h">
       <Filter>Internal\GPUScene</Filter>
     </ClInclude>
+    <ClInclude Include="Internal\VirtualTexture\KVirtualTextureManager.h">
+      <Filter>Internal\VirtualTexture</Filter>
+    </ClInclude>
+    <ClInclude Include="Internal\VirtualTexture\KVirtualTexture.h">
+      <Filter>Internal\VirtualTexture</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Internal\KRenderDevice.cpp">
@@ -909,6 +918,12 @@
     <ClCompile Include="Internal\VirtualGeometry\KVirtualGeometryStreaming.cpp" />
     <ClCompile Include="Internal\GPUScene\KGPUScene.cpp">
       <Filter>Internal\GPUScene</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\VirtualTexture\KVirtualTextureManager.cpp">
+      <Filter>Internal\VirtualTexture</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\VirtualTexture\KVirtualTexture.cpp">
+      <Filter>Internal\VirtualTexture</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

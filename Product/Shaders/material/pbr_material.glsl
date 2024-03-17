@@ -14,57 +14,87 @@ layout(std430, binding = BINDING_MATERIAL_PARAMETER) readonly buffer MaterialPar
 layout(std430, binding = BINDING_MATERIAL_TEXTURE_BINDING) readonly buffer MaterialTextureBindingPackBuffer { MaterialTextureBindingStruct MaterialTextureBinding[]; };
 layout(std430, binding = BINDING_MATERIAL_INDEX) readonly buffer MaterialIndexPackBuffer { uint MaterialIndex[]; };
 
+layout(binding = BINDING_TEXTURE0) uniform sampler2DArray textureArraySampler0;
+layout(binding = BINDING_TEXTURE1) uniform sampler2DArray textureArraySampler1;
+layout(binding = BINDING_TEXTURE2) uniform sampler2DArray textureArraySampler2;
+layout(binding = BINDING_TEXTURE3) uniform sampler2DArray textureArraySampler3;
+layout(binding = BINDING_TEXTURE4) uniform sampler2DArray textureArraySampler4;
+layout(binding = BINDING_TEXTURE5) uniform sampler2DArray textureArraySampler5;
+
 uint materialIndex = MaterialIndex[darwIndex];
+
+vec4 SampleTextureArray(in vec2 texCoord, in uint arrayIndex, in uint sliceIndex)
+{
+	// 0.125K
+	if (arrayIndex == 0)
+	{
+		return texture(textureArraySampler0, vec3(texCoord, float(sliceIndex)));
+	}
+	// 0.25K
+	if (arrayIndex == 1)
+	{
+		return texture(textureArraySampler1, vec3(texCoord, float(sliceIndex)));
+	}
+	// 0.5K
+	if (arrayIndex == 2)
+	{
+		return texture(textureArraySampler2, vec3(texCoord, float(sliceIndex)));
+	}
+	// 1K
+	if (arrayIndex == 3)
+	{
+		return texture(textureArraySampler3, vec3(texCoord, float(sliceIndex)));
+	}
+	// 2K
+	if (arrayIndex == 4)
+	{
+		return texture(textureArraySampler4, vec3(texCoord, float(sliceIndex)));
+	}
+	// 4K
+	if (arrayIndex == 5)
+	{
+		return texture(textureArraySampler5, vec3(texCoord, float(sliceIndex)));
+	}
+	return vec4(0);
+}
 
 layout(binding = BINDING_TEXTURE0) uniform sampler2DArray diffuseArraySampler;
 vec4 SampleDiffuse(in vec2 texCoord)
 {
-	return texture(diffuseArraySampler, vec3(texCoord, float(MaterialTextureBinding[materialIndex].binding[0])));
+	return SampleTextureArray(texCoord, MaterialTextureBinding[materialIndex].binding[0], MaterialTextureBinding[materialIndex].slice[0]);
 }
 
 layout(binding = BINDING_TEXTURE1) uniform sampler2DArray normalArraySampler;
 vec4 SampleNormal(in vec2 texCoord)
 {
-	return texture(normalArraySampler, vec3(texCoord, float(MaterialTextureBinding[materialIndex].binding[1])));
+	return SampleTextureArray(texCoord, MaterialTextureBinding[materialIndex].binding[1], MaterialTextureBinding[materialIndex].slice[1]);
 }
 
 #if PBR_MATERIAL_SPECULAR_GLOSINESS
 layout(binding = BINDING_TEXTURE2) uniform sampler2DArray specularGlosinessArraySampler;
 vec4 SampleSpecularGlosiness(in vec2 texCoord)
 {
-	return texture(specularGlosinessArraySampler, vec3(texCoord, float(MaterialTextureBinding[materialIndex].binding[2])));
+	return SampleTextureArray(texCoord, MaterialTextureBinding[materialIndex].binding[2], MaterialTextureBinding[materialIndex].slice[2]);
 }
 #else
 layout(binding = BINDING_TEXTURE2) uniform sampler2DArray metalRoughnessArraySampler;
 vec4 SampleMetalRoughness(in vec2 texCoord)
 {
-	return texture(metalRoughnessArraySampler, vec3(texCoord, float(MaterialTextureBinding[materialIndex].binding[2])));
+	return SampleTextureArray(texCoord, MaterialTextureBinding[materialIndex].binding[2], MaterialTextureBinding[materialIndex].slice[2]);
 }
 #endif
 
 layout(binding = BINDING_TEXTURE3) uniform sampler2DArray emissiveArraySampler;
 vec4 SampleEmissive(in vec2 texCoord)
 {
-	return texture(emissiveArraySampler, vec3(texCoord, float(MaterialTextureBinding[materialIndex].binding[3])));
+	return SampleTextureArray(texCoord, MaterialTextureBinding[materialIndex].binding[3], MaterialTextureBinding[materialIndex].slice[3]);
 }
 
 layout(binding = BINDING_TEXTURE4) uniform sampler2DArray aoArraySampler;
 vec4 SampleAO(in vec2 texCoord)
 {
-	return texture(aoArraySampler, vec3(texCoord, float(MaterialTextureBinding[materialIndex].binding[4])));
+	return SampleTextureArray(texCoord, MaterialTextureBinding[materialIndex].binding[4], MaterialTextureBinding[materialIndex].slice[4]);
 }
-
-layout(binding = BINDING_TEXTURE5) uniform sampler2DArray dummySampler5;
-layout(binding = BINDING_TEXTURE6) uniform sampler2DArray dummySampler6;
-layout(binding = BINDING_TEXTURE7) uniform sampler2DArray dummySampler7;
-layout(binding = BINDING_TEXTURE8) uniform sampler2DArray dummySampler8;
-layout(binding = BINDING_TEXTURE9) uniform sampler2DArray dummySampler9;
-layout(binding = BINDING_TEXTURE10) uniform sampler2DArray dummySampler10;
-layout(binding = BINDING_TEXTURE11) uniform sampler2DArray dummySampler11;
-layout(binding = BINDING_TEXTURE12) uniform sampler2DArray dummySampler12;
-layout(binding = BINDING_TEXTURE13) uniform sampler2DArray dummySampler13;
-layout(binding = BINDING_TEXTURE14) uniform sampler2DArray dummySampler14;
-layout(binding = BINDING_TEXTURE15) uniform sampler2DArray dummySampler15;
 
 struct ShadingStruct
 {
@@ -267,7 +297,6 @@ MaterialPixelParameters ComputeMaterialPixelParameters(
 
 #if (TANGENT_BINORMAL_INPUT && HAS_MATERIAL_TEXTURE1)
 	vec3 normalmap = 2.0 * SampleNormal(texCoord).rgb - vec3(1.0);
-	// vec3 normalmap;
 	// normalmap.rg = 2.0 * SampleNormal(texCoord).ra - vec2(1.0);
 	// normalmap.b = sqrt(1.0 - dot(normalmap.rg, normalmap.rg));
 	parameters.normal = normalize(worldTangent * normalmap.r

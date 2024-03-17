@@ -108,6 +108,7 @@ bool KRenderCore::InitGlobalManager()
 	KRenderGlobal::DynamicConstantBufferManager.Init(property->uniformBufferOffsetAlignment, property->uniformBufferMaxRange);
 	KRenderGlobal::InstanceBufferManager.Init(sizeof(KVertexDefinition::INSTANCE_DATA_MATRIX4F), 65536);
 	KRenderGlobal::VirtualGeometryManager.Init();
+	KRenderGlobal::VirtualTextureManager.Init(256, 10, 4);
 
 	KRenderGlobal::QuadDataProvider.Init();
 
@@ -118,6 +119,7 @@ bool KRenderCore::UnInitGlobalManager()
 {
 	KRenderGlobal::QuadDataProvider.UnInit();
 
+	KRenderGlobal::VirtualTextureManager.UnInit();
 	KRenderGlobal::VirtualGeometryManager.UnInit();
 	KRenderGlobal::MeshManager.UnInit();
 	KRenderGlobal::MaterialManager.UnInit();
