@@ -12,6 +12,8 @@ KVirtualTextureManager::KVirtualTextureManager()
 	, m_SizeWithPadding(0)
 	, m_NumMips(0)
 	, m_TileNum(0)
+	, m_Width(0)
+	, m_Height(0)
 {
 }
 
@@ -78,6 +80,10 @@ bool KVirtualTextureManager::Init(uint32_t tileSize, uint32_t tileDimension, uin
 	m_UsedTileHead = nullptr;
 	m_FreeTileHead = &m_PhysicalTiles[0];
 
+	Resize(1024, 1024);
+
+	m_FeedbackDebugDrawer.Init(m_FeedbackTarget->GetFrameBuffer(), 0, 0, 1, 1, false);
+
 	return true;
 }
 
@@ -92,6 +98,13 @@ bool KVirtualTextureManager::UnInit()
 	m_UsedTileHead = nullptr;
 
 	SAFE_UNINIT(m_PhysicalTexture);
+
+	SAFE_UNINIT(m_FeedbackTarget);
+	SAFE_UNINIT(m_FeedbackDepth);
+	SAFE_UNINIT(m_FeedbackPass);
+
+	m_FeedbackDebugDrawer.UnInit();
+
 	return true;
 }
 
@@ -153,18 +166,78 @@ void KVirtualTextureManager::LRUSortTile()
 	}
 }
 
-bool KVirtualTextureManager::Update()
+bool KVirtualTextureManager::Update(IKCommandBufferPtr primaryBuffer, const std::vector<IKEntity*>& cullRes)
 {
 	LRUSortTile();
+
+	primaryBuffer->Transition(m_FeedbackTarget->GetFrameBuffer(), PIPELINE_STAGE_FRAGMENT_SHADER, PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_COLOR_ATTACHMENT);
+
+	if (m_FeedbackPass)
+	{
+		primaryBuffer->BeginDebugMarker("FeedbackRender", glm::vec4(1));
+		primaryBuffer->BeginRenderPass(m_FeedbackPass, SUBPASS_CONTENTS_INLINE);
+		primaryBuffer->SetViewport(m_FeedbackPass->GetViewPort());
+
+		for (auto& pair : m_TextureMap)
+		{
+			KVirtualTextureResourceRef resource = pair.second;
+			resource->FeedbackRender(primaryBuffer, m_FeedbackPass, cullRes);
+		}
+
+		primaryBuffer->EndRenderPass();
+	}
+
+	primaryBuffer->Transition(m_FeedbackTarget->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+
 	return true;
 }
 
 void KVirtualTextureManager::Resize(uint32_t width, uint32_t height)
 {
-	for (auto& pair : m_TextureMap)
+	if (!width || !height)
 	{
-		pair.second->Resize(width, height);
+		return;
 	}
+
+	m_Width = width;
+	m_Height = height;
+
+	if (!m_FeedbackTarget)
+	{
+		KRenderGlobal::RenderDevice->CreateRenderTarget(m_FeedbackTarget);
+	}
+	if (!m_FeedbackDepth)
+	{
+		KRenderGlobal::RenderDevice->CreateRenderTarget(m_FeedbackDepth);
+	}
+	if (!m_FeedbackPass)
+	{
+		KRenderGlobal::RenderDevice->CreateRenderPass(m_FeedbackPass);
+	}
+
+	m_FeedbackTarget->UnInit();
+	m_FeedbackDepth->UnInit();
+	m_FeedbackPass->UnInit();
+
+	m_FeedbackTarget->InitFromColor(m_Width, m_Height, 1, 1, EF_R8G8B8A8_UNORM);
+	m_FeedbackDepth->InitFromDepthStencil(m_Width, m_Height, 1, false);
+
+	m_FeedbackPass->SetColorAttachment(0, m_FeedbackTarget->GetFrameBuffer());
+	m_FeedbackPass->SetDepthStencilAttachment(m_FeedbackDepth->GetFrameBuffer());
+	m_FeedbackPass->Init();
+
+	IKCommandBufferPtr commandBuffer = KRenderGlobal::CommandPool->Request(CBL_PRIMARY);
+	commandBuffer->BeginPrimary();
+
+	commandBuffer->Transition(m_FeedbackTarget->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+
+	commandBuffer->End();
+	commandBuffer->Flush();
+}
+
+bool KVirtualTextureManager::ReloadShader()
+{
+	return true;
 }
 
 bool KVirtualTextureManager::Acqiure(const std::string& path, uint32_t tileNum, KVirtualTextureResourceRef& ref)
@@ -183,6 +256,7 @@ bool KVirtualTextureManager::Acqiure(const std::string& path, uint32_t tileNum, 
 		if (virutalTexture->Init(path, tileNum))
 		{
 			ref = KVirtualTextureResourceRef(virutalTexture, [](KVirtualTexture* texture) { texture->UnInit(); });
+			m_TextureMap.insert({ textureInfo, ref });
 		}
 		else
 		{
@@ -235,4 +309,21 @@ bool KVirtualTextureManager::ReturnPhysical(KVirtualTexturePhysicalLocation loca
 		}
 	}
 	return false;
+}
+
+bool KVirtualTextureManager::EnableFeedbackDebugDraw()
+{
+	m_FeedbackDebugDrawer.EnableDraw();
+	return true;
+}
+
+bool KVirtualTextureManager::DisableFeedbackDebugDraw()
+{
+	m_FeedbackDebugDrawer.DisableDraw();
+	return true;
+}
+
+bool KVirtualTextureManager::FeedbackDebugRender(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer)
+{
+	return m_FeedbackDebugDrawer.Render(renderPass, primaryBuffer);
 }

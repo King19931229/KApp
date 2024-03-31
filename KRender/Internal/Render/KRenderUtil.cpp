@@ -91,6 +91,34 @@ namespace KRenderUtil
 		}
 	}
 
+	void CalculateInstancesByVirtualTexture(const std::vector<IKEntity*>& entities, IKTexturePtr virtualTexture, std::vector<KMaterialSubMeshInstance>& instances)
+	{
+		for (IKEntity* entity : entities)
+		{
+			KRenderComponent* render = nullptr;
+			KTransformComponent* transform = nullptr;
+			if (entity->GetComponent(CT_RENDER, (IKComponentBase**)&render) && entity->GetComponent(CT_TRANSFORM, (IKComponentBase**)&transform))
+			{
+				const std::vector<KMaterialSubMeshPtr>& materialSubMeshes = render->GetMaterialSubMeshs();
+				for (size_t i = 0; i < materialSubMeshes.size(); ++i)
+				{
+					KMaterialRef material = materialSubMeshes[i]->GetMaterial();
+					IKMaterialTextureBindingPtr textureBinding = material->GetTextureBinding();
+					for (uint8_t slot = 0; slot < textureBinding->GetNumSlot(); ++slot)
+					{
+						if (textureBinding->GetIsVirtualTexture(slot) && textureBinding->GetTexture(slot) == virtualTexture)
+						{
+							const KConstantDefinition::OBJECT& finalTransform = transform->FinalTransform();
+							glm::mat4 curTransform = glm::transpose(finalTransform.MODEL);
+							glm::mat4 prevTransform = glm::transpose(finalTransform.PRVE_MODEL);
+							instances.push_back({ materialSubMeshes[i], {KVertexDefinition::INSTANCE_DATA_MATRIX4F(curTransform[0], curTransform[1], curTransform[2], prevTransform[0], prevTransform[1], prevTransform[2])} });
+						}
+					}
+				}
+			}
+		}
+	}
+
 	void GetInstances(const std::vector<IKEntity*>& entities, std::vector<KMaterialSubMeshInstance>& instances, KMaterialSubMeshInstanceCompareFunction comp)
 	{
 		instances.clear();

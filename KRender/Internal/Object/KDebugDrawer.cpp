@@ -10,14 +10,14 @@ KRTDebugDrawer::KRTDebugDrawer()
 KRTDebugDrawer::~KRTDebugDrawer()
 {
 	ASSERT_RESULT(!m_Pipeline);
-	ASSERT_RESULT(!m_Target);
+	ASSERT_RESULT(!m_FrameBuffer);
 }
 
 void KRTDebugDrawer::Move(KRTDebugDrawer&& rhs)
 {
 	m_Clip = rhs.m_Clip;
 	m_Pipeline = std::move(rhs.m_Pipeline);
-	m_Target = std::move(rhs.m_Target);
+	m_FrameBuffer = std::move(rhs.m_FrameBuffer);
 	m_Enable = rhs.m_Enable;
 }
 
@@ -32,11 +32,11 @@ KRTDebugDrawer& KRTDebugDrawer::operator=(KRTDebugDrawer&& rhs)
 	return *this;
 }
 
-bool KRTDebugDrawer::Init(IKRenderTargetPtr target, float x, float y, float width, float height, bool linear)
+bool KRTDebugDrawer::Init(IKFrameBufferPtr frameBuffer, float x, float y, float width, float height, bool linear)
 {
 	UnInit();
 
-	m_Target = target;
+	m_FrameBuffer = frameBuffer;
 
 	m_Rect.x = x;
 	m_Rect.y = y;
@@ -69,7 +69,7 @@ bool KRTDebugDrawer::Init(IKRenderTargetPtr target, float x, float y, float widt
 	m_Pipeline->SetDepthFunc(CF_ALWAYS, false, false);
 	m_Pipeline->SetShader(ST_VERTEX, *m_VSShader);
 	m_Pipeline->SetShader(ST_FRAGMENT, *m_FSShader);
-	m_Pipeline->SetSampler(SHADER_BINDING_TEXTURE0, m_Target->GetFrameBuffer(), *m_Sampler, true);
+	m_Pipeline->SetSampler(SHADER_BINDING_TEXTURE0, m_FrameBuffer, *m_Sampler, true);
 
 	ASSERT_RESULT(m_Pipeline->Init());
 
@@ -78,7 +78,7 @@ bool KRTDebugDrawer::Init(IKRenderTargetPtr target, float x, float y, float widt
 
 bool KRTDebugDrawer::UnInit()
 {
-	m_Target = nullptr;
+	m_FrameBuffer = nullptr;
 	SAFE_UNINIT(m_Pipeline);
 	m_VSShader.Release();
 	m_FSShader.Release();

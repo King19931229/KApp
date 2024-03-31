@@ -18,6 +18,7 @@ const char* KRenderImGui::SettingMenuName[] =
 	"HardwareOcclusion",
 	"VolumetricFog",
 	"VirtualGeometry",
+	"VirtualTexture"
 };
 
 const char* KRenderImGui::DebugMenuName[] =
@@ -305,6 +306,11 @@ void KRenderImGui::Run()
 			ImGui::Checkbox("UseDoubleOcclusion", &KRenderGlobal::VirtualGeometryManager.GetUseDoubleOcclusion());
 			ImGui::Checkbox("UsePersistentCull", &KRenderGlobal::VirtualGeometryManager.GetUsePersistentCull());
 			ImGui::Checkbox("UseConeCull", &KRenderGlobal::VirtualGeometryManager.GetUseConeCull());
+		}
+
+		if (m_SettingMenuEnable[VIRTUAL_TEXTURE])
+		{
+			ImGui::Checkbox("FeedbackDebug", &KRenderGlobal::VirtualTextureManager.GetFeedbackDebugDrawEnable());
 		}
 	}
 	ImGui::PopStyleColor(1);

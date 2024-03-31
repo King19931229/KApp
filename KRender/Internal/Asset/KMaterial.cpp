@@ -193,6 +193,16 @@ IKShaderPtr KMaterial::GetVSGPUSceneShader(const VertexFormat* formats, size_t c
 	return m_ShaderMap.GetVSGPUSceneShader(formats, count);
 }
 
+IKShaderPtr KMaterial::GetVSVirtualFeedbackShader(const VertexFormat* formats, size_t count)
+{
+	return m_VirtualFeedbackShaderMap.GetVSShader(formats, count);
+}
+
+IKShaderPtr KMaterial::GetVSInstanceVirtualFeedbackShader(const VertexFormat* formats, size_t count)
+{
+	return m_VirtualFeedbackShaderMap.GetVSInstanceShader(formats, count);
+}
+
 IKShaderPtr KMaterial::GetFSGPUSceneShader(const VertexFormat* formats, size_t count)
 {
 	KTextureBinding textureBinding = ConvertToTextureBinding(m_TextureBinding.get());
@@ -203,6 +213,12 @@ IKShaderPtr KMaterial::GetFSShader(const VertexFormat* formats, size_t count)
 {
 	KTextureBinding textureBinding = ConvertToTextureBinding(m_TextureBinding.get());
 	return m_ShaderMap.GetFSShader(formats, count, &textureBinding);
+}
+
+IKShaderPtr KMaterial::GetFSVirtualFeedbackShader(const VertexFormat* formats, size_t count)
+{
+	KTextureBinding textureBinding = ConvertToTextureBinding(m_TextureBinding.get());
+	return m_VirtualFeedbackShaderMap.GetFSShader(formats, count, &textureBinding);
 }
 
 bool KMaterial::IsShaderLoaded(const VertexFormat* formats, size_t count)
@@ -755,13 +771,17 @@ bool KMaterial::InitFromImportAssetMaterial(const KMeshRawData::Material& input,
 
 		if (texCoordSetAccept)
 		{
-			if (input.codecs[i].pData)
+			if (input.virtualTileNums[i])
 			{
-				m_TextureBinding->SetTexture(i, input.url[i], input.codecs[i], input.samplers[i]);
+				m_TextureBinding->SetTextureVirtual(i, input.urls[i], input.virtualTileNums[i], input.samplers[i]);
 			}
-			else if (!input.url[i].empty())
+			else if (input.codecs[i].pData)
 			{
-				m_TextureBinding->SetTexture(i, input.url[i], input.samplers[i]);
+				m_TextureBinding->SetTexture(i, input.urls[i], input.codecs[i], input.samplers[i]);
+			}
+			else if (!input.urls[i].empty())
+			{
+				m_TextureBinding->SetTexture(i, input.urls[i], input.samplers[i]);
 			}
 		}
 
@@ -796,6 +816,10 @@ bool KMaterial::InitFromImportAssetMaterial(const KMeshRawData::Material& input,
 		initContext.vsFile = "shadow/cascaded/dynamic_shadow.vert";
 		initContext.fsFile = "shadow/cascaded/shadow.frag";
 		ASSERT_RESULT(m_DynamicCSMShaderMap.Init(initContext, async));
+
+		initContext.vsFile = "virtualtexture/vt_basepass.vert";
+		initContext.fsFile = "virtualtexture/vt_basepass.frag";
+		ASSERT_RESULT(m_VirtualFeedbackShaderMap.Init(initContext, async));
 
 		m_ShadingMode = MSM_OPAQUE;
 	}
@@ -907,6 +931,7 @@ bool KMaterial::UnInit()
 	m_ShaderMap.UnInit();
 	m_StaticCSMShaderMap.UnInit();
 	m_DynamicCSMShaderMap.UnInit();
+	m_VirtualFeedbackShaderMap.UnInit();
 
 	m_TextureBinding->Clear();
 	m_Parameter->RemoveAllValues();

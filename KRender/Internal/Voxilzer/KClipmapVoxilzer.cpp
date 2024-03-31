@@ -1178,7 +1178,7 @@ void KClipmapVoxilzer::SetupLightPassPipeline()
 	commandBuffer->End();
 	commandBuffer->Flush();
 
-	m_LightDebugDrawer.Init(m_LightComposeTarget, 0, 0, 1, 1);
+	m_LightDebugDrawer.Init(m_LightComposeTarget->GetFrameBuffer(), 0, 0, 1, 1);
 
 	{
 		IKPipelinePtr& pipeline = m_LightPassPipeline;

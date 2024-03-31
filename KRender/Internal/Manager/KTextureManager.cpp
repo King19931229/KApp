@@ -1,6 +1,7 @@
 #include "KTextureManager.h"
 #include "KBase/Interface/IKFileSystem.h"
 #include "KBase/Publish/KHash.h"
+#include "Internal/VirtualTexture/KVirtualTextureManager.h"
 #include "Internal/KRenderGlobal.h"
 
 KTextureManager::KTextureManager()
@@ -38,14 +39,41 @@ bool KTextureManager::UnInit()
 	}
 	m_AnonymousTextures.clear();
 
+	for (auto it = m_VirtualTextures.begin(), itEnd = m_VirtualTextures.end(); it != itEnd; ++it)
+	{
+		KVirtualTextureResourceRef& ref = it->second;
+		ASSERT_RESULT(ref.GetRefCount() == 1);
+	}
+	m_VirtualTextures.clear();
+
 	return true;
+}
+
+bool KTextureManager::Acquire(const char* path, uint32_t tileNum, KVirtualTextureResourceRef& ref, bool async)
+{
+	auto it = m_VirtualTextures.find(path);
+
+	if (it != m_VirtualTextures.end())
+	{
+		ref = it->second;
+		return true;
+	}
+
+	if (KRenderGlobal::VirtualTextureManager.Acqiure(path, tileNum, ref))
+	{
+		m_VirtualTextures[path] = ref;
+		return true;
+	}
+	
+	ref.Release();
+	return false;
 }
 
 bool KTextureManager::Acquire(const char* path, KTextureRef& ref, bool async)
 {
 	auto it = m_Textures.find(path);
 
-	if(it != m_Textures.end())
+	if (it != m_Textures.end())
 	{
 		ref = it->second;
 		return true;
@@ -53,9 +81,9 @@ bool KTextureManager::Acquire(const char* path, KTextureRef& ref, bool async)
 
 	IKTexturePtr texture;
 	KRenderGlobal::RenderDevice->CreateTexture(texture);
-	if(texture->InitMemoryFromFile(path, true, async))
+	if (texture->InitMemoryFromFile(path, true, async))
 	{
-		if(texture->InitDevice(async))
+		if (texture->InitDevice(async))
 		{
 			ref = KTextureRef(texture, [this](IKTexturePtr texture)
 			{
@@ -64,7 +92,7 @@ bool KTextureManager::Acquire(const char* path, KTextureRef& ref, bool async)
 			m_Textures[path] = ref;
 			return true;
 		}
-	}	
+	}
 	SAFE_UNINIT(texture);
 	return false;
 }

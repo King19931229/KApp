@@ -34,6 +34,13 @@ protected:
 	KVirtualTexturePhysicalTile* m_FreeTileHead;
 	KVirtualTexturePhysicalTile* m_UsedTileHead;
 	IKTexturePtr m_PhysicalTexture;
+
+	IKRenderTargetPtr m_FeedbackTarget;
+	IKRenderTargetPtr m_FeedbackDepth;
+	IKRenderPassPtr m_FeedbackPass;
+
+	KRTDebugDrawer m_FeedbackDebugDrawer;
+
 	uint32_t m_TileSize;
 	uint32_t m_TileDimension;
 	uint32_t m_PaddingSize;
@@ -41,6 +48,9 @@ protected:
 	uint32_t m_SizeWithPadding;
 	uint32_t m_NumMips;
 	uint32_t m_TileNum;
+
+	uint32_t m_Width = 0;
+	uint32_t m_Height = 0;
 
 	void RemoveTileFromList(KVirtualTexturePhysicalTile* tile, KVirtualTexturePhysicalTile*& head);
 	void AddTileToList(KVirtualTexturePhysicalTile* tile, KVirtualTexturePhysicalTile* &head);
@@ -53,12 +63,20 @@ public:
 	bool UnInit();
 
 	bool Acqiure(const std::string& path, uint32_t tileNum, KVirtualTextureResourceRef& ref);
-	bool Update();
+	bool Update(IKCommandBufferPtr primaryBuffer, const std::vector<IKEntity*>& cullRes);
+
+	bool ReloadShader();
 
 	void Resize(uint32_t width, uint32_t height);
 
 	KVirtualTexturePhysicalLocation RequestPhysical();
 	bool ReturnPhysical(KVirtualTexturePhysicalLocation location);
+
+	bool EnableFeedbackDebugDraw();
+	bool DisableFeedbackDebugDraw();
+	bool& GetFeedbackDebugDrawEnable() { return m_FeedbackDebugDrawer.GetEnable(); }
+
+	bool FeedbackDebugRender(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer);
 
 	uint32_t GetTileSize() const { return m_TileSize; }
 	uint32_t GetTileDimension() const { return m_TileDimension; }

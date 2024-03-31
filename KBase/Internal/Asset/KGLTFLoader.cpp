@@ -1186,42 +1186,42 @@ bool KGLTFLoader::AppendMeshIntoResult(NodePtr node, KMeshRawData& result)
 			{
 				if (i == MTS_BASE_COLOR && material.baseColorTexture)
 				{
-					part.material.url[i] = material.baseColorTexture->url;
+					part.material.urls[i] = material.baseColorTexture->url;
 					part.material.codecs[i] = material.baseColorTexture->codec;
 					part.material.samplers[i] = material.baseColorTexture->sampler;
 					part.material.texCoordSets.baseColor = material.texCoordSets.baseColor;
 				}
 				if (i == MTS_NORMAL && material.normalTexture)
 				{
-					part.material.url[i] = material.normalTexture->url;
+					part.material.urls[i] = material.normalTexture->url;
 					part.material.codecs[i] = material.normalTexture->codec;
 					part.material.samplers[i] = material.normalTexture->sampler;
 					part.material.texCoordSets.normal = material.texCoordSets.normal;
 				}
 				if (i == MTS_SPECULAR_GLOSINESS && material.extension.specularGlossinessTexture)
 				{
-					part.material.url[i] = material.extension.specularGlossinessTexture->url;
+					part.material.urls[i] = material.extension.specularGlossinessTexture->url;
 					part.material.codecs[i] = material.extension.specularGlossinessTexture->codec;
 					part.material.samplers[i] = material.extension.specularGlossinessTexture->sampler;
 					part.material.texCoordSets.specularGlossiness = material.texCoordSets.specularGlossiness;
 				}
 				if (i == MTS_METAL_ROUGHNESS && material.metallicRoughnessTexture)
 				{
-					part.material.url[i] = material.metallicRoughnessTexture->url;
+					part.material.urls[i] = material.metallicRoughnessTexture->url;
 					part.material.codecs[i] = material.metallicRoughnessTexture->codec;
 					part.material.samplers[i] = material.metallicRoughnessTexture->sampler;
 					part.material.texCoordSets.metallicRoughness = material.texCoordSets.metallicRoughness;
 				}
 				if (i == MTS_EMISSIVE && material.emissiveTexture)
 				{
-					part.material.url[i] = material.emissiveTexture->url;
+					part.material.urls[i] = material.emissiveTexture->url;
 					part.material.codecs[i] = material.emissiveTexture->codec;
 					part.material.samplers[i] = material.emissiveTexture->sampler;
 					part.material.texCoordSets.emissive = material.texCoordSets.emissive;
 				}
 				if (i == MTS_AMBIENT_OCCLUSION && material.occlusionTexture)
 				{
-					part.material.url[i] = material.occlusionTexture->url;
+					part.material.urls[i] = material.occlusionTexture->url;
 					part.material.codecs[i] = material.occlusionTexture->codec;
 					part.material.samplers[i] = material.occlusionTexture->sampler;
 					part.material.texCoordSets.occlusion = material.texCoordSets.occlusion;

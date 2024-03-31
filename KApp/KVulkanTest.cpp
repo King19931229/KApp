@@ -348,7 +348,7 @@ void InitQEM(IKEnginePtr engine)
 	};
 	engine->GetRenderCore()->RegisterUIRenderCallback(&UI);
 #else
-	auto scene = engine->GetRenderCore()->GetRenderScene();
+	IKRenderScene* scene = engine->GetRenderCore()->GetRenderScene();
 
 	static KRenderCoreInitCallback InitModel = [scene]()
 	{
@@ -451,7 +451,7 @@ int main()
 
 	engine->Init(std::move(window), options);
 	//InitQEM(engine);
-
+	/*
 	IKDataStreamPtr stream = GetDataStream(IT_FILEHANDLE);
 	if (stream->Open("D:/KApp/scene.txt", IM_READ))
 	{
@@ -461,6 +461,82 @@ int main()
 	}
 	stream->Close();
 	stream = nullptr;
+	*/
+	{
+		KMeshRawData userData;
+		userData.components.push_back({ AVC_POSITION_3F, AVC_NORMAL_3F, AVC_UV_2F });
+
+		struct Vertex
+		{
+			glm::vec3 pos;
+			glm::vec3 normal;
+			glm::vec2 uv;
+		} vertices[4];
+
+		vertices[0].pos = glm::vec3(-1, 0, -1);
+		vertices[0].normal = glm::vec3(0, 1, 0);
+		vertices[0].uv = glm::vec2(0, 1);
+
+		vertices[1].pos = glm::vec3(1, 0, -1);
+		vertices[1].normal = glm::vec3(0, 1, 0);
+		vertices[1].uv = glm::vec2(1, 1);
+
+		vertices[2].pos = glm::vec3(1, 0, 1);
+		vertices[2].normal = glm::vec3(0, 1, 0);
+		vertices[2].uv = glm::vec2(1, 0);
+
+		vertices[3].pos = glm::vec3(-1, 0, 1);
+		vertices[3].normal = glm::vec3(0, 1, 0);
+		vertices[3].uv = glm::vec2(0, 0);
+
+		KMeshRawData::VertexDataBuffer vertexData;
+		vertexData.resize(sizeof(vertices));
+		memcpy(vertexData.data(), vertices, vertexData.size());
+
+		userData.vertexCount = 4;
+		userData.verticesDatas.push_back(vertexData);
+
+		uint32_t indexData[6] = { 2,1,0,3,2,0 };
+		userData.indexCount = 6;
+		userData.index16Bit = false;
+		userData.indicesData.resize(sizeof(indexData));
+		memcpy(userData.indicesData.data(), indexData, userData.indicesData.size());
+
+		KMeshRawData::Material material;
+		material.urls[MTS_DIFFUSE] = "Textures/StreamingAssets/Slide";
+		material.virtualTileNums[MTS_DIFFUSE] = 64;
+
+		KMeshRawData::ModelPart part;
+		part.vertexBase = 0;
+		part.vertexCount = 4;
+		part.indexBase = 0;
+		part.indexCount = 6;
+		part.material = material;
+
+		userData.parts.push_back(part);
+
+		userData.extend.min[0] = -1;
+		userData.extend.min[1] = 0;
+		userData.extend.min[2] = -1;
+
+		userData.extend.max[0] = 1;
+		userData.extend.max[1] = 0;
+		userData.extend.max[2] = 1;
+
+		IKEntityPtr entity = KECS::EntityManager->CreateEntity();
+		IKComponentBase* component = nullptr;
+		if (entity->RegisterComponent(CT_RENDER, &component))
+		{
+			((IKRenderComponent*)component)->InitAsUserData(userData, "virtualTexture", false);
+		}
+		if (entity->RegisterComponent(CT_TRANSFORM, &component))
+		{
+			((IKTransformComponent*)component)->SetScale(glm::vec3(2e3f, 2e3f, 2e3f));
+		}
+
+		IKRenderScene* scene = engine->GetRenderCore()->GetRenderScene();
+		scene->Add(entity.get());
+	}
 #if 0
 	engine->GetScene()->CreateTerrain(glm::vec3(0), 10 * 1024, 4096, { TERRAIN_TYPE_CLIPMAP, {8, 3} });
 	engine->GetScene()->GetTerrain()->LoadHeightMap("Terrain/small_ridge_1025/height.png");

@@ -1,13 +1,15 @@
 ﻿#pragma once
 #include "Interface/IKMaterial.h"
 #include "Interface/IKSampler.h"
+#include "Internal/VirtualTexture/KVirtualTexture.h"
 
 class KMaterialTextureBinding : public IKMaterialTextureBinding
 {
 protected:
 	KTextureRef m_Textures[MAX_MATERIAL_TEXTURE_BINDING];
+	KVirtualTextureResourceRef m_VirtualTextures[MAX_MATERIAL_TEXTURE_BINDING];
 	KSamplerRef m_Samplers[MAX_MATERIAL_TEXTURE_BINDING];
-	bool m_IsVirtual[MAX_MATERIAL_TEXTURE_BINDING];
+
 	KSamplerDescription ToSamplerDesc(const KMeshTextureSampler& sampler);
 public:
 	KMaterialTextureBinding();
@@ -20,11 +22,11 @@ public:
 	// KMaterialTextureBinding(const KMaterialTextureBinding& rhs) = delete;
 	// KMaterialTextureBinding& operator=(const KMaterialTextureBinding& rhs) = delete;
 
+	bool SetTextureVirtual(uint8_t slot, const std::string& path, uint32_t tileNum, const KMeshTextureSampler& sampler) override;
 	bool SetTexture(uint8_t slot, const std::string& path, const KMeshTextureSampler& sampler) override;
 	bool SetTexture(uint8_t slot, const std::string& name, const KCodecResult& result, const KMeshTextureSampler& sampler) override;
 	bool SetErrorTexture(uint8_t slot) override;
 	bool UnsetTextrue(uint8_t slot) override;
-	bool SetIsVirtualTexture(uint8_t slot, bool isVirtual) override;
 	IKTexturePtr GetTexture(uint8_t slot) const override;
 	IKSamplerPtr GetSampler(uint8_t slot) const override;
 	bool GetIsVirtualTexture(uint8_t slot) const override;

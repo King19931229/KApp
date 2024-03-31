@@ -48,10 +48,12 @@ bool KMaterialSubMesh::Init(KSubMeshPtr subMesh, KMaterialRef material)
 	UnInit();
 	m_SubMesh = subMesh;
 	m_Material = material;
+
 	ASSERT_RESULT(CreateMaterialPipeline());
 	ASSERT_RESULT(CreateShadowPipeline());
 	ASSERT_RESULT(CreateGBufferPipeline());
 	ASSERT_RESULT(CreateVoxelPipeline());
+	ASSERT_RESULT(CreateVirtualFeedbackPipeline());
 
 	const IKMaterialTextureBinding* textureBinding = m_Material->GetTextureBinding().get();
 	uint8_t numSlot = textureBinding->GetNumSlot();
@@ -236,6 +238,59 @@ bool KMaterialSubMesh::CreateGBufferPipeline()
 				pipeline->SetShader(ST_VERTEX, vsShader);
 			}
 			else if (stage == RENDER_STAGE_BASEPASS_INSTANCE)
+			{
+				std::vector<VertexFormat> instanceFormats = vertexData->vertexFormats;
+				instanceFormats.push_back(VF_INSTANCE);
+				pipeline->SetVertexBinding(instanceFormats.data(), instanceFormats.size());
+				pipeline->SetShader(ST_VERTEX, vsInstanceShader);
+			}
+
+			pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
+			pipeline->SetBlendEnable(false);
+			pipeline->SetCullMode(CM_BACK);
+			pipeline->SetFrontFace(FF_COUNTER_CLOCKWISE);
+			pipeline->SetPolygonMode(PM_FILL);
+			pipeline->SetColorWrite(true, true, true, true);
+			pipeline->SetDepthFunc(CF_LESS_OR_EQUAL, true, true);
+
+			pipeline->SetShader(ST_FRAGMENT, fsShader);
+
+			IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_CAMERA);
+			pipeline->SetConstantBuffer(SHADER_BINDING_CAMERA, ST_VERTEX | ST_FRAGMENT, cameraBuffer);
+
+			ASSERT_RESULT(pipeline->Init());
+
+			m_Pipelines[stage] = pipeline;
+		}
+	}
+
+	return true;
+}
+
+bool KMaterialSubMesh::CreateVirtualFeedbackPipeline()
+{
+	SAFE_UNINIT(m_Pipelines[RENDER_STAGE_VIRTUAL_TEXTURE_FEEDBACK]);
+	SAFE_UNINIT(m_Pipelines[RENDER_STAGE_VIRTUAL_TEXTURE_FEEDBACK_INSTANCE]);
+
+	if (m_SubMesh && m_Material->GetShadingMode() == MSM_OPAQUE)
+	{
+		const KVertexData* vertexData = m_SubMesh->m_pVertexData;
+
+		IKShaderPtr vsShader = m_Material->GetVSVirtualFeedbackShader(vertexData->vertexFormats.data(), vertexData->vertexFormats.size());
+		IKShaderPtr vsInstanceShader = m_Material->GetVSInstanceVirtualFeedbackShader(vertexData->vertexFormats.data(), vertexData->vertexFormats.size());
+		IKShaderPtr fsShader = m_Material->GetFSVirtualFeedbackShader(vertexData->vertexFormats.data(), vertexData->vertexFormats.size());
+
+		for (RenderStage stage : {RENDER_STAGE_VIRTUAL_TEXTURE_FEEDBACK, RENDER_STAGE_VIRTUAL_TEXTURE_FEEDBACK_INSTANCE})
+		{
+			IKPipelinePtr pipeline = nullptr;
+			KRenderGlobal::RenderDevice->CreatePipeline(pipeline);
+
+			if (stage == RENDER_STAGE_VIRTUAL_TEXTURE_FEEDBACK)
+			{
+				pipeline->SetVertexBinding((vertexData->vertexFormats).data(), vertexData->vertexFormats.size());
+				pipeline->SetShader(ST_VERTEX, vsShader);
+			}
+			else if (stage == RENDER_STAGE_VIRTUAL_TEXTURE_FEEDBACK_INSTANCE)
 			{
 				std::vector<VertexFormat> instanceFormats = vertexData->vertexFormats;
 				instanceFormats.push_back(VF_INSTANCE);

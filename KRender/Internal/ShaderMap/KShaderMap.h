@@ -9,46 +9,70 @@
 static constexpr char* INSTANCE_INPUT_MACRO = "INSTANCE_INPUT";
 static constexpr char* GPUSCENE_INPUT_MACRO = "GPU_SCENE";
 
+enum MacroType
+{
+	MT_HAS_VERTEX_INPUT,
+	MT_HAS_TEXTURE,
+	MT_HAS_VIRTUAL_TEXTURE
+};
+
 struct KShaderMapMacro
 {
 	const char* macro;
-	bool vsFormatMacro;
 	VertexFormat vertexFormat;
-	bool fsTextureMacro;
 	uint32_t textureIndex;
+	MacroType type;
 };
 
 static constexpr KShaderMapMacro PERMUTATING_MACRO[]
 {
-	// { macro, vsFormatMacro, vertexFormat, fsTextureMacro, textureIndex }
-	{ "TANGENT_BINORMAL_INPUT", true,	VF_TANGENT_BINORMAL,		false,	-1 },
-	{ "BLEND_WEIGHT_INPUT",		true,	VF_BLEND_WEIGHTS_INDICES,	false,	-1 },
-	{ "UV2_INPUT",				true,	VF_UV2,						false,	-1 },
+	// { macro, vertexFormat, textureIndex, type }
+	{ "TANGENT_BINORMAL_INPUT",				VF_TANGENT_BINORMAL,		-1,		MT_HAS_VERTEX_INPUT },
+	{ "BLEND_WEIGHT_INPUT",					VF_BLEND_WEIGHTS_INDICES,	-1,		MT_HAS_VERTEX_INPUT },
+	{ "UV2_INPUT",							VF_UV2,						-1,		MT_HAS_VERTEX_INPUT },
 
-	{ "VERTEX_COLOR_INPUT0",	true,	VF_COLOR0,					false,	-1 },
-	{ "VERTEX_COLOR_INPUT1",	true,	VF_COLOR1,					false,	-1 },
-	{ "VERTEX_COLOR_INPUT2",	true,	VF_COLOR2,					false,	-1 },
-	{ "VERTEX_COLOR_INPUT3",	true,	VF_COLOR3,					false,	-1 },
-	{ "VERTEX_COLOR_INPUT4",	true,	VF_COLOR4,					false,	-1 },
-	{ "VERTEX_COLOR_INPUT5",	true,	VF_COLOR5,					false,	-1 },
+	{ "VERTEX_COLOR_INPUT0",				VF_COLOR0,					-1,		MT_HAS_VERTEX_INPUT },
+	{ "VERTEX_COLOR_INPUT1",				VF_COLOR1,					-1,		MT_HAS_VERTEX_INPUT },
+	{ "VERTEX_COLOR_INPUT2",				VF_COLOR2,					-1,		MT_HAS_VERTEX_INPUT },
+	{ "VERTEX_COLOR_INPUT3",				VF_COLOR3,					-1,		MT_HAS_VERTEX_INPUT },
+	{ "VERTEX_COLOR_INPUT4",				VF_COLOR4,					-1,		MT_HAS_VERTEX_INPUT },
+	{ "VERTEX_COLOR_INPUT5",				VF_COLOR5,					-1,		MT_HAS_VERTEX_INPUT },
 
-	{ "HAS_MATERIAL_TEXTURE0",	false,	VF_UNKNOWN,					true,	0 },
-	{ "HAS_MATERIAL_TEXTURE1",	false,	VF_UNKNOWN,					true,	1 },
-	{ "HAS_MATERIAL_TEXTURE2",	false,	VF_UNKNOWN,					true,	2 },
-	{ "HAS_MATERIAL_TEXTURE3",	false,	VF_UNKNOWN,					true,	3 },
-	{ "HAS_MATERIAL_TEXTURE4",	false,	VF_UNKNOWN,					true,	4 },
-	{ "HAS_MATERIAL_TEXTURE5",	false,	VF_UNKNOWN,					true,	5 },
-	{ "HAS_MATERIAL_TEXTURE6",	false,	VF_UNKNOWN,					true,	6 },
-	{ "HAS_MATERIAL_TEXTURE7",	false,	VF_UNKNOWN,					true,	7 },
+	{ "HAS_MATERIAL_TEXTURE0",				VF_UNKNOWN,					0,		MT_HAS_TEXTURE },
+	{ "HAS_MATERIAL_TEXTURE1",				VF_UNKNOWN,					1,		MT_HAS_TEXTURE },
+	{ "HAS_MATERIAL_TEXTURE2",				VF_UNKNOWN,					2,		MT_HAS_TEXTURE },
+	{ "HAS_MATERIAL_TEXTURE3",				VF_UNKNOWN,					3,		MT_HAS_TEXTURE },
+	{ "HAS_MATERIAL_TEXTURE4",				VF_UNKNOWN,					4,		MT_HAS_TEXTURE },
+	{ "HAS_MATERIAL_TEXTURE5",				VF_UNKNOWN,					5,		MT_HAS_TEXTURE },
+	{ "HAS_MATERIAL_TEXTURE6",				VF_UNKNOWN,					6,		MT_HAS_TEXTURE },
+	{ "HAS_MATERIAL_TEXTURE7",				VF_UNKNOWN,					7,		MT_HAS_TEXTURE },
 
-	{ "HAS_MATERIAL_TEXTURE8",	false,	VF_UNKNOWN,					true,	8 },
-	{ "HAS_MATERIAL_TEXTURE9",	false,	VF_UNKNOWN,					true,	9 },
-	{ "HAS_MATERIAL_TEXTURE10",	false,	VF_UNKNOWN,					true,	10 },
-	{ "HAS_MATERIAL_TEXTURE11",	false,	VF_UNKNOWN,					true,	11 },
-	{ "HAS_MATERIAL_TEXTURE12",	false,	VF_UNKNOWN,					true,	12 },
-	{ "HAS_MATERIAL_TEXTURE13",	false,	VF_UNKNOWN,					true,	13 },
-	{ "HAS_MATERIAL_TEXTURE14",	false,	VF_UNKNOWN,					true,	14 },
-	{ "HAS_MATERIAL_TEXTURE15",	false,	VF_UNKNOWN,					true,	15 },
+	{ "HAS_MATERIAL_TEXTURE8",				VF_UNKNOWN,					8,		MT_HAS_TEXTURE },
+	{ "HAS_MATERIAL_TEXTURE9",				VF_UNKNOWN,					9,		MT_HAS_TEXTURE },
+	{ "HAS_MATERIAL_TEXTURE10",				VF_UNKNOWN,					10,		MT_HAS_TEXTURE },
+	{ "HAS_MATERIAL_TEXTURE11",				VF_UNKNOWN,					11,		MT_HAS_TEXTURE },
+	{ "HAS_MATERIAL_TEXTURE12",				VF_UNKNOWN,					12,		MT_HAS_TEXTURE },
+	{ "HAS_MATERIAL_TEXTURE13",				VF_UNKNOWN,					13,		MT_HAS_TEXTURE },
+	{ "HAS_MATERIAL_TEXTURE14",				VF_UNKNOWN,					14,		MT_HAS_TEXTURE },
+	{ "HAS_MATERIAL_TEXTURE15",				VF_UNKNOWN,					15,		MT_HAS_TEXTURE },
+
+	{ "HAS_VIRTUAL_MATERIAL_TEXTURE0",		VF_UNKNOWN,					0,		MT_HAS_VIRTUAL_TEXTURE },
+	{ "HAS_VIRTUAL_MATERIAL_TEXTURE1",		VF_UNKNOWN,					1,		MT_HAS_VIRTUAL_TEXTURE },
+	{ "HAS_VIRTUAL_MATERIAL_TEXTURE2",		VF_UNKNOWN,					2,		MT_HAS_VIRTUAL_TEXTURE },
+	{ "HAS_VIRTUAL_MATERIAL_TEXTURE3",		VF_UNKNOWN,					3,		MT_HAS_VIRTUAL_TEXTURE },
+	{ "HAS_VIRTUAL_MATERIAL_TEXTURE4",		VF_UNKNOWN,					4,		MT_HAS_VIRTUAL_TEXTURE },
+	{ "HAS_VIRTUAL_MATERIAL_TEXTURE5",		VF_UNKNOWN,					5,		MT_HAS_VIRTUAL_TEXTURE },
+	{ "HAS_VIRTUAL_MATERIAL_TEXTURE6",		VF_UNKNOWN,					6,		MT_HAS_VIRTUAL_TEXTURE },
+	{ "HAS_VIRTUAL_MATERIAL_TEXTURE7",		VF_UNKNOWN,					7,		MT_HAS_VIRTUAL_TEXTURE },
+
+	{ "HAS_VIRTUAL_MATERIAL_TEXTURE8",		VF_UNKNOWN,					8,		MT_HAS_VIRTUAL_TEXTURE },
+	{ "HAS_VIRTUAL_MATERIAL_TEXTURE9",		VF_UNKNOWN,					9,		MT_HAS_VIRTUAL_TEXTURE },
+	{ "HAS_VIRTUAL_MATERIAL_TEXTURE10",		VF_UNKNOWN,					10,		MT_HAS_VIRTUAL_TEXTURE },
+	{ "HAS_VIRTUAL_MATERIAL_TEXTURE11",		VF_UNKNOWN,					11,		MT_HAS_VIRTUAL_TEXTURE },
+	{ "HAS_VIRTUAL_MATERIAL_TEXTURE12",		VF_UNKNOWN,					12,		MT_HAS_VIRTUAL_TEXTURE },
+	{ "HAS_VIRTUAL_MATERIAL_TEXTURE13",		VF_UNKNOWN,					13,		MT_HAS_VIRTUAL_TEXTURE },
+	{ "HAS_VIRTUAL_MATERIAL_TEXTURE14",		VF_UNKNOWN,					14,		MT_HAS_VIRTUAL_TEXTURE },
+	{ "HAS_VIRTUAL_MATERIAL_TEXTURE15",		VF_UNKNOWN,					15,		MT_HAS_VIRTUAL_TEXTURE },
 };
 
 static constexpr size_t MACRO_SIZE = sizeof(PERMUTATING_MACRO) / sizeof(KShaderMapMacro);
@@ -59,10 +83,12 @@ extern uint32_t MATERIAL_TEXTURE_BINDING_MACRO_INDEX[MAX_MATERIAL_TEXTURE_BINDIN
 class KTextureBinding
 {
 protected:
-	IKTexturePtr m_TextureMap[MAX_MATERIAL_TEXTURE_BINDING];
+	IKTexturePtr m_Textures[MAX_MATERIAL_TEXTURE_BINDING];
+	bool m_IsVirtual[MAX_MATERIAL_TEXTURE_BINDING];
 public:
 	KTextureBinding()
 	{
+		memset(m_IsVirtual, 0, sizeof(m_IsVirtual));
 	}
 
 	~KTextureBinding()
@@ -73,20 +99,33 @@ public:
 	IKTexturePtr GetTexture(uint32_t slot) const
 	{
 		assert(slot < MAX_MATERIAL_TEXTURE_BINDING);
-		return m_TextureMap[slot];
+		return m_Textures[slot];
+	}
+
+	bool IsVirtual(uint32_t slot) const
+	{
+		assert(slot < MAX_MATERIAL_TEXTURE_BINDING);
+		return m_IsVirtual[slot];
 	}
 
 	void AssignTexture(uint32_t slot, IKTexturePtr texture)
 	{
 		assert(slot < MAX_MATERIAL_TEXTURE_BINDING);
-		m_TextureMap[slot] = texture;
+		m_Textures[slot] = texture;
+	}
+
+	void SetIsVirtual(uint32_t slot, bool isVirtual)
+	{
+		assert(slot < MAX_MATERIAL_TEXTURE_BINDING);
+		m_IsVirtual[slot] = isVirtual;
 	}
 
 	void Empty()
 	{
 		for (size_t i = 0; i < MAX_MATERIAL_TEXTURE_BINDING; ++i)
 		{
-			m_TextureMap[i] = nullptr;
+			m_Textures[i] = nullptr;
+			m_IsVirtual[i] = false;
 		}
 	}
 
@@ -98,6 +137,7 @@ public:
 			for (uint8_t i = 0; i < mtlTexBinding->GetNumSlot(); ++i)
 			{
 				AssignTexture(i, mtlTexBinding->GetTexture(i));
+				SetIsVirtual(i, mtlTexBinding->GetIsVirtualTexture(i));
 			}
 		}
 	}

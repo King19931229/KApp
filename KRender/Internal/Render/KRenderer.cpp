@@ -182,6 +182,8 @@ bool KRenderer::Render(uint32_t chainImageIndex)
 		multithreadRenderContext.threadPool = &m_ThreadPool;
 
 		KRenderGlobal::CascadedShadowMap.UpdateCasters(multithreadRenderContext);
+
+		KRenderGlobal::VirtualTextureManager.Update(commandBuffer, cullRes);
 	}
 
 	commandBuffer->End();
@@ -377,6 +379,8 @@ bool KRenderer::Init(const KRendererInitContext& initContext)
 
 	KRenderGlobal::RTAO.Init(KRenderGlobal::Scene.GetRayTraceScene().get());
 
+	KRenderGlobal::VirtualTextureManager.Resize(width, height);
+
 	// 需要先创建资源 之后会在Tick时候执行Compile把无用的释放掉
 	KRenderGlobal::FrameGraph.Alloc();
 
@@ -434,6 +438,7 @@ bool KRenderer::Init(const KRendererInitContext& initContext)
 		}
 		KRenderGlobal::RayTraceManager.DebugRender(renderPass, primaryBuffer);
 
+		KRenderGlobal::VirtualTextureManager.FeedbackDebugRender(renderPass, primaryBuffer);
 		KRenderGlobal::RTAO.DebugRender(renderPass, primaryBuffer);
 		KRenderGlobal::HiZOcclusion.DebugRender(renderPass, primaryBuffer);
 		KRenderGlobal::ScreenSpaceReflection.DebugRender(renderPass, primaryBuffer);

@@ -100,8 +100,9 @@ struct KMeshRawData
 
 	struct Material
 	{
-		std::string url[MTS_COUNT];
+		std::string urls[MTS_COUNT];
 		KCodecResult codecs[MTS_COUNT];
+		uint32_t virtualTileNums[MTS_COUNT] = { 0 };
 
 		KMeshTextureSampler samplers[MTS_COUNT];
 

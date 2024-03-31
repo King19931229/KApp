@@ -1326,7 +1326,7 @@ KClipmapLevelPtr KClipmap::GetClipmapLevel(int32_t idx)
 bool KClipmap::EnableDebugDraw(const KTerrainDebug& debug)
 {
 	m_DebugDrawer.UnInit();
-	m_DebugDrawer.Init(m_ClipLevels[debug.clipmap.debugLevel]->GetTextureTarget(), 0, 0, 0.5f, 0.5f);
+	m_DebugDrawer.Init(m_ClipLevels[debug.clipmap.debugLevel]->GetTextureTarget()->GetFrameBuffer(), 0, 0, 0.5f, 0.5f);
 	m_DebugDrawer.EnableDraw();
 	return true;
 }

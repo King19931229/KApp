@@ -35,6 +35,7 @@ protected:
 
 	bool CreateMaterialPipeline();
 	bool CreateGBufferPipeline();
+	bool CreateVirtualFeedbackPipeline();
 	bool CreateShadowPipeline();
 	bool CreateVoxelPipeline();
 

@@ -234,7 +234,7 @@ bool KScreenSpaceReflection::Init(uint32_t width, uint32_t height, float ratio, 
 
 	Resize(width, height);
 
-	m_DebugDrawer.Init(m_ComposeTarget, 0, 0, 1, 1);
+	m_DebugDrawer.Init(m_ComposeTarget->GetFrameBuffer(), 0, 0, 1, 1);
 
 	return true;
 }

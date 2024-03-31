@@ -448,15 +448,15 @@ void KDeferredRenderer::BuildRenderCommand(KMultithreadingRenderContext& renderC
 	KRenderStageStatistics& statistics = m_Statistics[deferredRenderStage];
 	statistics.Reset();
 
-	std::vector<KMaterialSubMeshInstance> instances;
-	BuildMaterialSubMeshInstance(deferredRenderStage, cullRes, instances);
+	std::vector<KMaterialSubMeshInstance> subMeshInstances;
+	BuildMaterialSubMeshInstance(deferredRenderStage, cullRes, subMeshInstances);
 
 	IKRenderPassPtr renderPass = m_RenderPass[deferredRenderStage];
 	renderContext.primaryBuffer->BeginDebugMarker(debugMarker, glm::vec4(1));
 
 	if (!KRenderGlobal::GPUScene.GetEnable() || deferredRenderStage != DRS_STAGE_MAIN_BASE_PASS)
 	{
-		for (KMaterialSubMeshInstance& subMeshInstance : instances)
+		for (KMaterialSubMeshInstance& subMeshInstance : subMeshInstances)
 		{
 			const std::vector<KVertexDefinition::INSTANCE_DATA_MATRIX4F>& instances = subMeshInstance.instanceData;
 
@@ -469,7 +469,7 @@ void KDeferredRenderer::BuildRenderCommand(KMultithreadingRenderContext& renderC
 				{
 					if (!KRenderUtil::AssignShadingParameter(command, subMeshInstance.materialSubMesh->GetMaterial()))
 					{
-						return;
+						continue;
 					}
 
 					std::vector<KInstanceBufferManager::AllocResultBlock> allocRes;
@@ -517,7 +517,7 @@ void KDeferredRenderer::BuildRenderCommand(KMultithreadingRenderContext& renderC
 				{
 					if (!KRenderUtil::AssignShadingParameter(command, subMeshInstance.materialSubMesh->GetMaterial()))
 					{
-						return;
+						continue;
 					}
 
 					for (size_t idx = 0; idx < instances.size(); ++idx)

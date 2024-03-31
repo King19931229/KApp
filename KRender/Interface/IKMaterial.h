@@ -59,11 +59,11 @@ struct IKMaterialTextureBinding
 
 	static uint8_t GetNumSlot() { return MAX_MATERIAL_TEXTURE_BINDING;	}
 
+	virtual bool SetTextureVirtual(uint8_t slot, const std::string& path, uint32_t tileNum, const KMeshTextureSampler& sampler) = 0;
 	virtual bool SetTexture(uint8_t slot, const std::string& path, const KMeshTextureSampler& sampler) = 0;
 	virtual bool SetTexture(uint8_t slot, const std::string& name, const KCodecResult& result, const KMeshTextureSampler& sampler) = 0;
 	virtual bool SetErrorTexture(uint8_t slot) = 0;
 	virtual bool UnsetTextrue(uint8_t slot) = 0;
-	virtual bool SetIsVirtualTexture(uint8_t slot, bool isVirtual) = 0;
 
 	virtual IKTexturePtr GetTexture(uint8_t slot) const = 0;
 	virtual IKSamplerPtr GetSampler(uint8_t slot) const = 0;
@@ -93,6 +93,10 @@ struct IKMaterial
 	virtual IKShaderPtr GetVSGPUSceneShader(const VertexFormat* formats, size_t count) = 0;
 	virtual IKShaderPtr GetFSShader(const VertexFormat* formats, size_t count) = 0;
 	virtual IKShaderPtr GetFSGPUSceneShader(const VertexFormat* formats, size_t count) = 0;
+
+	virtual IKShaderPtr GetVSVirtualFeedbackShader(const VertexFormat* formats, size_t count) = 0;
+	virtual IKShaderPtr GetVSInstanceVirtualFeedbackShader(const VertexFormat* formats, size_t count) = 0;
+	virtual IKShaderPtr GetFSVirtualFeedbackShader(const VertexFormat* formats, size_t count) = 0;
 
 	virtual bool IsShaderLoaded(const VertexFormat* formats, size_t count) = 0;
 

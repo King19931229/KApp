@@ -21,6 +21,7 @@ protected:
 	bool m_ParameterNeedRebuild;
 
 	KShaderMap m_ShaderMap;
+	KShaderMap m_VirtualFeedbackShaderMap;
 	KShaderMap m_StaticCSMShaderMap;
 	KShaderMap m_DynamicCSMShaderMap;
 
@@ -79,8 +80,12 @@ public:
 	virtual IKShaderPtr GetVSShader(const VertexFormat* formats, size_t count);
 	virtual IKShaderPtr GetVSInstanceShader(const VertexFormat* formats, size_t count);
 	virtual IKShaderPtr GetVSGPUSceneShader(const VertexFormat* formats, size_t count);
+	virtual IKShaderPtr GetVSVirtualFeedbackShader(const VertexFormat* formats, size_t count);
+	virtual IKShaderPtr GetVSInstanceVirtualFeedbackShader(const VertexFormat* formats, size_t count);
+
 	virtual IKShaderPtr GetFSShader(const VertexFormat* formats, size_t count);
-	virtual IKShaderPtr GetFSGPUSceneShader(const VertexFormat* formats, size_t count);
+	virtual IKShaderPtr GetFSGPUSceneShader(const VertexFormat* formats, size_t count);	
+	virtual IKShaderPtr GetFSVirtualFeedbackShader(const VertexFormat* formats, size_t count);
 
 	virtual bool IsShaderLoaded(const VertexFormat* formats, size_t count);
 

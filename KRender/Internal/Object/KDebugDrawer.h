@@ -22,7 +22,7 @@ protected:
 	Rect m_Rect;
 	glm::mat4 m_Clip;
 	IKPipelinePtr m_Pipeline;
-	IKRenderTargetPtr m_Target;
+	IKFrameBufferPtr m_FrameBuffer;
 	bool m_Enable;
 
 	KShaderRef m_VSShader;
@@ -38,7 +38,7 @@ public:
 	KRTDebugDrawer(KRTDebugDrawer&& rhs);
 	KRTDebugDrawer& operator=(KRTDebugDrawer&& rhs);
 
-	bool Init(IKRenderTargetPtr target, float x, float y, float width, float height, bool linear = true);
+	bool Init(IKFrameBufferPtr frameBuffer, float x, float y, float width, float height, bool linear = true);
 	bool UnInit();
 
 	bool& GetEnable() { return m_Enable; }

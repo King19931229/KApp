@@ -4,10 +4,6 @@
 
 KMaterialTextureBinding::KMaterialTextureBinding()
 {
-	for (size_t i = 0; i < ARRAY_SIZE(m_IsVirtual); ++i)
-	{
-		m_IsVirtual[i] = false;
-	}
 }
 
 KMaterialTextureBinding::~KMaterialTextureBinding()
@@ -15,6 +11,10 @@ KMaterialTextureBinding::~KMaterialTextureBinding()
 	for (size_t i = 0; i < ARRAY_SIZE(m_Textures); ++i)
 	{
 		ASSERT_RESULT(!m_Textures[i]);
+	}
+	for (size_t i = 0; i < ARRAY_SIZE(m_VirtualTextures); ++i)
+	{
+		ASSERT_RESULT(!m_VirtualTextures[i]);
 	}
 	for (size_t i = 0; i < ARRAY_SIZE(m_Samplers); ++i)
 	{
@@ -63,6 +63,34 @@ KSamplerDescription KMaterialTextureBinding::ToSamplerDesc(const KMeshTextureSam
 	desc.addressW = ToAddressMode(sampler.addressModeW);
 
 	return desc;
+}
+
+bool KMaterialTextureBinding::SetTextureVirtual(uint8_t slot, const std::string& path, uint32_t tileNum, const KMeshTextureSampler& sampler)
+{
+	if (slot < GetNumSlot())
+	{
+		UnsetTextrue(slot);
+		if (!path.empty())
+		{
+			if (KRenderGlobal::TextureManager.Acquire(path.c_str(), tileNum, m_VirtualTextures[slot], false))
+			{
+				KSamplerDescription desc = ToSamplerDesc(sampler);
+				desc.minMipmap = 0;
+				desc.maxMipmap = 0;
+				desc.anisotropic = true;
+				desc.anisotropicCount = 16;
+
+				ASSERT_RESULT(KRenderGlobal::SamplerManager.Acquire(desc, m_Samplers[slot]));
+				return true;
+			}
+			else
+			{
+				KLog::Logger->Log(LL_ERROR, "Couldn't load texture file %s", path.c_str());
+				return false;
+			}
+		}
+	}
+	return false;
 }
 
 bool KMaterialTextureBinding::SetTexture(uint8_t slot, const std::string& path, const KMeshTextureSampler& sampler)
@@ -142,17 +170,8 @@ bool KMaterialTextureBinding::UnsetTextrue(uint8_t slot)
 	if (slot < GetNumSlot())
 	{
 		m_Textures[slot].Release();
+		m_VirtualTextures[slot].Release();
 		m_Samplers[slot].Release();
-		return true;
-	}
-	return false;
-}
-
-bool KMaterialTextureBinding::SetIsVirtualTexture(uint8_t slot, bool isVirtual)
-{
-	if (slot < GetNumSlot())
-	{
-		m_IsVirtual[slot] = isVirtual;
 		return true;
 	}
 	return false;
@@ -162,7 +181,14 @@ IKTexturePtr KMaterialTextureBinding::GetTexture(uint8_t slot) const
 {
 	if (slot < GetNumSlot())
 	{
-		return *m_Textures[slot];
+		if (m_Textures[slot])
+		{
+			return *m_Textures[slot];
+		}
+		else if (m_VirtualTextures[slot])
+		{
+			return m_VirtualTextures[slot]->GetTableTexture();
+		}
 	}
 	return nullptr;
 }
@@ -180,7 +206,7 @@ bool KMaterialTextureBinding::GetIsVirtualTexture(uint8_t slot) const
 {
 	if (slot < GetNumSlot())
 	{
-		return m_IsVirtual[slot];
+		return m_VirtualTextures[slot].Get() != nullptr;
 	}
 	return false;
 }
@@ -225,6 +251,11 @@ bool KMaterialTextureBinding::Clear()
 	for (size_t i = 0; i < ARRAY_SIZE(m_Textures); ++i)
 	{
 		m_Textures[i].Release();
+	}
+
+	for (size_t i = 0; i < ARRAY_SIZE(m_VirtualTextures); ++i)
+	{
+		m_VirtualTextures[i].Release();
 	}
 
 	for (size_t i = 0; i < ARRAY_SIZE(m_Samplers); ++i)

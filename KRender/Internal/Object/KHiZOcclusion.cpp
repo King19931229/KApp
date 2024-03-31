@@ -133,7 +133,7 @@ bool KHiZOcclusion::Init()
 
 	for (size_t frameIdx = 0; frameIdx < m_ExecutePipelines.size(); ++frameIdx)
 	{
-		m_DebugDrawers[frameIdx].Init(m_ResultTargets[frameIdx], 0.8f, 0, 0.2f, 0.2f, false);
+		m_DebugDrawers[frameIdx].Init(m_ResultTargets[frameIdx]->GetFrameBuffer(), 0.8f, 0, 0.2f, 0.2f, false);
 	}
 
 	return true;

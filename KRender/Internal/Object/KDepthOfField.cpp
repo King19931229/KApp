@@ -49,7 +49,7 @@ bool KDepthOfField::Init(uint32_t width, uint32_t height, float ratio)
 
 	Resize(width, height);
 
-	m_DebugDrawer.Init(m_Final, 0, 0, 1, 1);
+	m_DebugDrawer.Init(m_Final->GetFrameBuffer(), 0, 0, 1, 1);
 
 	return true;
 }

@@ -695,7 +695,7 @@ void KVoxilzer::Resize(uint32_t width, uint32_t height)
 
 void KVoxilzer::SetupLightPassPipeline()
 {
-	m_LightDebugDrawer.Init(m_LightPassTarget, 0, 0, 1, 1);
+	m_LightDebugDrawer.Init(m_LightPassTarget->GetFrameBuffer(), 0, 0, 1, 1);
 
 	std::vector<IKFrameBufferPtr> targets;
 	std::vector<IKSamplerPtr> samplers;
@@ -774,7 +774,7 @@ void KVoxilzer::SetupLightPassPipeline()
 
 void KVoxilzer::SetupRayTestPipeline(uint32_t width, uint32_t height)
 {
-	m_OctreeRayTestDebugDrawer.Init(m_OctreeRayTestTarget, 0, 0, 1, 1);
+	m_OctreeRayTestDebugDrawer.Init(m_OctreeRayTestTarget->GetFrameBuffer(), 0, 0, 1, 1);
 
 	if (m_VoxelUseOctree)
 	{

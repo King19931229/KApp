@@ -264,7 +264,7 @@ bool KRayTraceScene::AddRaytracePipeline(IKRayTracePipelinePtr& pipeline)
 		{
 			pipeline->Init(m_CameraBuffer,m_TopDown, m_Width, m_Height);
 			KRTDebugDrawer debugDrawer;
-			debugDrawer.Init(pipeline->GetStorageTarget(), 0, 0, 1, 1);
+			debugDrawer.Init(pipeline->GetStorageTarget()->GetFrameBuffer(), 0, 0, 1, 1);
 			m_RaytracePipelineInfos.push_back({ pipeline, std::move(debugDrawer) });
 		}
 		return true;

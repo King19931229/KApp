@@ -1,5 +1,7 @@
 #pragma once
 #include "Interface/IKTexture.h"
+#include "KBase/Interface/Entity/IKEntity.h"
+#include "Internal/Object/KDebugDrawer.h"
 
 struct KVirtualTexturePhysicalLocation
 {
@@ -57,6 +59,12 @@ namespace std
 struct KVirtualTextureTileNode;
 typedef std::shared_ptr<KVirtualTextureTileNode> KVirtualTextureTileNodePtr;
 
+struct KVirtualTextureTileLocation
+{
+	KVirtualTexturePhysicalLocation physicalLocation;
+	uint32_t mip = 0;
+};
+
 struct KVirtualTextureTileNode
 {
 	uint32_t sx = 0;
@@ -69,7 +77,7 @@ struct KVirtualTextureTileNode
 
 	KVirtualTextureTileNode(uint32_t startX, uint32_t startY, uint32_t endX, uint32_t endY, uint32_t mipLevel);
 	~KVirtualTextureTileNode();
-	KVirtualTexturePhysicalLocation GetTile(uint32_t x, uint32_t y, uint32_t mipLevel);
+	KVirtualTextureTileLocation GetTile(uint32_t x, uint32_t y, uint32_t mipLevel);
 	KVirtualTextureTileNode* GetNode(uint32_t x, uint32_t y, uint32_t mipLevel);
 };
 
@@ -81,12 +89,10 @@ protected:
 	KVirtualTextureTileNode* m_RootNode = nullptr;
 	uint32_t m_TileNum = 0;
 
-	IKRenderTargetPtr m_FeedbackTarget;
-	IKRenderTargetPtr m_FeedbackDepth;
-	IKRenderPassPtr m_FeedbackPass;
-
 	IKTexturePtr m_TableTexture;
 	std::vector<uint32_t> m_TableInfo;
+
+	KRTDebugDrawer m_TableDebugDrawer;
 public:
 	KVirtualTexture();
 	~KVirtualTexture();
@@ -94,7 +100,7 @@ public:
 	bool Init(const std::string& path, uint32_t tileNum);
 	bool UnInit();
 
-	void Resize(uint32_t width, uint32_t height);
+	bool FeedbackRender(IKCommandBufferPtr primaryBuffer, IKRenderPassPtr renderPass, const std::vector<IKEntity*>& cullRes);
 
 	IKTexturePtr GetTableTexture() { return m_TableTexture; }
 };

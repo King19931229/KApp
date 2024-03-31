@@ -18,9 +18,9 @@ KVirtualTextureTileNode::~KVirtualTextureTileNode()
 	}
 }
 
-KVirtualTexturePhysicalLocation KVirtualTextureTileNode::GetTile(uint32_t x, uint32_t y, uint32_t mipLevel)
+KVirtualTextureTileLocation KVirtualTextureTileNode::GetTile(uint32_t x, uint32_t y, uint32_t mipLevel)
 {
-	KVirtualTexturePhysicalLocation location;
+	KVirtualTextureTileLocation location;
 	if (mipLevel < mip)
 	{
 		for (uint32_t i = 0; i < 4; ++i)
@@ -28,7 +28,7 @@ KVirtualTexturePhysicalLocation KVirtualTextureTileNode::GetTile(uint32_t x, uin
 			if (children[i])
 			{
 				location = children[i]->GetTile(x, y, mip);
-				if (location.IsValid())
+				if (location.physicalLocation.IsValid())
 				{
 					return location;
 				}
@@ -37,7 +37,8 @@ KVirtualTexturePhysicalLocation KVirtualTextureTileNode::GetTile(uint32_t x, uin
 	}
 	if (x >= sx && x < ex && y >= sy && y < ey)
 	{
-		location = physicalLocation;
+		location.mip = mip;
+		location.physicalLocation = physicalLocation;
 	}
 	return location;
 }
@@ -79,33 +80,6 @@ KVirtualTexture::KVirtualTexture()
 KVirtualTexture::~KVirtualTexture()
 {}
 
-void KVirtualTexture::Resize(uint32_t width, uint32_t height)
-{
-	if (!m_FeedbackTarget)
-	{
-		KRenderGlobal::RenderDevice->CreateRenderTarget(m_FeedbackTarget);
-	}
-	if (!m_FeedbackDepth)
-	{
-		KRenderGlobal::RenderDevice->CreateRenderTarget(m_FeedbackDepth);
-	}
-	if (!m_FeedbackPass)
-	{
-		KRenderGlobal::RenderDevice->CreateRenderPass(m_FeedbackPass);
-	}
-
-	m_FeedbackTarget->UnInit();
-	m_FeedbackDepth->UnInit();
-	m_FeedbackPass->UnInit();
-
-	m_FeedbackTarget->InitFromColor(width, height, 1, 1, EF_R8G8B8A8_UNORM);
-	m_FeedbackDepth->InitFromDepthStencil(width, height, 1, false);
-
-	m_FeedbackPass->SetColorAttachment(0, m_FeedbackTarget->GetFrameBuffer());
-	m_FeedbackPass->SetDepthStencilAttachment(m_FeedbackDepth->GetFrameBuffer());
-	m_FeedbackPass->Init();
-}
-
 bool KVirtualTexture::Init(const std::string& path, uint32_t tileNum)
 {
 	UnInit();
@@ -124,6 +98,8 @@ bool KVirtualTexture::Init(const std::string& path, uint32_t tileNum)
 
 	m_RootNode = new KVirtualTextureTileNode(0, 0, tileSize * tileNum, tileSize * tileNum, mipLevel);
 
+	m_TableDebugDrawer.Init(m_TableTexture->GetFrameBuffer(), 0, 0, 1, 1);
+
 	return true;
 }
 
@@ -132,10 +108,92 @@ bool KVirtualTexture::UnInit()
 	SAFE_DELETE(m_RootNode);
 	SAFE_UNINIT(m_TableTexture);
 
-	SAFE_UNINIT(m_FeedbackTarget);
-	SAFE_UNINIT(m_FeedbackDepth);
-	SAFE_UNINIT(m_FeedbackPass);
-
 	m_TableInfo.clear();
+
+	m_TableDebugDrawer.UnInit();
+
+	return true;
+}
+
+bool KVirtualTexture::FeedbackRender(IKCommandBufferPtr primaryBuffer, IKRenderPassPtr renderPass, const std::vector<IKEntity*>& cullRes)
+{
+	std::vector<KMaterialSubMeshInstance> subMeshInstances;
+	KRenderUtil::CalculateInstancesByVirtualTexture(cullRes, m_TableTexture, subMeshInstances);
+
+	for (KMaterialSubMeshInstance& subMeshInstance : subMeshInstances)
+	{
+		const std::vector<KVertexDefinition::INSTANCE_DATA_MATRIX4F>& instances = subMeshInstance.instanceData;
+		ASSERT_RESULT(!instances.empty());
+
+		if (instances.size() > 1)
+		{
+			KRenderCommand command;
+			if (subMeshInstance.materialSubMesh->GetRenderCommand(RENDER_STAGE_VIRTUAL_TEXTURE_FEEDBACK_INSTANCE, command))
+			{
+				if (!KRenderUtil::AssignShadingParameter(command, subMeshInstance.materialSubMesh->GetMaterial()))
+				{
+					continue;
+				}
+
+				std::vector<KInstanceBufferManager::AllocResultBlock> allocRes;
+				ASSERT_RESULT(KRenderGlobal::InstanceBufferManager.GetVertexSize() == sizeof(instances[0]));
+				ASSERT_RESULT(KRenderGlobal::InstanceBufferManager.Alloc(instances.size(), instances.data(), allocRes));
+
+				command.instanceDraw = true;
+				command.instanceUsages.resize(allocRes.size());
+				for (size_t i = 0; i < allocRes.size(); ++i)
+				{
+					KInstanceBufferUsage& usage = command.instanceUsages[i];
+					KInstanceBufferManager::AllocResultBlock& allocResult = allocRes[i];
+					usage.buffer = allocResult.buffer;
+					usage.start = allocResult.start;
+					usage.count = allocResult.count;
+					usage.offset = allocResult.offset;
+				}
+
+				command.pipeline->GetHandle(renderPass, command.pipelineHandle);
+
+				if (command.Complete())
+				{
+					primaryBuffer->Render(command);
+				}
+			}
+		}
+		else
+		{
+			for (size_t idx = 0; idx < instances.size(); ++idx)
+			{
+				KRenderCommand command;
+				if (subMeshInstance.materialSubMesh->GetRenderCommand(RENDER_STAGE_VIRTUAL_TEXTURE_FEEDBACK, command))
+				{
+					if (!KRenderUtil::AssignShadingParameter(command, subMeshInstance.materialSubMesh->GetMaterial()))
+					{
+						continue;
+					}
+
+					const KVertexDefinition::INSTANCE_DATA_MATRIX4F& instance = instances[idx];
+
+					KConstantDefinition::OBJECT objectData;
+					objectData.MODEL = glm::transpose(glm::mat4(instance.ROW0, instance.ROW1, instance.ROW2, glm::vec4(0, 0, 0, 1)));
+					objectData.PRVE_MODEL = glm::transpose(glm::mat4(instance.PREV_ROW0, instance.PREV_ROW1, instance.PREV_ROW2, glm::vec4(0, 0, 0, 1)));
+
+					KDynamicConstantBufferUsage objectUsage;
+					objectUsage.binding = SHADER_BINDING_OBJECT;
+					objectUsage.range = sizeof(objectData);
+					KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, objectUsage);
+
+					command.dynamicConstantUsages.push_back(objectUsage);
+
+					command.pipeline->GetHandle(renderPass, command.pipelineHandle);
+
+					if (command.Complete())
+					{
+						primaryBuffer->Render(command);
+					}
+				}
+			}
+		}
+	}
+
 	return true;
 }

@@ -16,6 +16,8 @@ namespace KRenderUtil
 {
 	void CalculateInstancesByMesh(const std::vector<IKEntity*>& entities, std::vector<KMaterialSubMeshInstance>& instances);
 	void CalculateInstancesByMaterial(const std::vector<IKEntity*>& entities, std::vector<KMaterialSubMeshInstance>& instances);
+	void CalculateInstancesByVirtualTexture(const std::vector<IKEntity*>& entities, IKTexturePtr virtualTexture, std::vector<KMaterialSubMeshInstance>& instances);
+
 	void GetInstances(const std::vector<IKEntity*>& entities, std::vector<KMaterialSubMeshInstance>& instances, KMaterialSubMeshInstanceCompareFunction comp);
 
 	bool AssignShadingParameter(KRenderCommand& command, KMaterialRef material);

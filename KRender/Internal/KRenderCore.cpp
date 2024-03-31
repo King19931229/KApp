@@ -192,6 +192,7 @@ bool KRenderCore::InitController()
 			m_Device->Wait();
 			KRenderGlobal::RayTraceManager.ReloadShader();
 			KRenderGlobal::VirtualGeometryManager.ReloadShader();
+			KRenderGlobal::VirtualTextureManager.ReloadShader();
 			KRenderGlobal::GPUScene.ReloadShader();
 			KRenderGlobal::RTAO.ReloadShader();
 			if (KRenderGlobal::UsingGIMethod == KRenderGlobal::CLIPMAP_GI)
@@ -704,4 +705,7 @@ void KRenderCore::DebugCode()
 	shaderMap.GetFSShader(formats, ARRAY_SIZE(formats), nullptr);
 
 	shaderMap.UnInit();
+
+	KVirtualTextureResourceRef virtualTexture;
+	KRenderGlobal::VirtualTextureManager.Acqiure("Textures/StreamingAssets/", 64, virtualTexture);
 }

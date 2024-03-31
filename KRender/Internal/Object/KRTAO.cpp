@@ -249,7 +249,7 @@ bool KRTAO::Init(IKRayTraceScene* scene)
 		}
 	}
 
-	m_DebugDrawer.Init(KRenderGlobal::GBuffer.GetAOTarget(), 0, 0, 1, 1);
+	m_DebugDrawer.Init(KRenderGlobal::GBuffer.GetAOTarget()->GetFrameBuffer(), 0, 0, 1, 1);
 
 	m_CurrentAOIndex = 0;
 

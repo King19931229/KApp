@@ -5,6 +5,7 @@ static uint32_t INDEX_NONE = -1;
 
 uint32_t VERTEX_FORMAT_MACRO_INDEX[VF_COUNT];
 uint32_t MATERIAL_TEXTURE_BINDING_MACRO_INDEX[MAX_MATERIAL_TEXTURE_BINDING];
+uint32_t VIRTUAL_TEXTURE_BINDING_MACRO_INDEX[MAX_MATERIAL_TEXTURE_BINDING];
 
 static bool PERMUTATING_ARRAY_INIT = false;
 
@@ -45,9 +46,14 @@ size_t KShaderMap::CalcHash(const VertexFormat* formats, size_t count, const KTe
 		{
 			if (textureBinding->GetTexture(i))
 			{
-				uint32_t index = MATERIAL_TEXTURE_BINDING_MACRO_INDEX[i];
-				if (index != INDEX_NONE)
+				uint32_t index = 0;
+
+				index = MATERIAL_TEXTURE_BINDING_MACRO_INDEX[i];
+				macrosToEnable[index] = true;
+
+				if (textureBinding->IsVirtual(i))
 				{
+					index = VIRTUAL_TEXTURE_BINDING_MACRO_INDEX[i];
 					macrosToEnable[index] = true;
 				}
 			}
@@ -73,16 +79,21 @@ void KShaderMap::InitializePermuationMap()
 	{
 		memset(VERTEX_FORMAT_MACRO_INDEX, -1, sizeof(VERTEX_FORMAT_MACRO_INDEX));
 		memset(MATERIAL_TEXTURE_BINDING_MACRO_INDEX, -1, sizeof(MATERIAL_TEXTURE_BINDING_MACRO_INDEX));
+		memset(VIRTUAL_TEXTURE_BINDING_MACRO_INDEX, -1, sizeof(VIRTUAL_TEXTURE_BINDING_MACRO_INDEX));
 
 		for (size_t i = 0; i < MACRO_SIZE; ++i)
 		{
-			if (PERMUTATING_MACRO[i].vsFormatMacro)
+			if (PERMUTATING_MACRO[i].type == MT_HAS_VERTEX_INPUT)
 			{
 				VERTEX_FORMAT_MACRO_INDEX[PERMUTATING_MACRO[i].vertexFormat] = (uint32_t)i;
 			}
-			if (PERMUTATING_MACRO[i].fsTextureMacro)
+			if (PERMUTATING_MACRO[i].type == MT_HAS_TEXTURE)
 			{
 				MATERIAL_TEXTURE_BINDING_MACRO_INDEX[PERMUTATING_MACRO[i].textureIndex] = (uint32_t)i;
+			}
+			if (PERMUTATING_MACRO[i].type == MT_HAS_VIRTUAL_TEXTURE)
+			{
+				VIRTUAL_TEXTURE_BINDING_MACRO_INDEX[PERMUTATING_MACRO[i].textureIndex] = (uint32_t)i;
 			}
 		}
 
@@ -137,12 +148,13 @@ void KShaderMap::EnsureMacroMap(const bool* macrosToEnable)
 				pEnableOrDisable = DISBLAE;
 			}
 
-			if (PERMUTATING_MACRO[i].vsFormatMacro)
+			if (PERMUTATING_MACRO[i].type == MT_HAS_VERTEX_INPUT)
 			{
 				vsInstanceMacros.push_back({ PERMUTATING_MACRO[i].macro, pEnableOrDisable });
 				vsNoninstanceMacros.push_back({ PERMUTATING_MACRO[i].macro, pEnableOrDisable });
 				vsGPUSceneMacros.push_back({ PERMUTATING_MACRO[i].macro, pEnableOrDisable });
 			}
+
 			fsMacros.push_back({ PERMUTATING_MACRO[i].macro, pEnableOrDisable });
 			fsGPUSceneMacros.push_back({ PERMUTATING_MACRO[i].macro, pEnableOrDisable });
 		}
