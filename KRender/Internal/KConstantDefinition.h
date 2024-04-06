@@ -97,6 +97,12 @@ namespace KConstantDefinition
 		glm::vec4 SUN_LIGHT_DIRECTION_AND_PBR_MAX_REFLECTION_LOD;
 	};
 
+	struct VIRTUAL_FEEDBACK
+	{
+		glm::uvec4 MISCS;
+		glm::uvec4 MISCS2;
+	};
+
 	struct ConstantSemanticDetail
 	{
 		ConstantSemantic semantic;

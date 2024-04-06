@@ -177,6 +177,47 @@ uniform Shading_DYN_UNIFORM
 
 #endif // GPU_SCENE
 
+#ifdef VIRTUAL_TEXTURE_FEEDBACK_PASS
+
+layout(binding = BINDING_VIRTUAL_TEXTURE_FEEDBACK)
+uniform VirtualTextureFeedback_DYN_UNIFORM
+{
+	uvec4 miscs;
+	uvec4 miscs2;
+} virtual;
+
+void WriteVirtualFeedback(vec2 texCoord, uint binding)
+{
+	uint virtualTargetBinding = virtual.miscs.x;
+	if (virtualTargetBinding == binding)
+	{
+		uint virtualID = virtual.miscs.y;
+		vec2 tableSize = vec2(virtual.miscs.zw);
+
+		uint mipBias = virtual.miscs2.x;
+		uint maxMip = virtual.miscs2.y;
+		vec2 textureSize = vec2(virtual.miscs2.zw);
+
+		vec2 page = floor(texCoord * tableSize);
+
+		vec2 uv = texCoord * textureSize;
+		vec2 dx = dFdx(uv);
+		vec2 dy = dFdy(uv);
+		uint mip = clamp(uint(0.5 * log2(max(dot(dx, dx), dot(dy, dy))) + 0.5 + mipBias), 0, maxMip);
+
+		// FeedbackRT = vec4(mip / maxMip);
+		FeedbackRT = vec4(page / 255.0, mip / 255.0, virtualID / 255.0);
+	}
+}
+
+#else
+
+void WriteVirtualFeedback(vec2 uv, uint binding)
+{
+}
+
+#endif // VIRTUAL_TEXTURE_FEEDBACK_PASS
+
 #define MANUAL_SRGB 0
 #define SRGB_FAST_APPROXIMATION 1
 
@@ -280,9 +321,14 @@ MaterialPixelParameters ComputeMaterialPixelParameters(
 
 	vec4 diffuse = vec4(0.0);
 #if HAS_MATERIAL_TEXTURE0
+#if HAS_VIRTUAL_MATERIAL_TEXTURE0
+	WriteVirtualFeedback(texCoord, 0);
+#else
 	diffuse = SRGBtoLINEAR(SampleDiffuse(texCoord));
 	parameters.baseColor = diffuse.rgb * shading.baseColorFactor.rgb;
 	parameters.opacity = diffuse.a * shading.baseColorFactor.a;
+#endif
+
 #else
 	parameters.baseColor = shading.baseColorFactor.rgb;
 	parameters.opacity = 1.0;

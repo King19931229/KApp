@@ -91,7 +91,7 @@ namespace KRenderUtil
 		}
 	}
 
-	void CalculateInstancesByVirtualTexture(const std::vector<IKEntity*>& entities, IKTexturePtr virtualTexture, std::vector<KMaterialSubMeshInstance>& instances)
+	void CalculateInstancesByVirtualTexture(const std::vector<IKEntity*>& entities, uint32_t targetBinding, IKTexturePtr virtualTexture, std::vector<KMaterialSubMeshInstance>& instances)
 	{
 		for (IKEntity* entity : entities)
 		{
@@ -104,15 +104,13 @@ namespace KRenderUtil
 				{
 					KMaterialRef material = materialSubMeshes[i]->GetMaterial();
 					IKMaterialTextureBindingPtr textureBinding = material->GetTextureBinding();
-					for (uint8_t slot = 0; slot < textureBinding->GetNumSlot(); ++slot)
+
+					if (textureBinding->GetIsVirtualTexture(targetBinding) && textureBinding->GetTexture(targetBinding) == virtualTexture)
 					{
-						if (textureBinding->GetIsVirtualTexture(slot) && textureBinding->GetTexture(slot) == virtualTexture)
-						{
-							const KConstantDefinition::OBJECT& finalTransform = transform->FinalTransform();
-							glm::mat4 curTransform = glm::transpose(finalTransform.MODEL);
-							glm::mat4 prevTransform = glm::transpose(finalTransform.PRVE_MODEL);
-							instances.push_back({ materialSubMeshes[i], {KVertexDefinition::INSTANCE_DATA_MATRIX4F(curTransform[0], curTransform[1], curTransform[2], prevTransform[0], prevTransform[1], prevTransform[2])} });
-						}
+						const KConstantDefinition::OBJECT& finalTransform = transform->FinalTransform();
+						glm::mat4 curTransform = glm::transpose(finalTransform.MODEL);
+						glm::mat4 prevTransform = glm::transpose(finalTransform.PRVE_MODEL);
+						instances.push_back({ materialSubMeshes[i], {KVertexDefinition::INSTANCE_DATA_MATRIX4F(curTransform[0], curTransform[1], curTransform[2], prevTransform[0], prevTransform[1], prevTransform[2])} });
 					}
 				}
 			}
@@ -191,34 +189,26 @@ namespace KRenderUtil
 		return false;
 	}
 
-	bool AssignMeshStorageParameter(KRenderCommand& command)
+	bool AssignVirtualFeedbackParameter(KRenderCommand& command, uint32_t targetBinding, KVirtualTexture* virtualTexture)
 	{
-		KStorageBufferUsage usage;
+		KConstantDefinition::VIRTUAL_FEEDBACK feedbackData;
 
-		for (size_t i = 0; i < command.vertexData->vertexFormats.size(); ++i)
-		{
-			VertexFormat format = command.vertexData->vertexFormats[i];
-			IKVertexBufferPtr buffer = command.vertexData->vertexBuffers[i];
+		feedbackData.MISCS[0] = targetBinding;
+		feedbackData.MISCS[1] = virtualTexture->GetVirtualID();
+		feedbackData.MISCS[2] = (uint32_t)virtualTexture->GetTableTexture()->GetWidth();
+		feedbackData.MISCS[3] = (uint32_t)virtualTexture->GetTableTexture()->GetHeight();
 
-			uint32_t binding = SBT_POINT_NORMAL_UV + format;
+		feedbackData.MISCS2[0] = 0;
+		feedbackData.MISCS2[1] = (uint32_t)virtualTexture->GetTableTexture()->GetMipmaps();
+		feedbackData.MISCS2[2] = feedbackData.MISCS[2] * KRenderGlobal::VirtualTextureManager.GetTileSize();
+		feedbackData.MISCS2[3] = feedbackData.MISCS[3] * KRenderGlobal::VirtualTextureManager.GetTileSize();
 
-			if (format < VF_SCENE_COUNT)
-			{
-				usage.binding = binding;
-				usage.buffer = buffer;
-				command.meshStorageUsages.push_back(usage);
-			}
-		}
-		
-		/*
-		usage.binding = SBT_MESHLET_DESC;
-		usage.buffer = command.meshData->meshletDescBuffer;
-		command.meshStorageUsages.push_back(usage);
+		KDynamicConstantBufferUsage virtualUsage;
+		virtualUsage.binding = SHADER_BINDING_VIRTUAL_TEXTURE_FEEDBACK;
+		virtualUsage.range = sizeof(feedbackData);
+		KRenderGlobal::DynamicConstantBufferManager.Alloc(&feedbackData, virtualUsage);
 
-		usage.binding = SBT_MESHLET_PRIM;
-		usage.buffer = command.meshData->meshletPrimBuffer;
-		command.meshStorageUsages.push_back(usage);
-		*/
+		command.dynamicConstantUsages.push_back(virtualUsage);
 
 		return true;
 	}

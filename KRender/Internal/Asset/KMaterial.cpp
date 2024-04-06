@@ -174,6 +174,7 @@ KTextureBinding KMaterial::ConvertToTextureBinding(const IKMaterialTextureBindin
 	{
 		IKTexturePtr texture = mtlTextureBinding->GetTexture(i);
 		textureBinding.AssignTexture(i, texture);
+		textureBinding.SetIsVirtual(i, mtlTextureBinding->GetIsVirtualTexture(i));
 	}
 	return textureBinding;
 }

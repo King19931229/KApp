@@ -4,19 +4,26 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <map>
+#include <queue>
 
 struct KVirtualTexturePhysicalTile
 {
 	KVirtualTexturePhysicalLocation physicalLocation;
 	KVirtualTexturePhysicalTile* prev = nullptr;
 	KVirtualTexturePhysicalTile* next = nullptr;
+	void* userPtr = nullptr;
 	uint32_t refCount;
+};
+
+struct KVirtualTexturePhysicalUpdate
+{
+	std::string sourceTexture;
+	KVirtualTexturePhysicalLocation location;
 };
 
 class KVirtualTextureManager
 {
 protected:
-	std::unordered_map<KVirtualTexturePhysicalLocation, KVirtualTexturePhysicalTile*> m_LocationToTile;
 	std::unordered_set<KVirtualTexturePhysicalTile*> m_UsedTiles;
 	std::vector<KVirtualTexturePhysicalTile> m_PhysicalTiles;
 
@@ -33,13 +40,25 @@ protected:
 
 	KVirtualTexturePhysicalTile* m_FreeTileHead;
 	KVirtualTexturePhysicalTile* m_UsedTileHead;
-	IKTexturePtr m_PhysicalTexture;
 
-	IKRenderTargetPtr m_FeedbackTarget;
-	IKRenderTargetPtr m_FeedbackDepth;
-	IKRenderPassPtr m_FeedbackPass;
+	std::vector<IKRenderTargetPtr> m_FeedbackTargets;
+	std::vector<IKRenderTargetPtr> m_FeedbackDepths;
+	std::vector<IKRenderTargetPtr> m_ResultReadbackTargets;
+	std::vector<IKRenderPassPtr> m_FeedbackPasses;
+	std::vector<std::vector<KTextureRef>> m_PendingSourceTextures;
+
+	IKRenderTargetPtr m_PhysicalContentTarget;
+	std::vector<IKRenderPassPtr> m_UploadContentPasses;
+	std::vector<std::vector<KVirtualTexturePhysicalUpdate>> m_PendingContentUpdate;
+
+	KShaderRef m_QuadVS;
+	KShaderRef m_UploadFS;
+	KSamplerRef m_Sampler;
+
+	IKPipelinePtr m_UploadContentPipeline;
 
 	KRTDebugDrawer m_FeedbackDebugDrawer;
+	KRTDebugDrawer m_PhysicalDebugDrawer;
 
 	uint32_t m_TileSize;
 	uint32_t m_TileDimension;
@@ -52,9 +71,19 @@ protected:
 	uint32_t m_Width = 0;
 	uint32_t m_Height = 0;
 
+	uint32_t m_CurrentTargetBinding = 0;
+
+	uint32_t m_VirtualIDCounter = 0;
+	std::queue<uint32_t> m_RecyledVirtualIDs;
+
 	void RemoveTileFromList(KVirtualTexturePhysicalTile* tile, KVirtualTexturePhysicalTile*& head);
 	void AddTileToList(KVirtualTexturePhysicalTile* tile, KVirtualTexturePhysicalTile* &head);
 	void LRUSortTile();
+
+	uint32_t AcquireVirtualID();
+	void RecyleVirtualID(uint32_t ID);
+
+	void HandleFeedbackResult();
 public:
 	KVirtualTextureManager();
 	~KVirtualTextureManager();
@@ -69,14 +98,20 @@ public:
 
 	void Resize(uint32_t width, uint32_t height);
 
-	KVirtualTexturePhysicalLocation RequestPhysical();
-	bool ReturnPhysical(KVirtualTexturePhysicalLocation location);
+	KVirtualTexturePhysicalTile* RequestPhysical();
+	bool ReturnPhysical(KVirtualTexturePhysicalTile* tile);
+
+	void UploadToPhysical(const std::string& sourceTexture, KVirtualTexturePhysicalLocation location);
 
 	bool EnableFeedbackDebugDraw();
 	bool DisableFeedbackDebugDraw();
 	bool& GetFeedbackDebugDrawEnable() { return m_FeedbackDebugDrawer.GetEnable(); }
-
 	bool FeedbackDebugRender(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer);
+
+	bool EnablePhysicalDebugDraw();
+	bool DisablePhysicalDebugDraw();
+	bool& GetPhysicalDrawEnable() { return m_PhysicalDebugDrawer.GetEnable(); }
+	bool PhysicalDebugRender(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer);
 
 	uint32_t GetTileSize() const { return m_TileSize; }
 	uint32_t GetTileDimension() const { return m_TileDimension; }

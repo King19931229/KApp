@@ -311,6 +311,7 @@ void KRenderImGui::Run()
 		if (m_SettingMenuEnable[VIRTUAL_TEXTURE])
 		{
 			ImGui::Checkbox("FeedbackDebug", &KRenderGlobal::VirtualTextureManager.GetFeedbackDebugDrawEnable());
+			ImGui::Checkbox("PhysicalDraw", &KRenderGlobal::VirtualTextureManager.GetPhysicalDrawEnable());
 		}
 	}
 	ImGui::PopStyleColor(1);

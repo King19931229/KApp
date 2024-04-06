@@ -128,19 +128,6 @@ public:
 			m_IsVirtual[i] = false;
 		}
 	}
-
-	void Init(IKMaterialTextureBinding* mtlTexBinding)
-	{
-		Empty();
-		if (mtlTexBinding)
-		{
-			for (uint8_t i = 0; i < mtlTexBinding->GetNumSlot(); ++i)
-			{
-				AssignTexture(i, mtlTexBinding->GetTexture(i));
-				SetIsVirtual(i, mtlTexBinding->GetIsVirtualTexture(i));
-			}
-		}
-	}
 };
 
 struct KShaderMapInitContext

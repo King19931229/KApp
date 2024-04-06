@@ -23,6 +23,7 @@ KVulkanFrameBuffer::KVulkanFrameBuffer()
 	m_Mipmaps(0),
 	m_MSAA(1),
 	m_Layers(1),
+	m_Tiling(VK_IMAGE_TILING_MAX_ENUM),
 	m_UniqueID(0),
 	m_External(true)
 {
@@ -64,6 +65,7 @@ bool KVulkanFrameBuffer::InitExternal(ExternalType type, VkImage image, VkImageV
 	m_ImageType = imageType;
 	m_ImageViewType = imageViewType;
 	m_Layers = 1;
+	m_Tiling = VK_IMAGE_TILING_OPTIMAL;
 
 	m_ImageLayout = (type == ET_SWAPCHAIN) ? VK_IMAGE_LAYOUT_PRESENT_SRC_KHR : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
@@ -79,7 +81,7 @@ bool KVulkanFrameBuffer::InitExternal(ExternalType type, VkImage image, VkImageV
 			m_MSAAFlag,
 			m_ImageType,
 			m_Format,
-			VK_IMAGE_TILING_OPTIMAL,
+			m_Tiling,
 			VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 			createFlags,
@@ -117,6 +119,8 @@ bool KVulkanFrameBuffer::InitColor(VkFormat format, TextureType textureType, uin
 		}
 	}
 
+	m_Tiling = VK_IMAGE_TILING_OPTIMAL;
+
 	m_ImageType = VK_IMAGE_TYPE_MAX_ENUM;
 	m_ImageViewType = VK_IMAGE_VIEW_TYPE_MAX_ENUM;
 	m_Layers = textureType == TT_TEXTURE_CUBE_MAP ? 6 : 1;
@@ -135,7 +139,7 @@ bool KVulkanFrameBuffer::InitColor(VkFormat format, TextureType textureType, uin
 			VK_SAMPLE_COUNT_1_BIT,
 			m_ImageType,
 			m_Format,
-			VK_IMAGE_TILING_OPTIMAL,
+			m_Tiling,
 			VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_STORAGE_BIT,
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 			createFlags,
@@ -155,7 +159,7 @@ bool KVulkanFrameBuffer::InitColor(VkFormat format, TextureType textureType, uin
 			m_MSAAFlag,
 			m_ImageType,
 			m_Format,
-			VK_IMAGE_TILING_OPTIMAL,
+			m_Tiling,
 			VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 			createFlags,
@@ -188,6 +192,8 @@ bool KVulkanFrameBuffer::InitDepthStencil(uint32_t width, uint32_t height, uint3
 	m_ImageViewType = VK_IMAGE_VIEW_TYPE_2D;
 	m_Layers = 1;
 
+	m_Tiling = VK_IMAGE_TILING_OPTIMAL;
+
 	m_ImageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
 	if (msaa > 1)
@@ -208,7 +214,7 @@ bool KVulkanFrameBuffer::InitDepthStencil(uint32_t width, uint32_t height, uint3
 		m_MSAAFlag,
 		m_ImageType,
 		m_Format,
-		VK_IMAGE_TILING_OPTIMAL,
+		m_Tiling,
 		VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
 		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 		0,
@@ -238,6 +244,8 @@ bool KVulkanFrameBuffer::InitStorageInternal(VkFormat format, TextureType type, 
 	m_MSAAFlag = VK_SAMPLE_COUNT_1_BIT;
 	m_Layers = 1;
 
+	m_Tiling = VK_IMAGE_TILING_OPTIMAL;
+
 	VkImageCreateFlags createFlags = VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT;
 
 	m_ImageType = VK_IMAGE_TYPE_MAX_ENUM;
@@ -256,7 +264,7 @@ bool KVulkanFrameBuffer::InitStorageInternal(VkFormat format, TextureType type, 
 			VK_SAMPLE_COUNT_1_BIT,
 			m_ImageType,
 			m_Format,
-			VK_IMAGE_TILING_OPTIMAL,
+			m_Tiling,
 			VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 			createFlags,
@@ -288,6 +296,8 @@ bool KVulkanFrameBuffer::InitReadback(VkFormat format, uint32_t width, uint32_t 
 	m_MSAAFlag = VK_SAMPLE_COUNT_1_BIT;
 	m_Layers = 1;
 
+	m_Tiling = VK_IMAGE_TILING_LINEAR;
+
 	VkImageCreateFlags createFlags = VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT;
 
 	m_ImageType = VK_IMAGE_TYPE_MAX_ENUM;
@@ -306,7 +316,7 @@ bool KVulkanFrameBuffer::InitReadback(VkFormat format, uint32_t width, uint32_t 
 			VK_SAMPLE_COUNT_1_BIT,
 			m_ImageType,
 			m_Format,
-			VK_IMAGE_TILING_LINEAR,
+			m_Tiling,
 			VK_IMAGE_USAGE_TRANSFER_DST_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 			createFlags,
@@ -326,16 +336,21 @@ bool KVulkanFrameBuffer::InitReadback(VkFormat format, uint32_t width, uint32_t 
 
 bool KVulkanFrameBuffer::SupportBlit() const
 {
-	bool supportsBlit = true;
 	// Check blit support for source and destination
 	VkFormatProperties formatProps;
 	// Check if the device supports blitting from optimal images
 	vkGetPhysicalDeviceFormatProperties(KVulkanGlobal::physicalDevice, m_Format, &formatProps);
-	if (!(formatProps.optimalTilingFeatures & VK_FORMAT_FEATURE_BLIT_SRC_BIT))
+	uint32_t testBits = 0;
+	testBits = VK_FORMAT_FEATURE_BLIT_SRC_BIT | VK_FORMAT_FEATURE_BLIT_DST_BIT;
+	if (m_Tiling == VK_IMAGE_TILING_OPTIMAL)
 	{
-		supportsBlit = false;
+		return (formatProps.optimalTilingFeatures & testBits) == testBits;
 	}
-	return supportsBlit;
+	if (m_Tiling == VK_IMAGE_TILING_LINEAR)
+	{
+		return (formatProps.linearTilingFeatures & testBits) == testBits;
+	}
+	return false;
 }
 
 bool KVulkanFrameBuffer::CopyToReadback(IKFrameBuffer* framebuffer)
@@ -370,6 +385,7 @@ bool KVulkanFrameBuffer::CopyToReadback(IKFrameBuffer* framebuffer)
 			blitInfo.srcArrayIndex = 0;
 			blitInfo.dstMipLevel = 0;
 			blitInfo.dstArrayIndex = 0;
+			blitInfo.linear = false;
 
 			KVulkanInitializer::BlitVkImageToVkImage(src->m_Image, dest->m_Image, blitInfo);
 		}

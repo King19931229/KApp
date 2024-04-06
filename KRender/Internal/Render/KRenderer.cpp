@@ -439,6 +439,8 @@ bool KRenderer::Init(const KRendererInitContext& initContext)
 		KRenderGlobal::RayTraceManager.DebugRender(renderPass, primaryBuffer);
 
 		KRenderGlobal::VirtualTextureManager.FeedbackDebugRender(renderPass, primaryBuffer);
+		KRenderGlobal::VirtualTextureManager.PhysicalDebugRender(renderPass, primaryBuffer);
+
 		KRenderGlobal::RTAO.DebugRender(renderPass, primaryBuffer);
 		KRenderGlobal::HiZOcclusion.DebugRender(renderPass, primaryBuffer);
 		KRenderGlobal::ScreenSpaceReflection.DebugRender(renderPass, primaryBuffer);

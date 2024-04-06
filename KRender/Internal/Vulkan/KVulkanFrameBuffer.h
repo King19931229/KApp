@@ -30,6 +30,8 @@ protected:
 	uint32_t m_MSAA;
 	uint32_t m_Layers;
 
+	VkImageTiling m_Tiling;
+
 	static uint32_t ms_UniqueIDCounter;
 	uint32_t m_UniqueID;
 
