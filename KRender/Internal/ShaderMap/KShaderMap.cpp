@@ -7,6 +7,10 @@ uint32_t VERTEX_FORMAT_MACRO_INDEX[VF_COUNT];
 uint32_t MATERIAL_TEXTURE_BINDING_MACRO_INDEX[MAX_MATERIAL_TEXTURE_BINDING];
 uint32_t VIRTUAL_TEXTURE_BINDING_MACRO_INDEX[MAX_MATERIAL_TEXTURE_BINDING];
 
+static constexpr char* INSTANCE_INPUT_MACRO = "INSTANCE_INPUT";
+static constexpr char* GPUSCENE_INPUT_MACRO = "GPU_SCENE";
+static constexpr char* VIRTUAL_TEXTURE_INPUT_MACRO = "VIRTUAL_TEXTURE_INPUT";
+
 static bool PERMUTATING_ARRAY_INIT = false;
 
 size_t KShaderMap::GenHash(const bool* macrosToEnable)
@@ -133,6 +137,8 @@ void KShaderMap::EnsureMacroMap(const bool* macrosToEnable)
 		vsInstanceMacros.reserve(MACRO_SIZE);
 		vsGPUSceneMacros.reserve(MACRO_SIZE);
 
+		bool hasVirtualTexture = false;
+
 		for (size_t i = 0; i < MACRO_SIZE; ++i)
 		{
 			static constexpr char* ENABLE = "1";
@@ -154,10 +160,17 @@ void KShaderMap::EnsureMacroMap(const bool* macrosToEnable)
 				vsNoninstanceMacros.push_back({ PERMUTATING_MACRO[i].macro, pEnableOrDisable });
 				vsGPUSceneMacros.push_back({ PERMUTATING_MACRO[i].macro, pEnableOrDisable });
 			}
+			else
+			{
+				fsMacros.push_back({ PERMUTATING_MACRO[i].macro, pEnableOrDisable });
+				fsGPUSceneMacros.push_back({ PERMUTATING_MACRO[i].macro, pEnableOrDisable });
+			}
 
-			fsMacros.push_back({ PERMUTATING_MACRO[i].macro, pEnableOrDisable });
-			fsGPUSceneMacros.push_back({ PERMUTATING_MACRO[i].macro, pEnableOrDisable });
+			hasVirtualTexture |= (PERMUTATING_MACRO[i].type == MT_HAS_VIRTUAL_TEXTURE);
 		}
+
+		fsMacros.push_back({ VIRTUAL_TEXTURE_INPUT_MACRO, hasVirtualTexture ? "1" : "0" });
+		fsGPUSceneMacros.push_back({ VIRTUAL_TEXTURE_INPUT_MACRO, hasVirtualTexture ? "1" : "0" });
 
 		vsNoninstanceMacros.push_back({ INSTANCE_INPUT_MACRO, "0" });
 		vsInstanceMacros.push_back({ INSTANCE_INPUT_MACRO, "1" });

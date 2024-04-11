@@ -130,7 +130,36 @@ bool KVirtualTexture::Init(const std::string& path, uint32_t tileNum, uint32_t v
 
 	m_RootNode = new KVirtualTextureTileNode(0, 0, tileNum, tileNum, m_MaxMipLevel);
 
-	m_TableDebugDrawer.Init(m_TableTexture->GetFrameBuffer(), 0, 0, 1, 1);
+	m_TableUpdateStorages.resize(KRenderGlobal::NumFramesInFlight);
+	m_TableUpdateComputePipelines.resize(KRenderGlobal::NumFramesInFlight);
+
+	for (size_t i = 0; i < m_TableUpdateComputePipelines.size(); ++i)
+	{
+		KRenderGlobal::RenderDevice->CreateStorageBuffer(m_TableUpdateStorages[i]);
+		m_TableUpdateStorages[i]->SetDebugName(std::string("VirtualTextureTableUpdateStorage_" + m_Path + "_" + std::to_string(i)).c_str());
+
+		KRenderGlobal::RenderDevice->CreateComputePipeline(m_TableUpdateComputePipelines[i]);
+
+		m_TableUpdateComputePipelines[i]->BindStorageBuffer(BINDING_UPLOAD_INFO, m_TableUpdateStorages[i], COMPUTE_RESOURCE_IN, true);
+		m_TableUpdateComputePipelines[i]->BindDynamicUniformBuffer(BINDING_OBJECT);
+		m_TableUpdateComputePipelines[i]->BindStorageImage(BINDING_TABLE_IMAGE, m_TableTexture->GetFrameBuffer(), m_TableTexture->GetTextureFormat(), COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, 0, true);
+
+		KShaderCompileEnvironment env;
+
+#define ENUM_TO_STR(x) #x
+#define ADD_MACRO(SEMANTIC) env.macros.push_back(std::make_tuple(ENUM_TO_STR(##SEMANTIC), std::to_string(##SEMANTIC)));
+		ADD_MACRO(BINDING_UPLOAD_INFO);
+		ADD_MACRO(BINDING_OBJECT);
+		ADD_MACRO(BINDING_TABLE_IMAGE);
+		ADD_MACRO(UPLOAD_GROUP_SIZE);
+#undef ADD_MACRO
+#undef ENUM_TO_STR
+		 
+		m_TableUpdateComputePipelines[i]->Init("virtualtexture/table_upload.comp", env);
+	}
+
+	m_TableDebugDrawer.Init(m_TableTexture->GetFrameBuffer(), 0.5f, 0.5f, 0.5f, 0.5f, false);
+	m_TableDebugDrawer.EnableDraw();
 
 	return true;
 }
@@ -145,8 +174,12 @@ bool KVirtualTexture::UnInit()
 	SAFE_DELETE(m_RootNode);
 	SAFE_UNINIT(m_TableTexture);
 
+	SAFE_UNINIT_CONTAINER(m_TableUpdateStorages);
+	SAFE_UNINIT_CONTAINER(m_TableUpdateComputePipelines);
+
 	m_HashedTileRequests.clear();
 	m_TableInfo.clear();
+	m_PendingTableUpdates.clear();
 
 	m_TableDebugDrawer.UnInit();
 
@@ -244,6 +277,46 @@ bool KVirtualTexture::FeedbackRender(IKCommandBufferPtr primaryBuffer, IKRenderP
 	return true;
 }
 
+bool KVirtualTexture::UpdateTableTexture(IKCommandBufferPtr primaryBuffer)
+{
+	uint32_t frameIndex = KRenderGlobal::CurrentInFlightFrameIndex;
+	m_TableUpdateStorages[frameIndex]->UnInit();
+
+	if (m_PendingTableUpdates.size() > 0)
+	{
+		primaryBuffer->BeginDebugMarker(("VirtualTexture_UpdateTable_" + m_Path).c_str(), glm::vec4(1));
+
+		m_TableUpdateStorages[frameIndex]->InitMemory(m_PendingTableUpdates.size() * sizeof(KVirtualTextureTableUpdate), m_PendingTableUpdates.data());
+		m_TableUpdateStorages[frameIndex]->InitDevice(false, false);
+
+		struct
+		{
+			glm::uvec4 dimension;
+		} uploadUsage;
+		static_assert((sizeof(uploadUsage) % 16) == 0, "Size must be a multiple of 16");
+
+		uploadUsage.dimension[0] = m_TileNum;
+		uploadUsage.dimension[1] = m_TileNum;
+		uploadUsage.dimension[2] = (uint32_t)m_PendingTableUpdates.size();
+
+		KDynamicConstantBufferUsage objectUsage;
+		objectUsage.binding = BINDING_OBJECT;
+		objectUsage.range = sizeof(uploadUsage);
+
+		KRenderGlobal::DynamicConstantBufferManager.Alloc(&uploadUsage, objectUsage);
+
+		primaryBuffer->Transition(m_TableTexture->GetFrameBuffer(), PIPELINE_STAGE_FRAGMENT_SHADER, PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_GENERAL);
+		m_TableUpdateComputePipelines[frameIndex]->Execute(primaryBuffer, (uint32_t)(m_PendingTableUpdates.size() + UPLOAD_GROUP_SIZE - 1) / UPLOAD_GROUP_SIZE, 1, 1, &objectUsage);
+		primaryBuffer->Transition(m_TableTexture->GetFrameBuffer(), PIPELINE_STAGE_COMPUTE_SHADER, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_GENERAL, IMAGE_LAYOUT_SHADER_READ_ONLY);
+
+		primaryBuffer->EndDebugMarker();
+
+		m_PendingTableUpdates.clear();
+	}
+
+	return true;
+}
+
 void KVirtualTexture::BeginRequest()
 {
 	m_HashedTileRequests.clear();
@@ -332,7 +405,12 @@ void KVirtualTexture::EndRequest()
 				KVirtualTexturePhysicalLocation location = physicalTile->physicalLocation;
 				if (location.IsValid())
 				{
-					m_TableInfo[id] = location.x | (location.y << 8) | (location.mip << 16);
+					uint32_t data = location.x | (location.y << 8) | (location.mip << 16) | (node->mip << 24);
+					if (m_TableInfo[id] != data)
+					{
+						m_TableInfo[id] = data;
+						m_PendingTableUpdates.push_back({id, data});
+					}
 				}
 			}
 
@@ -379,4 +457,9 @@ void KVirtualTexture::ProcessPendingUpdate()
 	}
 
 	m_PendingTileUpdates.erase(m_PendingTileUpdates.begin(), m_PendingTileUpdates.begin() + currentIdx);
+}
+
+bool KVirtualTexture::TableDebugRender(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer)
+{
+	return m_TableDebugDrawer.Render(renderPass, primaryBuffer);
 }

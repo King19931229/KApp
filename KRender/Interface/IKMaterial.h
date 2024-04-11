@@ -18,6 +18,8 @@ enum class MaterialValueType
 };
 
 constexpr uint32_t MAX_MATERIAL_TEXTURE_BINDING = 16;
+constexpr uint32_t MAX_VIRTUAL_PHYSICAL_TEXTURE_BINDING = 4;
+constexpr uint32_t MAX_USER_TEXTURE_BINDING = MAX_MATERIAL_TEXTURE_BINDING + MAX_VIRTUAL_PHYSICAL_TEXTURE_BINDING;
 
 struct IKMaterialValue;
 typedef std::shared_ptr<IKMaterialValue> IKMaterialValuePtr;

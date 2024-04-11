@@ -7,6 +7,7 @@ namespace KConstantDefinition
 	static ConstantBufferDetail DYNAMIC_CASCADED_SHADOW_DETAILS;
 	static ConstantBufferDetail STATIC_CASCADED_SHADOW_DETAILS;
 	static ConstantBufferDetail GLOBAL_DETAILS;
+	static ConstantBufferDetail VIRTUAL_TEXTUTRE_DETAILS;
 	static ConstantBufferDetail VOXEL_DETAILS;
 	static ConstantBufferDetail VOXEL_CLIPMAP_DETAILS;
 	static ConstantBufferDetail EMPYT_DETAILS;
@@ -266,6 +267,16 @@ namespace KConstantDefinition
 				GLOBAL_DETAILS.bufferSize = sizeof(GLOBAL);
 			}
 
+			// VIRTUAL_TEXTURE
+			{
+				// DESCRIPTION
+				{
+					ConstantSemanticDetail DETAIL = { CS_VIRTUAL_TEXTURE_DESCRIPTION, EF_R32G32B32A32_FLOAT, 1, MEMBER_SIZE(VIRTUAL_TEXTURE, DESCRIPTION), MEMBER_OFFSET(VIRTUAL_TEXTURE, DESCRIPTION) };
+					VIRTUAL_TEXTUTRE_DETAILS.semanticDetails.push_back(DETAIL);
+				}
+				VIRTUAL_TEXTUTRE_DETAILS.bufferSize = sizeof(VIRTUAL_TEXTURE);
+			}
+
 			CONSTANT_DETAIL_INIT = true;
 		}
 	}
@@ -290,6 +301,8 @@ namespace KConstantDefinition
 			return VOXEL_CLIPMAP_DETAILS;
 		case CBT_GLOBAL:
 			return GLOBAL_DETAILS;
+		case CBT_VIRTUAL_TEXTURE:
+			return VIRTUAL_TEXTUTRE_DETAILS;
 		default:
 			assert(false && "Unknown ConstantBufferType");
 			return EMPYT_DETAILS;

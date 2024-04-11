@@ -218,6 +218,15 @@ void WriteVirtualFeedback(vec2 uv, uint binding)
 
 #endif // VIRTUAL_TEXTURE_FEEDBACK_PASS
 
+#if VIRTUAL_TEXTURE_INPUT
+
+layout(binding = BINDING_TEXTURE16) uniform sampler2D physicalSampler0;
+layout(binding = BINDING_TEXTURE17) uniform sampler2D physicalSampler1;
+layout(binding = BINDING_TEXTURE18) uniform sampler2D physicalSampler2;
+layout(binding = BINDING_TEXTURE19) uniform sampler2D physicalSampler3;
+
+#endif
+
 #define MANUAL_SRGB 0
 #define SRGB_FAST_APPROXIMATION 1
 

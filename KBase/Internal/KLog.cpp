@@ -384,7 +384,7 @@ bool KLogger::LogSuffix(LogLevel level, const char* pszSuffix, const char* pszFo
 	{
 		nPos += requireBufferSize;
 		SNPRINTF(szBuffer + nPos, sizeof(szBuffer) - nPos - 1, " %s", pszSuffix);
-		bRet = Log(level, szBuffer);
+		bRet = Log(level, "%s", szBuffer);
 	}
 
 	va_end(list);
@@ -408,16 +408,17 @@ bool KLogger::LogPrefixSuffix(LogLevel level, const char* pszPrefix, const char*
 		memcpy(szAllocBuffer, szBuffer, nPos);
 		nPos += VSNPRINTF(szAllocBuffer + nPos, requireBufferSize - nPos + 2048, pszFormat, list);
 		SNPRINTF(szAllocBuffer + nPos, requireBufferSize - nPos + 2048, " %s", pszSuffix);
-		bRet = Log(level, szAllocBuffer);
+		bRet = Log(level, "%s", szAllocBuffer);
 		KDELETE[] szAllocBuffer;
 	}
 	else
 	{
 		nPos += requireBufferSize;
 		SNPRINTF(szBuffer + nPos, sizeof(szBuffer) - nPos - 1, " %s", pszSuffix);
-		bRet = Log(level, szBuffer);
+		// TODO Crash? bRet = Log(level, szBuffer);
+		bRet = Log(level, "%s", szBuffer);
 	}
-	
+
 	va_end(list);
 	return bRet;
 }

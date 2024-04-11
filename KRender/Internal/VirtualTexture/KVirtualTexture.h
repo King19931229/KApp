@@ -99,9 +99,24 @@ struct KVirtualTextureTileRequest
 	uint32_t count = 0;
 };
 
+struct KVirtualTextureTableUpdate
+{
+	uint32_t id = -1;
+	uint32_t data = -1;
+	uint32_t padding[2] = { 0 };
+};
+
 class KVirtualTexture
 {
 protected:
+	enum
+	{
+		BINDING_UPLOAD_INFO = 0,
+		BINDING_OBJECT = 1,
+		BINDING_TABLE_IMAGE = 2,
+		UPLOAD_GROUP_SIZE = 64
+	};
+
 	std::string m_Path;
 	std::string m_Ext;
 	
@@ -112,6 +127,10 @@ protected:
 
 	IKTexturePtr m_TableTexture;
 	std::vector<uint32_t> m_TableInfo;
+	std::vector<KVirtualTextureTableUpdate> m_PendingTableUpdates;
+
+	std::vector<IKStorageBufferPtr> m_TableUpdateStorages;
+	std::vector<IKComputePipelinePtr> m_TableUpdateComputePipelines;
 
 	KSamplerRef m_Sampler;
 
@@ -129,11 +148,15 @@ public:
 	bool UnInit();
 
 	bool FeedbackRender(IKCommandBufferPtr primaryBuffer, IKRenderPassPtr renderPass, uint32_t targetBinding, const std::vector<IKEntity*>& cullRes);
+	bool UpdateTableTexture(IKCommandBufferPtr primaryBuffer);
 
 	void BeginRequest();
 	void AddRequest(const KVirtualTextureTile& tile);
 	void EndRequest();
 	void ProcessPendingUpdate();
+
+	bool& GetPhysicalDrawEnable() { return m_TableDebugDrawer.GetEnable(); }
+	bool TableDebugRender(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer);
 
 	IKTexturePtr GetTableTexture() { return m_TableTexture; }
 	uint32_t GetVirtualID() const { return m_VirtualID; }

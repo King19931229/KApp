@@ -6,9 +6,6 @@
 #include <unordered_set>
 #include <mutex>
 
-static constexpr char* INSTANCE_INPUT_MACRO = "INSTANCE_INPUT";
-static constexpr char* GPUSCENE_INPUT_MACRO = "GPU_SCENE";
-
 enum MacroType
 {
 	MT_HAS_VERTEX_INPUT,

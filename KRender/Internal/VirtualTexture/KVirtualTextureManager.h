@@ -53,7 +53,8 @@ protected:
 
 	KShaderRef m_QuadVS;
 	KShaderRef m_UploadFS;
-	KSamplerRef m_Sampler;
+	KSamplerRef m_PhysicalUpdateSampler;
+	KSamplerRef	m_PhysicalRenderSampler;
 
 	IKPipelinePtr m_UploadContentPipeline;
 
@@ -103,15 +104,16 @@ public:
 
 	void UploadToPhysical(const std::string& sourceTexture, KVirtualTexturePhysicalLocation location);
 
-	bool EnableFeedbackDebugDraw();
-	bool DisableFeedbackDebugDraw();
 	bool& GetFeedbackDebugDrawEnable() { return m_FeedbackDebugDrawer.GetEnable(); }
 	bool FeedbackDebugRender(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer);
 
-	bool EnablePhysicalDebugDraw();
-	bool DisablePhysicalDebugDraw();
 	bool& GetPhysicalDrawEnable() { return m_PhysicalDebugDrawer.GetEnable(); }
 	bool PhysicalDebugRender(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer);
+
+	bool TableDebugRender(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer);
+
+	IKFrameBufferPtr GetPhysicalTextureFramebuffer(uint32_t index);
+	KSamplerRef GetPhysicalTextureSampler(uint32_t index);
 
 	uint32_t GetTileSize() const { return m_TileSize; }
 	uint32_t GetTileDimension() const { return m_TileDimension; }

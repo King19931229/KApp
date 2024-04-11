@@ -91,7 +91,12 @@ bool KVirtualTextureManager::Init(uint32_t tileSize, uint32_t tileDimension, uin
 	KSamplerDescription desc;
 	desc.minFilter = FM_NEAREST;
 	desc.magFilter = FM_NEAREST;
-	KRenderGlobal::SamplerManager.Acquire(desc, m_Sampler);
+	KRenderGlobal::SamplerManager.Acquire(desc, m_PhysicalUpdateSampler);
+
+	desc.minFilter = FM_LINEAR;
+	desc.magFilter = FM_LINEAR;
+	desc.maxMipmap = m_NumMips - 1;
+	KRenderGlobal::SamplerManager.Acquire(desc, m_PhysicalRenderSampler);
 
 	KRenderGlobal::RenderDevice->CreatePipeline(m_UploadContentPipeline);
 	m_UploadContentPipeline->SetVertexBinding(KRenderGlobal::QuadDataProvider.GetVertexFormat(), KRenderGlobal::QuadDataProvider.GetVertexFormatArraySize());
@@ -106,7 +111,7 @@ bool KVirtualTextureManager::Init(uint32_t tileSize, uint32_t tileDimension, uin
 	m_UploadContentPipeline->SetColorWrite(true, true, true, true);
 	m_UploadContentPipeline->SetDepthFunc(CF_LESS_OR_EQUAL, true, true);
 
-	m_UploadContentPipeline->SetSampler(SHADER_BINDING_TEXTURE0, nullptr, *m_Sampler, true);
+	m_UploadContentPipeline->SetSampler(SHADER_BINDING_TEXTURE0, nullptr, *m_PhysicalUpdateSampler, true);
 
 	m_UploadContentPipeline->Init();
 
@@ -154,7 +159,8 @@ bool KVirtualTextureManager::UnInit()
 	m_PendingContentUpdate.clear();
 	m_PendingSourceTextures.clear();
 
-	m_Sampler.Release();
+	m_PhysicalUpdateSampler.Release();
+	m_PhysicalRenderSampler.Release();
 	m_QuadVS.Release();
 	m_UploadFS.Release();
 
@@ -351,7 +357,7 @@ bool KVirtualTextureManager::Update(IKCommandBufferPtr primaryBuffer, const std:
 					viewport.width = m_TileSize + 2 * m_PaddingSize;
 					viewport.height = m_TileSize + 2 * m_PaddingSize;
 
-					m_UploadContentPipeline->SetSampler(SHADER_BINDING_TEXTURE0, texture->GetFrameBuffer(), *m_Sampler, true);
+					m_UploadContentPipeline->SetSampler(SHADER_BINDING_TEXTURE0, texture->GetFrameBuffer(), *m_PhysicalUpdateSampler, true);
 
 					command.pipeline = m_UploadContentPipeline;
 					command.pipeline->GetHandle(m_UploadContentPasses[mip], command.pipelineHandle);
@@ -370,6 +376,14 @@ bool KVirtualTextureManager::Update(IKCommandBufferPtr primaryBuffer, const std:
 
 	primaryBuffer->Transition(m_FeedbackTargets[frameIdx]->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 	primaryBuffer->Transition(m_PhysicalContentTarget->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+
+	{
+		for (auto& pair : m_TextureMap)
+		{
+			KVirtualTextureResourceRef resource = pair.second;
+			resource->UpdateTableTexture(primaryBuffer);
+		}
+	}
 
 	return true;
 }
@@ -550,36 +564,32 @@ void KVirtualTextureManager::UploadToPhysical(const std::string& sourceTexture, 
 	m_PendingContentUpdate[location.mip].push_back(newUpdate);
 }
 
-bool KVirtualTextureManager::EnableFeedbackDebugDraw()
-{
-	m_FeedbackDebugDrawer.EnableDraw();
-	return true;
-}
-
-bool KVirtualTextureManager::DisableFeedbackDebugDraw()
-{
-	m_FeedbackDebugDrawer.DisableDraw();
-	return true;
-}
-
 bool KVirtualTextureManager::FeedbackDebugRender(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer)
 {
 	return m_FeedbackDebugDrawer.Render(renderPass, primaryBuffer);
 }
 
-bool KVirtualTextureManager::EnablePhysicalDebugDraw()
-{
-	m_PhysicalDebugDrawer.EnableDraw();
-	return true;
-}
-
-bool KVirtualTextureManager::DisablePhysicalDebugDraw()
-{
-	m_PhysicalDebugDrawer.DisableDraw();
-	return true;
-}
-
 bool KVirtualTextureManager::PhysicalDebugRender(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer)
 {
 	return m_PhysicalDebugDrawer.Render(renderPass, primaryBuffer);
+}
+
+bool KVirtualTextureManager::TableDebugRender(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer)
+{
+	for (auto& pair : m_TextureMap)
+	{
+		KVirtualTextureResourceRef resource = pair.second;
+		resource->TableDebugRender(renderPass, primaryBuffer);
+	}
+	return true;
+}
+
+IKFrameBufferPtr KVirtualTextureManager::GetPhysicalTextureFramebuffer(uint32_t index)
+{
+	return m_PhysicalContentTarget->GetFrameBuffer();
+}
+
+KSamplerRef KVirtualTextureManager::GetPhysicalTextureSampler(uint32_t index)
+{
+	return m_PhysicalRenderSampler;
 }

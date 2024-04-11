@@ -618,22 +618,24 @@ bool KVirtualGeometryScene::UpdateInstanceData()
 			pipeline->SetColorWrite(true, true, true, true);
 			pipeline->SetDepthFunc(CF_LESS_OR_EQUAL, true, true);
 
-			pipeline->SetStorageBuffer(MAX_MATERIAL_TEXTURE_BINDING + BINDING_SELECTED_CLUSTER_BATCH, ST_VERTEX, m_SelectedClusterBuffer);
-			pipeline->SetStorageBuffer(MAX_MATERIAL_TEXTURE_BINDING + BINDING_INSTANCE_DATA, ST_VERTEX, m_InstanceDataBuffer);
-			pipeline->SetStorageBuffer(MAX_MATERIAL_TEXTURE_BINDING + BINDING_RESOURCE, ST_VERTEX, KRenderGlobal::VirtualGeometryManager.GetResourceBuffer());
-			pipeline->SetStorageBuffer(MAX_MATERIAL_TEXTURE_BINDING + BINDING_CLUSTER_BATCH, ST_VERTEX, KRenderGlobal::VirtualGeometryManager.GetClusterBatchBuffer());
+			uint32_t bindingBase = MAX_USER_TEXTURE_BINDING;
 
-			pipeline->SetStorageBuffer(MAX_MATERIAL_TEXTURE_BINDING + BINDING_CLUSTER_VERTEX_BUFFER, ST_VERTEX, KRenderGlobal::VirtualGeometryManager.GetClusterVertexStorageBuffer());
-			pipeline->SetStorageBuffer(MAX_MATERIAL_TEXTURE_BINDING + BINDING_CLUSTER_INDEX_BUFFER, ST_VERTEX, KRenderGlobal::VirtualGeometryManager.GetClusterIndexStorageBuffer());
-			pipeline->SetStorageBuffer(MAX_MATERIAL_TEXTURE_BINDING + BINDING_CLUSTER_MATERIAL_BUFFER, ST_VERTEX, KRenderGlobal::VirtualGeometryManager.GetClusterMaterialStorageBuffer());
+			pipeline->SetStorageBuffer(bindingBase + BINDING_SELECTED_CLUSTER_BATCH, ST_VERTEX, m_SelectedClusterBuffer);
+			pipeline->SetStorageBuffer(bindingBase + BINDING_INSTANCE_DATA, ST_VERTEX, m_InstanceDataBuffer);
+			pipeline->SetStorageBuffer(bindingBase + BINDING_RESOURCE, ST_VERTEX, KRenderGlobal::VirtualGeometryManager.GetResourceBuffer());
+			pipeline->SetStorageBuffer(bindingBase + BINDING_CLUSTER_BATCH, ST_VERTEX, KRenderGlobal::VirtualGeometryManager.GetClusterBatchBuffer());
 
-			pipeline->SetStorageBuffer(MAX_MATERIAL_TEXTURE_BINDING + BINDING_BINNING_DATA, ST_VERTEX, m_BinningDataBuffer);
-			pipeline->SetStorageBuffer(MAX_MATERIAL_TEXTURE_BINDING + BINDING_BINNING_HEADER, ST_VERTEX, m_BinningHeaderBuffer);
+			pipeline->SetStorageBuffer(bindingBase + BINDING_CLUSTER_VERTEX_BUFFER, ST_VERTEX, KRenderGlobal::VirtualGeometryManager.GetClusterVertexStorageBuffer());
+			pipeline->SetStorageBuffer(bindingBase + BINDING_CLUSTER_INDEX_BUFFER, ST_VERTEX, KRenderGlobal::VirtualGeometryManager.GetClusterIndexStorageBuffer());
+			pipeline->SetStorageBuffer(bindingBase + BINDING_CLUSTER_MATERIAL_BUFFER, ST_VERTEX, KRenderGlobal::VirtualGeometryManager.GetClusterMaterialStorageBuffer());
 
-			pipeline->SetConstantBuffer(MAX_MATERIAL_TEXTURE_BINDING + BINDING_GLOBAL_DATA, ST_VERTEX | ST_FRAGMENT, m_GlobalDataBuffer);
+			pipeline->SetStorageBuffer(bindingBase + BINDING_BINNING_DATA, ST_VERTEX, m_BinningDataBuffer);
+			pipeline->SetStorageBuffer(bindingBase + BINDING_BINNING_HEADER, ST_VERTEX, m_BinningHeaderBuffer);
 
-			pipeline->SetConstantBuffer(MAX_MATERIAL_TEXTURE_BINDING + BINDING_STREAMING_DATA, ST_VERTEX, KRenderGlobal::VirtualGeometryManager.GetStreamingDataBuffer());
-			pipeline->SetStorageBuffer(MAX_MATERIAL_TEXTURE_BINDING + BINDING_PAGE_DATA, ST_VERTEX, KRenderGlobal::VirtualGeometryManager.GetPageDataBuffer());
+			pipeline->SetConstantBuffer(bindingBase + BINDING_GLOBAL_DATA, ST_VERTEX | ST_FRAGMENT, m_GlobalDataBuffer);
+
+			pipeline->SetConstantBuffer(bindingBase + BINDING_STREAMING_DATA, ST_VERTEX, KRenderGlobal::VirtualGeometryManager.GetStreamingDataBuffer());
+			pipeline->SetStorageBuffer(bindingBase + BINDING_PAGE_DATA, ST_VERTEX, KRenderGlobal::VirtualGeometryManager.GetPageDataBuffer());
 
 			for (uint8_t i = 0; i < numSlot; ++i)
 			{
