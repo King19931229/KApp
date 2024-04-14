@@ -210,6 +210,7 @@ void WriteVirtualFeedback(vec2 texCoord, uint binding)
 	}
 }
 
+
 #else
 
 void WriteVirtualFeedback(vec2 uv, uint binding)
@@ -224,6 +225,37 @@ layout(binding = BINDING_TEXTURE16) uniform sampler2D physicalSampler0;
 layout(binding = BINDING_TEXTURE17) uniform sampler2D physicalSampler1;
 layout(binding = BINDING_TEXTURE18) uniform sampler2D physicalSampler2;
 layout(binding = BINDING_TEXTURE19) uniform sampler2D physicalSampler3;
+
+vec4 SampleFromVirtualTexture(vec2 texCoord, vec4 pageInfo)
+{
+#ifndef VIRTUAL_TEXTURE_FEEDBACK_PASS
+	float pageX = floor(pageInfo.x * 255.0 + 0.5);
+	float pageY = floor(pageInfo.y * 255.0 + 0.5);
+	float pageMip = floor(pageInfo.z * 255.0 + 0.5);
+	float virutalMip = floor(pageInfo.w * 255.0 + 0.5);
+
+	float maxVirtualMip = 6;
+
+	float tileSize = virtual_texture.description[0].x;
+	float paddingSize = virtual_texture.description[0].y;
+
+	vec2 texCoordInTile = fract(texCoord * exp2(maxVirtualMip - virutalMip));
+
+	vec2 texelPos = paddingSize + (tileSize + paddingSize * 2) * vec2(pageX, pageY) + tileSize * texCoordInTile;
+	vec2 texCoordInPhysical = texelPos / textureSize(physicalSampler0, int(pageMip));
+
+	return textureLod(physicalSampler0, texCoordInPhysical, pageMip);
+#else
+	return vec4(0);
+#endif
+}
+
+#else
+
+vec4 SampleFromVirtualTexture(vec2 texCoord, vec4 pageInfo)
+{
+	return vec4(0);
+}
 
 #endif
 
@@ -332,12 +364,12 @@ MaterialPixelParameters ComputeMaterialPixelParameters(
 #if HAS_MATERIAL_TEXTURE0
 #if HAS_VIRTUAL_MATERIAL_TEXTURE0
 	WriteVirtualFeedback(texCoord, 0);
+	diffuse = SRGBtoLINEAR(SampleFromVirtualTexture(texCoord, SampleDiffuse(texCoord)));
 #else
 	diffuse = SRGBtoLINEAR(SampleDiffuse(texCoord));
+#endif
 	parameters.baseColor = diffuse.rgb * shading.baseColorFactor.rgb;
 	parameters.opacity = diffuse.a * shading.baseColorFactor.a;
-#endif
-
 #else
 	parameters.baseColor = shading.baseColorFactor.rgb;
 	parameters.opacity = 1.0;
@@ -393,12 +425,6 @@ MaterialPixelParameters ComputeMaterialPixelParameters(
 	specular = vec3(0);
 	#endif
 
-	#if HAS_MATERIAL_TEXTURE0
-	diffuse = SRGBtoLINEAR(SampleDiffuse(texCoord));
-	#else
-	diffuse = vec4(0);
-	#endif
-
 	float maxSpecular = max(max(specular.r, specular.g), specular.b);
 
 	// Convert metallic value from specular glossiness inputs
@@ -422,6 +448,9 @@ MaterialPixelParameters ComputeMaterialPixelParameters(
 #else
 	parameters.ao = 1.0;
 #endif
+
+	parameters.roughness = 1;
+	parameters.metal = 0;
 
 	return parameters;
 }

@@ -11,8 +11,8 @@ struct KVirtualTexturePhysicalTile
 	KVirtualTexturePhysicalLocation physicalLocation;
 	KVirtualTexturePhysicalTile* prev = nullptr;
 	KVirtualTexturePhysicalTile* next = nullptr;
-	void* userPtr = nullptr;
-	uint32_t refCount;
+	KVirtualTextureTileNode* ownerNode = nullptr;
+	uint32_t useFrameIndex = -1;
 };
 
 struct KVirtualTexturePhysicalUpdate
@@ -80,6 +80,7 @@ protected:
 	void RemoveTileFromList(KVirtualTexturePhysicalTile* tile, KVirtualTexturePhysicalTile*& head);
 	void AddTileToList(KVirtualTexturePhysicalTile* tile, KVirtualTexturePhysicalTile* &head);
 	void LRUSortTile();
+	void UpdateConstantBuffer();
 
 	uint32_t AcquireVirtualID();
 	void RecyleVirtualID(uint32_t ID);

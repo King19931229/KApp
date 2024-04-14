@@ -107,6 +107,11 @@ namespace KConstantGlobal
 		glm::vec4(1.0f, 1.0f, 1.0f, 0.0f)
 	};
 
+	KConstantDefinition::VIRTUAL_TEXTURE VirtualTexture =
+	{
+		{ VEC4_ZERO, VEC4_ZERO, VEC4_ZERO, VEC4_ZERO }
+	};
+
 	// TODO 与KConstantDefinition放在一起定义
 
 	void* GetGlobalConstantData(ConstantBufferType bufferType)
@@ -127,6 +132,8 @@ namespace KConstantGlobal
 			return &VoxelClipmap;
 		case CBT_GLOBAL:
 			return &Global;
+		case CBT_VIRTUAL_TEXTURE:
+			return &VirtualTexture;
 		default:
 			assert(false && "UnSupported ConstantBufferType");
 			return nullptr;

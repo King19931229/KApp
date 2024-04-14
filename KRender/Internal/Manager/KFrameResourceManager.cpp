@@ -10,7 +10,8 @@ constexpr KConstantBufferTypeDescription GConstantBufferTypeDescription[CBT_STAT
 	{ CBT_STATIC_CASCADED_SHADOW, "StaticCascadedShadow_CB"},
 	{ CBT_VOXEL, "Voxel_CB"},
 	{ CBT_VOXEL_CLIPMAP, "VoxelClipmap_CB"},
-	{ CBT_GLOBAL, "Global_CB"}
+	{ CBT_GLOBAL, "Global_CB"},
+	{ CBT_VIRTUAL_TEXTURE, "VirtualTexture_CB"}
 };
 
 static_assert(ARRAY_SIZE(GConstantBufferTypeDescription) == CBT_STATIC_COUNT, "check");

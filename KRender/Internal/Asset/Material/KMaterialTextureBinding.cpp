@@ -77,8 +77,9 @@ bool KMaterialTextureBinding::SetTextureVirtual(uint8_t slot, const std::string&
 				KSamplerDescription desc = ToSamplerDesc(sampler);
 				desc.minMipmap = 0;
 				desc.maxMipmap = 0;
-				desc.anisotropic = true;
-				desc.anisotropicCount = 16;
+				desc.anisotropic = false;
+				desc.minFilter = FM_NEAREST;
+				desc.magFilter = FM_NEAREST;
 
 				ASSERT_RESULT(KRenderGlobal::SamplerManager.Acquire(desc, m_Samplers[slot]));
 				return true;

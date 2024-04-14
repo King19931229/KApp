@@ -6,6 +6,7 @@ layout(binding = BINDING_TEXTURE0) uniform sampler2D uploadTex;
 
 void main()
 {
-	outColor = vec4(inUV,0,1);
-	outColor = texture(uploadTex, inUV);
+	vec2 uv = vec2(inUV.x, 1 - inUV.y);
+	outColor = vec4(uv,0,1);
+	outColor = texture(uploadTex, uv);
 }

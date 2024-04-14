@@ -82,6 +82,8 @@ bool KMaterialSubMesh::Init(KSubMeshPtr subMesh, KMaterialRef material)
 					uint32_t binding = SHADER_BINDING_TEXTURE0 + MAX_MATERIAL_TEXTURE_BINDING + i;
 					pipeline->SetSampler(binding, KRenderGlobal::VirtualTextureManager.GetPhysicalTextureFramebuffer(i), *KRenderGlobal::VirtualTextureManager.GetPhysicalTextureSampler(i), true);
 				}
+
+				pipeline->SetConstantBuffer(SHADER_BINDING_VIRTUAL_TEXTURE, ST_FRAGMENT, KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_VIRTUAL_TEXTURE));
 			}
 		}
 	}
