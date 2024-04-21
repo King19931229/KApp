@@ -97,11 +97,11 @@ uniform GlobalInfo
 	vec4 sunLightDirAndMaxPBRLod;
 } global;
 
-layout(binding = BINDING_VIRTUAL_TEXTURE)
-uniform VirtualTextureInfo
+layout(binding = BINDING_VIRTUAL_TEXTURE_CONSTANT)
+uniform VirtualTextureConstantInfo
 {
-	vec4 description[4];
-} virtual_texture;
+	uvec4 description;
+} virtual_texture_constant;
 
 const float PI = 3.14159265f;
 const float HALF_PI = 1.57079f;

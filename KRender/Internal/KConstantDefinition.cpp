@@ -301,7 +301,7 @@ namespace KConstantDefinition
 			return VOXEL_CLIPMAP_DETAILS;
 		case CBT_GLOBAL:
 			return GLOBAL_DETAILS;
-		case CBT_VIRTUAL_TEXTURE:
+		case CBT_VIRTUAL_TEXTURE_CONSTANT:
 			return VIRTUAL_TEXTUTRE_DETAILS;
 		default:
 			assert(false && "Unknown ConstantBufferType");

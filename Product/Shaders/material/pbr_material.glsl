@@ -177,6 +177,61 @@ uniform Shading_DYN_UNIFORM
 
 #endif // GPU_SCENE
 
+#if VIRTUAL_TEXTURE_INPUT
+
+layout(binding = BINDING_TEXTURE16) uniform sampler2D physicalSampler0;
+layout(binding = BINDING_TEXTURE17) uniform sampler2D physicalSampler1;
+layout(binding = BINDING_TEXTURE18) uniform sampler2D physicalSampler2;
+layout(binding = BINDING_TEXTURE19) uniform sampler2D physicalSampler3;
+
+layout(std430, binding = BINDING_VIRTUAL_TEXTURE_DESCRIPTION) buffer VirtualTextureDescriptionBuffer { uvec4 VirtualTextureDescription[]; };
+
+layout(binding = BINDING_VIRTUAL_TEXTURE_BINDING)
+uniform VirtualTextureBinding_DYN_UNIFORM
+{
+	uint binding[16]; 
+} virtual_binding;
+
+vec4 SampleFromVirtualTexture(vec2 texCoord, vec4 pageInfo)
+{
+#ifndef VIRTUAL_TEXTURE_FEEDBACK_PASS
+	if (pageInfo.w != 1.0)
+	{
+		float pageX = floor(pageInfo.x * 255.0 + 0.5);
+		float pageY = floor(pageInfo.y * 255.0 + 0.5);
+		float pageMip = floor(pageInfo.z * 255.0 + 0.5);
+		float virutalMip = floor(pageInfo.w * 255.0 + 0.5);
+
+		float maxVirtualMip = VirtualTextureDescription[virtual_binding.binding[0]].y;
+
+		float tileSize = float(virtual_texture_constant.description.x);
+		float paddingSize = float(virtual_texture_constant.description.y);
+
+		vec2 texCoordInTile = fract(texCoord * exp2(maxVirtualMip - virutalMip));
+
+		vec2 texelPos = paddingSize + (tileSize + paddingSize * 2) * vec2(pageX, pageY) + tileSize * texCoordInTile;
+		vec2 texCoordInPhysical = texelPos / textureSize(physicalSampler0, int(pageMip));
+
+		return textureLod(physicalSampler0, texCoordInPhysical, pageMip);
+	}
+	else
+	{
+		return vec4(0);
+	}
+#else
+	return vec4(0);
+#endif
+}
+
+#else
+
+vec4 SampleFromVirtualTexture(vec2 texCoord, vec4 pageInfo)
+{
+	return vec4(0);
+}
+
+#endif
+
 #ifdef VIRTUAL_TEXTURE_FEEDBACK_PASS
 
 layout(binding = BINDING_VIRTUAL_TEXTURE_FEEDBACK)
@@ -184,19 +239,19 @@ uniform VirtualTextureFeedback_DYN_UNIFORM
 {
 	uvec4 miscs;
 	uvec4 miscs2;
-} virtual;
+} virtual_feedback;
 
 void WriteVirtualFeedback(vec2 texCoord, uint binding)
 {
-	uint virtualTargetBinding = virtual.miscs.x;
+	uint virtualTargetBinding = virtual_feedback.miscs.x;
 	if (virtualTargetBinding == binding)
 	{
-		uint virtualID = virtual.miscs.y;
-		vec2 tableSize = vec2(virtual.miscs.zw);
+		uint virtualID = virtual_feedback.miscs.y;
+		vec2 tableSize = vec2(virtual_feedback.miscs.zw);
 
-		uint mipBias = virtual.miscs2.x;
-		uint maxMip = virtual.miscs2.y;
-		vec2 textureSize = vec2(virtual.miscs2.zw);
+		uint mipBias = virtual_feedback.miscs2.x;
+		uint maxMip = virtual_feedback.miscs2.y;
+		vec2 textureSize = vec2(virtual_feedback.miscs2.zw);
 
 		vec2 page = floor(texCoord * tableSize);
 
@@ -210,7 +265,6 @@ void WriteVirtualFeedback(vec2 texCoord, uint binding)
 	}
 }
 
-
 #else
 
 void WriteVirtualFeedback(vec2 uv, uint binding)
@@ -218,46 +272,6 @@ void WriteVirtualFeedback(vec2 uv, uint binding)
 }
 
 #endif // VIRTUAL_TEXTURE_FEEDBACK_PASS
-
-#if VIRTUAL_TEXTURE_INPUT
-
-layout(binding = BINDING_TEXTURE16) uniform sampler2D physicalSampler0;
-layout(binding = BINDING_TEXTURE17) uniform sampler2D physicalSampler1;
-layout(binding = BINDING_TEXTURE18) uniform sampler2D physicalSampler2;
-layout(binding = BINDING_TEXTURE19) uniform sampler2D physicalSampler3;
-
-vec4 SampleFromVirtualTexture(vec2 texCoord, vec4 pageInfo)
-{
-#ifndef VIRTUAL_TEXTURE_FEEDBACK_PASS
-	float pageX = floor(pageInfo.x * 255.0 + 0.5);
-	float pageY = floor(pageInfo.y * 255.0 + 0.5);
-	float pageMip = floor(pageInfo.z * 255.0 + 0.5);
-	float virutalMip = floor(pageInfo.w * 255.0 + 0.5);
-
-	float maxVirtualMip = 6;
-
-	float tileSize = virtual_texture.description[0].x;
-	float paddingSize = virtual_texture.description[0].y;
-
-	vec2 texCoordInTile = fract(texCoord * exp2(maxVirtualMip - virutalMip));
-
-	vec2 texelPos = paddingSize + (tileSize + paddingSize * 2) * vec2(pageX, pageY) + tileSize * texCoordInTile;
-	vec2 texCoordInPhysical = texelPos / textureSize(physicalSampler0, int(pageMip));
-
-	return textureLod(physicalSampler0, texCoordInPhysical, pageMip);
-#else
-	return vec4(0);
-#endif
-}
-
-#else
-
-vec4 SampleFromVirtualTexture(vec2 texCoord, vec4 pageInfo)
-{
-	return vec4(0);
-}
-
-#endif
 
 #define MANUAL_SRGB 0
 #define SRGB_FAST_APPROXIMATION 1

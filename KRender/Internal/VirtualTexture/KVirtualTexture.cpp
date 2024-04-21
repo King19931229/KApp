@@ -1,6 +1,19 @@
 #include "KVirtualTexture.h"
 #include "Internal/KRenderGlobal.h"
 
+bool KVirtualTexture::PendingTileUpdateCompare::operator()(const KVirtualTextureTileNode* lhs, const KVirtualTextureTileNode* rhs)
+{
+	if (lhs->physicalTile->payload.useFrameIndex != rhs->physicalTile->payload.useFrameIndex)
+	{
+		return lhs->physicalTile->payload.useFrameIndex < rhs->physicalTile->payload.useFrameIndex;
+	}
+	if (lhs->mip != rhs->mip)
+	{
+		return lhs->mip > rhs->mip;
+	}
+	return lhs->physicalTile->payload.pixelCount < rhs->physicalTile->payload.pixelCount;
+}
+
 KVirtualTextureTileNode::KVirtualTextureTileNode(uint32_t startX, uint32_t startY, uint32_t endX, uint32_t endY, uint32_t mipLevel)
 {
 	sx = startX;
@@ -27,9 +40,8 @@ KVirtualTextureTileNode* KVirtualTextureTileNode::GetNodeWithDataLoaded(uint32_t
 		return nullptr;
 	}
 	if (loadStatus == TILE_LOADED)
-	// if (loadStatus != TILE_UNLOADED)
 	{
-		if (physicalTile->ownerNode != this)
+		if (physicalTile->payload.ownerNode != this)
 		{
 			loadStatus = TILE_UNLOADED;
 			physicalTile = nullptr;
@@ -38,7 +50,7 @@ KVirtualTextureTileNode* KVirtualTextureTileNode::GetNodeWithDataLoaded(uint32_t
 	}
 	if (physicalTile)
 	{
-		physicalTile->useFrameIndex = KRenderGlobal::CurrentFrameNum;
+		physicalTile->payload.useFrameIndex = KRenderGlobal::CurrentFrameNum;
 	}
 	if (mipLevel < mip)
 	{
@@ -98,7 +110,7 @@ KVirtualTextureTileNode* KVirtualTextureTileNode::GetNode(uint32_t x, uint32_t y
 
 void KVirtualTextureTileNode::ReturnPhysicalTileRecursively()
 {
-	if (physicalTile && physicalTile->ownerNode == this)
+	if (physicalTile && physicalTile->payload.ownerNode == this)
 	{
 		KRenderGlobal::VirtualTextureManager.ReturnPhysical(physicalTile);
 		loadStatus = KVirtualTextureTileNode::TILE_UNLOADED;
@@ -370,16 +382,14 @@ void KVirtualTexture::EndRequest()
 		return lhs.count > rhs.count;
 	});
 
-	std::vector<uint32_t> tileWrited;
-	tileWrited.resize(m_TableInfo.size());
-	memset(tileWrited.data(), 0, sizeof(uint32_t) * tileWrited.size());
-
-	std::vector<KVirtualTextureTileNode*> currentTileUpdates;
+	std::vector<uint32_t> currentTileInfo;
+	currentTileInfo.resize(m_TableInfo.size());
+	memset(currentTileInfo.data(), -1, sizeof(uint32_t) * currentTileInfo.size());
 
 	for (const KVirtualTextureTileRequest& request : requests)
 	{
 		uint32_t id = request.tile.y * m_TileNum + request.tile.x;
-		if (!tileWrited[id])
+		if (currentTileInfo[id] == -1)
 		{
 			uint32_t x = request.tile.x;
 			uint32_t y = request.tile.y;
@@ -411,8 +421,9 @@ void KVirtualTexture::EndRequest()
 					if (uploadNode->physicalTile)
 					{
 						uploadNode->loadStatus = KVirtualTextureTileNode::TILE_LOADING;
-						uploadNode->physicalTile->ownerNode = uploadNode;
-						currentTileUpdates.push_back(uploadNode);
+						uploadNode->physicalTile->payload.ownerNode = uploadNode;
+						uploadNode->physicalTile->payload.pixelCount = request.count;
+						m_PendingTileUpdates.push(uploadNode);
 					}
 				}
 			}
@@ -423,24 +434,33 @@ void KVirtualTexture::EndRequest()
 				if (location.IsValid())
 				{
 					uint32_t data = location.x | (location.y << 8) | (location.mip << 16) | (node->mip << 24);
-					if (m_TableInfo[id] != data)
-					{
-						m_TableInfo[id] = data;
-						m_PendingTableUpdates.push_back({id, data});
-					}
+					currentTileInfo[id] = data;
 				}
 			}
-
-			tileWrited[id] = true;
 		}
 	}
 
-	std::sort(currentTileUpdates.begin(), currentTileUpdates.end(), [](const KVirtualTextureTileNode* lhs, const KVirtualTextureTileNode* rhs)
-	{
-		return lhs->mip < rhs->mip;
-	});
+	KVirtualTextureTileNode* maxMipNode = m_RootNode->GetNodeWithDataLoaded(0, 0, m_MaxMipLevel);
+	KVirtualTexturePhysicalTile* physicalTile = maxMipNode ? maxMipNode->physicalTile : nullptr;
+	KVirtualTexturePhysicalLocation location = physicalTile ? physicalTile->physicalLocation : KVirtualTexturePhysicalLocation();
 
-	m_PendingTileUpdates.insert(m_PendingTileUpdates.end(), currentTileUpdates.begin(), currentTileUpdates.end());
+	for (uint32_t id = 0; id < (uint32_t)m_TableInfo.size(); ++id)
+	{
+		if (currentTileInfo[id] == -1)
+		{
+			if (location.IsValid())
+			{
+				uint32_t data = location.x | (location.y << 8) | (location.mip << 16) | (maxMipNode->mip << 24);
+				currentTileInfo[id] = data;
+			}
+		}
+
+		if (m_TableInfo[id] != currentTileInfo[id] || currentTileInfo[id] == -1)
+		{
+			m_TableInfo[id] = currentTileInfo[id];
+			m_PendingTableUpdates.push_back({ id, currentTileInfo[id] });
+		}
+	}
 
 	ProcessPendingUpdate();
 }
@@ -448,12 +468,12 @@ void KVirtualTexture::EndRequest()
 void KVirtualTexture::ProcessPendingUpdate()
 {
 	uint32_t processCount = 0;
-	uint32_t currentIdx = 0;
 
-	while (currentIdx < m_PendingTileUpdates.size() && processCount < m_MaxUpdatePerFrame)
+	while (m_PendingTileUpdates.size() && processCount < m_MaxUpdatePerFrame)
 	{
-		KVirtualTextureTileNode* updateTile = m_PendingTileUpdates[currentIdx];
-		if (updateTile->physicalTile->ownerNode == updateTile)
+		KVirtualTextureTileNode* updateTile = m_PendingTileUpdates.top();
+		m_PendingTileUpdates.pop();
+		if (updateTile->physicalTile->payload.ownerNode == updateTile)
 		{
 			uint32_t x = updateTile->sx / (1 << updateTile->mip);
 			uint32_t y = updateTile->sy / (1 << updateTile->mip);
@@ -470,10 +490,7 @@ void KVirtualTexture::ProcessPendingUpdate()
 			updateTile->physicalTile = nullptr;
 			updateTile->loadStatus = KVirtualTextureTileNode::TILE_UNLOADED;
 		}
-		++currentIdx;
 	}
-
-	m_PendingTileUpdates.erase(m_PendingTileUpdates.begin(), m_PendingTileUpdates.begin() + currentIdx);
 }
 
 bool KVirtualTexture::TableDebugRender(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer)

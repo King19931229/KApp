@@ -55,7 +55,7 @@ bool KHiZOcclusion::Resize()
 		pipeline->SetDepthFunc(CF_LESS_OR_EQUAL, true, true);
 
 		IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_CAMERA);
-		pipeline->SetConstantBuffer(SHADER_BINDING_CAMERA, ST_VERTEX | ST_FRAGMENT, cameraBuffer);
+		pipeline->SetConstantBuffer(SHADER_BINDING_CAMERA, ST_FRAGMENT, cameraBuffer);
 
 		pipeline->SetSampler(SHADER_BINDING_TEXTURE0, m_PositionTargets[frameIdx]->GetFrameBuffer(), *m_Sampler, true);
 		pipeline->SetSampler(SHADER_BINDING_TEXTURE1, m_ExtentTargets[frameIdx]->GetFrameBuffer(), *m_Sampler, true);

@@ -27,6 +27,7 @@ public:
 	bool SetTexture(uint8_t slot, const std::string& name, const KCodecResult& result, const KMeshTextureSampler& sampler) override;
 	bool SetErrorTexture(uint8_t slot) override;
 	bool UnsetTextrue(uint8_t slot) override;
+	uint32_t GetVirtualID(uint8_t slot) const override;
 	IKTexturePtr GetTexture(uint8_t slot) const override;
 	IKSamplerPtr GetSampler(uint8_t slot) const override;
 	bool GetIsVirtualTexture(uint8_t slot) const override;

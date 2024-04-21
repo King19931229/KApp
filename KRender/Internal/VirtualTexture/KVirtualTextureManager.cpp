@@ -71,7 +71,6 @@ bool KVirtualTextureManager::Init(uint32_t tileSize, uint32_t tileDimension, uin
 	{
 		m_PhysicalTiles[i].prev = &m_PhysicalTiles[(i + m_TileNum - 1) % m_TileNum];
 		m_PhysicalTiles[i].next = &m_PhysicalTiles[(i + 1) % m_TileNum];
-		m_PhysicalTiles[i].useFrameIndex = -1;
 	}
 	m_UsedTileHead = nullptr;
 	m_FreeTileHead = &m_PhysicalTiles[0];
@@ -127,6 +126,25 @@ bool KVirtualTextureManager::Init(uint32_t tileSize, uint32_t tileDimension, uin
 		m_UploadContentPasses[idx]->Init(idx);
 	}
 
+	m_FeedbackResultBuffers.resize(frameNum);
+	m_InitFeedbackBufferPipelines.resize(frameNum);
+	m_MergeFeedbackBufferPipelines.resize(frameNum);
+
+	KRenderGlobal::RenderDevice->CreateStorageBuffer(m_VirtualTextrueDescriptionBuffer);
+	m_VirtualTextrueDescriptionBuffer->SetDebugName("VirtualTextrueDescription");
+	m_VirtualTextrueDescriptionBuffer->InitMemory(1, false);
+	m_VirtualTextrueDescriptionBuffer->InitDevice(false, false);
+
+	for (uint32_t i = 0; i < frameNum; ++i)
+	{
+		KRenderGlobal::RenderDevice->CreateStorageBuffer(m_FeedbackResultBuffers[i]);
+		KRenderGlobal::RenderDevice->CreateComputePipeline(m_InitFeedbackBufferPipelines[i]);
+		KRenderGlobal::RenderDevice->CreateComputePipeline(m_MergeFeedbackBufferPipelines[i]);
+
+		m_FeedbackResultBuffers[i]->SetDebugName(("FeedbackResultBuffer_" + std::to_string(i)).c_str());
+		m_FeedbackResultBuffers[i]->InitMemory(1024, false);
+	}
+
 	Resize(1024, 1024);
 
 	{
@@ -179,6 +197,12 @@ bool KVirtualTextureManager::UnInit()
 	SAFE_UNINIT_CONTAINER(m_FeedbackPasses);
 	SAFE_UNINIT_CONTAINER(m_ResultReadbackTargets);
 
+	SAFE_UNINIT(m_VirtualTextrueDescriptionBuffer);
+
+	SAFE_UNINIT_CONTAINER(m_FeedbackResultBuffers);
+	SAFE_UNINIT_CONTAINER(m_InitFeedbackBufferPipelines);
+	SAFE_UNINIT_CONTAINER(m_MergeFeedbackBufferPipelines);
+
 	m_FeedbackDebugDrawer.UnInit();
 	m_PhysicalDebugDrawer.UnInit();
 
@@ -230,7 +254,7 @@ void KVirtualTextureManager::LRUSortTile()
 
 	for (KVirtualTexturePhysicalTile* tile : m_UsedTiles)
 	{
-		uint32_t loadStatus = tile->ownerNode->loadStatus;
+		uint32_t loadStatus = tile->payload.ownerNode->loadStatus;
 		assert(loadStatus != KVirtualTextureTileNode::TILE_UNLOADED);
 		if (loadStatus == KVirtualTextureTileNode::TILE_LOADING)
 		{
@@ -244,9 +268,9 @@ void KVirtualTextureManager::LRUSortTile()
 
 	std::sort(tiles.begin(), tiles.end(), [](KVirtualTexturePhysicalTile* lhs, KVirtualTexturePhysicalTile* rhs)
 	{
-		if (lhs->useFrameIndex != rhs->useFrameIndex)
-			return lhs->useFrameIndex < rhs->useFrameIndex;
-		return lhs->ownerNode->mip > rhs->ownerNode->mip;
+		if (lhs->payload.useFrameIndex != rhs->payload.useFrameIndex)
+			return lhs->payload.useFrameIndex < rhs->payload.useFrameIndex;
+		return lhs->payload.ownerNode->mip > rhs->payload.ownerNode->mip;
 	});
 
 	tiles.insert(tiles.end(), loadingTiles.begin(), loadingTiles.end());
@@ -316,34 +340,65 @@ void KVirtualTextureManager::HandleFeedbackResult()
 	}
 }
 
-void KVirtualTextureManager::UpdateConstantBuffer()
+void KVirtualTextureManager::UpdateBuffer()
 {
-	IKUniformBufferPtr virtualTextureBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_VIRTUAL_TEXTURE);
-
-	void* pData = KConstantGlobal::GetGlobalConstantData(CBT_VIRTUAL_TEXTURE);
-	const KConstantDefinition::ConstantBufferDetail& details = KConstantDefinition::GetConstantBufferDetail(CBT_VIRTUAL_TEXTURE);
-
-	glm::vec4 description[4];
-	description[0].x = (float)m_TileSize;
-	description[0].y = (float)m_PaddingSize;
-
-	for (KConstantDefinition::ConstantSemanticDetail detail : details.semanticDetails)
 	{
-		assert(detail.offset % detail.size == 0);
-		void* pWritePos = nullptr;
-		if (detail.semantic == CS_VIRTUAL_TEXTURE_DESCRIPTION)
+		IKUniformBufferPtr virtualTextureBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_VIRTUAL_TEXTURE_CONSTANT);
+
+		void* pData = KConstantGlobal::GetGlobalConstantData(CBT_VIRTUAL_TEXTURE_CONSTANT);
+		const KConstantDefinition::ConstantBufferDetail& details = KConstantDefinition::GetConstantBufferDetail(CBT_VIRTUAL_TEXTURE_CONSTANT);
+
+		glm::uvec4 description;
+		description.x = m_TileSize;
+		description.y = m_PaddingSize;
+
+		for (KConstantDefinition::ConstantSemanticDetail detail : details.semanticDetails)
 		{
-			assert(sizeof(description) == detail.size);
-			pWritePos = POINTER_OFFSET(pData, detail.offset);
-			memcpy(pWritePos, &description, sizeof(description));
+			assert(detail.offset % detail.size == 0);
+			void* pWritePos = nullptr;
+			if (detail.semantic == CS_VIRTUAL_TEXTURE_DESCRIPTION)
+			{
+				assert(sizeof(description) == detail.size);
+				pWritePos = POINTER_OFFSET(pData, detail.offset);
+				memcpy(pWritePos, &description, sizeof(description));
+			}
 		}
+		virtualTextureBuffer->Write(pData);
 	}
-	virtualTextureBuffer->Write(pData);
+
+	{
+		IKStorageBufferPtr descriptionBuffer = m_VirtualTextrueDescriptionBuffer;
+
+		if (descriptionBuffer->GetBufferSize() < m_VirtualIDCounter * sizeof(glm::uvec4))
+		{
+			KRenderGlobal::RenderDevice->Wait();
+			uint32_t bufferSize = KMath::SmallestPowerOf2GreaterEqualThan(m_VirtualIDCounter) * sizeof(glm::uvec4);
+			descriptionBuffer->UnInit();
+			descriptionBuffer->InitMemory(bufferSize, nullptr);
+			descriptionBuffer->InitDevice(false, false);
+		}
+
+		std::vector<glm::uvec4> descriptions;
+		descriptions.resize(m_VirtualIDCounter);
+
+		for (auto& pair : m_TextureMap)
+		{
+			KVirtualTextureResourceRef resource = pair.second;
+			uint32_t id = resource->GetVirtualID();
+			descriptions[id].x = resource->GetTileNum();
+			descriptions[id].y = resource->GetMaxMipLevel();
+		}
+
+		void* pDst = nullptr;
+		descriptionBuffer->Map(&pDst);
+		memcpy(pDst, descriptions.data(), m_VirtualIDCounter * sizeof(glm::uvec4));
+		descriptionBuffer->UnMap();
+	}
 }
 
 bool KVirtualTextureManager::Update(IKCommandBufferPtr primaryBuffer, const std::vector<IKEntity*>& cullRes)
 {
-	UpdateConstantBuffer();
+	UpdateBuffer();
 	LRUSortTile();
 	HandleFeedbackResult();
 
@@ -576,7 +631,7 @@ KVirtualTexturePhysicalTile* KVirtualTextureManager::RequestPhysical()
 		tile = m_UsedTileHead->prev;
 		while (tile != m_UsedTileHead)
 		{
-			if (tile->useFrameIndex == KRenderGlobal::CurrentFrameNum)
+			if (tile->payload.useFrameIndex == KRenderGlobal::CurrentFrameNum)
 			{
 				tile = tile->prev;
 			}
@@ -585,7 +640,7 @@ KVirtualTexturePhysicalTile* KVirtualTextureManager::RequestPhysical()
 				break;
 			}
 		}
-		if (tile->useFrameIndex == KRenderGlobal::CurrentFrameNum || tile->ownerNode->loadStatus == KVirtualTextureTileNode::TILE_LOADING)
+		if (tile->payload.useFrameIndex == KRenderGlobal::CurrentFrameNum || tile->payload.ownerNode->loadStatus == KVirtualTextureTileNode::TILE_LOADING)
 		{
 			tile = nullptr;
 		}
@@ -597,7 +652,7 @@ KVirtualTexturePhysicalTile* KVirtualTextureManager::RequestPhysical()
 
 	if (tile)
 	{
-		tile->useFrameIndex = KRenderGlobal::CurrentFrameNum;
+		tile->payload.useFrameIndex = KRenderGlobal::CurrentFrameNum;
 	}
 
 	return tile;
@@ -610,7 +665,8 @@ bool KVirtualTextureManager::ReturnPhysical(KVirtualTexturePhysicalTile* tile)
 		RemoveTileFromList(tile, m_UsedTileHead);
 		m_UsedTiles.erase(tile);
 		AddTileToList(tile, m_FreeTileHead);
-		tile->useFrameIndex = -1;
+		tile->payload.pixelCount = 0;
+		tile->payload.useFrameIndex = -1;
 		return true;
 	}
 	return false;
@@ -643,6 +699,11 @@ bool KVirtualTextureManager::TableDebugRender(IKRenderPassPtr renderPass, IKComm
 		resource->TableDebugRender(renderPass, primaryBuffer);
 	}
 	return true;
+}
+
+IKStorageBufferPtr KVirtualTextureManager::GetVirtualTextrueDescriptionBuffer()
+{
+	return m_VirtualTextrueDescriptionBuffer;
 }
 
 IKFrameBufferPtr KVirtualTextureManager::GetPhysicalTextureFramebuffer(uint32_t index)

@@ -2,6 +2,7 @@
 #include "Interface/IKTexture.h"
 #include "KBase/Interface/Entity/IKEntity.h"
 #include "Internal/Object/KDebugDrawer.h"
+#include <queue>
 
 struct KVirtualTextureTile
 {
@@ -49,10 +50,10 @@ namespace std
 	{
 		size_t operator()(const KVirtualTextureTile& location) const
 		{
-			std::size_t hash = 0;
-			KHash::HashCombine(hash, location.x);
-			KHash::HashCombine(hash, location.y);
-			KHash::HashCombine(hash, location.mip);
+			assert(location.x < (1 << 14));
+			assert(location.y < (1 << 14));
+			assert(location.mip < (1 << 4));
+			std::size_t hash = (location.y) | (location.x << 14) | (location.mip << 28);
 			return hash;
 		}
 	};
@@ -136,8 +137,13 @@ protected:
 
 	uint32_t m_VirtualID = 0;
 
+	struct PendingTileUpdateCompare
+	{
+		bool operator()(const KVirtualTextureTileNode* lhs, const KVirtualTextureTileNode* rhs);
+	};
+
 	std::unordered_map<KVirtualTextureTile, uint32_t> m_HashedTileRequests;
-	std::vector<KVirtualTextureTileNode*> m_PendingTileUpdates;
+	std::priority_queue<KVirtualTextureTileNode*, std::deque<KVirtualTextureTileNode*>, PendingTileUpdateCompare> m_PendingTileUpdates;
 
 	KRTDebugDrawer m_TableDebugDrawer;
 public:
@@ -160,6 +166,9 @@ public:
 
 	IKTexturePtr GetTableTexture() { return m_TableTexture; }
 	uint32_t GetVirtualID() const { return m_VirtualID; }
+
+	uint32_t GetTileNum() const { return m_TileNum; }
+	uint32_t GetMaxMipLevel() const { return m_MaxMipLevel; }
 };
 
 typedef KReferenceHolder<KVirtualTexture*> KVirtualTextureResourceRef;

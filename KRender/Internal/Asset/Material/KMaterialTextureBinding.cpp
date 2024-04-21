@@ -178,6 +178,18 @@ bool KMaterialTextureBinding::UnsetTextrue(uint8_t slot)
 	return false;
 }
 
+uint32_t KMaterialTextureBinding::GetVirtualID(uint8_t slot) const
+{
+	if (slot < GetNumSlot())
+	{
+		if (m_VirtualTextures[slot])
+		{
+			return m_VirtualTextures[slot]->GetVirtualID();
+		}
+	}
+	return -1;
+}
+
 IKTexturePtr KMaterialTextureBinding::GetTexture(uint8_t slot) const
 {
 	if (slot < GetNumSlot())

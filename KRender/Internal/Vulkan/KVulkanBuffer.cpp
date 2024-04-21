@@ -205,9 +205,9 @@ bool KVulkanBuffer::Map(void** ppData)
 {
 	assert(!m_Mapping);
 	ASSERT_RESULT(ppData != nullptr);
-	if (m_bHostVisible)
+	if (m_vkBuffer != VK_NULL_HANDLE)
 	{
-		if (m_vkBuffer != VK_NULL_HANDLE)
+		if (m_bHostVisible)
 		{
 			if (m_AllocInfo.pMapped)
 			{
@@ -220,15 +220,15 @@ bool KVulkanBuffer::Map(void** ppData)
 			m_Mapping = true;
 			return true;
 		}
-	}
-	else
-	{
-		m_StageBuffer.Init(m_BufferSize);
-		KVulkanInitializer::CopyVkBuffer(m_vkBuffer, m_StageBuffer.GetVulkanHandle(), (VkDeviceSize)m_BufferSize);
-		m_Mapping = true;
-		if (m_StageBuffer.Map(ppData))
+		else
 		{
-			return true;
+			m_StageBuffer.Init(m_BufferSize);
+			KVulkanInitializer::CopyVkBuffer(m_vkBuffer, m_StageBuffer.GetVulkanHandle(), (VkDeviceSize)m_BufferSize);
+			m_Mapping = true;
+			if (m_StageBuffer.Map(ppData))
+			{
+				return true;
+			}
 		}
 	}
 	assert(false && "should not reach");

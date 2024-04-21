@@ -171,6 +171,7 @@ bool KRenderer::Render(uint32_t chainImageIndex)
 	commandBuffer = m_Shadow.pool->Request(CBL_PRIMARY);
 	commandBuffer->BeginPrimary();
 	{
+		KRenderGlobal::VirtualTextureManager.Update(commandBuffer, cullRes);
 		KRenderGlobal::GPUScene.Execute(commandBuffer);
 
 		KRenderGlobal::CascadedShadowMap.UpdateShadowMap();
@@ -182,8 +183,6 @@ bool KRenderer::Render(uint32_t chainImageIndex)
 		multithreadRenderContext.threadPool = &m_ThreadPool;
 
 		KRenderGlobal::CascadedShadowMap.UpdateCasters(multithreadRenderContext);
-
-		KRenderGlobal::VirtualTextureManager.Update(commandBuffer, cullRes);
 	}
 
 	commandBuffer->End();

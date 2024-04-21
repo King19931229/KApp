@@ -6,13 +6,19 @@
 #include <map>
 #include <queue>
 
+struct KVirtualTexturePhysicalTilePayload
+{
+	KVirtualTextureTileNode* ownerNode = nullptr;
+	uint32_t pixelCount = 0;
+	uint32_t useFrameIndex = -1;
+};
+
 struct KVirtualTexturePhysicalTile
 {
 	KVirtualTexturePhysicalLocation physicalLocation;
+	KVirtualTexturePhysicalTilePayload payload;
 	KVirtualTexturePhysicalTile* prev = nullptr;
 	KVirtualTexturePhysicalTile* next = nullptr;
-	KVirtualTextureTileNode* ownerNode = nullptr;
-	uint32_t useFrameIndex = -1;
 };
 
 struct KVirtualTexturePhysicalUpdate
@@ -45,6 +51,13 @@ protected:
 	std::vector<IKRenderTargetPtr> m_FeedbackDepths;
 	std::vector<IKRenderTargetPtr> m_ResultReadbackTargets;
 	std::vector<IKRenderPassPtr> m_FeedbackPasses;
+
+	IKStorageBufferPtr m_VirtualTextrueDescriptionBuffer;
+
+	std::vector<IKStorageBufferPtr> m_FeedbackResultBuffers;
+	std::vector<IKComputePipelinePtr> m_InitFeedbackBufferPipelines;
+	std::vector<IKComputePipelinePtr> m_MergeFeedbackBufferPipelines;
+
 	std::vector<std::vector<KTextureRef>> m_PendingSourceTextures;
 
 	IKRenderTargetPtr m_PhysicalContentTarget;
@@ -80,7 +93,7 @@ protected:
 	void RemoveTileFromList(KVirtualTexturePhysicalTile* tile, KVirtualTexturePhysicalTile*& head);
 	void AddTileToList(KVirtualTexturePhysicalTile* tile, KVirtualTexturePhysicalTile* &head);
 	void LRUSortTile();
-	void UpdateConstantBuffer();
+	void UpdateBuffer();
 
 	uint32_t AcquireVirtualID();
 	void RecyleVirtualID(uint32_t ID);
@@ -113,6 +126,7 @@ public:
 
 	bool TableDebugRender(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer);
 
+	IKStorageBufferPtr GetVirtualTextrueDescriptionBuffer();
 	IKFrameBufferPtr GetPhysicalTextureFramebuffer(uint32_t index);
 	KSamplerRef GetPhysicalTextureSampler(uint32_t index);
 

@@ -35,7 +35,7 @@ void KHiZBuffer::InitializePipeline()
 		*m_ReadDepthSampler,
 		true);
 
-	m_ReadDepthPipeline->SetConstantBuffer(SHADER_BINDING_CAMERA, ST_VERTEX | ST_FRAGMENT, cameraBuffer);
+	m_ReadDepthPipeline->SetConstantBuffer(SHADER_BINDING_CAMERA, ST_FRAGMENT, cameraBuffer);
 	m_ReadDepthPipeline->Init();
 
 	SAFE_UNINIT_CONTAINER(m_BuildHiZMinPipelines);
@@ -81,7 +81,7 @@ void KHiZBuffer::InitializePipeline()
 					true);
 			}
 
-			pipeline->SetConstantBuffer(SHADER_BINDING_CAMERA, ST_VERTEX | ST_FRAGMENT, cameraBuffer);
+			pipeline->SetConstantBuffer(SHADER_BINDING_CAMERA, ST_FRAGMENT, cameraBuffer);
 			pipeline->Init();
 		}
 	}

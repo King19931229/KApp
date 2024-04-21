@@ -180,8 +180,32 @@ namespace KRenderUtil
 				}
 
 				KRenderGlobal::DynamicConstantBufferManager.Alloc(fsShadingBuffer.data(), shadingUsage);
-
 				command.dynamicConstantUsages.push_back(shadingUsage);
+			}
+
+			uint32_t virtualID[MAX_MATERIAL_TEXTURE_BINDING] = { 0 };
+			bool hasVirtualTexture = false;
+
+			IKMaterialTextureBindingPtr textureBinding = material->GetTextureBinding();
+			if (textureBinding)
+			{
+				for (uint32_t i = 0; i < MAX_MATERIAL_TEXTURE_BINDING; ++i)
+				{
+					if (textureBinding->GetIsVirtualTexture(i))
+					{
+						virtualID[i] = textureBinding->GetVirtualID(i);
+						hasVirtualTexture = true;
+					}
+				}
+			}
+
+			if (hasVirtualTexture)
+			{
+				KDynamicConstantBufferUsage virtualBindingUsage;
+				virtualBindingUsage.binding = SHADER_BINDING_VIRTUAL_TEXTURE_BINDING;
+				virtualBindingUsage.range = sizeof(virtualID);
+				KRenderGlobal::DynamicConstantBufferManager.Alloc(virtualID, virtualBindingUsage);
+				command.dynamicConstantUsages.push_back(virtualBindingUsage);
 			}
 
 			return true;

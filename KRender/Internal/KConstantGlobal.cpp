@@ -109,7 +109,7 @@ namespace KConstantGlobal
 
 	KConstantDefinition::VIRTUAL_TEXTURE VirtualTexture =
 	{
-		{ VEC4_ZERO, VEC4_ZERO, VEC4_ZERO, VEC4_ZERO }
+		{ VEC4_ZERO }
 	};
 
 	// TODO 与KConstantDefinition放在一起定义
@@ -132,7 +132,7 @@ namespace KConstantGlobal
 			return &VoxelClipmap;
 		case CBT_GLOBAL:
 			return &Global;
-		case CBT_VIRTUAL_TEXTURE:
+		case CBT_VIRTUAL_TEXTURE_CONSTANT:
 			return &VirtualTexture;
 		default:
 			assert(false && "UnSupported ConstantBufferType");

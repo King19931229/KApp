@@ -211,7 +211,16 @@ uint32_t KGPUScene::CreateOrGetMegaShaderIndex(KSubMeshPtr subMesh, IKMaterialPt
 				pipeline->SetStorageBuffer(SHADER_BINDING_MEGA_SHADER_STATE, ST_FRAGMENT, m_MegaShaderStateBuffers[frameIndex]);
 
 				IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_CAMERA);
-				pipeline->SetConstantBuffer(SHADER_BINDING_CAMERA, ST_VERTEX | ST_FRAGMENT, cameraBuffer);
+				pipeline->SetConstantBuffer(SHADER_BINDING_CAMERA, ST_FRAGMENT, cameraBuffer);
+
+				for (uint8_t i = 0; i < MAX_VIRTUAL_PHYSICAL_TEXTURE_BINDING; ++i)
+				{
+					uint32_t binding = SHADER_BINDING_TEXTURE0 + MAX_MATERIAL_TEXTURE_BINDING + i;
+					pipeline->SetSampler(binding, KRenderGlobal::VirtualTextureManager.GetPhysicalTextureFramebuffer(i), *KRenderGlobal::VirtualTextureManager.GetPhysicalTextureSampler(i), true);
+				}
+
+				IKUniformBufferPtr virtualTextureBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_VIRTUAL_TEXTURE_CONSTANT);
+				pipeline->SetConstantBuffer(CBT_VIRTUAL_TEXTURE_CONSTANT, ST_FRAGMENT, virtualTextureBuffer);
 
 				for (uint32_t i = 0; i < MAX_TEXTURE_ARRAY_NUM; ++i)
 				{

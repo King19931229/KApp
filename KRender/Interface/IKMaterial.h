@@ -67,6 +67,7 @@ struct IKMaterialTextureBinding
 	virtual bool SetErrorTexture(uint8_t slot) = 0;
 	virtual bool UnsetTextrue(uint8_t slot) = 0;
 
+	virtual uint32_t GetVirtualID(uint8_t slot) const = 0;
 	virtual IKTexturePtr GetTexture(uint8_t slot) const = 0;
 	virtual IKSamplerPtr GetSampler(uint8_t slot) const = 0;
 	virtual bool GetIsVirtualTexture(uint8_t slot) const = 0;

@@ -392,23 +392,39 @@ bool KRTAO::Execute(IKCommandBufferPtr primaryBuffer, IKQueuePtr graphicsQueue, 
 
 bool KRTAO::ReloadShader()
 {
-	if (m_ComposePipeline)
+	for (uint32_t i = 0; i < 2; ++i)
 	{
-		for (uint32_t i = 0; i < 2; ++i)
+		if (m_AOComputePipeline[i])
 		{
 			m_AOComputePipeline[i]->Reload();
+		}
+		if (m_AOTemporalPipeline[i])
+		{
 			m_AOTemporalPipeline[i]->Reload();
+		}
+		if (m_ReprojectPipeline[i])
+		{
 			m_ReprojectPipeline[i]->Reload();
+		}
+		if (m_AtrousComputePipeline[i])
+		{
 			m_AtrousComputePipeline[i]->Reload();
+		}
+		if (m_ComposePipeline[i])
+		{
 			m_ComposePipeline[i]->Reload();
 		}
-
-		m_MeanHorizontalComputePipeline->Reload();
-		m_MeanVerticalComputePipeline->Reload();
-
-		return true;
 	}
-	return false;
+	if (m_MeanHorizontalComputePipeline)
+	{
+		m_MeanHorizontalComputePipeline->Reload();
+	}
+	if (m_MeanVerticalComputePipeline)
+	{
+		m_MeanVerticalComputePipeline->Reload();
+	}
+
+	return true;
 }
 
 void KRTAO::Resize(uint32_t width, uint32_t height)

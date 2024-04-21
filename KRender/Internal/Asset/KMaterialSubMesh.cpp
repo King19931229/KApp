@@ -83,7 +83,8 @@ bool KMaterialSubMesh::Init(KSubMeshPtr subMesh, KMaterialRef material)
 					pipeline->SetSampler(binding, KRenderGlobal::VirtualTextureManager.GetPhysicalTextureFramebuffer(i), *KRenderGlobal::VirtualTextureManager.GetPhysicalTextureSampler(i), true);
 				}
 
-				pipeline->SetConstantBuffer(SHADER_BINDING_VIRTUAL_TEXTURE, ST_FRAGMENT, KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_VIRTUAL_TEXTURE));
+				pipeline->SetConstantBuffer(SHADER_BINDING_VIRTUAL_TEXTURE_CONSTANT, ST_FRAGMENT, KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_VIRTUAL_TEXTURE_CONSTANT));
+				pipeline->SetStorageBuffer(SHADER_BINDING_VIRTUAL_TEXTURE_DESCRIPTION, ST_FRAGMENT, KRenderGlobal::VirtualTextureManager.GetVirtualTextrueDescriptionBuffer());
 			}
 		}
 	}
@@ -270,7 +271,7 @@ bool KMaterialSubMesh::CreateGBufferPipeline()
 			pipeline->SetShader(ST_FRAGMENT, fsShader);
 
 			IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_CAMERA);
-			pipeline->SetConstantBuffer(SHADER_BINDING_CAMERA, ST_VERTEX | ST_FRAGMENT, cameraBuffer);
+			pipeline->SetConstantBuffer(SHADER_BINDING_CAMERA, ST_FRAGMENT, cameraBuffer);
 
 			ASSERT_RESULT(pipeline->Init());
 
@@ -323,7 +324,7 @@ bool KMaterialSubMesh::CreateVirtualFeedbackPipeline()
 			pipeline->SetShader(ST_FRAGMENT, fsShader);
 
 			IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_CAMERA);
-			pipeline->SetConstantBuffer(SHADER_BINDING_CAMERA, ST_VERTEX | ST_FRAGMENT, cameraBuffer);
+			pipeline->SetConstantBuffer(SHADER_BINDING_CAMERA, ST_FRAGMENT, cameraBuffer);
 
 			ASSERT_RESULT(pipeline->Init());
 
