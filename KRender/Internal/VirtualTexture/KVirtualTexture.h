@@ -107,17 +107,16 @@ struct KVirtualTextureTableUpdate
 	uint32_t padding[2] = { 0 };
 };
 
+enum VirtualTextureBinding
+{
+	#define VIRTUAL_TEXTURE_BINDING(SEMANTIC) VIRTUAL_TEXTURE_BINDING_##SEMANTIC,
+	#include "KVirtualTextureBinding.inl"
+	#undef VIRTUAL_TEXTURE_BINDING
+};
+
 class KVirtualTexture
 {
 protected:
-	enum
-	{
-		BINDING_UPLOAD_INFO = 0,
-		BINDING_OBJECT = 1,
-		BINDING_TABLE_IMAGE = 2,
-		UPLOAD_GROUP_SIZE = 64
-	};
-
 	std::string m_Path;
 	std::string m_Ext;
 	

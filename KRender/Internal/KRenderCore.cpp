@@ -185,7 +185,8 @@ bool KRenderCore::InitController()
 		if (key == INPUT_KEY_SPACE)
 		{
 			m_Device->Wait();
-			KRenderGlobal::GPUScene.ReloadShader();
+			KRenderGlobal::VirtualTextureManager.ReloadShader();
+			// KRenderGlobal::GPUScene.ReloadShader();
 		}
 		if (key == INPUT_KEY_R)
 		{

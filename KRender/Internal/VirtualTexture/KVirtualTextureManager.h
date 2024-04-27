@@ -29,6 +29,12 @@ struct KVirtualTexturePhysicalUpdate
 
 class KVirtualTextureManager
 {
+public:
+	enum
+	{
+		GROUP_SIZE = 64,
+		SQRT_GROUP_SIZE = 8
+	};
 protected:
 	std::unordered_set<KVirtualTexturePhysicalTile*> m_UsedTiles;
 	std::vector<KVirtualTexturePhysicalTile> m_PhysicalTiles;
@@ -55,8 +61,10 @@ protected:
 	IKStorageBufferPtr m_VirtualTextrueDescriptionBuffer;
 
 	std::vector<IKStorageBufferPtr> m_FeedbackResultBuffers;
-	std::vector<IKComputePipelinePtr> m_InitFeedbackBufferPipelines;
-	std::vector<IKComputePipelinePtr> m_MergeFeedbackBufferPipelines;
+	std::vector<IKStorageBufferPtr> m_MergedFeedbackResultBuffers;
+	std::vector<IKComputePipelinePtr> m_InitFeedbackResultPipelines;
+	std::vector<IKComputePipelinePtr> m_CountFeedbackResultPipelines;
+	std::vector<IKComputePipelinePtr> m_MergeFeedbackResultPipelines;
 
 	std::vector<std::vector<KTextureRef>> m_PendingSourceTextures;
 
@@ -81,6 +89,7 @@ protected:
 	uint32_t m_SizeWithPadding;
 	uint32_t m_NumMips;
 	uint32_t m_TileNum;
+	uint32_t m_FeedbackTileCount;
 
 	uint32_t m_Width = 0;
 	uint32_t m_Height = 0;
@@ -89,6 +98,8 @@ protected:
 
 	uint32_t m_VirtualIDCounter = 0;
 	std::queue<uint32_t> m_RecyledVirtualIDs;
+
+	KShaderCompileEnvironment m_CompileEnv;
 
 	void RemoveTileFromList(KVirtualTexturePhysicalTile* tile, KVirtualTexturePhysicalTile*& head);
 	void AddTileToList(KVirtualTexturePhysicalTile* tile, KVirtualTexturePhysicalTile* &head);
@@ -135,4 +146,6 @@ public:
 	uint32_t GetSizeWithoutPadding() const { return m_SizeWithoutPadding; }
 	uint32_t GetSizeWithPadding() const { return m_SizeWithPadding; }
 	uint32_t GetNumMips() const { return m_NumMips; }
+
+	const KShaderCompileEnvironment& GetCompileEnv() const { return m_CompileEnv; }
 };

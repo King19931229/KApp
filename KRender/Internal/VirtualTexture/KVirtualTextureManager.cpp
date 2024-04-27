@@ -17,6 +17,13 @@ KVirtualTextureManager::KVirtualTextureManager()
 	, m_Height(0)
 	, m_VirtualIDCounter(0)
 {
+#define VIRTUAL_TEXTURE_BINDING_TO_STR(x) #x
+#define VIRTUAL_TEXTURE_BINDING(SEMANTIC) m_CompileEnv.macros.push_back( {VIRTUAL_TEXTURE_BINDING_TO_STR(VIRTUAL_TEXTURE_BINDING_##SEMANTIC), std::to_string(VIRTUAL_TEXTURE_BINDING_##SEMANTIC) });
+#include "KVirtualTextureBinding.inl"
+#undef VIRTUAL_TEXTURE_BINDING
+#undef VIRTUAL_TEXTURE_BINDING_TO_STR
+	m_CompileEnv.macros.push_back({ "GROUP_SIZE", std::to_string(GROUP_SIZE) });
+	m_CompileEnv.macros.push_back({ "SQRT_GROUP_SIZE", std::to_string(SQRT_GROUP_SIZE) });
 }
 
 KVirtualTextureManager::~KVirtualTextureManager()
@@ -127,25 +134,50 @@ bool KVirtualTextureManager::Init(uint32_t tileSize, uint32_t tileDimension, uin
 	}
 
 	m_FeedbackResultBuffers.resize(frameNum);
-	m_InitFeedbackBufferPipelines.resize(frameNum);
-	m_MergeFeedbackBufferPipelines.resize(frameNum);
+	m_MergedFeedbackResultBuffers.resize(frameNum);
+	m_InitFeedbackResultPipelines.resize(frameNum);
+	m_CountFeedbackResultPipelines.resize(frameNum);
+	m_MergeFeedbackResultPipelines.resize(frameNum);
 
 	KRenderGlobal::RenderDevice->CreateStorageBuffer(m_VirtualTextrueDescriptionBuffer);
 	m_VirtualTextrueDescriptionBuffer->SetDebugName("VirtualTextrueDescription");
 	m_VirtualTextrueDescriptionBuffer->InitMemory(1, false);
 	m_VirtualTextrueDescriptionBuffer->InitDevice(false, false);
 
+	Resize(1024, 1024);
+
 	for (uint32_t i = 0; i < frameNum; ++i)
 	{
 		KRenderGlobal::RenderDevice->CreateStorageBuffer(m_FeedbackResultBuffers[i]);
-		KRenderGlobal::RenderDevice->CreateComputePipeline(m_InitFeedbackBufferPipelines[i]);
-		KRenderGlobal::RenderDevice->CreateComputePipeline(m_MergeFeedbackBufferPipelines[i]);
+		KRenderGlobal::RenderDevice->CreateStorageBuffer(m_MergedFeedbackResultBuffers[i]);
+		KRenderGlobal::RenderDevice->CreateComputePipeline(m_InitFeedbackResultPipelines[i]);
+		KRenderGlobal::RenderDevice->CreateComputePipeline(m_CountFeedbackResultPipelines[i]);
+		KRenderGlobal::RenderDevice->CreateComputePipeline(m_MergeFeedbackResultPipelines[i]);
 
 		m_FeedbackResultBuffers[i]->SetDebugName(("FeedbackResultBuffer_" + std::to_string(i)).c_str());
 		m_FeedbackResultBuffers[i]->InitMemory(1024, false);
-	}
+		m_FeedbackResultBuffers[i]->InitDevice(false, false);
 
-	Resize(1024, 1024);
+		m_MergedFeedbackResultBuffers[i]->SetDebugName(("MergedFeedbackResultBuffer_" + std::to_string(i)).c_str());
+		m_MergedFeedbackResultBuffers[i]->InitMemory(1024, false);
+		m_MergedFeedbackResultBuffers[i]->InitDevice(false, false);
+
+		m_InitFeedbackResultPipelines[i]->BindStorageBuffer(VIRTUAL_TEXTURE_BINDING_FEEDBACK_RESULT, m_FeedbackResultBuffers[i], COMPUTE_RESOURCE_OUT, true);
+		m_InitFeedbackResultPipelines[i]->BindStorageBuffer(VIRTUAL_TEXTURE_BINDING_MERGED_FEEDBACK_RESULT, m_MergedFeedbackResultBuffers[i], COMPUTE_RESOURCE_OUT, true);
+		m_InitFeedbackResultPipelines[i]->BindDynamicUniformBuffer(VIRTUAL_TEXTURE_BINDING_OBJECT);
+		m_InitFeedbackResultPipelines[i]->Init("virtualtexture/init_feedback.comp", m_CompileEnv);
+
+		m_CountFeedbackResultPipelines[i]->BindStorageBuffer(VIRTUAL_TEXTURE_BINDING_FEEDBACK_RESULT, m_FeedbackResultBuffers[i], COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, true);
+		m_CountFeedbackResultPipelines[i]->BindStorageImage(VIRTUAL_TEXTURE_BINDING_FEEDBACK_INPUT, m_FeedbackTargets[i]->GetFrameBuffer(), EF_R8G8B8A8_UNORM, COMPUTE_RESOURCE_IN, 0, true);
+		m_CountFeedbackResultPipelines[i]->BindStorageBuffer(VIRTUAL_TEXTURE_BINDING_TEXTURE_DESCRIPTION, KRenderGlobal::VirtualTextureManager.GetVirtualTextrueDescriptionBuffer(), COMPUTE_RESOURCE_IN, true);
+		m_CountFeedbackResultPipelines[i]->BindUniformBuffer(VIRTUAL_TEXTURE_BINDING_CONSTANT, KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_VIRTUAL_TEXTURE_CONSTANT));
+		m_CountFeedbackResultPipelines[i]->Init("virtualtexture/count_feedback.comp", m_CompileEnv);
+
+		m_MergeFeedbackResultPipelines[i]->BindStorageBuffer(VIRTUAL_TEXTURE_BINDING_FEEDBACK_RESULT, m_FeedbackResultBuffers[i], COMPUTE_RESOURCE_IN, true);
+		m_MergeFeedbackResultPipelines[i]->BindStorageBuffer(VIRTUAL_TEXTURE_BINDING_MERGED_FEEDBACK_RESULT, m_MergedFeedbackResultBuffers[i], COMPUTE_RESOURCE_OUT, true);
+		m_MergeFeedbackResultPipelines[i]->BindDynamicUniformBuffer(VIRTUAL_TEXTURE_BINDING_OBJECT);
+		m_MergeFeedbackResultPipelines[i]->Init("virtualtexture/merge_feedback.comp", m_CompileEnv);
+	}
 
 	{
 		IKCommandBufferPtr commandBuffer = KRenderGlobal::CommandPool->Request(CBL_PRIMARY);
@@ -200,8 +232,10 @@ bool KVirtualTextureManager::UnInit()
 	SAFE_UNINIT(m_VirtualTextrueDescriptionBuffer);
 
 	SAFE_UNINIT_CONTAINER(m_FeedbackResultBuffers);
-	SAFE_UNINIT_CONTAINER(m_InitFeedbackBufferPipelines);
-	SAFE_UNINIT_CONTAINER(m_MergeFeedbackBufferPipelines);
+	SAFE_UNINIT_CONTAINER(m_MergedFeedbackResultBuffers);
+	SAFE_UNINIT_CONTAINER(m_InitFeedbackResultPipelines);
+	SAFE_UNINIT_CONTAINER(m_CountFeedbackResultPipelines);
+	SAFE_UNINIT_CONTAINER(m_MergeFeedbackResultPipelines);
 
 	m_FeedbackDebugDrawer.UnInit();
 	m_PhysicalDebugDrawer.UnInit();
@@ -366,7 +400,34 @@ void KVirtualTextureManager::UpdateBuffer()
 		virtualTextureBuffer->Write(pData);
 	}
 
+	m_FeedbackTileCount = 0;
+
 	{
+		std::vector<glm::uvec4> descriptions;
+		descriptions.resize(m_VirtualIDCounter);
+
+		for (auto& pair : m_TextureMap)
+		{
+			KVirtualTextureResourceRef resource = pair.second;
+			uint32_t id = resource->GetVirtualID();
+			descriptions[id].x = resource->GetTileNum();
+			descriptions[id].y = resource->GetMaxMipLevel();
+			descriptions[id].z = m_FeedbackTileCount * sizeof(uint32_t);
+
+			uint32_t tileNum = resource->GetTileNum();
+			uint32_t tileCount = 0;
+			uint32_t mipOffsetSum = 0;
+			for (uint32_t i = 0; i <= resource->GetMaxMipLevel(); ++i)
+			{
+				uint32_t levelTileNum = resource->GetTileNum() >> i;
+				tileCount += levelTileNum * levelTileNum;
+			}
+
+			uint32_t calcTileCount = (tileNum * tileNum * 4 - tileNum * tileNum / (1 << (2 * resource->GetMaxMipLevel()))) / 3;
+			assert(calcTileCount == tileCount);
+			m_FeedbackTileCount += tileCount;
+		}
+
 		IKStorageBufferPtr descriptionBuffer = m_VirtualTextrueDescriptionBuffer;
 
 		if (descriptionBuffer->GetBufferSize() < m_VirtualIDCounter * sizeof(glm::uvec4))
@@ -378,21 +439,32 @@ void KVirtualTextureManager::UpdateBuffer()
 			descriptionBuffer->InitDevice(false, false);
 		}
 
-		std::vector<glm::uvec4> descriptions;
-		descriptions.resize(m_VirtualIDCounter);
-
-		for (auto& pair : m_TextureMap)
-		{
-			KVirtualTextureResourceRef resource = pair.second;
-			uint32_t id = resource->GetVirtualID();
-			descriptions[id].x = resource->GetTileNum();
-			descriptions[id].y = resource->GetMaxMipLevel();
-		}
-
 		void* pDst = nullptr;
 		descriptionBuffer->Map(&pDst);
 		memcpy(pDst, descriptions.data(), m_VirtualIDCounter * sizeof(glm::uvec4));
 		descriptionBuffer->UnMap();
+	}
+
+	{
+		uint32_t frameIdx = KRenderGlobal::CurrentInFlightFrameIndex;
+
+		IKStorageBufferPtr feedbackResultBuffer = m_FeedbackResultBuffers[frameIdx];
+		if (feedbackResultBuffer->GetBufferSize() < m_FeedbackTileCount * sizeof(uint32_t))
+		{
+			uint32_t bufferSize = 4 * ((m_FeedbackTileCount + 3) / 4) * sizeof(uint32_t);
+			feedbackResultBuffer->UnInit();
+			feedbackResultBuffer->InitMemory(bufferSize, nullptr);
+			feedbackResultBuffer->InitDevice(false, false);
+		}
+
+		IKStorageBufferPtr mergedFeedbackResultBuffer = m_MergedFeedbackResultBuffers[frameIdx];
+		if (mergedFeedbackResultBuffer->GetBufferSize() < 2 * (1 + m_FeedbackTileCount) * sizeof(uint32_t))
+		{
+			uint32_t bufferSize = 4 * ((2 * (m_FeedbackTileCount + 1) + 3) / 4) * sizeof(uint32_t);
+			mergedFeedbackResultBuffer->UnInit();
+			mergedFeedbackResultBuffer->InitMemory(bufferSize, nullptr);
+			mergedFeedbackResultBuffer->InitDevice(false, false);
+		}
 	}
 }
 
@@ -403,6 +475,56 @@ bool KVirtualTextureManager::Update(IKCommandBufferPtr primaryBuffer, const std:
 	HandleFeedbackResult();
 
 	uint32_t frameIdx = KRenderGlobal::CurrentInFlightFrameIndex;
+
+	{
+		primaryBuffer->BeginDebugMarker("VirtualTexture_FeedbackReslutInit", glm::vec4(1));
+
+		struct
+		{
+			uint32_t totalTileCount = 0;
+		} objectData;
+		objectData.totalTileCount = m_FeedbackTileCount;
+
+		KDynamicConstantBufferUsage objectUsage;
+		objectUsage.binding = VIRTUAL_TEXTURE_BINDING_OBJECT;
+		objectUsage.range = sizeof(objectData);
+		KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, objectUsage);
+
+		m_InitFeedbackResultPipelines[frameIdx]->Execute(primaryBuffer, (m_FeedbackTileCount + GROUP_SIZE - 1) / GROUP_SIZE, 1, 1, &objectUsage);
+
+		primaryBuffer->EndDebugMarker();
+	}
+
+	{
+		primaryBuffer->BeginDebugMarker("VirtualTexture_FeedbackResultCount", glm::vec4(1));
+		primaryBuffer->Transition(m_FeedbackTargets[frameIdx]->GetFrameBuffer(), PIPELINE_STAGE_FRAGMENT_SHADER, PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_GENERAL);
+
+		uint32_t width = m_FeedbackTargets[frameIdx]->GetFrameBuffer()->GetWidth();
+		uint32_t height = m_FeedbackTargets[frameIdx]->GetFrameBuffer()->GetHeight();
+
+		m_CountFeedbackResultPipelines[frameIdx]->Execute(primaryBuffer, (width + SQRT_GROUP_SIZE - 1) / SQRT_GROUP_SIZE, (height + SQRT_GROUP_SIZE - 1) / SQRT_GROUP_SIZE, 1, nullptr);
+
+		primaryBuffer->Transition(m_FeedbackTargets[frameIdx]->GetFrameBuffer(), PIPELINE_STAGE_COMPUTE_SHADER, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_GENERAL, IMAGE_LAYOUT_SHADER_READ_ONLY);
+	}
+
+	{
+		primaryBuffer->BeginDebugMarker("VirtualTexture_FeedbackReslutMerge", glm::vec4(1));
+
+		struct
+		{
+			uint32_t totalTileCount = 0;
+		} objectData;
+		objectData.totalTileCount = m_FeedbackTileCount;
+
+		KDynamicConstantBufferUsage objectUsage;
+		objectUsage.binding = VIRTUAL_TEXTURE_BINDING_OBJECT;
+		objectUsage.range = sizeof(objectData);
+		KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, objectUsage);
+
+		m_MergeFeedbackResultPipelines[frameIdx]->Execute(primaryBuffer, (m_FeedbackTileCount + GROUP_SIZE - 1) / GROUP_SIZE, 1, 1, &objectUsage);
+
+		primaryBuffer->EndDebugMarker();
+	}
 
 	primaryBuffer->Transition(m_FeedbackTargets[frameIdx]->GetFrameBuffer(), PIPELINE_STAGE_FRAGMENT_SHADER, PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_COLOR_ATTACHMENT);
 	primaryBuffer->Transition(m_PhysicalContentTarget->GetFrameBuffer(), PIPELINE_STAGE_FRAGMENT_SHADER, PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_COLOR_ATTACHMENT);
@@ -563,6 +685,18 @@ bool KVirtualTextureManager::ReloadShader()
 	if (m_UploadContentPipeline)
 	{
 		m_UploadContentPipeline->Reload();
+	}
+	for (size_t i = 0; i < m_InitFeedbackResultPipelines.size(); ++i)
+	{
+		m_InitFeedbackResultPipelines[i]->Reload();
+	}
+	for (size_t i = 0; i < m_CountFeedbackResultPipelines.size(); ++i)
+	{
+		m_CountFeedbackResultPipelines[i]->Reload();
+	}
+	for (size_t i = 0; i < m_MergeFeedbackResultPipelines.size(); ++i)
+	{
+		m_MergeFeedbackResultPipelines[i]->Reload();
 	}
 	return true;
 }

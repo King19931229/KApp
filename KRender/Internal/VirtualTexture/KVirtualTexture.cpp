@@ -166,22 +166,11 @@ bool KVirtualTexture::Init(const std::string& path, uint32_t tileNum, uint32_t v
 
 		KRenderGlobal::RenderDevice->CreateComputePipeline(m_TableUpdateComputePipelines[i]);
 
-		m_TableUpdateComputePipelines[i]->BindStorageBuffer(BINDING_UPLOAD_INFO, m_TableUpdateStorages[i], COMPUTE_RESOURCE_IN, true);
-		m_TableUpdateComputePipelines[i]->BindDynamicUniformBuffer(BINDING_OBJECT);
-		m_TableUpdateComputePipelines[i]->BindStorageImage(BINDING_TABLE_IMAGE, m_TableTexture->GetFrameBuffer(), m_TableTexture->GetTextureFormat(), COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, 0, true);
+		m_TableUpdateComputePipelines[i]->BindStorageBuffer(VIRTUAL_TEXTURE_BINDING_UPLOAD_INFO, m_TableUpdateStorages[i], COMPUTE_RESOURCE_IN, true);
+		m_TableUpdateComputePipelines[i]->BindDynamicUniformBuffer(VIRTUAL_TEXTURE_BINDING_OBJECT);
+		m_TableUpdateComputePipelines[i]->BindStorageImage(VIRTUAL_TEXTURE_BINDING_TABLE_IMAGE, m_TableTexture->GetFrameBuffer(), m_TableTexture->GetTextureFormat(), COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, 0, true);
 
-		KShaderCompileEnvironment env;
-
-#define ENUM_TO_STR(x) #x
-#define ADD_MACRO(SEMANTIC) env.macros.push_back(std::make_tuple(ENUM_TO_STR(##SEMANTIC), std::to_string(##SEMANTIC)));
-		ADD_MACRO(BINDING_UPLOAD_INFO);
-		ADD_MACRO(BINDING_OBJECT);
-		ADD_MACRO(BINDING_TABLE_IMAGE);
-		ADD_MACRO(UPLOAD_GROUP_SIZE);
-#undef ADD_MACRO
-#undef ENUM_TO_STR
-		 
-		m_TableUpdateComputePipelines[i]->Init("virtualtexture/table_upload.comp", env);
+		m_TableUpdateComputePipelines[i]->Init("virtualtexture/table_upload.comp", KRenderGlobal::VirtualTextureManager.GetCompileEnv());
 	}
 
 	m_TableDebugDrawer.Init(m_TableTexture->GetFrameBuffer(), 0.5f, 0.5f, 0.5f, 0.5f, false);
@@ -326,13 +315,13 @@ bool KVirtualTexture::UpdateTableTexture(IKCommandBufferPtr primaryBuffer)
 		uploadUsage.dimension[2] = (uint32_t)m_PendingTableUpdates.size();
 
 		KDynamicConstantBufferUsage objectUsage;
-		objectUsage.binding = BINDING_OBJECT;
+		objectUsage.binding = VIRTUAL_TEXTURE_BINDING_OBJECT;
 		objectUsage.range = sizeof(uploadUsage);
 
 		KRenderGlobal::DynamicConstantBufferManager.Alloc(&uploadUsage, objectUsage);
 
 		primaryBuffer->Transition(m_TableTexture->GetFrameBuffer(), PIPELINE_STAGE_FRAGMENT_SHADER, PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_GENERAL);
-		m_TableUpdateComputePipelines[frameIndex]->Execute(primaryBuffer, (uint32_t)(m_PendingTableUpdates.size() + UPLOAD_GROUP_SIZE - 1) / UPLOAD_GROUP_SIZE, 1, 1, &objectUsage);
+		m_TableUpdateComputePipelines[frameIndex]->Execute(primaryBuffer, (uint32_t)(m_PendingTableUpdates.size() + KVirtualTextureManager::GROUP_SIZE - 1) / KVirtualTextureManager::GROUP_SIZE, 1, 1, &objectUsage);
 		primaryBuffer->Transition(m_TableTexture->GetFrameBuffer(), PIPELINE_STAGE_COMPUTE_SHADER, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_GENERAL, IMAGE_LAYOUT_SHADER_READ_ONLY);
 
 		primaryBuffer->EndDebugMarker();
