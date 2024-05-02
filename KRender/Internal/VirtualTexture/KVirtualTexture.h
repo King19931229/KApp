@@ -24,12 +24,12 @@ typedef KVirtualTextureTile KVirtualTexturePhysicalLocation;
 
 inline bool operator<(const KVirtualTextureTile& lhs, const KVirtualTextureTile& rhs)
 {
+	if (lhs.mip != rhs.mip)
+		return lhs.mip < rhs.mip;
 	if (lhs.x != rhs.x)
 		return lhs.x < rhs.x;
 	if (lhs.y != rhs.y)
 		return lhs.y < rhs.y;
-	if (lhs.mip != rhs.mip)
-		return lhs.mip < rhs.mip;
 }
 
 inline bool operator==(const KVirtualTextureTile& lhs, const KVirtualTextureTile& rhs)
@@ -156,7 +156,7 @@ public:
 	bool UpdateTableTexture(IKCommandBufferPtr primaryBuffer);
 
 	void BeginRequest();
-	void AddRequest(const KVirtualTextureTile& tile);
+	void AddRequest(const KVirtualTextureTile& tile, uint32_t count);
 	void EndRequest();
 	void ProcessPendingUpdate();
 

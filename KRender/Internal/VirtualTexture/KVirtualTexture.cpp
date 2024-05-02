@@ -337,18 +337,18 @@ void KVirtualTexture::BeginRequest()
 	m_HashedTileRequests.clear();
 }
 
-void KVirtualTexture::AddRequest(const KVirtualTextureTile& tile)
+void KVirtualTexture::AddRequest(const KVirtualTextureTile& tile, uint32_t count)
 {
 	if (tile.IsValid() && tile.x < m_TileNum && tile.y < m_TileNum)
 	{
 		auto it = m_HashedTileRequests.find(tile);
 		if (it == m_HashedTileRequests.end())
 		{
-			m_HashedTileRequests[tile] = 1;
+			m_HashedTileRequests[tile] = count;
 		}
 		else
 		{
-			++it->second;
+			it->second += count;
 		}
 	}
 }
@@ -368,7 +368,14 @@ void KVirtualTexture::EndRequest()
 
 	std::sort(requests.begin(), requests.end(), [](const KVirtualTextureTileRequest& lhs, const KVirtualTextureTileRequest& rhs)
 	{
-		return lhs.count > rhs.count;
+		if (lhs.count != rhs.count)
+		{
+			return lhs.count > rhs.count;
+		}
+		else
+		{
+			return !(lhs.tile < rhs.tile);
+		}
 	});
 
 	std::vector<uint32_t> currentTileInfo;
@@ -457,11 +464,13 @@ void KVirtualTexture::EndRequest()
 void KVirtualTexture::ProcessPendingUpdate()
 {
 	uint32_t processCount = 0;
+	std::unordered_set<std::string> uploadedTextures;
 
 	while (m_PendingTileUpdates.size() && processCount < m_MaxUpdatePerFrame)
 	{
 		KVirtualTextureTileNode* updateTile = m_PendingTileUpdates.top();
 		m_PendingTileUpdates.pop();
+
 		if (updateTile->physicalTile->payload.ownerNode == updateTile)
 		{
 			uint32_t x = updateTile->sx / (1 << updateTile->mip);
@@ -469,16 +478,18 @@ void KVirtualTexture::ProcessPendingUpdate()
 			uint32_t mip = updateTile->mip;
 
 			std::string textureName = m_Path + "_MIP" + std::to_string(mip) + "_Y" + std::to_string(y) + "_X" + std::to_string(x) + m_Ext;
-			KRenderGlobal::VirtualTextureManager.UploadToPhysical(textureName, updateTile->physicalTile->physicalLocation);
-
-			++processCount;
-			updateTile->loadStatus = KVirtualTextureTileNode::TILE_LOADED;
+			auto it = uploadedTextures.find(textureName);
+			if (it == uploadedTextures.end())
+			{
+				KRenderGlobal::VirtualTextureManager.UploadToPhysical(textureName, updateTile->physicalTile->physicalLocation);
+				++processCount;
+				updateTile->loadStatus = KVirtualTextureTileNode::TILE_LOADED;
+				uploadedTextures.insert(textureName);
+				continue;
+			}
 		}
-		else
-		{
-			updateTile->physicalTile = nullptr;
-			updateTile->loadStatus = KVirtualTextureTileNode::TILE_UNLOADED;
-		}
+		updateTile->physicalTile = nullptr;
+		updateTile->loadStatus = KVirtualTextureTileNode::TILE_UNLOADED;		
 	}
 }
 

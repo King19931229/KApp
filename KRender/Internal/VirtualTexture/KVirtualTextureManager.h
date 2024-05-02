@@ -72,6 +72,13 @@ protected:
 	std::vector<IKRenderPassPtr> m_UploadContentPasses;
 	std::vector<std::vector<KVirtualTexturePhysicalUpdate>> m_PendingContentUpdate;
 
+	struct TileOffsetRecord
+	{
+		uint32_t virtualID;
+		uint32_t tileOffset;
+	};
+	std::vector<TileOffsetRecord> m_TileOffsetRecords;
+
 	KShaderRef m_QuadVS;
 	KShaderRef m_UploadFS;
 	KSamplerRef m_PhysicalUpdateSampler;
@@ -95,6 +102,8 @@ protected:
 	uint32_t m_Height = 0;
 
 	uint32_t m_CurrentTargetBinding = 0;
+	
+	bool m_GPUProcessFeedback = true;
 
 	uint32_t m_VirtualIDCounter = 0;
 	std::queue<uint32_t> m_RecyledVirtualIDs;
@@ -110,6 +119,9 @@ protected:
 	void RecyleVirtualID(uint32_t ID);
 
 	void HandleFeedbackResult();
+	void FeedbackRender(IKCommandBufferPtr primaryBuffer, const std::vector<IKEntity*>& cullRes);
+	void DispatchFeedbackAnalyze(IKCommandBufferPtr primaryBuffer);
+	void ProcessPhysicalUpdate(IKCommandBufferPtr primaryBuffer);
 public:
 	KVirtualTextureManager();
 	~KVirtualTextureManager();
@@ -148,4 +160,5 @@ public:
 	uint32_t GetNumMips() const { return m_NumMips; }
 
 	const KShaderCompileEnvironment& GetCompileEnv() const { return m_CompileEnv; }
+	bool& GetGPUProcessFeedback() {	return m_GPUProcessFeedback; }
 };
