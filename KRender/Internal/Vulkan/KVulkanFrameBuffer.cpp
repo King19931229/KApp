@@ -447,14 +447,15 @@ VkImageView KVulkanFrameBuffer::GetMipmapImageView(uint32_t startMip, uint32_t n
 {
 	ASSERT_RESULT(startMip < 256 && numMip < 256);
 	uint32_t idx = (startMip << 8) | numMip;
+	uint32_t key = idx;
 
 	VkImageView vkImageView;
 
-	auto it = m_MipmapImageViews.find(idx);
+	auto it = m_MipmapImageViews.find(key);
 	if (it == m_MipmapImageViews.end())
 	{
 		KVulkanInitializer::CreateVkImageView(m_Image, m_ImageViewType, m_Format, VK_IMAGE_ASPECT_COLOR_BIT, startMip, numMip, 0, 1, vkImageView);
-		m_MipmapImageViews[idx] = vkImageView;
+		m_MipmapImageViews[key] = vkImageView;
 	}
 	else
 	{
@@ -464,11 +465,15 @@ VkImageView KVulkanFrameBuffer::GetMipmapImageView(uint32_t startMip, uint32_t n
 	return vkImageView;
 }
 
-VkImageView KVulkanFrameBuffer::GetReinterpretImageView(ElementFormat format)
+VkImageView KVulkanFrameBuffer::GetMipmapReinterpretImageView(ElementFormat format, uint32_t startMip, uint32_t numMip)
 {
 	VkImageView imageView = VK_NULL_HANDEL;
 
-	auto it = m_ReinterpretImageView.find(format);
+	ASSERT_RESULT(startMip < 256 && numMip < 256);
+	uint64_t idx = (startMip << 8) | numMip;
+	uint64_t key = format | (idx << 32);
+
+	auto it = m_ReinterpretImageView.find(key);
 	if (it != m_ReinterpretImageView.end())
 	{
 		imageView = it->second;
@@ -478,11 +483,16 @@ VkImageView KVulkanFrameBuffer::GetReinterpretImageView(ElementFormat format)
 		VkFormat vkFormat = VK_FORMAT_UNDEFINED;
 		ASSERT_RESULT(KVulkanHelper::ElementFormatToVkFormat(format, vkFormat));
 
-		KVulkanInitializer::CreateVkImageView(m_Image, m_ImageViewType, vkFormat, VK_IMAGE_ASPECT_COLOR_BIT, 0, m_Mipmaps, 0, (m_ImageViewType == VK_IMAGE_VIEW_TYPE_CUBE) ? 6 : 1, imageView);
-		m_ReinterpretImageView.insert({ format , imageView });
+		KVulkanInitializer::CreateVkImageView(m_Image, m_ImageViewType, vkFormat, VK_IMAGE_ASPECT_COLOR_BIT, startMip, numMip, 0, (m_ImageViewType == VK_IMAGE_VIEW_TYPE_CUBE) ? 6 : 1, imageView);
+		m_ReinterpretImageView.insert({ key , imageView });
 	}
 
 	return imageView;
+}
+
+VkImageView KVulkanFrameBuffer::GetReinterpretImageView(ElementFormat format)
+{
+	return GetMipmapReinterpretImageView(format, 0, m_Mipmaps);
 }
 
 bool KVulkanFrameBuffer::UnInit()

@@ -11,6 +11,8 @@ static_assert(GBufferDescription[GBUFFER_TARGET2].target == GBUFFER_TARGET2, "ch
 static_assert(GBufferDescription[GBUFFER_TARGET3].target == GBUFFER_TARGET3, "check");
 
 KGBuffer::KGBuffer()
+	: m_Width(0)
+	, m_Height(0)
 {}
 
 KGBuffer::~KGBuffer()
@@ -53,6 +55,9 @@ bool KGBuffer::UnInit()
 	SAFE_UNINIT(m_AOTarget);
 	SAFE_UNINIT(m_GBufferSampler);
 	SAFE_UNINIT(m_GBufferClosestSampler);
+
+	m_Width = 0;
+	m_Height = 0;
 	return true;
 }
 
@@ -60,6 +65,11 @@ bool KGBuffer::Resize(uint32_t width, uint32_t height)
 {
 	if (width && height)
 	{
+		if (width == m_Width && height == m_Height)
+		{
+			return true;
+		}
+
 		auto EnsureRenderTarget = [](IKRenderTargetPtr& target)
 		{
 			if (target) target->UnInit();
@@ -84,6 +94,9 @@ bool KGBuffer::Resize(uint32_t width, uint32_t height)
 		EnsureRenderTarget(m_SceneTarget);
 		ASSERT_RESULT(m_SceneTarget->InitFromColor(width, height, 1, 1, EF_R16G16B16A16_FLOAT));
 		m_SceneTarget->GetFrameBuffer()->SetDebugName("SceneColor");
+
+		m_Width = width;
+		m_Height = height;
 
 		return true;
 	}

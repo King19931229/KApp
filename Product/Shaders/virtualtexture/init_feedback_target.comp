@@ -1,0 +1,18 @@
+layout(binding = VIRTUAL_TEXTURE_BINDING_FEEDBACK_INPUT) buffer VirtualTextureFeedbackInputBuffer { vec4 VirtualTextureFeedbackInputResult[]; };
+
+layout(std430, binding = VIRTUAL_TEXTURE_BINDING_TEXTURE_DESCRIPTION) buffer VirtualTextureDescriptionBuffer { uvec4 VirtualTextureDescription[]; };
+
+layout(binding = VIRTUAL_TEXTURE_BINDING_CONSTANT)
+uniform VirtualTextureConstantInfo
+{
+	uvec4 description;
+	uvec4 description2;
+} virtual_texture_constant;
+
+layout(local_size_x = GROUP_SIZE, local_size_y = 1, local_size_z = 1) in;
+void main()
+{
+	if (gl_GlobalInvocationID.x >= virtual_texture_constant.description2.y)
+		return;
+	VirtualTextureFeedbackInputResult[gl_GlobalInvocationID.x] = vec4(1.0);
+}

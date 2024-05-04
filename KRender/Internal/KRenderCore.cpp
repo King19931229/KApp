@@ -697,7 +697,7 @@ void KRenderCore::DebugCode()
 	materialSourceFile->AddIncludeSource(KRenderGlobal::ShaderManager.GetBindingGenerateCode());
 	materialSourceFile->Open("material/diffuse.glsl");
 
-	initContext.IncludeSource = { {"material_generate_code.h", materialSourceFile->GetFinalSource()} };
+	initContext.includeSources = { {"material_generate_code.h", materialSourceFile->GetFinalSource()} };
 
 	VertexFormat formats[] = { VF_POINT_NORMAL_UV };
 

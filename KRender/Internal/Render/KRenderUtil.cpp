@@ -193,7 +193,8 @@ namespace KRenderUtil
 				{
 					if (textureBinding->GetIsVirtualTexture(i))
 					{
-						virtualID[i] = textureBinding->GetVirtualID(i);
+						KVirtualTexture* virtualTexture = (KVirtualTexture*)textureBinding->GetVirtualTextureSoul(i);
+						virtualID[i] = virtualTexture->GetVirtualID();
 						hasVirtualTexture = true;
 					}
 				}
@@ -222,17 +223,28 @@ namespace KRenderUtil
 		} feedbackData;
 
 		feedbackData.misc[0] = targetBinding;
-		feedbackData.misc[1] = virtualTexture->GetVirtualID();
-		feedbackData.misc[2] = (uint32_t)virtualTexture->GetTableTexture()->GetWidth();
-		feedbackData.misc[3] = (uint32_t)virtualTexture->GetTableTexture()->GetHeight();
+
+		if (virtualTexture)
+		{
+			feedbackData.misc[1] = virtualTexture->GetVirtualID();
+			feedbackData.misc[2] = (uint32_t)virtualTexture->GetTableTexture()->GetWidth();
+			feedbackData.misc[3] = (uint32_t)virtualTexture->GetTableTexture()->GetHeight();
+			feedbackData.misc2[1] = (uint32_t)virtualTexture->GetTableTexture()->GetMipmaps();
+		}
+		else
+		{
+			feedbackData.misc[1] = 0xFFFFFFFF;
+			feedbackData.misc[2] = 0;
+			feedbackData.misc[3] = 0;
+			feedbackData.misc2[1] = 0;
+		}
 
 		feedbackData.misc2[0] = 0;
-		feedbackData.misc2[1] = (uint32_t)virtualTexture->GetTableTexture()->GetMipmaps();
 		feedbackData.misc2[2] = feedbackData.misc[2] * KRenderGlobal::VirtualTextureManager.GetTileSize();
 		feedbackData.misc2[3] = feedbackData.misc[3] * KRenderGlobal::VirtualTextureManager.GetTileSize();
 
 		KDynamicConstantBufferUsage virtualUsage;
-		virtualUsage.binding = SHADER_BINDING_VIRTUAL_TEXTURE_FEEDBACK;
+		virtualUsage.binding = SHADER_BINDING_VIRTUAL_TEXTURE_FEEDBACK_TARGET;
 		virtualUsage.range = sizeof(feedbackData);
 		KRenderGlobal::DynamicConstantBufferManager.Alloc(&feedbackData, virtualUsage);
 

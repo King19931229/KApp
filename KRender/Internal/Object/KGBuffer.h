@@ -30,6 +30,7 @@ constexpr KGBufferDescription GBufferDescription[GBUFFER_TARGET_COUNT]
 };
 
 constexpr ElementFormat AOFormat = EF_R8_UNORM;//EF_R8G8B8A8_UNORM;
+constexpr ElementFormat VirtualTextureFeedbackFormat = EF_R8G8B8A8_UNORM;//EF_R8G8B8A8_UNORM;
 
 class KGBuffer
 {
@@ -40,6 +41,9 @@ protected:
 	IKRenderTargetPtr m_AOTarget;
 	IKSamplerPtr m_GBufferSampler;
 	IKSamplerPtr m_GBufferClosestSampler;
+
+	uint32_t m_Width;
+	uint32_t m_Height;
 public:
 	KGBuffer();
 	~KGBuffer();
@@ -58,4 +62,7 @@ public:
 	inline IKRenderTargetPtr GetAOTarget() { return m_AOTarget; }
 	inline IKSamplerPtr GetSampler() { return m_GBufferSampler; }
 	inline IKSamplerPtr GetClosestSampler() { return m_GBufferSampler; }
+
+	inline uint32_t GetWidth() const { return m_Width; }
+	inline uint32_t GetHeight() const { return m_Height; }
 };

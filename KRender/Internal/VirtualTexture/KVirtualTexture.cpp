@@ -148,7 +148,7 @@ bool KVirtualTexture::Init(const std::string& path, uint32_t tileNum, uint32_t v
 	m_Ext = ".png";
 
 	KRenderGlobal::RenderDevice->CreateTexture(m_TableTexture);
-	m_TableTexture->InitMemoryFromData(nullptr, m_Path + "_PageTable", tileNum, tileNum, 1, IF_R8G8B8A8, false, false, false);
+	m_TableTexture->InitMemoryFromData(nullptr, m_Path + "_PageTable", tileNum, tileNum, 1, IF_R8G8B8A8, false, true, false);
 	m_TableTexture->InitDevice(false);
 
 	m_TableInfo.resize(tileNum * tileNum);
@@ -156,23 +156,47 @@ bool KVirtualTexture::Init(const std::string& path, uint32_t tileNum, uint32_t v
 
 	m_RootNode = new KVirtualTextureTileNode(0, 0, tileNum, tileNum, m_MaxMipLevel);
 
+	m_MipUpdateComputePipelines.resize(KRenderGlobal::NumFramesInFlight);
+	m_MipUpdateStorages.resize(KRenderGlobal::NumFramesInFlight);
+
+	for (size_t i = 0; i < m_MipUpdateComputePipelines.size(); ++i)
+	{
+		KRenderGlobal::RenderDevice->CreateStorageBuffer(m_MipUpdateStorages[i]);
+
+		m_MipUpdateStorages[i]->SetDebugName(std::string("VirtualTextureMipUpdateStorage_" + m_Path + "_" + std::to_string(i)).c_str());
+
+		KRenderGlobal::RenderDevice->CreateComputePipeline(m_MipUpdateComputePipelines[i]);
+
+		m_MipUpdateComputePipelines[i]->BindStorageBuffer(VIRTUAL_TEXTURE_BINDING_UPLOAD_INFO, m_MipUpdateStorages[i], COMPUTE_RESOURCE_IN, true);
+		m_MipUpdateComputePipelines[i]->BindDynamicUniformBuffer(VIRTUAL_TEXTURE_BINDING_OBJECT);
+		m_MipUpdateComputePipelines[i]->BindStorageImage(VIRTUAL_TEXTURE_BINDING_TABLE_IMAGE, m_TableTexture->GetFrameBuffer(), m_TableTexture->GetTextureFormat(), COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, 0, true);
+
+		m_MipUpdateComputePipelines[i]->Init("virtualtexture/mip_update.comp", KRenderGlobal::VirtualTextureManager.GetCompileEnv());
+	}
+
 	m_TableUpdateStorages.resize(KRenderGlobal::NumFramesInFlight);
 	m_TableUpdateComputePipelines.resize(KRenderGlobal::NumFramesInFlight);
 
 	for (size_t i = 0; i < m_TableUpdateComputePipelines.size(); ++i)
 	{
-		KRenderGlobal::RenderDevice->CreateStorageBuffer(m_TableUpdateStorages[i]);
-		m_TableUpdateStorages[i]->SetDebugName(std::string("VirtualTextureTableUpdateStorage_" + m_Path + "_" + std::to_string(i)).c_str());
+		m_TableUpdateStorages[i].resize(m_MaxMipLevel + 1);
+		m_TableUpdateComputePipelines[i].resize(m_MaxMipLevel + 1);
 
-		KRenderGlobal::RenderDevice->CreateComputePipeline(m_TableUpdateComputePipelines[i]);
+		for (uint32_t mip = 0; mip <= m_MaxMipLevel; ++mip)
+		{
+			KRenderGlobal::RenderDevice->CreateStorageBuffer(m_TableUpdateStorages[i][mip]);
 
-		m_TableUpdateComputePipelines[i]->BindStorageBuffer(VIRTUAL_TEXTURE_BINDING_UPLOAD_INFO, m_TableUpdateStorages[i], COMPUTE_RESOURCE_IN, true);
-		m_TableUpdateComputePipelines[i]->BindDynamicUniformBuffer(VIRTUAL_TEXTURE_BINDING_OBJECT);
-		m_TableUpdateComputePipelines[i]->BindStorageImage(VIRTUAL_TEXTURE_BINDING_TABLE_IMAGE, m_TableTexture->GetFrameBuffer(), m_TableTexture->GetTextureFormat(), COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, 0, true);
+			m_TableUpdateStorages[i][mip]->SetDebugName(std::string("VirtualTextureTableUpdateStorage_" + std::to_string(mip) + "_" + m_Path + "_" + std::to_string(i)).c_str());
 
-		m_TableUpdateComputePipelines[i]->Init("virtualtexture/table_upload.comp", KRenderGlobal::VirtualTextureManager.GetCompileEnv());
+			KRenderGlobal::RenderDevice->CreateComputePipeline(m_TableUpdateComputePipelines[i][mip]);
+
+			m_TableUpdateComputePipelines[i][mip]->BindStorageBuffer(VIRTUAL_TEXTURE_BINDING_UPLOAD_INFO, m_TableUpdateStorages[i][mip], COMPUTE_RESOURCE_IN, true);
+			m_TableUpdateComputePipelines[i][mip]->BindDynamicUniformBuffer(VIRTUAL_TEXTURE_BINDING_OBJECT);
+			m_TableUpdateComputePipelines[i][mip]->BindStorageImage(VIRTUAL_TEXTURE_BINDING_TABLE_IMAGE, m_TableTexture->GetFrameBuffer(), m_TableTexture->GetTextureFormat(), COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, mip, true);
+
+			m_TableUpdateComputePipelines[i][mip]->Init("virtualtexture/table_update.comp", KRenderGlobal::VirtualTextureManager.GetCompileEnv());
+		}
 	}
-
 	m_TableDebugDrawer.Init(m_TableTexture->GetFrameBuffer(), 0.5f, 0.5f, 0.5f, 0.5f, false);
 	// m_TableDebugDrawer.EnableDraw();
 
@@ -189,8 +213,19 @@ bool KVirtualTexture::UnInit()
 	SAFE_DELETE(m_RootNode);
 	SAFE_UNINIT(m_TableTexture);
 
-	SAFE_UNINIT_CONTAINER(m_TableUpdateStorages);
-	SAFE_UNINIT_CONTAINER(m_TableUpdateComputePipelines);
+	SAFE_UNINIT_CONTAINER(m_MipUpdateStorages);
+	SAFE_UNINIT_CONTAINER(m_MipUpdateComputePipelines);
+
+	for (size_t i = 0; i < m_TableUpdateStorages.size(); ++i)
+	{
+		SAFE_UNINIT_CONTAINER(m_TableUpdateStorages[i]);
+	}
+	m_TableUpdateStorages.clear();
+	for (size_t i = 0; i < m_TableUpdateComputePipelines.size(); ++i)
+	{
+		SAFE_UNINIT_CONTAINER(m_TableUpdateComputePipelines[i]);
+	}
+	m_TableUpdateComputePipelines.clear();
 
 	m_HashedTileRequests.clear();
 	m_TableInfo.clear();
@@ -292,39 +327,113 @@ bool KVirtualTexture::FeedbackRender(IKCommandBufferPtr primaryBuffer, IKRenderP
 	return true;
 }
 
-bool KVirtualTexture::UpdateTableTexture(IKCommandBufferPtr primaryBuffer)
+bool KVirtualTexture::UpdateTexture(IKCommandBufferPtr primaryBuffer)
 {
 	uint32_t frameIndex = KRenderGlobal::CurrentInFlightFrameIndex;
-	m_TableUpdateStorages[frameIndex]->UnInit();
+
+	m_MipUpdateStorages[frameIndex]->UnInit();
+	for (uint32_t mip = 0; mip <= m_MaxMipLevel; ++mip)
+	{
+		m_TableUpdateStorages[frameIndex][mip]->UnInit();
+	}
 
 	if (m_PendingTableUpdates.size() > 0)
 	{
-		primaryBuffer->BeginDebugMarker(("VirtualTexture_UpdateTable_" + m_Path).c_str(), glm::vec4(1));
-
-		m_TableUpdateStorages[frameIndex]->InitMemory(m_PendingTableUpdates.size() * sizeof(KVirtualTextureTableUpdate), m_PendingTableUpdates.data());
-		m_TableUpdateStorages[frameIndex]->InitDevice(false, false);
-
-		struct
 		{
-			glm::uvec4 dimension;
-		} uploadUsage;
-		static_assert((sizeof(uploadUsage) % 16) == 0, "Size must be a multiple of 16");
+			primaryBuffer->BeginDebugMarker(("VirtualTexture_UpdateMip_" + m_Path).c_str(), glm::vec4(1));
 
-		uploadUsage.dimension[0] = m_TileNum;
-		uploadUsage.dimension[1] = m_TileNum;
-		uploadUsage.dimension[2] = (uint32_t)m_PendingTableUpdates.size();
+			m_MipUpdateStorages[frameIndex]->InitMemory(m_PendingTableUpdates.size() * sizeof(KVirtualTextureTableUpdate), m_PendingTableUpdates.data());
+			m_MipUpdateStorages[frameIndex]->InitDevice(false, false);
 
-		KDynamicConstantBufferUsage objectUsage;
-		objectUsage.binding = VIRTUAL_TEXTURE_BINDING_OBJECT;
-		objectUsage.range = sizeof(uploadUsage);
+			struct
+			{
+				glm::uvec4 dimension;
+			} uploadUsage;
+			static_assert((sizeof(uploadUsage) % 16) == 0, "Size must be a multiple of 16");
 
-		KRenderGlobal::DynamicConstantBufferManager.Alloc(&uploadUsage, objectUsage);
+			uploadUsage.dimension[0] = m_TileNum;
+			uploadUsage.dimension[1] = m_TileNum;
+			uploadUsage.dimension[2] = (uint32_t)m_PendingTableUpdates.size();
 
-		primaryBuffer->Transition(m_TableTexture->GetFrameBuffer(), PIPELINE_STAGE_FRAGMENT_SHADER, PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_GENERAL);
-		m_TableUpdateComputePipelines[frameIndex]->Execute(primaryBuffer, (uint32_t)(m_PendingTableUpdates.size() + KVirtualTextureManager::GROUP_SIZE - 1) / KVirtualTextureManager::GROUP_SIZE, 1, 1, &objectUsage);
-		primaryBuffer->Transition(m_TableTexture->GetFrameBuffer(), PIPELINE_STAGE_COMPUTE_SHADER, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_GENERAL, IMAGE_LAYOUT_SHADER_READ_ONLY);
+			KDynamicConstantBufferUsage objectUsage;
+			objectUsage.binding = VIRTUAL_TEXTURE_BINDING_OBJECT;
+			objectUsage.range = sizeof(uploadUsage);
 
-		primaryBuffer->EndDebugMarker();
+			KRenderGlobal::DynamicConstantBufferManager.Alloc(&uploadUsage, objectUsage);
+
+			primaryBuffer->Transition(m_TableTexture->GetFrameBuffer(), PIPELINE_STAGE_FRAGMENT_SHADER, PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_GENERAL);
+			m_MipUpdateComputePipelines[frameIndex]->Execute(primaryBuffer, (uint32_t)(m_PendingTableUpdates.size() + KVirtualTextureManager::GROUP_SIZE - 1) / KVirtualTextureManager::GROUP_SIZE, 1, 1, &objectUsage);
+			primaryBuffer->Transition(m_TableTexture->GetFrameBuffer(), PIPELINE_STAGE_COMPUTE_SHADER, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_GENERAL, IMAGE_LAYOUT_SHADER_READ_ONLY);
+
+			primaryBuffer->EndDebugMarker();
+		}
+
+		std::vector<std::vector<KVirtualTextureTableUpdate>> pendingMipUpdates;
+		pendingMipUpdates.resize(m_MaxMipLevel + 1);
+		for (const KVirtualTextureTableUpdate& update : m_PendingTableUpdates)
+		{
+			uint32_t _mip = update.data >> 24;
+			assert(_mip == 255 || _mip < pendingMipUpdates.size());
+			if (_mip < pendingMipUpdates.size())
+			{
+				uint32_t mip = _mip;
+				uint32_t tileNum = m_TileNum >> mip;
+				uint32_t x = (update.id % m_TileNum) >> mip;
+				uint32_t y = (update.id / m_TileNum) >> mip;
+				KVirtualTextureTableUpdate mipUpdate;
+				mipUpdate.id = x + y * tileNum;
+				mipUpdate.data = update.data;
+				pendingMipUpdates[mip].push_back(mipUpdate);
+			}
+			else
+			{
+				for (uint32_t mip = 0; mip <= m_MaxMipLevel; ++mip)
+				{
+					uint32_t tileNum = m_TileNum >> mip;
+					uint32_t x = (update.id % m_TileNum) >> mip;
+					uint32_t y = (update.id / m_TileNum) >> mip;
+					KVirtualTextureTableUpdate mipUpdate;
+					mipUpdate.id = x + y * tileNum;
+					mipUpdate.data = update.data;
+					pendingMipUpdates[mip].push_back(mipUpdate);
+				}
+			}
+		}
+
+		for (uint32_t mip = 0; mip <= m_MaxMipLevel; ++mip)
+		{
+			if (pendingMipUpdates[mip].size() == 0)
+			{
+				continue;
+			}
+
+			primaryBuffer->BeginDebugMarker(("VirtualTexture_UpdateTable_" + std::to_string(mip) + "_" + m_Path).c_str(), glm::vec4(1));
+
+			m_TableUpdateStorages[frameIndex][mip]->InitMemory(pendingMipUpdates[mip].size() * sizeof(KVirtualTextureTableUpdate), pendingMipUpdates[mip].data());
+			m_TableUpdateStorages[frameIndex][mip]->InitDevice(false, false);
+
+			struct
+			{
+				glm::uvec4 dimension;
+			} uploadUsage;
+			static_assert((sizeof(uploadUsage) % 16) == 0, "Size must be a multiple of 16");
+
+			uploadUsage.dimension[0] = m_TileNum >> mip;
+			uploadUsage.dimension[1] = m_TileNum >> mip;
+			uploadUsage.dimension[2] = (uint32_t)pendingMipUpdates[mip].size();
+
+			KDynamicConstantBufferUsage objectUsage;
+			objectUsage.binding = VIRTUAL_TEXTURE_BINDING_OBJECT;
+			objectUsage.range = sizeof(uploadUsage);
+
+			KRenderGlobal::DynamicConstantBufferManager.Alloc(&uploadUsage, objectUsage);
+
+			primaryBuffer->Transition(m_TableTexture->GetFrameBuffer(), PIPELINE_STAGE_FRAGMENT_SHADER, PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_GENERAL);
+			m_TableUpdateComputePipelines[frameIndex][mip]->Execute(primaryBuffer, (uint32_t)(pendingMipUpdates[mip].size() + KVirtualTextureManager::GROUP_SIZE - 1) / KVirtualTextureManager::GROUP_SIZE, 1, 1, &objectUsage);
+			primaryBuffer->Transition(m_TableTexture->GetFrameBuffer(), PIPELINE_STAGE_COMPUTE_SHADER, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_GENERAL, IMAGE_LAYOUT_SHADER_READ_ONLY);
+
+			primaryBuffer->EndDebugMarker();
+		}
 
 		m_PendingTableUpdates.clear();
 	}

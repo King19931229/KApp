@@ -117,6 +117,7 @@ void KDeferredRenderer::RecreateRenderPass(uint32_t width, uint32_t height)
 				renderPass->SetOpColor(gbuffer, loadOp, SO_STORE);
 				renderPass->SetClearColor(gbuffer, { 0.0f, 0.0f, 0.0f, 0.0f });
 			}
+
 			renderPass->SetDepthStencilAttachment(KRenderGlobal::GBuffer.GetDepthStencilTarget()->GetFrameBuffer());
 			renderPass->SetClearDepthStencil({ 1.0f, 0 });
 			renderPass->SetOpDepthStencil(loadOp, SO_STORE, loadOp, SO_STORE);
@@ -454,7 +455,7 @@ void KDeferredRenderer::BuildRenderCommand(KMultithreadingRenderContext& renderC
 	IKRenderPassPtr renderPass = m_RenderPass[deferredRenderStage];
 	renderContext.primaryBuffer->BeginDebugMarker(debugMarker, glm::vec4(1));
 
-	if (!KRenderGlobal::GPUScene.GetEnable() || deferredRenderStage != DRS_STAGE_MAIN_BASE_PASS)
+	if (!KRenderGlobal::GPUScene.GetEnable())
 	{
 		for (KMaterialSubMeshInstance& subMeshInstance : subMeshInstances)
 		{
@@ -470,6 +471,19 @@ void KDeferredRenderer::BuildRenderCommand(KMultithreadingRenderContext& renderC
 					if (!KRenderUtil::AssignShadingParameter(command, subMeshInstance.materialSubMesh->GetMaterial()))
 					{
 						continue;
+					}
+
+					if (deferredRenderStage == DRS_STAGE_MAIN_BASE_PASS || deferredRenderStage == DRS_STAGE_POST_BASE_PASS)
+					{
+						KVirtualTexture* virtualTexture = nullptr;
+						if (command.textureBinding->GetIsVirtualTexture(m_CurrentVirtualFeedbackTargetBinding))
+						{
+							virtualTexture = (KVirtualTexture*)command.textureBinding->GetVirtualTextureSoul(m_CurrentVirtualFeedbackTargetBinding);
+						}
+						if (!KRenderUtil::AssignVirtualFeedbackParameter(command, m_CurrentVirtualFeedbackTargetBinding, virtualTexture))
+						{
+							continue;
+						}
 					}
 
 					std::vector<KInstanceBufferManager::AllocResultBlock> allocRes;
@@ -518,6 +532,19 @@ void KDeferredRenderer::BuildRenderCommand(KMultithreadingRenderContext& renderC
 					if (!KRenderUtil::AssignShadingParameter(command, subMeshInstance.materialSubMesh->GetMaterial()))
 					{
 						continue;
+					}
+
+					if (deferredRenderStage == DRS_STAGE_MAIN_BASE_PASS || deferredRenderStage == DRS_STAGE_POST_BASE_PASS)
+					{
+						KVirtualTexture* virtualTexture = nullptr;
+						if (command.textureBinding->GetIsVirtualTexture(m_CurrentVirtualFeedbackTargetBinding))
+						{
+							virtualTexture = (KVirtualTexture*)command.textureBinding->GetVirtualTextureSoul(m_CurrentVirtualFeedbackTargetBinding);
+						}
+						if (!KRenderUtil::AssignVirtualFeedbackParameter(command, m_CurrentVirtualFeedbackTargetBinding, virtualTexture))
+						{
+							continue;
+						}
 					}
 
 					for (size_t idx = 0; idx < instances.size(); ++idx)

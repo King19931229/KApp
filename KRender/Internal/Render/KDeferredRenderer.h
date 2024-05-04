@@ -25,6 +25,8 @@ protected:
 	KShaderRef m_DeferredLightingFS;
 	KShaderRef m_SceneColorDrawFS;
 
+	uint32_t m_CurrentVirtualFeedbackTargetBinding = 0;
+
 	DeferredRenderDebug m_DebugOption;
 
 	const class KCamera* m_Camera;

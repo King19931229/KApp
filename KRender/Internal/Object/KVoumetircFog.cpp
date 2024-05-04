@@ -57,7 +57,7 @@ void KVolumetricFog::InitializePipeline()
 		m_VoxelLightInjectPipeline[i]->BindUniformBuffer(CBT_STATIC_CASCADED_SHADOW, staticShadowBuffer);
 		m_VoxelLightInjectPipeline[i]->BindUniformBuffer(CBT_DYNAMIC_CASCADED_SHADOW, dynamicShadowBuffer);
 		m_VoxelLightInjectPipeline[i]->BindSampler(VOLUMETRIC_FOG_BINDING_VOXEL_PREV, m_VoxelLightTarget[(i + 1) & 1]->GetFrameBuffer(), *m_VoxelSampler, false);
-		m_VoxelLightInjectPipeline[i]->BindStorageImage(VOLUMETRIC_FOG_BINDING_VOXEL_CURR, m_VoxelLightTarget[i]->GetFrameBuffer(), VOXEL_FORMAT, COMPUTE_RESOURCE_OUT, 1, false);
+		m_VoxelLightInjectPipeline[i]->BindStorageImage(VOLUMETRIC_FOG_BINDING_VOXEL_CURR, m_VoxelLightTarget[i]->GetFrameBuffer(), VOXEL_FORMAT, COMPUTE_RESOURCE_OUT, 0, false);
 
 		for (uint32_t cascadedIndex = 0; cascadedIndex < KRenderGlobal::CascadedShadowMap.SHADOW_MAP_MAX_CASCADED; ++cascadedIndex)
 		{
@@ -80,7 +80,7 @@ void KVolumetricFog::InitializePipeline()
 	{
 		m_RayMatchPipeline[i]->BindDynamicUniformBuffer(SHADER_BINDING_OBJECT);
 		m_RayMatchPipeline[i]->BindSampler(VOLUMETRIC_FOG_BINDING_VOXEL_CURR, m_VoxelLightTarget[i]->GetFrameBuffer(), *m_VoxelSampler, false);
-		m_RayMatchPipeline[i]->BindStorageImage(VOLUMETRIC_FOG_BINDING_VOXEL_RESULT, m_RayMatchResultTarget->GetFrameBuffer(), VOXEL_FORMAT, COMPUTE_RESOURCE_OUT, 1, false);
+		m_RayMatchPipeline[i]->BindStorageImage(VOLUMETRIC_FOG_BINDING_VOXEL_RESULT, m_RayMatchResultTarget->GetFrameBuffer(), VOXEL_FORMAT, COMPUTE_RESOURCE_OUT, 0, false);
 		m_RayMatchPipeline[i]->Init("volumetricfog/raymatch.comp", KShaderCompileEnvironment());
 	}
 

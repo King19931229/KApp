@@ -715,7 +715,7 @@ bool KMaterial::InitFromFile(const std::string& path, bool async)
 					initContext.vsFile = "shading/basepass.vert";
 					initContext.fsFile = "shading/basepass.frag";
 				}
-				initContext.IncludeSource = { {"material_generate_code.h", materialCode} };
+				initContext.includeSources = { {"material_generate_code.h", materialCode} };
 
 				if (m_ShaderMap.Init(initContext, async))
 				{
@@ -804,14 +804,16 @@ bool KMaterial::InitFromImportAssetMaterial(const KMeshRawData::Material& input,
 	if (input.alphaMode == MAM_OPAQUE || input.alphaMode == MAM_MASK)
 	{
 		KShaderMapInitContext initContext;		
-		initContext.IncludeSource = { {"material_generate_code.h", m_MaterialCode} };
+		initContext.includeSources = { {"material_generate_code.h", m_MaterialCode} };
 
 		initContext.vsFile = "shading/basepass.vert";
 		initContext.fsFile = "shading/basepass.frag";
+		initContext.macros = { {"BASE_PASS", "1"} };
 		ASSERT_RESULT(m_ShaderMap.Init(initContext, async));
 
 		initContext.vsFile = "shadow/cascaded/static_shadow.vert";
 		initContext.fsFile = "shadow/cascaded/shadow.frag";
+		initContext.macros = { {"SHADOW_PASS", "1"} };
 		ASSERT_RESULT(m_StaticCSMShaderMap.Init(initContext, async));
 
 		initContext.vsFile = "shadow/cascaded/dynamic_shadow.vert";
@@ -820,6 +822,7 @@ bool KMaterial::InitFromImportAssetMaterial(const KMeshRawData::Material& input,
 
 		initContext.vsFile = "virtualtexture/vt_basepass.vert";
 		initContext.fsFile = "virtualtexture/vt_basepass.frag";
+		initContext.macros = { {"VIRTUAL_TEXTURE_FEEDBACK_PASS", "1"} };
 		ASSERT_RESULT(m_VirtualFeedbackShaderMap.Init(initContext, async));
 
 		m_ShadingMode = MSM_OPAQUE;
@@ -829,7 +832,8 @@ bool KMaterial::InitFromImportAssetMaterial(const KMeshRawData::Material& input,
 		KShaderMapInitContext initContext;
 		initContext.vsFile = "shading/basepass.vert";
 		initContext.fsFile = "shading/translucent.frag";
-		initContext.IncludeSource = { {"material_generate_code.h", m_MaterialCode} };
+		initContext.macros = { {"TRANSRPANT_PASS", "1"} };
+		initContext.includeSources = { {"material_generate_code.h", m_MaterialCode} };
 
 		m_ShadingMode = MSM_TRANSRPANT;
 

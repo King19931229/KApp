@@ -85,6 +85,7 @@ bool KMaterialSubMesh::Init(KSubMeshPtr subMesh, KMaterialRef material)
 
 				pipeline->SetConstantBuffer(SHADER_BINDING_VIRTUAL_TEXTURE_CONSTANT, ST_FRAGMENT, KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_VIRTUAL_TEXTURE_CONSTANT));
 				pipeline->SetStorageBuffer(SHADER_BINDING_VIRTUAL_TEXTURE_DESCRIPTION, ST_FRAGMENT, KRenderGlobal::VirtualTextureManager.GetVirtualTextrueDescriptionBuffer());
+				pipeline->SetStorageBuffer(SHADER_BINDING_VIRTUAL_TEXTURE_FEEDBACK_RESULT, ST_FRAGMENT, KRenderGlobal::VirtualTextureManager.GetVirtualTextureFeedbackBuffer());
 			}
 		}
 	}

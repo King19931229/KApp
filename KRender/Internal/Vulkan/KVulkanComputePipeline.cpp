@@ -150,8 +150,7 @@ VkWriteDescriptorSet KVulkanComputePipeline::PopulateImageWrite(BindingInfo& bin
 			image.imageDescriptors[i] =
 			{
 				VK_NULL_HANDLE,
-				// TODO GetReinterpretImageView for mipmap
-				image.format == EF_UNKNOWN ? vulkanFrameBuffer->GetMipmapImageView(image.mipmap, 1) : vulkanFrameBuffer->GetReinterpretImageView(image.format),
+				image.format == EF_UNKNOWN ? vulkanFrameBuffer->GetMipmapImageView(image.mipmap, 1) : vulkanFrameBuffer->GetMipmapReinterpretImageView(image.format, image.mipmap, 1),
 				vulkanFrameBuffer->GetImageLayout()
 			};
 		}

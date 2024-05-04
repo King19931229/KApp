@@ -53,24 +53,28 @@ protected:
 	KVirtualTexturePhysicalTile* m_FreeTileHead;
 	KVirtualTexturePhysicalTile* m_UsedTileHead;
 
-	std::vector<IKRenderTargetPtr> m_FeedbackTargets;
-	std::vector<IKRenderTargetPtr> m_FeedbackDepths;
-	std::vector<IKRenderTargetPtr> m_ResultReadbackTargets;
-	std::vector<IKRenderPassPtr> m_FeedbackPasses;
+	IKRenderTargetPtr m_FeedbackTarget;
+	IKRenderTargetPtr m_FeedbackDepth;
+	IKRenderPassPtr m_FeedbackPass;
 
+	IKRenderTargetPtr m_ResultReadbackTarget;
 	IKStorageBufferPtr m_VirtualTextrueDescriptionBuffer;
 
-	std::vector<IKStorageBufferPtr> m_FeedbackResultBuffers;
-	std::vector<IKStorageBufferPtr> m_MergedFeedbackResultBuffers;
-	std::vector<IKComputePipelinePtr> m_InitFeedbackResultPipelines;
-	std::vector<IKComputePipelinePtr> m_CountFeedbackResultPipelines;
-	std::vector<IKComputePipelinePtr> m_MergeFeedbackResultPipelines;
+	IKStorageBufferPtr m_FeedbackResultBuffer;
+	IKStorageBufferPtr m_MergedFeedbackResultBuffer;
+	IKComputePipelinePtr m_InitFeedbackResultPipeline;
+	IKComputePipelinePtr m_StandaloneCountFeedbackResultPipeline;
+	IKComputePipelinePtr m_GBufferCountFeedbackResultPipeline;
+	IKComputePipelinePtr m_MergeFeedbackResultPipeline;
+	IKComputePipelinePtr m_InitFeedbackTargetPipeline;
+
+	IKStorageBufferPtr m_VirtualTextureFeedbackBuffer;
 
 	std::vector<std::vector<KTextureRef>> m_PendingSourceTextures;
 
 	IKRenderTargetPtr m_PhysicalContentTarget;
-	std::vector<IKRenderPassPtr> m_UploadContentPasses;
-	std::vector<std::vector<KVirtualTexturePhysicalUpdate>> m_PendingContentUpdate;
+	std::vector<IKRenderPassPtr> m_UploadContentMipPasses;
+	std::vector<std::vector<KVirtualTexturePhysicalUpdate>> m_PendingMipContentUpdates;
 
 	struct TileOffsetRecord
 	{
@@ -101,11 +105,16 @@ protected:
 	uint32_t m_Width = 0;
 	uint32_t m_Height = 0;
 
-	uint32_t m_CurrentTargetBinding = 0;
-	
-	bool m_GPUProcessFeedback = true;
+	uint32_t m_VirtualTextureFeedbackRatio;
+	uint32_t m_VirtualTextureFeedbackWidth;
+	uint32_t m_VirtualTextureFeedbackHeight;
 
 	uint32_t m_VirtualIDCounter = 0;
+	uint32_t m_CurrentTargetBinding = 0;
+	
+	bool m_GPUProcessFeedback;
+	bool m_EnableStandaloneFeedbackPass;
+
 	std::queue<uint32_t> m_RecyledVirtualIDs;
 
 	KShaderCompileEnvironment m_CompileEnv;
@@ -131,6 +140,7 @@ public:
 
 	bool Acqiure(const std::string& path, uint32_t tileNum, KVirtualTextureResourceRef& ref);
 	bool Update(IKCommandBufferPtr primaryBuffer, const std::vector<IKEntity*>& cullRes);
+	bool InitFeedbackTarget(IKCommandBufferPtr primaryBuffer);
 
 	bool ReloadShader();
 
@@ -149,6 +159,7 @@ public:
 
 	bool TableDebugRender(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer);
 
+	IKStorageBufferPtr GetVirtualTextureFeedbackBuffer();
 	IKStorageBufferPtr GetVirtualTextrueDescriptionBuffer();
 	IKFrameBufferPtr GetPhysicalTextureFramebuffer(uint32_t index);
 	KSamplerRef GetPhysicalTextureSampler(uint32_t index);
@@ -159,6 +170,9 @@ public:
 	uint32_t GetSizeWithPadding() const { return m_SizeWithPadding; }
 	uint32_t GetNumMips() const { return m_NumMips; }
 
+	uint32_t GetVirtualTextureFeedbackRatio() const { return m_VirtualTextureFeedbackRatio; }
+
 	const KShaderCompileEnvironment& GetCompileEnv() const { return m_CompileEnv; }
 	bool& GetGPUProcessFeedback() {	return m_GPUProcessFeedback; }
+	bool& GetEnableStandaloneFeedbackPass() { return m_EnableStandaloneFeedbackPass; }
 };

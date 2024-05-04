@@ -38,7 +38,7 @@ protected:
 	bool m_External;
 
 	std::unordered_map<uint32_t, VkImageView> m_MipmapImageViews;
-	std::unordered_map<ElementFormat, VkImageView> m_ReinterpretImageView;
+	std::unordered_map<uint64_t, VkImageView> m_ReinterpretImageView;
 
 	bool InitStorageInternal(VkFormat format, TextureType type, uint32_t width, uint32_t height, uint32_t depth, uint32_t mipmaps);
 	bool TransitionLayoutImpl(VkCommandBuffer cmdBuffer, uint32_t srcQueueFamilyIndex, uint32_t dstQueueFamilyIndex, uint32_t baseMip, uint32_t numMip, VkPipelineStageFlags srcStages, VkPipelineStageFlags dstStages, VkImageLayout oldLayout, VkImageLayout newLayout);
@@ -93,7 +93,7 @@ public:
 	inline VkImageLayout GetImageLayout() const { return m_ImageLayout; }
 	inline uint32_t GetUniqueID() const { return m_UniqueID; }
 
-	VkImageView GetMipmapImageView(uint32_t startMip, uint32_t numMip);
 	VkImageView GetReinterpretImageView(ElementFormat format);
-
+	VkImageView GetMipmapImageView(uint32_t startMip, uint32_t numMip);
+	VkImageView GetMipmapReinterpretImageView(ElementFormat format, uint32_t startMip, uint32_t numMip);
 };

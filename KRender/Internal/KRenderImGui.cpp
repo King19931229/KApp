@@ -313,6 +313,7 @@ void KRenderImGui::Run()
 			ImGui::Checkbox("FeedbackDebug", &KRenderGlobal::VirtualTextureManager.GetFeedbackDebugDrawEnable());
 			ImGui::Checkbox("PhysicalDraw", &KRenderGlobal::VirtualTextureManager.GetPhysicalDrawEnable());
 			ImGui::Checkbox("GPUProcessFeedback", &KRenderGlobal::VirtualTextureManager.GetGPUProcessFeedback());
+			ImGui::Checkbox("EnableStandaloneFeedbackPass", &KRenderGlobal::VirtualTextureManager.GetEnableStandaloneFeedbackPass());
 		}
 	}
 	ImGui::PopStyleColor(1);

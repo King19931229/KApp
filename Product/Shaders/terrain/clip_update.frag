@@ -10,8 +10,6 @@ uniform Object_DYN_UNIFORM
 	vec4 area;
 }object;
 
-in vec4 gl_FragCoord;
-
 void main()
 {
 	ivec2 coord = ivec2(round(inUV * (object.area.xy - vec2(1.0))));

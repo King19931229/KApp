@@ -100,6 +100,7 @@ namespace KConstantDefinition
 	struct VIRTUAL_TEXTURE
 	{
 		glm::uvec4 DESCRIPTION;
+		glm::uvec4 DESCRIPTION2;
 	};
 
 	struct ConstantSemanticDetail

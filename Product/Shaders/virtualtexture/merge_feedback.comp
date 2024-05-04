@@ -1,0 +1,36 @@
+#extension GL_ARB_shader_atomic_counters : require
+
+layout (std430, binding = VIRTUAL_TEXTURE_BINDING_FEEDBACK_RESULT) coherent buffer FeedbackResultBuffer
+{
+	uvec4 FeedbackResult[];
+};
+
+layout (std430, binding = VIRTUAL_TEXTURE_BINDING_MERGED_FEEDBACK_RESULT) coherent buffer MergedFeedbackResultBuffer
+{
+	uvec4 MergedFeedbackResult[];
+};
+
+layout(binding = VIRTUAL_TEXTURE_BINDING_OBJECT)
+uniform Object_DYN_UNIFORM
+{
+	uint totalTileCount;
+} object;
+
+layout(local_size_x = GROUP_SIZE, local_size_y = 1, local_size_z = 1) in;
+void main()
+{
+	uint globalIndex = gl_GlobalInvocationID.x;
+	if (globalIndex < object.totalTileCount)
+	{
+		uint count = FeedbackResult[globalIndex / 4][globalIndex & 3];
+		if (count > 0)
+		{
+			uint index = atomicAdd(MergedFeedbackResult[0][0], 1);
+			uint idWriteIndex = 2 + index * 2;
+			uint countWriteIndex = idWriteIndex + 1;
+
+			MergedFeedbackResult[idWriteIndex / 4][idWriteIndex & 3] = globalIndex;
+			MergedFeedbackResult[countWriteIndex / 4][countWriteIndex & 3] = count;
+		}
+	}
+}

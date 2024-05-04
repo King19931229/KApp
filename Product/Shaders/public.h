@@ -101,6 +101,7 @@ layout(binding = BINDING_VIRTUAL_TEXTURE_CONSTANT)
 uniform VirtualTextureConstantInfo
 {
 	uvec4 description;
+	uvec4 description2;
 } virtual_texture_constant;
 
 const float PI = 3.14159265f;

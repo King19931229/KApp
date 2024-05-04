@@ -76,7 +76,7 @@ bool KMaterialTextureBinding::SetTextureVirtual(uint8_t slot, const std::string&
 			{
 				KSamplerDescription desc = ToSamplerDesc(sampler);
 				desc.minMipmap = 0;
-				desc.maxMipmap = 0;
+				desc.maxMipmap = m_VirtualTextures[slot]->GetMaxMipLevel();
 				desc.anisotropic = false;
 				desc.minFilter = FM_NEAREST;
 				desc.magFilter = FM_NEAREST;
@@ -178,16 +178,13 @@ bool KMaterialTextureBinding::UnsetTextrue(uint8_t slot)
 	return false;
 }
 
-uint32_t KMaterialTextureBinding::GetVirtualID(uint8_t slot) const
+void* KMaterialTextureBinding::GetVirtualTextureSoul(uint8_t slot) const
 {
 	if (slot < GetNumSlot())
 	{
-		if (m_VirtualTextures[slot])
-		{
-			return m_VirtualTextures[slot]->GetVirtualID();
-		}
+		return m_VirtualTextures[slot].Get();
 	}
-	return -1;
+	return nullptr;
 }
 
 IKTexturePtr KMaterialTextureBinding::GetTexture(uint8_t slot) const

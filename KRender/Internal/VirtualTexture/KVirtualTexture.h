@@ -28,8 +28,7 @@ inline bool operator<(const KVirtualTextureTile& lhs, const KVirtualTextureTile&
 		return lhs.mip < rhs.mip;
 	if (lhs.x != rhs.x)
 		return lhs.x < rhs.x;
-	if (lhs.y != rhs.y)
-		return lhs.y < rhs.y;
+	return lhs.y < rhs.y;
 }
 
 inline bool operator==(const KVirtualTextureTile& lhs, const KVirtualTextureTile& rhs)
@@ -129,10 +128,11 @@ protected:
 	std::vector<uint32_t> m_TableInfo;
 	std::vector<KVirtualTextureTableUpdate> m_PendingTableUpdates;
 
-	std::vector<IKStorageBufferPtr> m_TableUpdateStorages;
-	std::vector<IKComputePipelinePtr> m_TableUpdateComputePipelines;
+	std::vector<IKComputePipelinePtr> m_MipUpdateComputePipelines;
+	std::vector<IKStorageBufferPtr> m_MipUpdateStorages;
 
-	KSamplerRef m_Sampler;
+	std::vector<std::vector<IKStorageBufferPtr>> m_TableUpdateStorages;
+	std::vector<std::vector<IKComputePipelinePtr>> m_TableUpdateComputePipelines;
 
 	uint32_t m_VirtualID = 0;
 
@@ -153,7 +153,7 @@ public:
 	bool UnInit();
 
 	bool FeedbackRender(IKCommandBufferPtr primaryBuffer, IKRenderPassPtr renderPass, uint32_t targetBinding, const std::vector<IKEntity*>& cullRes);
-	bool UpdateTableTexture(IKCommandBufferPtr primaryBuffer);
+	bool UpdateTexture(IKCommandBufferPtr primaryBuffer);
 
 	void BeginRequest();
 	void AddRequest(const KVirtualTextureTile& tile, uint32_t count);

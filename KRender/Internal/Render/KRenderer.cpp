@@ -211,6 +211,7 @@ bool KRenderer::Render(uint32_t chainImageIndex)
 		multithreadRenderContext.enableMultithreading = m_EnableMultithreadRender;
 		multithreadRenderContext.threadPool = &m_ThreadPool;
 
+		KRenderGlobal::VirtualTextureManager.InitFeedbackTarget(commandBuffer);
 		KRenderGlobal::VirtualGeometryManager.ExecuteMain(commandBuffer);
 		KRenderGlobal::DeferredRenderer.PrePass(multithreadRenderContext, cullRes);
 		KRenderGlobal::DeferredRenderer.MainBasePass(multithreadRenderContext, cullRes);
