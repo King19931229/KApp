@@ -87,8 +87,11 @@ struct KVirtualTextureTileNode
 
 	KVirtualTextureTileNode(uint32_t startX, uint32_t startY, uint32_t endX, uint32_t endY, uint32_t mipLevel);
 	~KVirtualTextureTileNode();
+
 	KVirtualTextureTileNode* GetNodeWithDataLoaded(uint32_t x, uint32_t y, uint32_t mipLevel);
 	KVirtualTextureTileNode* GetNode(uint32_t x, uint32_t y, uint32_t mipLevel);
+
+	void LRUTouch(uint32_t x, uint32_t y, uint32_t mipLevel);
 
 	void ReturnPhysicalTileRecursively();
 };

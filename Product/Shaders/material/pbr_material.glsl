@@ -212,7 +212,8 @@ vec4 SampleFromVirtualTexture(uint binding, vec2 texCoord, vec4 pageInfo)
 		float pageMip = floor(pageInfo.z * 255.0 + 0.5);
 		float virutalMip = floor(pageInfo.w * 255.0 + 0.5);
 
-		float maxVirtualMip = VirtualTextureDescription[virtual_binding.binding[binding / 4][binding & 3]].y;
+		uint virtualID = virtual_binding.binding[binding / 4][binding & 3];
+		float maxVirtualMip = VirtualTextureDescription[virtualID].y;
 
 		float tileSize = float(virtual_texture_constant.description.x);
 		float paddingSize = float(virtual_texture_constant.description.y);
@@ -231,6 +232,20 @@ vec4 SampleFromVirtualTexture(uint binding, vec2 texCoord, vec4 pageInfo)
 #else
 	return vec4(0);
 #endif
+}
+
+float ComputeVirtualMipLevel(vec2 texCoord, uint binding, float mipBias)
+{
+	uint virtualID = virtual_binding.binding[binding / 4][binding & 3];
+
+	float maxMipLevel = float(VirtualTextureDescription[virtualID].y);
+	vec2 textureSize = vec2(float(VirtualTextureDescription[virtualID].w));
+
+	vec2 uv = texCoord * textureSize;
+	vec2 dx = dFdx(uv);
+	vec2 dy = dFdy(uv);
+
+	return clamp((0.5 * log2(max(dot(dx, dx), dot(dy, dy))) + 0.5 + mipBias), 0, maxMipLevel);
 }
 
 #else
@@ -254,6 +269,7 @@ uniform VirtualTextureFeedback_DYN_UNIFORM
 void WriteVirtualFeedback(vec2 texCoord, uint binding)
 {
 	uint virtualTargetBinding = virtual_feedback.miscs.x;
+	float feedbackRatio = float(virtual_texture_constant.description2.x);
 	if (virtualTargetBinding == binding)
 	{
 		uint virtualID = virtual_feedback.miscs.y;
@@ -266,11 +282,10 @@ void WriteVirtualFeedback(vec2 texCoord, uint binding)
 		vec2 page = floor(texCoord * tableSize);
 
 		vec2 uv = texCoord * textureSize;
-		vec2 dx = dFdx(uv);
-		vec2 dy = dFdy(uv);
+		vec2 dx = dFdx(uv) / feedbackRatio;
+		vec2 dy = dFdy(uv) / feedbackRatio;
 		uint mip = clamp(uint(0.5 * log2(max(dot(dx, dx), dot(dy, dy))) + 0.5 + mipBias), 0, maxMip);
 
-		// FeedbackRT = vec4(mip / maxMip);
 		FeedbackRT = vec4(page / 255.0, mip / 255.0, virtualID / 255.0);
 	}
 }
@@ -431,7 +446,8 @@ MaterialPixelParameters ComputeMaterialPixelParameters(
 #if HAS_MATERIAL_TEXTURE0
 #if HAS_VIRTUAL_MATERIAL_TEXTURE0
 	WriteVirtualFeedback(texCoord, 0);
-	float virtualMip = 255.0 * SampleDiffuseLod(texCoord, 0).w + 1e-6;
+	float minVirtualMip = round(255.0 * SampleDiffuseLod(texCoord, 0).w);
+	float virtualMip = max(ComputeVirtualMipLevel(texCoord, 0, 0), minVirtualMip);
 	vec4 virtualPageInfo0 = SampleDiffuseLod(texCoord, floor(virtualMip));
 	vec4 d0 = SRGBtoLINEAR(SampleFromVirtualTexture(0, texCoord, virtualPageInfo0));
 	vec4 virtualPageInfo1 = SampleDiffuseLod(texCoord, ceil(virtualMip));

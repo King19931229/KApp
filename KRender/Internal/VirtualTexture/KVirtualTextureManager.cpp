@@ -319,7 +319,7 @@ void KVirtualTextureManager::LRUSortTile()
 	{
 		if (lhs->payload.useFrameIndex != rhs->payload.useFrameIndex)
 			return lhs->payload.useFrameIndex < rhs->payload.useFrameIndex;
-		return lhs->payload.ownerNode->mip > rhs->payload.ownerNode->mip;
+		return lhs->payload.ownerNode->mip < rhs->payload.ownerNode->mip;
 	});
 
 	tiles.insert(tiles.end(), loadingTiles.begin(), loadingTiles.end());
@@ -501,6 +501,7 @@ void KVirtualTextureManager::UpdateBuffer()
 			descriptions[id].x = resource->GetTileNum();
 			descriptions[id].y = resource->GetMaxMipLevel();
 			descriptions[id].z = m_FeedbackTileCount;
+			descriptions[id].w = resource->GetTileNum() * m_TileSize;
 
 			m_TileOffsetRecords.push_back({ id, m_FeedbackTileCount });
 			m_FeedbackTileCount += descriptions[id].x * descriptions[id].x * (descriptions[id].y + 1);
@@ -749,8 +750,8 @@ void KVirtualTextureManager::Resize(uint32_t width, uint32_t height)
 		m_ResultReadbackTarget->UnInit();
 		m_VirtualTextureFeedbackBuffer->UnInit();
 
-		uint32_t width = (m_Width + 8 - 1) / 8;
-		uint32_t height = (m_Height + 8 - 1) / 8;
+		uint32_t width = (m_Width + m_VirtualTextureFeedbackRatio - 1) / m_VirtualTextureFeedbackRatio;
+		uint32_t height = (m_Height + m_VirtualTextureFeedbackRatio - 1) / m_VirtualTextureFeedbackRatio;
 
 		m_FeedbackTarget->InitFromColor(width, height, 1, 1, EF_R8G8B8A8_UNORM);
 		m_FeedbackDepth->InitFromDepthStencil(width, height, 1, false);

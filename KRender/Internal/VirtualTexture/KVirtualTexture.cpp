@@ -33,11 +33,11 @@ KVirtualTextureTileNode::~KVirtualTextureTileNode()
 	}
 }
 
-KVirtualTextureTileNode* KVirtualTextureTileNode::GetNodeWithDataLoaded(uint32_t x, uint32_t y, uint32_t mipLevel)
+void KVirtualTextureTileNode::LRUTouch(uint32_t x, uint32_t y, uint32_t mipLevel)
 {
 	if (x < sx || x >= ex || y < sy || y >= ey)
 	{
-		return nullptr;
+		return;
 	}
 	if (loadStatus == TILE_LOADED)
 	{
@@ -45,12 +45,30 @@ KVirtualTextureTileNode* KVirtualTextureTileNode::GetNodeWithDataLoaded(uint32_t
 		{
 			loadStatus = TILE_UNLOADED;
 			physicalTile = nullptr;
-			return nullptr;
+			return;
 		}
 	}
 	if (physicalTile)
 	{
 		physicalTile->payload.useFrameIndex = KRenderGlobal::CurrentFrameNum;
+	}
+	if (mipLevel < mip)
+	{
+		for (uint32_t i = 0; i < 4; ++i)
+		{
+			if (children[i])
+			{
+				children[i]->LRUTouch(x, y, mipLevel);
+			}
+		}
+	}
+}
+
+KVirtualTextureTileNode* KVirtualTextureTileNode::GetNodeWithDataLoaded(uint32_t x, uint32_t y, uint32_t mipLevel)
+{
+	if (x < sx || x >= ex || y < sy || y >= ey)
+	{
+		return nullptr;
 	}
 	if (mipLevel < mip)
 	{
@@ -490,6 +508,14 @@ void KVirtualTexture::EndRequest()
 	std::vector<uint32_t> currentTileInfo;
 	currentTileInfo.resize(m_TableInfo.size());
 	memset(currentTileInfo.data(), -1, sizeof(uint32_t) * currentTileInfo.size());
+
+	for (const KVirtualTextureTileRequest& request : requests)
+	{
+		uint32_t x = request.tile.x;
+		uint32_t y = request.tile.y;
+		uint32_t mip = request.tile.mip;
+		m_RootNode->LRUTouch(x, y, mip);
+	}
 
 	for (const KVirtualTextureTileRequest& request : requests)
 	{

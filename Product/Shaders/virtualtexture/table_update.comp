@@ -28,8 +28,6 @@ void main()
 		uint data = TableUploadData[globalIndex].y;
 
 		// imageStore(tableImage, ivec2(x, y), vec4(1, 1, 0, 1));
-		vec4 storeData = imageLoad(tableImage, ivec2(x, y));
-		storeData.w = float((data >> 24 ) & 0xFF) / 255.0;
 		imageStore(tableImage, ivec2(x, y), vec4(float(data & 0xFF) / 255.0, float((data >> 8) & 0xFF) / 255.0, float((data >> 16) & 0xFF) / 255.0, float((data >> 24 ) & 0xFF) / 255.0));
 	}
 }
