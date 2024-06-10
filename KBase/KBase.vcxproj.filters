@@ -271,6 +271,33 @@
     <ClInclude Include="Publish\Mesh\KMeshHash.h">
       <Filter>Publish\Mesh</Filter>
     </ClInclude>
+    <ClInclude Include="Publish\KEvent.h">
+      <Filter>Publish</Filter>
+    </ClInclude>
+    <ClInclude Include="Interface\Task\IKAsyncTask.h">
+      <Filter>Interface\Task</Filter>
+    </ClInclude>
+    <ClInclude Include="Interface\Task\IKTaskGraph.h">
+      <Filter>Interface\Task</Filter>
+    </ClInclude>
+    <ClInclude Include="Internal\Task\KTaskGraph.h">
+      <Filter>Internal\Task</Filter>
+    </ClInclude>
+    <ClInclude Include="Internal\Task\KAsyncTaskManager.h">
+      <Filter>Internal\Task</Filter>
+    </ClInclude>
+    <ClInclude Include="Internal\Task\KAsyncTask.h">
+      <Filter>Internal\Task</Filter>
+    </ClInclude>
+    <ClInclude Include="Internal\Task\KTaskThreadPool.h">
+      <Filter>Internal\Task</Filter>
+    </ClInclude>
+    <ClInclude Include="Interface\Task\IKTaskWork.h">
+      <Filter>Interface\Task</Filter>
+    </ClInclude>
+    <ClInclude Include="Internal\Task\KTaskGraphQueue.h">
+      <Filter>Internal\Task</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Internal">
@@ -314,6 +341,12 @@
     </Filter>
     <Filter Include="Internal\Mesh">
       <UniqueIdentifier>{41461dda-ecd1-4554-81f0-ba29882040bd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Interface\Task">
+      <UniqueIdentifier>{4212996c-f557-4940-8b18-25fd438830d9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Internal\Task">
+      <UniqueIdentifier>{f5fd72f5-378f-4732-9dff-3619a997e919}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -454,6 +487,21 @@
     </ClCompile>
     <ClCompile Include="Internal\Mesh\KMeshSimplification.cpp">
       <Filter>Internal\Mesh</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\Task\KTaskGraph.cpp">
+      <Filter>Internal\Task</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\Task\KAsyncTaskManager.cpp">
+      <Filter>Internal\Task</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\Task\KAsyncTask.cpp">
+      <Filter>Internal\Task</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\Task\KTaskThreadPool.cpp">
+      <Filter>Internal\Task</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\Task\KTaskGraphQueue.cpp">
+      <Filter>Internal\Task</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

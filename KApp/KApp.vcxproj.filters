@@ -10,5 +10,6 @@
     <ClCompile Include="KXMLTest.cpp" />
     <ClCompile Include="KReflectionTest.cpp" />
     <ClCompile Include="KCodecTest.cpp" />
+    <ClCompile Include="KTaskTest.cpp" />
   </ItemGroup>
 </Project>

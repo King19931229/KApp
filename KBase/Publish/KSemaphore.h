@@ -51,19 +51,6 @@ public:
 		return true;
 	}
 
-	bool Reset()
-	{
-		std::unique_lock<std::mutex> lock(m_Mutex);
-		m_nCount = 0;
-		return true;
-	}
-
-	int GetCount()
-	{
-		std::unique_lock<std::mutex> lock(m_Mutex);
-		return m_nCount;
-	}
-
 #if 0
 	template<typename Pred>
 	bool WaitUntil(Pred pred)
@@ -80,7 +67,7 @@ public:
 	}
 #endif
 
-	bool TryWait(int timeInMicroseconds)
+	bool WaitFor(int timeInMicroseconds)
 	{
 		std::unique_lock<std::mutex> lock(m_Mutex);
 		if(--m_nCount < 0)
@@ -94,4 +81,18 @@ public:
 		return true;
 	}
 
+	bool Reset()
+	{
+		std::unique_lock<std::mutex> lock(m_Mutex);
+		m_nCount = 0;
+		return true;
+	}
+
+#if _DEBUG
+	int GetCount()
+	{
+		std::unique_lock<std::mutex> lock(m_Mutex);
+		return m_nCount;
+	}
+#endif
 };

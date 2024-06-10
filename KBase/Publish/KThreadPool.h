@@ -233,7 +233,9 @@ public:
 	{
 		assert(m_Threads.empty());
 		assert(m_pSyncTaskThread == nullptr);
+#if _DEBUG
 		assert(m_Sem.GetCount() == 0);
+#endif
 	}
 
 	void Init(const std::string& workThreadName, size_t uThreadNum)

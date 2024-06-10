@@ -41,6 +41,9 @@
     <ClInclude Include="Interface\IKSocket.h" />
     <ClInclude Include="Interface\IKSourceFile.h" />
     <ClInclude Include="Interface\IKXML.h" />
+    <ClInclude Include="Interface\Task\IKAsyncTask.h" />
+    <ClInclude Include="Interface\Task\IKTaskGraph.h" />
+    <ClInclude Include="Interface\Task\IKTaskWork.h" />
     <ClInclude Include="Internal\Asset\KAssimpIOHooker.h" />
     <ClInclude Include="Internal\Asset\KAssimpLoader.h" />
     <ClInclude Include="Internal\Asset\KGLTFLoader.h" />
@@ -69,6 +72,11 @@
     <ClInclude Include="Internal\KSocketClient.h" />
     <ClInclude Include="Internal\KSocketServer.h" />
     <ClInclude Include="Internal\KSourceFile.h" />
+    <ClInclude Include="Internal\Task\KAsyncTask.h" />
+    <ClInclude Include="Internal\Task\KAsyncTaskManager.h" />
+    <ClInclude Include="Internal\Task\KTaskGraph.h" />
+    <ClInclude Include="Internal\Task\KTaskGraphQueue.h" />
+    <ClInclude Include="Internal\Task\KTaskThreadPool.h" />
     <ClInclude Include="Internal\XML\KXMLAttribute.h" />
     <ClInclude Include="Internal\XML\KXMLDeclaration.h" />
     <ClInclude Include="Internal\XML\KXMLDocument.h" />
@@ -77,6 +85,7 @@
     <ClInclude Include="Publish\KConfig.h" />
     <ClInclude Include="Publish\KDebugUtility.h" />
     <ClInclude Include="Publish\KDump.h" />
+    <ClInclude Include="Publish\KEvent.h" />
     <ClInclude Include="Publish\KFileTool.h" />
     <ClInclude Include="Publish\KHandleRetriever.h" />
     <ClInclude Include="Publish\KHash.h" />
@@ -153,6 +162,11 @@
     <ClCompile Include="Internal\Mesh\KMeshSimplification.cpp" />
     <ClCompile Include="Internal\Mesh\KVirtualGeometryBuilder.cpp" />
     <ClCompile Include="Internal\Mesh\KMeshProcessor.cpp" />
+    <ClCompile Include="Internal\Task\KAsyncTask.cpp" />
+    <ClCompile Include="Internal\Task\KAsyncTaskManager.cpp" />
+    <ClCompile Include="Internal\Task\KTaskGraph.cpp" />
+    <ClCompile Include="Internal\Task\KTaskGraphQueue.cpp" />
+    <ClCompile Include="Internal\Task\KTaskThreadPool.cpp" />
     <ClCompile Include="Internal\XML\KXMLAttribute.cpp" />
     <ClCompile Include="Internal\XML\KXMLDeclaration.cpp" />
     <ClCompile Include="Internal\XML\KXMLDocument.cpp" />
