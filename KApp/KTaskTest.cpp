@@ -2,21 +2,27 @@
 #include "KBase/Interface/IKMemory.h"
 #include "KBase/Publish/KEvent.h"
 #include "KBase/Interface/Task/IKAsyncTask.h"
+#include "KBase/Interface/Task/IKTaskGraph.h"
 #include "KBase/Internal/Task/KTaskThreadPool.h"
 #include <functional>
 
 KEvent event;
+
 std::atomic_uint32_t counter;
 uint32_t counter2;
 
 void Task()
 {
-//	std::this_thread::sleep_for(std::chrono::milliseconds(std::rand() % 10));
-//	counter.fetch_add(1);
-	++counter2;
-//	printf("counter:%d\n", counter.load());
-//	printf("counter2:%d\n", counter2);
+	counter.fetch_add(1);
+	printf("counter:%d\n", counter.load());
 }
+
+void Task2()
+{
+	++counter2;
+	printf("counter2:%d\n", counter2);
+}
+
 
 int main()
 {
@@ -31,9 +37,10 @@ int main()
 	*/
 
 	GetAsyncTaskManager()->Init();
+	GetTaskGraphManager()->Init();
 	
 	uint32_t taskNum = 10000;
-	std::vector<IKAsyncTaskPtr> tasks;
+	/*std::vector<IKAsyncTaskPtr> tasks;
 	for(uint32_t i = 0; i < taskNum; ++i)
 	{
 		tasks.push_back(GetAsyncTaskManager()->CreateAsyncTask(IKTaskWorkPtr(new KLambdaTaskWork(Task))));
@@ -41,7 +48,26 @@ int main()
 	for (uint32_t i = 0; i < taskNum; ++i)
 	{
 		tasks[i]->StartAsync();
+	}*/
+
+	std::vector<IKGraphTaskPtr> tasks;
+	for (uint32_t i = 0; i < taskNum; ++i)
+	{
+		tasks.push_back(GetTaskGraphManager()->CreateAndDispatch(IKTaskWorkPtr(new KLambdaTaskWork(Task)), NamedThread::HIGH_THREAD_LOW_TASK_ANY_THREAD, {}));
 	}
+
+	std::vector<IKGraphTaskPtr> tasks2;
+	for (uint32_t i = 0; i < taskNum; ++i)
+	{
+		tasks2.push_back(GetTaskGraphManager()->CreateAndDispatch(IKTaskWorkPtr(new KLambdaTaskWork(Task2)), NamedThread::HIGH_THREAD_LOW_TASK_ANY_THREAD, { tasks[i]}));
+	}
+
+	for (uint32_t i = 0; i < taskNum; ++i)
+	{
+		tasks2[i]->WaitForCompletion();
+	}
+
+	GetTaskGraphManager()->UnInit();
 	GetAsyncTaskManager()->UnInit();
 	return 0;
 }

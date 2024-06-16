@@ -51,28 +51,12 @@ public:
 		return true;
 	}
 
-#if 0
-	template<typename Pred>
-	bool WaitUntil(Pred pred)
-	{
-		std::unique_lock<std::mutex> lock(m_Mutex);
-		while(!pred())
-		{
-			if(--m_nCount < 0)
-			{
-				m_CondVar.wait(lock);
-			}
-		}
-		return true;
-	}
-#endif
-
-	bool WaitFor(int timeInMicroseconds)
+	bool WaitFor(int timeInMilliseconds)
 	{
 		std::unique_lock<std::mutex> lock(m_Mutex);
 		if(--m_nCount < 0)
 		{
-			if(m_CondVar.wait_for(lock, std::chrono::microseconds(timeInMicroseconds)) == std::cv_status::timeout)
+			if(m_CondVar.wait_for(lock, std::chrono::milliseconds(timeInMilliseconds)) == std::cv_status::timeout)
 			{
 				++m_nCount;
 				return false;
@@ -88,11 +72,9 @@ public:
 		return true;
 	}
 
-#if _DEBUG
 	int GetCount()
 	{
 		std::unique_lock<std::mutex> lock(m_Mutex);
 		return m_nCount;
 	}
-#endif
 };

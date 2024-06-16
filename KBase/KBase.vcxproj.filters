@@ -298,6 +298,19 @@
     <ClInclude Include="Internal\Task\KTaskGraphQueue.h">
       <Filter>Internal\Task</Filter>
     </ClInclude>
+    <ClInclude Include="Interface\Task\IKRunable.h" />
+    <ClInclude Include="Internal\Task\KTaskGraphManager.h">
+      <Filter>Internal\Task</Filter>
+    </ClInclude>
+    <ClInclude Include="Interface\IKRunable.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="Publish\KRunableThread.h">
+      <Filter>Publish</Filter>
+    </ClInclude>
+    <ClInclude Include="Internal\Task\KTaskGraphExecute.h">
+      <Filter>Internal\Task</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Internal">
@@ -501,6 +514,9 @@
       <Filter>Internal\Task</Filter>
     </ClCompile>
     <ClCompile Include="Internal\Task\KTaskGraphQueue.cpp">
+      <Filter>Internal\Task</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\Task\KTaskGraphManager.cpp">
       <Filter>Internal\Task</Filter>
     </ClCompile>
   </ItemGroup>

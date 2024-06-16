@@ -1,7 +1,7 @@
 #include "KTaskGraph.h"
 #include <assert.h>
 
-KGraphTask::KGraphTask(IKTaskWorkPtr work, NamedThread thread, const std::vector<IKGraphTaskPtr>& prerequisites, bool hold)
+KGraphTask::KGraphTask(IKTaskWorkPtr work, NamedThread::Type thread, const std::vector<IKGraphTaskPtr>& prerequisites, bool hold)
 	: m_TaskWork(work)
 	, m_TaskQueue(nullptr)
 	, m_ThreadToExecuteOn(thread)
@@ -46,7 +46,7 @@ void KGraphTask::SetupPrerequisite(const std::vector<IKGraphTaskPtr>& prerequisi
 {
 	for (IKGraphTaskPtr prerequisite : prerequisites)
 	{
-		if (!prerequisite || !prerequisite->AddSubsequent(shared_from_this()))
+		if (!prerequisite || !prerequisite->AddSubsequent(this))
 		{
 			m_NumPrerequisite.fetch_sub(1);
 		}
@@ -58,7 +58,7 @@ void KGraphTask::SetupPrerequisite(const std::vector<IKGraphTaskPtr>& prerequisi
 	}
 }
 
-bool KGraphTask::AddEventToWaitFor(IKGraphTaskPtr eventToWait)
+bool KGraphTask::AddEventToWaitFor(IKGraphTask* eventToWait)
 {
 	if (!m_Done->load())
 	{
@@ -71,7 +71,7 @@ bool KGraphTask::AddEventToWaitFor(IKGraphTaskPtr eventToWait)
 	return false;
 }
 
-bool KGraphTask::AddSubsequent(IKGraphTaskPtr subsequent)
+bool KGraphTask::AddSubsequent(IKGraphTask* subsequent)
 {
 	if (!m_Done->load())
 	{
@@ -84,7 +84,7 @@ bool KGraphTask::AddSubsequent(IKGraphTaskPtr subsequent)
 	return false;
 }
 
-bool KGraphTask::SetThreadToExetuceOn(NamedThread thread)
+bool KGraphTask::SetThreadToExetuceOn(NamedThread::Type thread)
 {
 	if (m_TaskQueue)
 	{
@@ -114,20 +114,19 @@ void KGraphTask::Dispatch()
 
 void KGraphTask::QueueTask()
 {
-	for (IKGraphTaskPtr eventToWaitFor : m_EventToWaitFor)
+	for (IKGraphTask* eventToWaitFor : m_EventToWaitFor)
 	{
 		if (!eventToWaitFor->IsCompleted())
 		{
-			std::vector<IKGraphTaskPtr> prerequisites;
-			IKGraphTaskPtr noneTask = IKGraphTaskPtr(new KGraphTask(IKTaskWorkPtr(new KEmptyTaskWork()), ANY_THREAD, {}, false));
+			std::vector<IKGraphTask*> prerequisites;
+			IKGraphTaskPtr noneTask = IKGraphTaskPtr(new KGraphTask(IKTaskWorkPtr(new KEmptyTaskWork()), NamedThread::ANY_THREAD, {}, false));
 			IKGraphTaskPtr newTask = IKGraphTaskPtr(new KGraphTask(*this, { noneTask }, true));
 			((KGraphTask*)newTask.get())->Dispatch();
 			return;
 		}
 	}
 
-	IKGraphTaskQueue* queue = GetTaskGraphManager()->GetQueue(m_ThreadToExecuteOn);
-	queue->PushTask(this);
+	GetTaskGraphManager()->AddTask(this, m_ThreadToExecuteOn);
 }
 
 void KGraphTask::DoWork()
@@ -144,7 +143,7 @@ void KGraphTask::Abandon()
 {
 	if (m_TaskQueue)
 	{
-		m_TaskQueue->PopTask(this);
+		m_TaskQueue->RemoveTask(this);
 		m_TaskQueue = nullptr;
 	}
 	if (m_TaskWork)
@@ -159,9 +158,9 @@ void KGraphTask::Abandon()
 
 void KGraphTask::DispatchSubsequents(bool prerequisiteAbandon)
 {
-	for (IKGraphTaskPtr subsequent : m_Subsequents)
+	for (IKGraphTask* subsequent : m_Subsequents)
 	{
-		((KGraphTask*)subsequent.get())->ConditionalQueueTask(prerequisiteAbandon);
+		((KGraphTask*)subsequent)->ConditionalQueueTask(prerequisiteAbandon);
 	}
 }
 

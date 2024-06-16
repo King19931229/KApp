@@ -37,10 +37,10 @@ public:
 		return true;
 	}
 
-	bool WaitFor(int timeInMicroseconds)
+	bool WaitFor(int timeInMilliseconds)
 	{
 		std::unique_lock<std::mutex> lock(m_Mutex);
-		if (!m_CondVar.wait_for(lock, std::chrono::microseconds(timeInMicroseconds), [&]() { return m_Signaled; }))
+		if (!m_CondVar.wait_for(lock, std::chrono::milliseconds(timeInMilliseconds), [&]() { return m_Signaled; }))
 		{
 			return false;
 		}
