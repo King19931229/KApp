@@ -30,6 +30,7 @@ public:
 	{
 		m_Queue->AddTask(task, taskPriority);
 		m_Trigger.Notify();
+		m_HangUp = false;
 	}
 
 	virtual void ProcessTaskUntilIdle() = 0;

@@ -1,5 +1,6 @@
 #pragma once
-#include "IKTaskWork.h"
+#include "KBase/Interface/Task/IKTaskWork.h"
+#include "KBase/Publish/KReferenceHolder.h"
 
 struct IKTaskThreadPoolWork
 {
@@ -25,12 +26,13 @@ struct IKAsyncTask : public IKTaskThreadPoolWork
 	virtual void StartAsync() = 0;
 	virtual void StartSync() = 0;
 };
-typedef std::shared_ptr<IKAsyncTask> IKAsyncTaskPtr;
+
+typedef KReferenceHolder<IKAsyncTask*, true> IKAsyncTaskRef;
 
 struct IKAsyncTaskManager
 {
 	virtual ~IKAsyncTaskManager() {}
-	virtual IKAsyncTaskPtr CreateAsyncTask(IKTaskWorkPtr work) = 0;
+	virtual IKAsyncTaskRef CreateAsyncTask(IKTaskWorkPtr work) = 0;
 	virtual IKTaskThreadPool* GetThreadPool() = 0;
 	virtual void Init() = 0;
 	virtual void UnInit() = 0;

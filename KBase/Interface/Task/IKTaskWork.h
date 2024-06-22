@@ -7,6 +7,7 @@ struct IKTaskWork
 	virtual ~IKTaskWork() {}
 	virtual void DoWork() = 0;
 	virtual void Abandon() {}
+	virtual const char* GetDebugInfo() { return "PleaseAssignTaskWorkName"; }
 };
 typedef std::shared_ptr<IKTaskWork> IKTaskWorkPtr;
 
@@ -24,11 +25,20 @@ public:
 
 	void DoWork() override
 	{
-		m_Task();
+		m_Task.DoWork();
+	}
+
+	void Abandon() override
+	{
+		m_Task.Abandon();
+	}
+
+	const char* GetDebugInfo() override
+	{
+		return m_Task.GetDebugInfo();
 	}
 };
 
-typedef KTaskWork<std::function<void()>> KLambdaTaskWork;
 struct KEmptyTaskWork : public IKTaskWork
 {
 	virtual void DoWork() {}

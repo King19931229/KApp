@@ -2,6 +2,7 @@
 
 #include "KBase/Publish/KConfig.h"
 #include <functional>
+#include <atomic>
 #include <assert.h>
 
 template<typename Type>
@@ -58,6 +59,10 @@ public:
 		rhs.m_ReleaseFunc = ReleaseFunction();
 		return *this;
 	}
+	bool operator==(const KReference& rhs) const
+	{
+		return m_Soul == rhs.m_Soul;
+	}
 	const Type& Get() const
 	{
 		return m_Soul;
@@ -82,14 +87,111 @@ public:
 	}
 };
 
-template<typename Type>
+template<bool MultiThread>
+struct KReferenceHolderRefCounter
+{
+};
+
+template<>
+struct KReferenceHolderRefCounter<true>
+{
+	std::atomic_uint32_t refCounter;
+	KReferenceHolderRefCounter(uint32_t counter)
+		: refCounter(counter)
+	{
+	}
+	KReferenceHolderRefCounter(KReferenceHolderRefCounter& rhs)
+	{
+		refCounter.store(rhs.refCounter.load());
+	}
+	KReferenceHolderRefCounter(KReferenceHolderRefCounter&& rhs)
+	{
+		refCounter.store(rhs.refCounter.load());
+	}
+	uint32_t operator=(KReferenceHolderRefCounter&& rhs)
+	{
+		refCounter.store(rhs.refCounter.load());
+		return refCounter.load();
+	}
+	operator uint32_t()
+	{
+		return refCounter.load();
+	}
+	uint32_t operator++()
+	{
+		refCounter.fetch_add(1);
+		return refCounter.load();
+	}
+	uint32_t operator++(int)
+	{
+		uint32_t counter = refCounter.load();
+		refCounter.fetch_add(1);
+		return counter;
+	}
+	uint32_t operator--()
+	{
+		refCounter.fetch_sub(1);
+		return refCounter.load();
+	}
+	uint32_t operator--(int)
+	{
+		uint32_t counter = refCounter.load();
+		refCounter.fetch_sub(1);
+		return counter;
+	}
+};
+
+template<>
+struct KReferenceHolderRefCounter<false>
+{
+	uint32_t refCounter;
+	KReferenceHolderRefCounter(uint32_t counter)
+		: refCounter(counter)
+	{}
+	KReferenceHolderRefCounter(KReferenceHolderRefCounter& rhs)
+	{
+		refCounter = rhs.refCounter;
+	}
+	KReferenceHolderRefCounter(KReferenceHolderRefCounter&& rhs)
+	{
+		refCounter = rhs.refCounter;
+	}
+	uint32_t operator=(KReferenceHolderRefCounter&& rhs)
+	{
+		refCounter = rhs.refCounter;
+		return refCounter;
+	}
+	operator uint32_t()
+	{
+		return refCounter;
+	}
+	uint32_t operator++()
+	{
+		return ++refCounter;
+	}
+	uint32_t operator++(int)
+	{
+		return refCounter++;
+	}
+	uint32_t operator--()
+	{
+		return --refCounter;
+	}
+	uint32_t operator--(int)
+	{
+		return refCounter--;
+	}
+};
+
+template<typename Type, bool MultiThread = true>
 class KReferenceHolder
 {
 public:
 	typedef std::function<void(Type)> ReleaseFunction;
 protected:
+	typedef KReferenceHolderRefCounter<MultiThread> RefCounterType;
 	KReference<Type> m_Ref;
-	uint32_t* m_RefCount;	
+	RefCounterType* m_RefCount;
 	void DecreaseReference()
 	{
 		if (m_RefCount && --*m_RefCount == 0)
@@ -105,12 +207,12 @@ public:
 	}
 	KReferenceHolder(Type soul)
 		: m_Ref(soul)
-		, m_RefCount(KNEW uint32_t(1))
+		, m_RefCount(KNEW RefCounterType(1))
 	{
 	}
 	KReferenceHolder(Type soul, ReleaseFunction releaseFunc)
 		: m_Ref(soul, releaseFunc)
-		, m_RefCount(KNEW uint32_t(1))
+		, m_RefCount(KNEW RefCounterType(1))
 	{
 	}
 	~KReferenceHolder()
@@ -146,6 +248,10 @@ public:
 		m_RefCount = std::move(rhs.m_RefCount);
 		rhs.m_RefCount = nullptr;
 		return *this;
+	}
+	bool operator==(const KReferenceHolder& rhs) const
+	{
+		return (m_Ref == rhs.m_Ref) && (m_RefCount == rhs.m_RefCount);
 	}
 	const Type& Get() const
 	{

@@ -12,7 +12,7 @@ void KTaskGraphManager::Init()
 {
 	UnInit();
 
-	m_TaskThreadNumPerPriority = std::max(1U, ((std::thread::hardware_concurrency() - NamedThread::NUM_INTERNAL_THREAD)/ TASK_THREAD_PRIORITY_NUM));
+	m_TaskThreadNumPerPriority = std::max(1U, ((2 * std::thread::hardware_concurrency() - NamedThread::NUM_INTERNAL_THREAD) / TASK_THREAD_PRIORITY_NUM));
 	m_TaskThreadNum = TASK_THREAD_PRIORITY_NUM * m_TaskThreadNumPerPriority;
 
 	for (uint32_t i = 0; i < TASK_THREAD_PRIORITY_NUM; ++i)
@@ -66,14 +66,18 @@ void KTaskGraphManager::UnInit()
 	m_TaskThread.clear();
 }
 
-IKGraphTaskPtr KTaskGraphManager::CreateAndDispatch(IKTaskWorkPtr task, NamedThread::Type thread, const std::vector<IKGraphTaskPtr>& prerequisites)
+IKGraphTaskRef KTaskGraphManager::CreateAndDispatch(IKTaskWorkPtr work, NamedThread::Type thread, const std::vector<IKGraphTaskRef>& prerequisites)
 {
-	return IKGraphTaskPtr(new KGraphTask(task, thread, prerequisites, false));
+	IKGraphTaskRef task = IKGraphTaskRef(new KGraphTask(work, thread));
+	KGraphTask::Setup(task, prerequisites, false);
+	return task;
 }
 
-IKGraphTaskPtr KTaskGraphManager::CreateAndHold(IKTaskWorkPtr task, NamedThread::Type thread, const std::vector<IKGraphTaskPtr>& prerequisites)
+IKGraphTaskRef KTaskGraphManager::CreateAndHold(IKTaskWorkPtr work, NamedThread::Type thread, const std::vector<IKGraphTaskRef>& prerequisites)
 {
-	return IKGraphTaskPtr(new KGraphTask(task, thread, prerequisites, true));
+	IKGraphTaskRef task = IKGraphTaskRef(new KGraphTask(work, thread));
+	KGraphTask::Setup(task, prerequisites, true);
+	return task;
 }
 
 void KTaskGraphManager::AddTask(IKGraphTask* task, NamedThread::Type thread)
@@ -88,27 +92,30 @@ void KTaskGraphManager::AddTask(IKGraphTask* task, NamedThread::Type thread)
 	}
 	else
 	{
-		uint32_t threadBegin = (threadPriority == 0) ? 0 : ((threadPriority - 1) * m_TaskThreadNumPerPriority);
-		uint32_t threadEnd = (threadPriority == 0) ? (m_TaskThreadNumPerPriority * TASK_THREAD_PRIORITY_NUM) : (threadPriority * m_TaskThreadNumPerPriority);
+		uint32_t threadBegin = NamedThread::NUM_INTERNAL_THREAD + ((threadPriority == 0) ? 0 : ((threadPriority - 1) * m_TaskThreadNumPerPriority));
+		uint32_t threadEnd = NamedThread::NUM_INTERNAL_THREAD + ((threadPriority == 0) ? (m_TaskThreadNumPerPriority * TASK_THREAD_PRIORITY_NUM) : (threadPriority * m_TaskThreadNumPerPriority));
 
 		for (uint32_t i = threadBegin; i < threadEnd; ++i)
 		{
-			uint32_t index = NamedThread::NUM_INTERNAL_THREAD + i;
-			if (m_ThreadGraphExecute[index]->IsHangUp())
+			if (m_ThreadGraphExecute[i]->IsHangUp())
 			{
-				threadIndex = index;
+				threadIndex = i;
 				break;
 			}
 		}
 		if (threadIndex == NamedThread::ANY_THREAD)
 		{
-			threadIndex = threadBegin;
+			threadIndex = threadBegin + rand() % m_TaskThreadNum;
 		}
 	}
 
 	if (threadIndex < m_ThreadGraphExecute.size())
 	{
 		m_ThreadGraphExecute[threadIndex]->AddTask(task, (TaskPriority)taskPriority);
+	}
+	else
+	{
+		assert(false);
 	}
 }
 

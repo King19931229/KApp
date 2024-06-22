@@ -10,7 +10,7 @@ public:
 	KAsyncTaskManager();
 	~KAsyncTaskManager();
 
-	IKAsyncTaskPtr CreateAsyncTask(IKTaskWorkPtr work) override;
+	IKAsyncTaskRef CreateAsyncTask(IKTaskWorkPtr work) override;
 	IKTaskThreadPool* GetThreadPool() override;
 
 	void Init() override;

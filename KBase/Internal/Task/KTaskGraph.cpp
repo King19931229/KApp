@@ -1,18 +1,17 @@
 #include "KTaskGraph.h"
 #include <assert.h>
 
-KGraphTask::KGraphTask(IKTaskWorkPtr work, NamedThread::Type thread, const std::vector<IKGraphTaskPtr>& prerequisites, bool hold)
+KGraphTask::KGraphTask(IKTaskWorkPtr work, NamedThread::Type thread)
 	: m_TaskWork(work)
 	, m_TaskQueue(nullptr)
 	, m_ThreadToExecuteOn(thread)
-	, m_NumPrerequisite((uint32_t)hold + (uint32_t)prerequisites.size())
+	, m_NumPrerequisite(0)
 {
 	m_DoneEvent = decltype(m_DoneEvent)(new KEvent());
-	m_Done = decltype(m_Done)(new std::atomic_bool());
-	SetupPrerequisite(prerequisites);
+	m_Done = false;
 }
 
-KGraphTask::KGraphTask(KGraphTask& stealFrom, const std::vector<IKGraphTaskPtr>& prerequisites, bool hold)
+KGraphTask::KGraphTask(KGraphTask& stealFrom)
 {
 	assert(!stealFrom.m_TaskQueue);
 	assert(stealFrom.m_NumPrerequisite == 0);
@@ -24,6 +23,8 @@ KGraphTask::KGraphTask(KGraphTask& stealFrom, const std::vector<IKGraphTaskPtr>&
 	stealFrom.m_TaskQueue = nullptr;
 	
 	m_DoneEvent = stealFrom.m_DoneEvent;
+	stealFrom.m_DoneEvent = nullptr;
+
 	m_Done = stealFrom.m_Done;
 
 	m_ThreadToExecuteOn = stealFrom.m_ThreadToExecuteOn;
@@ -31,10 +32,7 @@ KGraphTask::KGraphTask(KGraphTask& stealFrom, const std::vector<IKGraphTaskPtr>&
 	m_Subsequents = std::move(stealFrom.m_Subsequents);
 	m_EventToWaitFor = std::move(stealFrom.m_EventToWaitFor);
 
-	m_NumPrerequisite.store(stealFrom.m_NumPrerequisite.load());	
-
-	m_NumPrerequisite.fetch_add((uint32_t)hold + (uint32_t)prerequisites.size());
-	SetupPrerequisite(prerequisites);
+	m_NumPrerequisite.store(stealFrom.m_NumPrerequisite.load());
 }
 
 KGraphTask::~KGraphTask()
@@ -42,13 +40,28 @@ KGraphTask::~KGraphTask()
 	Abandon();
 }
 
-void KGraphTask::SetupPrerequisite(const std::vector<IKGraphTaskPtr>& prerequisites)
+void KGraphTask::Setup(IKGraphTaskRef task, const std::vector<IKGraphTaskRef>& prerequisites, bool hold)
 {
-	for (IKGraphTaskPtr prerequisite : prerequisites)
+	((KGraphTask*)task.Get())->m_NumPrerequisite.fetch_add((uint32_t)hold + (uint32_t)prerequisites.size());
+	((KGraphTask*)task.Get())->SetupPrerequisite(prerequisites);
+}
+
+void KGraphTask::SetupPrerequisite(const std::vector<IKGraphTaskRef>& prerequisites)
+{
+#if KTASK_GRAPH_DEBUG_PRINT_LEVEL
+	printf("[GraphTask] SetupPrerequisite %s\n", GetDebugInfo());
+#endif
+	for (IKGraphTaskRef prerequisite : prerequisites)
 	{
 		if (!prerequisite || !prerequisite->AddSubsequent(this))
 		{
 			m_NumPrerequisite.fetch_sub(1);
+		}
+		else
+		{
+#if KTASK_GRAPH_DEBUG_PRINT_LEVEL
+			printf("\t[GraphTask] AddSubsequent %s->%s\n", prerequisite->GetDebugInfo(), GetDebugInfo());
+#endif
 		}
 	}
 
@@ -58,9 +71,11 @@ void KGraphTask::SetupPrerequisite(const std::vector<IKGraphTaskPtr>& prerequisi
 	}
 }
 
-bool KGraphTask::AddEventToWaitFor(IKGraphTask* eventToWait)
+bool KGraphTask::AddEventToWaitFor(IKGraphTaskRef eventToWait)
 {
-	if (!m_Done->load())
+	std::unique_lock<decltype(m_TaskProcessLock)> lock(m_TaskProcessLock);
+
+	if (!m_Done)
 	{
 		if (std::find(m_EventToWaitFor.begin(), m_EventToWaitFor.end(), eventToWait) == m_EventToWaitFor.end())
 		{
@@ -73,7 +88,9 @@ bool KGraphTask::AddEventToWaitFor(IKGraphTask* eventToWait)
 
 bool KGraphTask::AddSubsequent(IKGraphTask* subsequent)
 {
-	if (!m_Done->load())
+	std::unique_lock<decltype(m_TaskProcessLock)> lock(m_TaskProcessLock);
+
+	if (!m_Done)
 	{
 		if (std::find(m_Subsequents.begin(), m_Subsequents.end(), subsequent) == m_Subsequents.end())
 		{
@@ -96,12 +113,12 @@ bool KGraphTask::SetThreadToExetuceOn(NamedThread::Type thread)
 
 bool KGraphTask::IsCompleted() const
 {
-	return m_Done->load();
+	return m_Done;
 }
 
 void KGraphTask::WaitForCompletion()
 {
-	if (!m_Done->load())
+	if (!m_Done)
 	{
 		m_DoneEvent->Wait();
 	}
@@ -114,33 +131,39 @@ void KGraphTask::Dispatch()
 
 void KGraphTask::QueueTask()
 {
-	for (IKGraphTask* eventToWaitFor : m_EventToWaitFor)
+	std::unique_lock<decltype(m_TaskProcessLock)> lock(m_TaskProcessLock);
+	for (IKGraphTaskRef eventToWaitFor : m_EventToWaitFor)
 	{
 		if (!eventToWaitFor->IsCompleted())
 		{
-			std::vector<IKGraphTask*> prerequisites;
-			IKGraphTaskPtr noneTask = IKGraphTaskPtr(new KGraphTask(IKTaskWorkPtr(new KEmptyTaskWork()), NamedThread::ANY_THREAD, {}, false));
-			IKGraphTaskPtr newTask = IKGraphTaskPtr(new KGraphTask(*this, { noneTask }, true));
-			((KGraphTask*)newTask.get())->Dispatch();
+			std::vector<IKGraphTaskRef> prerequisites;
+			IKGraphTaskRef noneTask = IKGraphTaskRef(new KGraphTask(IKTaskWorkPtr(new KEmptyTaskWork()), NamedThread::ANY_THREAD));
+			IKGraphTaskRef newTask = IKGraphTaskRef(new KGraphTask(*this));
+			KGraphTask::Setup(newTask, { noneTask }, true);
+			((KGraphTask*)newTask.Get())->Dispatch();
 			return;
 		}
 	}
-
+	m_EventToWaitFor.clear();
 	GetTaskGraphManager()->AddTask(this, m_ThreadToExecuteOn);
 }
 
 void KGraphTask::DoWork()
 {
-	m_TaskWork->DoWork();
-	m_TaskWork = nullptr;
+	std::unique_lock<decltype(m_TaskProcessLock)> lock(m_TaskProcessLock);
 	m_TaskQueue = nullptr;
-	m_Done->store(true);
-	m_DoneEvent->Notify();
-	DispatchSubsequents(false);
+	if (m_TaskWork)
+	{
+		m_TaskWork->DoWork();
+		m_Done = true;
+		m_DoneEvent->Notify();
+		DispatchSubsequents(false);
+	}
 }
 
 void KGraphTask::Abandon()
 {
+	std::unique_lock<decltype(m_TaskProcessLock)> lock(m_TaskProcessLock);
 	if (m_TaskQueue)
 	{
 		m_TaskQueue->RemoveTask(this);
@@ -150,17 +173,26 @@ void KGraphTask::Abandon()
 	{
 		m_TaskWork->Abandon();
 		m_TaskWork = nullptr;
-		m_Done->store(true);
-		m_DoneEvent->Notify();
-		DispatchSubsequents(true);
 	}
+	m_Done = true;
+	m_DoneEvent->Notify();
+	DispatchSubsequents(true);
+}
+
+const char* KGraphTask::GetDebugInfo()
+{
+	if (m_TaskWork)
+	{
+		return m_TaskWork->GetDebugInfo();
+	}
+	return "NoTaskWork";
 }
 
 void KGraphTask::DispatchSubsequents(bool prerequisiteAbandon)
 {
-	for (IKGraphTask* subsequent : m_Subsequents)
+	for (IKGraphTaskRef subsequent : m_Subsequents)
 	{
-		((KGraphTask*)subsequent)->ConditionalQueueTask(prerequisiteAbandon);
+		((KGraphTask*)subsequent.Get())->ConditionalQueueTask(prerequisiteAbandon);
 	}
 }
 

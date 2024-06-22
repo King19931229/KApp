@@ -11,9 +11,10 @@ KAsyncTaskManager::~KAsyncTaskManager()
 {
 }
 
-IKAsyncTaskPtr KAsyncTaskManager::CreateAsyncTask(IKTaskWorkPtr work)
+IKAsyncTaskRef KAsyncTaskManager::CreateAsyncTask(IKTaskWorkPtr work)
 {
-	return IKAsyncTaskPtr(new KAsyncTask(work));
+	IKAsyncTaskRef ref = IKAsyncTaskRef(new KAsyncTask(work));
+	return ref;
 }
 
 IKTaskThreadPool* KAsyncTaskManager::GetThreadPool()

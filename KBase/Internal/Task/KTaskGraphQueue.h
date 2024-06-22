@@ -43,6 +43,9 @@ public:
 	{
 		std::unique_lock<decltype(m_QueueMutex)> lock(m_QueueMutex);
 		m_PriorityTasks[priority].push_back(task);
+#if KTASK_GRAPH_DEBUG_PRINT_LEVEL > 1
+		printf("[GraphTaskQueue] AddTask %s (priority:%d)\n", task->GetDebugInfo(), priority);
+#endif
 	}
 
 	void RemoveTask(IKGraphTask* task) override
@@ -52,6 +55,9 @@ public:
 		{
 			taskPriorityQueue.remove(task);
 		}
+#if KTASK_GRAPH_DEBUG_PRINT_LEVEL > 1
+		printf("[GraphTaskQueue] RemoveTask %s\n", task->GetDebugInfo());
+#endif
 	}
 
 	bool HasTaskToProcess()
@@ -75,7 +81,7 @@ public:
 		{
 			if (!taskPriorityQueue.empty())
 			{
-				task = std::move(taskPriorityQueue.front());
+				task = taskPriorityQueue.front();
 				taskPriorityQueue.pop_front();
 				break;
 			}

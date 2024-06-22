@@ -2,8 +2,11 @@
 #include "KBase/Publish/KEvent.h"
 #include "KBase/Publish/KSemaphore.h"
 #include "KBase/Interface/Task/IKTaskWork.h"
+#include "KBase/Publish/KReferenceHolder.h"
 #include <memory>
 #include <vector>
+
+#define KTASK_GRAPH_DEBUG_PRINT_LEVEL 0
 
 enum TaskThreadPriority
 {
@@ -77,18 +80,33 @@ struct IKTaskGraphWork
 typedef std::shared_ptr<IKTaskGraphWork> IKTaskGraphWorkPtr;
 
 struct IKGraphTask;
-typedef std::shared_ptr<IKGraphTask> IKGraphTaskPtr;
+typedef KReferenceHolder<IKGraphTask*, true> IKGraphTaskRef;
+
+struct IKGraphTaskEvent;
+typedef KReferenceHolder<IKGraphTaskEvent*, true> IKGraphTaskEventRef;
+
+struct IKGraphTaskEvent
+{
+	virtual ~IKGraphTaskEvent() {}
+	virtual bool AddEventToWaitFor(IKGraphTaskEventRef eventToWait) = 0;
+	virtual bool AddSubsequent(IKGraphTaskEventRef subsequent) = 0;
+	virtual bool IsCompleted() const = 0;
+	virtual void WaitForCompletion() = 0;
+	virtual void Abandon() = 0;
+	virtual const char* GetDebugInfo() = 0;
+};
 
 struct IKGraphTask
 {
 	virtual ~IKGraphTask() {}
-	virtual bool AddEventToWaitFor(IKGraphTask* eventToWait) = 0;
+	virtual bool AddEventToWaitFor(IKGraphTaskRef eventToWait) = 0;
 	virtual bool AddSubsequent(IKGraphTask* subsequent) = 0;
 	virtual bool SetThreadToExetuceOn(NamedThread::Type thread) = 0;
 	virtual bool IsCompleted() const = 0;
 	virtual void WaitForCompletion() = 0;
 	virtual void DoWork() = 0;
 	virtual void Abandon() = 0;
+	virtual const char* GetDebugInfo() = 0;
 };
 
 struct IKGraphTaskQueue
@@ -106,8 +124,8 @@ struct IKTaskGraphManager
 	virtual ~IKTaskGraphManager() {}
 	virtual void Init() = 0;
 	virtual void UnInit() = 0;
-	virtual IKGraphTaskPtr CreateAndDispatch(IKTaskWorkPtr task, NamedThread::Type thread, const std::vector<IKGraphTaskPtr>& prerequisites) = 0;
-	virtual IKGraphTaskPtr CreateAndHold(IKTaskWorkPtr task, NamedThread::Type thread, const std::vector<IKGraphTaskPtr>& prerequisites) = 0;
+	virtual IKGraphTaskRef CreateAndDispatch(IKTaskWorkPtr work, NamedThread::Type thread, const std::vector<IKGraphTaskRef>& prerequisites) = 0;
+	virtual IKGraphTaskRef CreateAndHold(IKTaskWorkPtr work, NamedThread::Type thread, const std::vector<IKGraphTaskRef>& prerequisites) = 0;
 	virtual void AddTask(IKGraphTask* task, NamedThread::Type thread) = 0;
 	virtual void AttachToThread(NamedThread::Type thread) = 0;
 	virtual void ProcessTaskUntilIdle(NamedThread::Type thread) = 0;
