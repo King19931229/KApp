@@ -1,6 +1,7 @@
 #pragma once
 #include "Interface/IKRunable.h"
 #include "KTaskGraphQueue.h"
+#include "KTaskGraph.h"
 #include <assert.h>
 
 class KTaskGraphExecute : public IKRunable
@@ -26,9 +27,10 @@ public:
 
 	bool IsHangUp() const { return m_HangUp; }
 
-	void AddTask(IKGraphTask* task, TaskPriority taskPriority)
+	void AddTask(IKGraphTaskRef task, TaskPriority taskPriority)
 	{
 		m_Queue->AddTask(task, taskPriority);
+		((KGraphTask*)task.Get())->SetTaskQueue(m_Queue);
 		m_Trigger.Notify();
 		m_HangUp = false;
 	}
@@ -71,7 +73,7 @@ public:
 	{
 		while (m_Queue && !m_Queue->IsDone())
 		{
-			IKGraphTask* task = m_Queue->PopTaskByPriorityOrder();
+			IKGraphTaskRef task = m_Queue->PopTaskByPriorityOrder();
 			if (task)
 			{
 				task->DoWork();
@@ -85,7 +87,7 @@ public:
 	{
 		while (m_Queue && !m_Queue->IsDone())
 		{
-			IKGraphTask* task = m_Queue->PopTaskByPriorityOrder();
+			IKGraphTaskRef task = m_Queue->PopTaskByPriorityOrder();
 			if (task)
 			{
 				task->DoWork();
@@ -116,7 +118,7 @@ public:
 	{
 		while (m_Queue && !m_Queue->IsDone())
 		{
-			IKGraphTask* task = m_Queue->PopTaskByPriorityOrder();
+			IKGraphTaskRef task = m_Queue->PopTaskByPriorityOrder();
 			if (task)
 			{
 				task->DoWork();

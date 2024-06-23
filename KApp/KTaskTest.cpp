@@ -68,7 +68,7 @@ struct Task
 	}
 	void DoWork()
 	{
-		fibonacci(10000000);
+		fibonacci(10);
 		printf("Task_%d\n", counter);
 	}
 	void Abandon() {}
@@ -90,7 +90,7 @@ struct Task2
 	}
 	void DoWork()
 	{
-		fibonacci(10000000);
+		fibonacci(10);
 		printf("Task2_%d\n", counter2);
 	}
 	void Abandon() {}
@@ -138,22 +138,22 @@ int main()
 	GetAsyncTaskManager()->Init();
 	GetTaskGraphManager()->Init();
 
-	uint32_t taskNum = 3000;
-	/*std::vector<IKAsyncTaskPtr> tasks;
-	for(uint32_t i = 0; i < taskNum; ++i)
-	{
-		tasks.push_back(GetAsyncTaskManager()->CreateAsyncTask(IKTaskWorkPtr(new KLambdaTaskWork(Task))));
-	}
-	for (uint32_t i = 0; i < taskNum; ++i)
-	{
-		tasks[i]->StartAsync();
-	}*/
+	uint32_t taskNum = 10;
+	///*std::vector<IKAsyncTaskPtr> tasks;
+	//for(uint32_t i = 0; i < taskNum; ++i)
+	//{
+	//	tasks.push_back(GetAsyncTaskManager()->CreateAsyncTask(IKTaskWorkPtr(new KLambdaTaskWork(Task))));
+	//}
+	//for (uint32_t i = 0; i < taskNum; ++i)
+	//{
+	//	tasks[i]->StartAsync();
+	//}*/
 
-	std::vector<IKGraphTaskRef> tasks;
-	std::vector<IKGraphTaskRef> tasks2;
-	std::vector<IKGraphTaskRef> tasks3;
+	std::vector<IKGraphTaskEventRef> tasks;
+	std::vector<IKGraphTaskEventRef> tasks2;
+	std::vector<IKGraphTaskEventRef> tasks3;
 
-	IKTaskGraphManager* mgr = GetTaskGraphManager();
+	//IKTaskGraphManager* mgr = GetTaskGraphManager();
 
 	for (uint32_t i = 0; i < taskNum; ++i)
 	{
@@ -165,13 +165,24 @@ int main()
 	}
 	for (uint32_t i = 0; i < taskNum; ++i)
 	{
-		tasks3.push_back(GetTaskGraphManager()->CreateAndDispatch(IKTaskWorkPtr(new KTaskWork<Task3>(i)), NamedThread::ANY_THREAD, { tasks[i] }));
+		tasks3.push_back(GetTaskGraphManager()->CreateAndHold(IKTaskWorkPtr(new KTaskWork<Task3>(i)), NamedThread::ANY_THREAD, {}));
 	}
 
 	for (uint32_t i = 0; i < taskNum; ++i)
 	{
-		tasks3[taskNum - 1 - i]->WaitForCompletion();
+		tasks3[i]->AddEventToWaitFor(tasks[i]);
+		tasks3[i]->AddEventToWaitFor(tasks2[i]);
+		GetTaskGraphManager()->Dispatch(tasks3[i]);
 	}
+
+	for (uint32_t i = 0; i < taskNum; ++i)
+	{
+		// tasks3[i]->WaitForCompletion();
+	}
+
+	tasks.clear();
+	tasks2.clear();
+	tasks3.clear();
 
 	GetTaskGraphManager()->UnInit();
 	GetAsyncTaskManager()->UnInit();

@@ -18,7 +18,7 @@ public:
 		: m_Soul(nullptr)
 	{
 	}
-	KReference(Type soul)
+	explicit KReference(Type soul)
 		: m_Soul(soul)
 		, m_ReleaseFunc([](Type soul) { SAFE_DELETE(soul); })
 	{
@@ -205,7 +205,7 @@ public:
 		: m_RefCount(nullptr)
 	{
 	}
-	KReferenceHolder(Type soul)
+	explicit KReferenceHolder(Type soul)
 		: m_Ref(soul)
 		, m_RefCount(KNEW RefCounterType(1))
 	{

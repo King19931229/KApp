@@ -34,9 +34,10 @@ public:
 
 	virtual void Init() override;
 	virtual void UnInit() override;
-	virtual IKGraphTaskRef CreateAndDispatch(IKTaskWorkPtr work, NamedThread::Type thread, const std::vector<IKGraphTaskRef>& prerequisites) override;
-	virtual IKGraphTaskRef CreateAndHold(IKTaskWorkPtr work, NamedThread::Type thread, const std::vector<IKGraphTaskRef>& prerequisites) override;
-	virtual void AddTask(IKGraphTask* task, NamedThread::Type thread) override;
+	virtual IKGraphTaskEventRef CreateAndDispatch(IKTaskWorkPtr work, NamedThread::Type thread, const std::vector<IKGraphTaskEventRef>& prerequisites) override;
+	virtual IKGraphTaskEventRef CreateAndHold(IKTaskWorkPtr work, NamedThread::Type thread, const std::vector<IKGraphTaskEventRef>& prerequisites) override;
+	virtual void Dispatch(IKGraphTaskEventRef taskEvent) override;
+	virtual void AddTask(IKGraphTaskRef task, NamedThread::Type thread) override;
 	virtual void AttachToThread(NamedThread::Type thread) override;
 	virtual void ProcessTaskUntilIdle(NamedThread::Type thread) override;
 };

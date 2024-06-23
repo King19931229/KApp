@@ -64,23 +64,31 @@ void KTaskGraphManager::UnInit()
 		m_TaskThread[i]->ShutDown();
 	}
 	m_TaskThread.clear();
+
+	m_TaskThreadNumPerPriority = 0;
+	m_TaskThreadNum = 0;
 }
 
-IKGraphTaskRef KTaskGraphManager::CreateAndDispatch(IKTaskWorkPtr work, NamedThread::Type thread, const std::vector<IKGraphTaskRef>& prerequisites)
+IKGraphTaskEventRef KTaskGraphManager::CreateAndDispatch(IKTaskWorkPtr work, NamedThread::Type thread, const std::vector<IKGraphTaskEventRef>& prerequisites)
 {
-	IKGraphTaskRef task = IKGraphTaskRef(new KGraphTask(work, thread));
-	KGraphTask::Setup(task, prerequisites, false);
+	IKGraphTaskEventRef task = IKGraphTaskEventRef(new KGraphTaskEvent(thread));
+	KGraphTaskEvent::Setup(task, work, prerequisites, false);
 	return task;
 }
 
-IKGraphTaskRef KTaskGraphManager::CreateAndHold(IKTaskWorkPtr work, NamedThread::Type thread, const std::vector<IKGraphTaskRef>& prerequisites)
+IKGraphTaskEventRef KTaskGraphManager::CreateAndHold(IKTaskWorkPtr work, NamedThread::Type thread, const std::vector<IKGraphTaskEventRef>& prerequisites)
 {
-	IKGraphTaskRef task = IKGraphTaskRef(new KGraphTask(work, thread));
-	KGraphTask::Setup(task, prerequisites, true);
+	IKGraphTaskEventRef task = IKGraphTaskEventRef(new KGraphTaskEvent(thread));
+	KGraphTaskEvent::Setup(task, work, prerequisites, true);
 	return task;
 }
 
-void KTaskGraphManager::AddTask(IKGraphTask* task, NamedThread::Type thread)
+void KTaskGraphManager::Dispatch(IKGraphTaskEventRef taskEvent)
+{
+	((KGraphTaskEvent*)taskEvent.Get())->Dispatch();
+}
+
+void KTaskGraphManager::AddTask(IKGraphTaskRef task, NamedThread::Type thread)
 {
 	uint32_t threadIndex = NamedThread::ANY_THREAD;
 	uint32_t threadPriority = (thread & NamedThread::THREAD_PRIORITY_MASK) >> NamedThread::THREAD_PRIORITY_SHIFT;
@@ -97,7 +105,7 @@ void KTaskGraphManager::AddTask(IKGraphTask* task, NamedThread::Type thread)
 
 		for (uint32_t i = threadBegin; i < threadEnd; ++i)
 		{
-			if (m_ThreadGraphExecute[i]->IsHangUp())
+			if (i < m_ThreadGraphExecute.size() && m_ThreadGraphExecute[i]->IsHangUp())
 			{
 				threadIndex = i;
 				break;
@@ -113,7 +121,7 @@ void KTaskGraphManager::AddTask(IKGraphTask* task, NamedThread::Type thread)
 	{
 		m_ThreadGraphExecute[threadIndex]->AddTask(task, (TaskPriority)taskPriority);
 	}
-	else
+	else if (m_ThreadGraphExecute.size())
 	{
 		assert(false);
 	}

@@ -7,7 +7,7 @@
 class KGraphTaskQueue : public IKGraphTaskQueue
 {
 protected:
-	std::vector<std::list<IKGraphTask*>> m_PriorityTasks;
+	std::vector<std::list<IKGraphTaskRef>> m_PriorityTasks;
 	std::mutex m_QueueMutex;
 	bool m_Done;
 public:
@@ -39,16 +39,18 @@ public:
 		return m_Done;
 	}
 
-	void AddTask(IKGraphTask* task, TaskPriority priority) override
+	void AddTask(IKGraphTaskRef task, TaskPriority priority) override
 	{
 		std::unique_lock<decltype(m_QueueMutex)> lock(m_QueueMutex);
+		if (priority >= m_PriorityTasks.size())
+			return;
 		m_PriorityTasks[priority].push_back(task);
 #if KTASK_GRAPH_DEBUG_PRINT_LEVEL > 1
 		printf("[GraphTaskQueue] AddTask %s (priority:%d)\n", task->GetDebugInfo(), priority);
 #endif
 	}
 
-	void RemoveTask(IKGraphTask* task) override
+	void RemoveTask(IKGraphTaskRef task) override
 	{
 		std::unique_lock<decltype(m_QueueMutex)> lock(m_QueueMutex);
 		for (auto& taskPriorityQueue : m_PriorityTasks)
@@ -73,10 +75,10 @@ public:
 		return false;
 	}
 
-	IKGraphTask* PopTaskByPriorityOrder()
+	IKGraphTaskRef PopTaskByPriorityOrder()
 	{
 		std::unique_lock<decltype(m_QueueMutex)> lock(m_QueueMutex);
-		IKGraphTask* task = nullptr;
+		IKGraphTaskRef task;
 		for (auto& taskPriorityQueue : m_PriorityTasks)
 		{
 			if (!taskPriorityQueue.empty())
