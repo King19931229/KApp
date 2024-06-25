@@ -30,6 +30,14 @@ public:
 	void UnInit() override
 	{
 		std::unique_lock<decltype(m_QueueMutex)> lock(m_QueueMutex);
+		for (auto& taskList : m_PriorityTasks)
+		{
+			for (IKGraphTaskRef task : taskList)
+			{
+				task->DetachFromEvent();
+			}
+			taskList.clear();
+		}
 		m_PriorityTasks.clear();
 		m_Done = true;
 	}

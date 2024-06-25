@@ -10,7 +10,6 @@ KAsyncTask::KAsyncTask(IKTaskWorkPtr task)
 
 KAsyncTask::~KAsyncTask()
 {
-	Abandon();
 }
 
 bool KAsyncTask::IsCompleted() const

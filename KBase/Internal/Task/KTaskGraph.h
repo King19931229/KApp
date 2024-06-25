@@ -17,6 +17,7 @@ public:
 	void Abandon(IKGraphTaskRef thisTask);
 
 	virtual void DoWork() override;	
+	virtual void DetachFromEvent() override;
 	virtual const char* GetDebugInfo() override;
 };
 
@@ -29,7 +30,6 @@ protected:
 	std::shared_ptr<KEvent> m_DoneEvent;
 	std::shared_ptr<bool> m_Done;
 	bool m_Queued;
-	bool m_AbandonOnClose;
 
 	NamedThread::Type m_ThreadToExecuteOn;
 	std::vector<IKGraphTaskEventRef> m_Subsequents;
@@ -50,13 +50,13 @@ public:
 	static void Setup(IKGraphTaskEventRef taskEvent, const std::vector<IKGraphTaskEventRef>& prerequisites, bool hold);
 
 	virtual bool AddEventToWaitFor(IKGraphTaskEventRef eventToWait) override;
-	virtual bool AddSubsequent(IKGraphTaskEventRef subsequent) override;
 	virtual bool SetThreadToExetuceOn(NamedThread::Type thread) override;
 	virtual bool IsCompleted() const override;
 	virtual void WaitForCompletion() override;
 	virtual void Abandon() override;
 	virtual const char* GetDebugInfo() override;
 
+	bool AddSubsequent(IKGraphTaskEventRef subsequent);
 	void Dispatch();
 	void OnTaskDone();
 };

@@ -86,6 +86,7 @@ struct IKGraphTask
 {
 	virtual ~IKGraphTask() {}
 	virtual void DoWork() = 0;
+	virtual void DetachFromEvent() = 0;
 	virtual const char* GetDebugInfo() = 0;
 };
 
@@ -96,7 +97,6 @@ struct IKGraphTaskEvent
 {
 	virtual ~IKGraphTaskEvent() {}
 	virtual bool AddEventToWaitFor(IKGraphTaskEventRef eventToWait) = 0;
-	virtual bool AddSubsequent(IKGraphTaskEventRef subsequent) = 0;
 	virtual bool SetThreadToExetuceOn(NamedThread::Type thread) = 0;
 	virtual bool IsCompleted() const = 0;
 	virtual void WaitForCompletion() = 0;

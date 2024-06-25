@@ -138,7 +138,7 @@ int main()
 	GetAsyncTaskManager()->Init();
 	GetTaskGraphManager()->Init();
 
-	uint32_t taskNum = 10;
+	uint32_t taskNum = 3000;
 	///*std::vector<IKAsyncTaskPtr> tasks;
 	//for(uint32_t i = 0; i < taskNum; ++i)
 	//{
@@ -177,7 +177,9 @@ int main()
 
 	for (uint32_t i = 0; i < taskNum; ++i)
 	{
-		// tasks3[i]->WaitForCompletion();
+		//tasks[i]->Abandon();
+		//tasks2[i]->Abandon();
+		tasks3[i]->WaitForCompletion();
 	}
 
 	tasks.clear();
@@ -186,5 +188,6 @@ int main()
 
 	GetTaskGraphManager()->UnInit();
 	GetAsyncTaskManager()->UnInit();
+
 	return 0;
 }

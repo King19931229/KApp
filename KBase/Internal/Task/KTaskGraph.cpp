@@ -23,8 +23,19 @@ void KGraphTask::DoWork()
 	if (m_TaskWork)
 	{
 		m_TaskWork->DoWork();
-		((KGraphTaskEvent*)m_TaskEvent.Get())->OnTaskDone();
+		if (m_TaskEvent)
+		{
+			((KGraphTaskEvent*)m_TaskEvent.Get())->OnTaskDone();
+		}
 	}
+	m_TaskQueue = nullptr;
+	m_TaskEvent.Release();
+}
+
+void KGraphTask::DetachFromEvent()
+{
+	std::unique_lock<decltype(m_WorkProcessLock)> lock(m_WorkProcessLock);
+	m_TaskWork = nullptr;
 	m_TaskQueue = nullptr;
 	m_TaskEvent.Release();
 }
@@ -46,7 +57,10 @@ void KGraphTask::Abandon(IKGraphTaskRef thisTask)
 	{
 		m_TaskWork->Abandon();
 		m_TaskWork = nullptr;
-		((KGraphTaskEvent*)m_TaskEvent.Get())->OnTaskDone();
+		if (m_TaskEvent)
+		{
+			((KGraphTaskEvent*)m_TaskEvent.Get())->OnTaskDone();
+		}
 	}
 	m_TaskEvent.Release();
 }
@@ -61,7 +75,6 @@ KGraphTaskEvent::KGraphTaskEvent(NamedThread::Type thread)
 	, m_DoneEvent(std::make_shared<KEvent>())
 	, m_Done(std::make_shared<bool>(false))
 	, m_Queued(false)
-	, m_AbandonOnClose(true)
 {
 }
 
@@ -70,7 +83,6 @@ KGraphTaskEvent::KGraphTaskEvent(KGraphTaskEvent& stealFrom)
 	, m_DoneEvent(stealFrom.m_DoneEvent)
 	, m_Done(stealFrom.m_Done)
 	, m_Queued(false)
-	, m_AbandonOnClose(false)
 	, m_Task(stealFrom.m_Task)
 	, m_Subsequents(std::move(stealFrom.m_Subsequents))
 	, m_EventToWaitFor(std::move(stealFrom.m_EventToWaitFor))
@@ -80,10 +92,6 @@ KGraphTaskEvent::KGraphTaskEvent(KGraphTaskEvent& stealFrom)
 
 KGraphTaskEvent::~KGraphTaskEvent()
 {
-	if (m_AbandonOnClose)
-	{
-		Abandon();
-	}
 }
 
 void KGraphTaskEvent::Setup(IKGraphTaskEventRef taskEvent, IKTaskWorkPtr work, const std::vector<IKGraphTaskEventRef>& prerequisites, bool hold)
@@ -111,7 +119,7 @@ void KGraphTaskEvent::SetupPrerequisite(IKGraphTaskEventRef taskEvent, const std
 #endif
 	for (IKGraphTaskEventRef prerequisite : prerequisites)
 	{
-		if (!prerequisite || !prerequisite->AddSubsequent(taskEvent))
+		if (!prerequisite || !((KGraphTaskEvent*)prerequisite.Get())->AddSubsequent(taskEvent))
 		{
 			graphTaskEvent->m_NumPrerequisite.fetch_sub(1);
 		}
@@ -218,6 +226,7 @@ void KGraphTaskEvent::Abandon()
 	if (m_Task)
 	{
 		((KGraphTask*)m_Task.Get())->Abandon(m_Task);
+		m_Task.Release();
 	}
 }
 
