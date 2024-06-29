@@ -2,11 +2,60 @@
 
 #include "KBase/Publish/KConfig.h"
 #include <functional>
+#include <unordered_set>
 #include <atomic>
+#include <mutex>
 #include <assert.h>
 
+template<typename Type, bool UniqueCheck>
+class KReferenceUniqueCheck
+{
+};
+
 template<typename Type>
-class KReference
+struct KReferenceUniqueCheckData
+{
+	std::unordered_set<Type> addedMap;
+	std::mutex uniqueMutex;
+};
+
+template<typename Type>
+class KReferenceUniqueCheck<Type, true>
+{
+protected:
+	static KReferenceUniqueCheckData<Type> ms_CheckData;
+
+	void AddUnqiueCheck(Type element)
+	{
+		std::unique_lock<std::mutex> lock(ms_CheckData.uniqueMutex);
+		if (ms_CheckData.addedMap.find(element) != ms_CheckData.addedMap.end())
+		{
+			exit(0);
+		}
+		ms_CheckData.addedMap.insert(element);
+	}
+
+	void RemoveUnqiueCheck(Type element)
+	{
+		std::unique_lock<std::mutex> lock(ms_CheckData.uniqueMutex);
+		if (ms_CheckData.addedMap.find(element) == ms_CheckData.addedMap.end())
+		{
+			exit(0);
+		}
+		ms_CheckData.addedMap.erase(element);
+	}
+};
+
+template<typename Type>
+class KReferenceUniqueCheck<Type, false>
+{
+protected:
+	void AddUnqiueCheck(Type element) {}
+	void RemoveUnqiueCheck(Type element) {}
+};
+
+template<typename Type, bool UniqueCheck = false>
+class KReference : KReferenceUniqueCheck<Type, UniqueCheck>
 {
 public:
 	typedef std::function<void(Type)> ReleaseFunction;
@@ -22,12 +71,14 @@ public:
 		: m_Soul(soul)
 		, m_ReleaseFunc([](Type soul) { SAFE_DELETE(soul); })
 	{
+		AddUnqiueCheck(m_Soul);
 		ASSERT_RESULT(m_Soul);
 	}
 	KReference(Type soul, ReleaseFunction releaseFunc)
 		: m_Soul(soul)
 		, m_ReleaseFunc(releaseFunc)
 	{
+		AddUnqiueCheck(m_Soul);
 		ASSERT_RESULT(m_Soul);
 	}
 	~KReference()
@@ -53,10 +104,13 @@ public:
 	}
 	KReference& operator=(KReference&& rhs)
 	{
-		m_Soul = std::move(rhs.m_Soul);
-		m_ReleaseFunc = std::move(rhs.m_ReleaseFunc);
-		rhs.m_Soul = nullptr;
-		rhs.m_ReleaseFunc = ReleaseFunction();
+		if (this != &rhs)
+		{
+			m_Soul = std::move(rhs.m_Soul);
+			m_ReleaseFunc = std::move(rhs.m_ReleaseFunc);
+			rhs.m_Soul = nullptr;
+			rhs.m_ReleaseFunc = ReleaseFunction();
+		}
 		return *this;
 	}
 	bool operator==(const KReference& rhs) const
@@ -79,8 +133,9 @@ public:
 	{
 		return m_Soul;
 	}
-	void Release()
+	void __Release__()
 	{
+		RemoveUnqiueCheck(m_Soul);
 		m_ReleaseFunc(m_Soul);
 		m_Soul = nullptr;
 		m_ReleaseFunc = ReleaseFunction();
@@ -95,49 +150,40 @@ struct KReferenceHolderRefCounter
 template<>
 struct KReferenceHolderRefCounter<true>
 {
-	std::atomic_uint32_t refCounter;
+	std::atomic_uint32_t atomicRefCounter;
 	KReferenceHolderRefCounter(uint32_t counter)
-		: refCounter(counter)
+		: atomicRefCounter(counter)
 	{
 	}
-	KReferenceHolderRefCounter(KReferenceHolderRefCounter& rhs)
+	KReferenceHolderRefCounter(const KReferenceHolderRefCounter& rhs)
 	{
-		refCounter.store(rhs.refCounter.load());
+		atomicRefCounter.store(rhs.atomicRefCounter.load());
 	}
 	KReferenceHolderRefCounter(KReferenceHolderRefCounter&& rhs)
 	{
-		refCounter.store(rhs.refCounter.load());
-	}
-	uint32_t operator=(KReferenceHolderRefCounter&& rhs)
-	{
-		refCounter.store(rhs.refCounter.load());
-		return refCounter.load();
+		atomicRefCounter.store(rhs.atomicRefCounter.load());
 	}
 	operator uint32_t()
 	{
-		return refCounter.load();
+		return atomicRefCounter.load();
 	}
 	uint32_t operator++()
 	{
-		refCounter.fetch_add(1);
-		return refCounter.load();
+		atomicRefCounter.fetch_add(1);
+		return atomicRefCounter.load();
 	}
 	uint32_t operator++(int)
 	{
-		uint32_t counter = refCounter.load();
-		refCounter.fetch_add(1);
-		return counter;
+		return atomicRefCounter.fetch_add(1);
 	}
 	uint32_t operator--()
 	{
-		refCounter.fetch_sub(1);
-		return refCounter.load();
+		atomicRefCounter.fetch_sub(1);
+		return atomicRefCounter.load();
 	}
 	uint32_t operator--(int)
 	{
-		uint32_t counter = refCounter.load();
-		refCounter.fetch_sub(1);
-		return counter;
+		return atomicRefCounter.fetch_sub(1);
 	}
 };
 
@@ -148,18 +194,13 @@ struct KReferenceHolderRefCounter<false>
 	KReferenceHolderRefCounter(uint32_t counter)
 		: refCounter(counter)
 	{}
-	KReferenceHolderRefCounter(KReferenceHolderRefCounter& rhs)
+	KReferenceHolderRefCounter(const KReferenceHolderRefCounter& rhs)
 	{
 		refCounter = rhs.refCounter;
 	}
 	KReferenceHolderRefCounter(KReferenceHolderRefCounter&& rhs)
 	{
 		refCounter = rhs.refCounter;
-	}
-	uint32_t operator=(KReferenceHolderRefCounter&& rhs)
-	{
-		refCounter = rhs.refCounter;
-		return refCounter;
 	}
 	operator uint32_t()
 	{
@@ -183,20 +224,20 @@ struct KReferenceHolderRefCounter<false>
 	}
 };
 
-template<typename Type, bool MultiThread = true>
+template<typename Type, bool MultiThread = true, bool UniqueCheck = false>
 class KReferenceHolder
 {
 public:
 	typedef std::function<void(Type)> ReleaseFunction;
 protected:
 	typedef KReferenceHolderRefCounter<MultiThread> RefCounterType;
-	KReference<Type> m_Ref;
+	KReference<Type, UniqueCheck> m_Ref;
 	RefCounterType* m_RefCount;
 	void DecreaseReference()
 	{
-		if (m_RefCount && --*m_RefCount == 0)
+		if (m_RefCount && (*m_RefCount)-- == 1)
 		{
-			m_Ref.Release();
+			m_Ref.__Release__();
 			SAFE_DELETE(m_RefCount);
 		}
 	}
@@ -243,10 +284,13 @@ public:
 	}
 	KReferenceHolder& operator=(KReferenceHolder&& rhs)
 	{
-		DecreaseReference();
-		m_Ref = std::move(rhs.m_Ref);
-		m_RefCount = std::move(rhs.m_RefCount);
-		rhs.m_RefCount = nullptr;
+		if (this != &rhs)
+		{
+			DecreaseReference();
+			m_Ref = std::move(rhs.m_Ref);
+			m_RefCount = std::move(rhs.m_RefCount);
+			rhs.m_RefCount = nullptr;
+		}
 		return *this;
 	}
 	bool operator==(const KReferenceHolder& rhs) const
@@ -288,18 +332,7 @@ public:
 	void Release()
 	{
 		DecreaseReference();
-		m_Ref = KReference<Type>();
+		m_Ref = KReference<Type, UniqueCheck>();
 		m_RefCount = nullptr;
 	}
 };
-
-/*
-template<typename Type>
-struct std::hash<KReferenceHolder<Type>>
-{
-	inline std::size_t operator()(const KReferenceHolder<Type>& holder) const
-	{
-		return (size_t)holder.Get();
-	}
-};
-*/

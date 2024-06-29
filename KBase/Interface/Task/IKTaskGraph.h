@@ -7,6 +7,7 @@
 #include <vector>
 
 #define KTASK_GRAPH_DEBUG_PRINT_LEVEL 0
+#define KTASK_GRAPH_DEBUG_UNIQUE 0
 
 enum TaskThreadPriority
 {
@@ -80,7 +81,8 @@ struct IKTaskGraphWork
 typedef std::shared_ptr<IKTaskGraphWork> IKTaskGraphWorkPtr;
 
 struct IKGraphTask;
-typedef KReferenceHolder<IKGraphTask*, true> IKGraphTaskRef;
+
+typedef KReferenceHolder<IKGraphTask*, true, KTASK_GRAPH_DEBUG_UNIQUE> IKGraphTaskRef;
 
 struct IKGraphTask
 {
@@ -91,7 +93,7 @@ struct IKGraphTask
 };
 
 struct IKGraphTaskEvent;
-typedef KReferenceHolder<IKGraphTaskEvent*, true> IKGraphTaskEventRef;
+typedef KReferenceHolder<IKGraphTaskEvent*, true, KTASK_GRAPH_DEBUG_UNIQUE> IKGraphTaskEventRef;
 
 struct IKGraphTaskEvent
 {
@@ -124,6 +126,7 @@ struct IKTaskGraphManager
 	virtual void Dispatch(IKGraphTaskEventRef taskEvent) = 0;
 	virtual void AddTask(IKGraphTaskRef task, NamedThread::Type thread) = 0;
 	virtual void AttachToThread(NamedThread::Type thread) = 0;
+	virtual NamedThread::Type GetThisThreadId() const = 0;
 	virtual void ProcessTaskUntilIdle(NamedThread::Type thread) = 0;
 };
 

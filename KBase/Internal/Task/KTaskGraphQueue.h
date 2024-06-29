@@ -50,8 +50,6 @@ public:
 	void AddTask(IKGraphTaskRef task, TaskPriority priority) override
 	{
 		std::unique_lock<decltype(m_QueueMutex)> lock(m_QueueMutex);
-		if (priority >= m_PriorityTasks.size())
-			return;
 		m_PriorityTasks[priority].push_back(task);
 #if KTASK_GRAPH_DEBUG_PRINT_LEVEL > 1
 		printf("[GraphTaskQueue] AddTask %s (priority:%d)\n", task->GetDebugInfo(), priority);

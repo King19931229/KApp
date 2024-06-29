@@ -105,10 +105,12 @@ public:
 class KTaskThreadExecute : public KTaskGraphExecute
 {
 protected:
+	NamedThread::Type m_ThreadId;
 public:
-	KTaskThreadExecute(KGraphTaskQueue* queue)
+	KTaskThreadExecute(KGraphTaskQueue* queue, NamedThread::Type threadId)
 	{
 		m_Queue = queue;
+		m_ThreadId = threadId;
 	}
 
 	~KTaskThreadExecute()
@@ -116,6 +118,7 @@ public:
 
 	void Run() override
 	{
+		GetTaskGraphManager()->AttachToThread(m_ThreadId);
 		while (m_Queue && !m_Queue->IsDone())
 		{
 			IKGraphTaskRef task = m_Queue->PopTaskByPriorityOrder();

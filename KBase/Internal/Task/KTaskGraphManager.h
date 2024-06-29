@@ -12,6 +12,7 @@ protected:
 	std::vector<KRunableThreadPtr> m_TaskThread;
 	uint32_t m_TaskThreadNumPerPriority;
 	uint32_t m_TaskThreadNum;
+	static thread_local NamedThread::Type m_ThreadIdTLS;
 
 	const char* TaskThreadPriorityName(TaskThreadPriority priority)
 	{
@@ -39,5 +40,6 @@ public:
 	virtual void Dispatch(IKGraphTaskEventRef taskEvent) override;
 	virtual void AddTask(IKGraphTaskRef task, NamedThread::Type thread) override;
 	virtual void AttachToThread(NamedThread::Type thread) override;
+	virtual NamedThread::Type GetThisThreadId() const override;
 	virtual void ProcessTaskUntilIdle(NamedThread::Type thread) override;
 };

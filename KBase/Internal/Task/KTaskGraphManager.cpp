@@ -1,6 +1,8 @@
 #include "KTaskGraphManager.h"
 #include "KTaskGraph.h"
 
+thread_local NamedThread::Type KTaskGraphManager::m_ThreadIdTLS = -1;
+
 KTaskGraphManager::KTaskGraphManager()
 	: m_TaskThreadNum(0)
 {}
@@ -12,7 +14,7 @@ void KTaskGraphManager::Init()
 {
 	UnInit();
 
-	m_TaskThreadNumPerPriority = std::max(1U, ((2 * std::thread::hardware_concurrency() - NamedThread::NUM_INTERNAL_THREAD) / TASK_THREAD_PRIORITY_NUM));
+	m_TaskThreadNumPerPriority = std::max(1U, ((std::thread::hardware_concurrency() - NamedThread::NUM_INTERNAL_THREAD) / TASK_THREAD_PRIORITY_NUM));
 	m_TaskThreadNum = TASK_THREAD_PRIORITY_NUM * m_TaskThreadNumPerPriority;
 
 	for (uint32_t i = 0; i < TASK_THREAD_PRIORITY_NUM; ++i)
@@ -37,7 +39,7 @@ void KTaskGraphManager::Init()
 
 			std::string threadName = std::string("TaskThread") + TaskThreadPriorityName((TaskThreadPriority)priorityIndex) + std::to_string(localThreadIndex);
 
-			KTaskGraphExecutePtr taskExecute = KTaskGraphExecutePtr(new KTaskThreadExecute(&m_ThreadPriorityTaskQueue[priorityIndex]));
+			KTaskGraphExecutePtr taskExecute = KTaskGraphExecutePtr(new KTaskThreadExecute(&m_ThreadPriorityTaskQueue[priorityIndex], globalThreadIndex));
 
 			m_ThreadGraphExecute[globalThreadIndex] = taskExecute;
 			m_TaskThread[threadIndex] = KRunableThreadPtr(new KRunableThread(taskExecute, threadName));
@@ -123,12 +125,18 @@ void KTaskGraphManager::AddTask(IKGraphTaskRef task, NamedThread::Type thread)
 	}
 	else if (m_ThreadGraphExecute.size())
 	{
-		assert(false);
+		exit(0);
 	}
 }
 
 void KTaskGraphManager::AttachToThread(NamedThread::Type thread)
 {
+	m_ThreadIdTLS = thread;
+}
+
+NamedThread::Type KTaskGraphManager::GetThisThreadId() const
+{
+	return m_ThreadIdTLS;
 }
 
 void KTaskGraphManager::ProcessTaskUntilIdle(NamedThread::Type thread)

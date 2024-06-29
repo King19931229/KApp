@@ -68,7 +68,7 @@ struct Task
 	}
 	void DoWork()
 	{
-		fibonacci(10);
+		fibonacci(100);
 		printf("Task_%d\n", counter);
 	}
 	void Abandon() {}
@@ -138,7 +138,9 @@ int main()
 	GetAsyncTaskManager()->Init();
 	GetTaskGraphManager()->Init();
 
-	uint32_t taskNum = 3000;
+	GetTaskGraphManager()->AttachToThread(NamedThread::GAME_THREAD);
+
+	uint32_t taskNum = 300;
 	///*std::vector<IKAsyncTaskPtr> tasks;
 	//for(uint32_t i = 0; i < taskNum; ++i)
 	//{
@@ -157,11 +159,11 @@ int main()
 
 	for (uint32_t i = 0; i < taskNum; ++i)
 	{
-		tasks.push_back(GetTaskGraphManager()->CreateAndDispatch(IKTaskWorkPtr(new KTaskWork<Task>(i)), NamedThread::ANY_THREAD, {}));
+		tasks.push_back(GetTaskGraphManager()->CreateAndDispatch(IKTaskWorkPtr(new KTaskWork<Task>(i)), NamedThread::GAME_THREAD, {}));
 	}
 	for (uint32_t i = 0; i < taskNum; ++i)
 	{
-		tasks2.push_back(GetTaskGraphManager()->CreateAndDispatch(IKTaskWorkPtr(new KTaskWork<Task2>(i)), NamedThread::ANY_THREAD, { tasks[i] }));
+		tasks2.push_back(GetTaskGraphManager()->CreateAndDispatch(IKTaskWorkPtr(new KTaskWork<Task2>(i)), NamedThread::GAME_THREAD, { tasks[i] }));
 	}
 	for (uint32_t i = 0; i < taskNum; ++i)
 	{
@@ -175,16 +177,18 @@ int main()
 		GetTaskGraphManager()->Dispatch(tasks3[i]);
 	}
 
+	GetTaskGraphManager()->ProcessTaskUntilIdle(NamedThread::GAME_THREAD);
+
 	for (uint32_t i = 0; i < taskNum; ++i)
 	{
-		//tasks[i]->Abandon();
-		//tasks2[i]->Abandon();
 		tasks3[i]->WaitForCompletion();
 	}
 
 	tasks.clear();
 	tasks2.clear();
 	tasks3.clear();
+
+	printf("ThisThreadId: %d\n", GetTaskGraphManager()->GetThisThreadId());
 
 	GetTaskGraphManager()->UnInit();
 	GetAsyncTaskManager()->UnInit();

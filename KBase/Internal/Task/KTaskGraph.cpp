@@ -1,6 +1,9 @@
 #include "KTaskGraph.h"
 #include <assert.h>
 
+KReferenceUniqueCheckData<IKGraphTask*> KReferenceUniqueCheck<IKGraphTask*, true>::ms_CheckData;
+KReferenceUniqueCheckData<IKGraphTaskEvent*> KReferenceUniqueCheck<IKGraphTaskEvent*, true>::ms_CheckData;
+
 KGraphTask::KGraphTask(IKGraphTaskEventRef taskEvent, IKTaskWorkPtr taskWork, IKGraphTaskQueue* taskQueue)
 	: m_TaskEvent(taskEvent)
 	, m_TaskWork(taskWork)
@@ -20,12 +23,13 @@ void KGraphTask::SetTaskQueue(IKGraphTaskQueue* queue)
 void KGraphTask::DoWork()
 {
 	std::unique_lock<decltype(m_WorkProcessLock)> lock(m_WorkProcessLock);
+	IKGraphTaskEventRef taskEvent = m_TaskEvent;
 	if (m_TaskWork)
 	{
 		m_TaskWork->DoWork();
-		if (m_TaskEvent)
+		if (taskEvent)
 		{
-			((KGraphTaskEvent*)m_TaskEvent.Get())->OnTaskDone();
+			((KGraphTaskEvent*)taskEvent.Get())->OnTaskDone();
 		}
 	}
 	m_TaskQueue = nullptr;
@@ -195,10 +199,20 @@ void KGraphTaskEvent::Dispatch()
 	ConditionalQueueTask(false);
 }
 
+void KGraphTaskEvent::OnTaskDone()
+{
+	if (m_Task)
+	{
+		*m_Done = true;
+		m_DoneEvent->Notify();
+		DispatchSubsequents(false);
+	}
+	m_Task.Release();
+}
+
 void KGraphTaskEvent::QueueTask()
 {
 	std::unique_lock<decltype(m_TaskProcessLock)> lock(m_TaskProcessLock);
-	assert(m_Task);
 	for (IKGraphTaskEventRef eventToWaitFor : m_EventToWaitFor)
 	{
 		if (!eventToWaitFor->IsCompleted())
@@ -237,17 +251,6 @@ const char* KGraphTaskEvent::GetDebugInfo()
 		return m_Task->GetDebugInfo();
 	}
 	return "NoTaskWork";
-}
-
-void KGraphTaskEvent::OnTaskDone()
-{
-	if (m_Task)
-	{
-		*m_Done = true;
-		m_DoneEvent->Notify();
-		DispatchSubsequents(false);
-	}
-	m_Task.Release();
 }
 
 void KGraphTaskEvent::DispatchSubsequents(bool prerequisiteAbandon)
