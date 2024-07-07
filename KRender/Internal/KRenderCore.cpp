@@ -286,8 +286,13 @@ bool KRenderCore::UnInitRenderResource()
 
 bool KRenderCore::Init(IKRenderDevicePtr& device, IKRenderWindowPtr& window)
 {
+	UnInit();
+
 	if (!m_bInit)
 	{
+		m_RenderThread = KRunableThreadPtr(new KRunableThread(IKRunablePtr(new KRenderThread), "RenderThread"));
+		m_RenderThread->StartUp();
+
 		KShaderMap::InitializePermuationMap();
 
 		m_Device = device.get();
@@ -394,6 +399,9 @@ bool KRenderCore::UnInit()
 {
 	if (m_bInit)
 	{
+		m_RenderThread->ShutDown();
+		m_RenderThread = nullptr;
+
 		KRenderGlobal::Renderer.RemoveCallback(m_Window);
 
 		KECSGlobal::UnInit();
@@ -446,6 +454,8 @@ bool KRenderCore::Tick()
 {
 	if (m_bInit && !m_bTickShouldEnd)
 	{
+		GetTaskGraphManager()->ProcessTaskUntilIdle(NamedThread::GAME_THREAD);
+
 		if (m_Window->Tick())
 		{
 			if (KECS::EntityManager)
@@ -471,12 +481,17 @@ bool KRenderCore::Tick()
 				}
 			}
 
-			m_Device->Present();
+			ENQUEUE_RENDER_COMMAND(Render)([this]()
+			{
+				m_Device->Present();
+			});
 
 			if (KECS::EntityManager)
 			{
 				KECS::EntityManager->ViewAllEntity([](IKEntityPtr entity) { entity->PostTick(); });
 			}
+
+			m_FrameSync.Sync();
 
 			return true;
 		}
@@ -493,6 +508,7 @@ bool KRenderCore::Wait()
 {
 	if (m_bInit)
 	{
+		FLUSH_RENDER_COMMAND();
 		m_Device->Wait();
 		return true;
 	}
@@ -614,9 +630,28 @@ bool KRenderCore::UpdateFrameTime()
 	KRenderStatistics statistics;
 	KRenderGlobal::Statistics.GetAllStatistics(statistics);
 
-	char szBuffer[1024] = {};
-	sprintf(szBuffer, "[FPS] %f [FrameTime] %f", statistics.frame.fps, statistics.frame.frametime);
-	m_Window->SetWindowTitle(szBuffer);
+	auto UpdateWindowFPS = [this, statistics]()
+	{
+		char szBuffer[1024] = {};
+		sprintf(szBuffer, "[FPS] %f [FrameTime] %f", statistics.frame.fps, statistics.frame.frametime);
+		m_Window->SetWindowTitle(szBuffer);
+	};
+
+	if (GetTaskGraphManager()->GetThisThreadId() == NamedThread::GAME_THREAD)
+	{
+		UpdateWindowFPS();
+	}
+	else if (GetTaskGraphManager()->GetThisThreadId() == NamedThread::RENDER_THREAD)
+	{
+		GetTaskGraphManager()->CreateAndDispatch
+		(
+			IKTaskWorkPtr(new KLambdaTaskWork([UpdateWindowFPS]()
+			{
+				UpdateWindowFPS();
+			})),
+			NamedThread::GAME_THREAD, {}
+		);
+	}
 
 	return true;
 }

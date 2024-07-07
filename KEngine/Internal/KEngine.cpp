@@ -11,6 +11,8 @@
 #include "KBase/Interface/IKIniFile.h"
 #include "KBase/Publish/KStringUtil.h"
 #include "KBase/Publish/KPlatform.h"
+#include "KBase/Interface/Task/IKTaskGraph.h"
+#include "KBase/Interface/Task/IKAsyncTask.h"
 
 #define ENABLE_RENDER_DOC 0
 
@@ -101,6 +103,11 @@ bool KEngine::Init(IKRenderWindowPtr window, const KEngineOptions& options)
 #if ENABLE_RENDER_DOC
 		m_RenderDoc.Init();
 #endif
+		GetAsyncTaskManager()->Init();
+		GetTaskGraphManager()->Init();
+
+		GetTaskGraphManager()->AttachToThread(NamedThread::GAME_THREAD);
+
 		KECS::CreateComponentManager();
 		KECS::CreateEntityManager();
 
@@ -254,7 +261,7 @@ bool KEngine::UnInit()
 {
 	if (m_bInit)
 	{
-		m_Device->Wait();
+		m_RenderCore->Wait();
 
 		KECS::DestroyEntityManager();
 		KECS::DestroyComponentManager();
@@ -282,6 +289,10 @@ bool KEngine::UnInit()
 #if ENABLE_RENDER_DOC
 		m_RenderDoc.UnInit();
 #endif
+
+		GetAsyncTaskManager()->UnInit();
+		GetTaskGraphManager()->UnInit();
+
 		m_bInit = false;
 
 		return true;

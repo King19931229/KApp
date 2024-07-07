@@ -9,6 +9,9 @@
 #include "Internal/Controller/KUIOverlayController.h"
 #include "Internal/Controller/KGizmoController.h"
 
+#include "KBase/Publish/KRunableThread.h"
+#include "KRenderThread.h"
+
 #include <unordered_set>
 
 class KRenderCore : public IKRenderCore
@@ -18,6 +21,9 @@ protected:
 	IKRenderWindow* m_Window;
 	KDebugConsole* m_DebugConsole;
 	KCamera m_Camera;
+
+	KRunableThreadPtr m_RenderThread;
+	KFrameSync m_FrameSync;
 
 	IKGizmoPtr m_Gizmo;
 	IKCameraCubePtr m_CameraCube;

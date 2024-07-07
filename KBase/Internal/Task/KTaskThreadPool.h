@@ -14,6 +14,7 @@ protected:
 
 	std::mutex m_QueueMutex;
 	std::condition_variable m_Condition;
+	uint32_t m_NumWorkers;
 	bool m_Stop;
 
 	void ThreadLoopFunction()
@@ -36,7 +37,8 @@ protected:
 	}
 public:
 	KTaskThreadPool()
-		: m_Stop(false)
+		: m_NumWorkers(0)
+		, m_Stop(false)
 	{
 	}
 
@@ -48,13 +50,14 @@ public:
 	void StartUp(uint32_t threadNum) override
 	{
 		ShutDown();
+		m_NumWorkers = threadNum;
 		for (uint32_t i = 0; i < threadNum; ++i)
 		{
 			m_Workers.emplace_back([this]()
 			{
 				ThreadLoopFunction();
 			});
-			KSystem::SetThreadName(m_Workers[i], "TaskThreadPool_Worker_" + std::to_string(i));
+			KSystem::SetThreadName(m_Workers[i], "TaskThreadPoolWorker" + std::to_string(i));
 		}
 	}
 
@@ -70,6 +73,7 @@ public:
 			worker.join();
 		}
 		m_Workers.clear();
+		m_NumWorkers = 0;
 		m_Stop = false;
 	}
 
@@ -85,5 +89,10 @@ public:
 		std::unique_lock<decltype(m_QueueMutex)> lock(m_QueueMutex);
 		m_Tasks.remove(task);
 		m_Condition.notify_one();
+	}
+
+	uint32_t GetNumWorkers() const override
+	{
+		return m_NumWorkers;
 	}
 };

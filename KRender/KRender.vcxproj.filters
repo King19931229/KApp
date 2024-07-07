@@ -568,6 +568,9 @@
     <ClInclude Include="Internal\VirtualTexture\KVirtualTexture.h">
       <Filter>Internal\VirtualTexture</Filter>
     </ClInclude>
+    <ClInclude Include="Internal\KRenderThread.h">
+      <Filter>Internal</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Internal\KRenderDevice.cpp">
@@ -924,6 +927,9 @@
     </ClCompile>
     <ClCompile Include="Internal\VirtualTexture\KVirtualTexture.cpp">
       <Filter>Internal\VirtualTexture</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\KRenderThread.cpp">
+      <Filter>Internal</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

@@ -126,69 +126,17 @@ struct Task3
 int main()
 {
 	DUMP_MEMORY_LEAK_BEGIN();
-	/*
-	std::thread t(Task);
-	event.WaitFor(1000 * 2);
-	printf("main Bef\n");
-	event.Wait();
-	printf("main Aft\n");
-	t.join();
-	*/
 
 	GetAsyncTaskManager()->Init();
 	GetTaskGraphManager()->Init();
 
 	GetTaskGraphManager()->AttachToThread(NamedThread::GAME_THREAD);
 
-	uint32_t taskNum = 300;
-	///*std::vector<IKAsyncTaskPtr> tasks;
-	//for(uint32_t i = 0; i < taskNum; ++i)
-	//{
-	//	tasks.push_back(GetAsyncTaskManager()->CreateAsyncTask(IKTaskWorkPtr(new KLambdaTaskWork(Task))));
-	//}
-	//for (uint32_t i = 0; i < taskNum; ++i)
-	//{
-	//	tasks[i]->StartAsync();
-	//}*/
-
-	std::vector<IKGraphTaskEventRef> tasks;
-	std::vector<IKGraphTaskEventRef> tasks2;
-	std::vector<IKGraphTaskEventRef> tasks3;
-
-	//IKTaskGraphManager* mgr = GetTaskGraphManager();
-
-	for (uint32_t i = 0; i < taskNum; ++i)
+	ParallelFor([](uint32_t index)
 	{
-		tasks.push_back(GetTaskGraphManager()->CreateAndDispatch(IKTaskWorkPtr(new KTaskWork<Task>(i)), NamedThread::GAME_THREAD, {}));
-	}
-	for (uint32_t i = 0; i < taskNum; ++i)
-	{
-		tasks2.push_back(GetTaskGraphManager()->CreateAndDispatch(IKTaskWorkPtr(new KTaskWork<Task2>(i)), NamedThread::GAME_THREAD, { tasks[i] }));
-	}
-	for (uint32_t i = 0; i < taskNum; ++i)
-	{
-		tasks3.push_back(GetTaskGraphManager()->CreateAndHold(IKTaskWorkPtr(new KTaskWork<Task3>(i)), NamedThread::ANY_THREAD, {}));
-	}
-
-	for (uint32_t i = 0; i < taskNum; ++i)
-	{
-		tasks3[i]->AddEventToWaitFor(tasks[i]);
-		tasks3[i]->AddEventToWaitFor(tasks2[i]);
-		GetTaskGraphManager()->Dispatch(tasks3[i]);
-	}
-
-	GetTaskGraphManager()->ProcessTaskUntilIdle(NamedThread::GAME_THREAD);
-
-	for (uint32_t i = 0; i < taskNum; ++i)
-	{
-		tasks3[i]->WaitForCompletion();
-	}
-
-	tasks.clear();
-	tasks2.clear();
-	tasks3.clear();
-
-	printf("ThisThreadId: %d\n", GetTaskGraphManager()->GetThisThreadId());
+		fibonacci(1000000);
+		printf("Task_%d\n", index);
+	}, 30000);
 
 	GetTaskGraphManager()->UnInit();
 	GetAsyncTaskManager()->UnInit();
