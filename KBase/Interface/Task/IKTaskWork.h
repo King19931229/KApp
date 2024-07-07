@@ -41,7 +41,22 @@ public:
 
 struct KEmptyTaskWork : public IKTaskWork
 {
-	virtual void DoWork() {}
+	KEmptyTaskWork() {}
+	void DoWork() override {}
+};
+
+struct KLambdaTaskWork : public IKTaskWork
+{
+	std::function<void()> function;
+
+	KLambdaTaskWork(std::function<void()> task)
+	: function(task)
+	{}
+
+	void DoWork() override
+	{
+		function();
+	}
 };
 
 IKTaskWorkPtr CreateTaskWork(IKTaskWork* work);

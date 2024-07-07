@@ -16,6 +16,7 @@ struct IKTaskThreadPool
 	virtual void ShutDown() = 0;
 	virtual void PushTask(IKTaskThreadPoolWork* task) = 0;
 	virtual void PopTask(IKTaskThreadPoolWork* task) = 0;
+	virtual uint32_t GetNumWorkers() const = 0;
 };
 
 struct IKAsyncTask : public IKTaskThreadPoolWork
@@ -34,8 +35,15 @@ struct IKAsyncTaskManager
 	virtual ~IKAsyncTaskManager() {}
 	virtual IKAsyncTaskRef CreateAsyncTask(IKTaskWorkPtr work) = 0;
 	virtual IKTaskThreadPool* GetThreadPool() = 0;
+	virtual void ParallelFor(std::function<void(uint32_t)> body, uint32_t num) = 0;
 	virtual void Init() = 0;
 	virtual void UnInit() = 0;
 };
 
 extern IKAsyncTaskManager* GetAsyncTaskManager();
+
+inline void ParallelFor(std::function<void(uint32_t)> body, uint32_t num)
+{
+	IKAsyncTaskManager* taskManager = GetAsyncTaskManager();
+	taskManager->ParallelFor(body, num);
+}
