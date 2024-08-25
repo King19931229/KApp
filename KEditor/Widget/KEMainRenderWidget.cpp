@@ -25,7 +25,7 @@ bool KEMainRenderWidget::Init(IKEnginePtr& engine)
 		IKRenderCore* render = m_Engine->GetRenderCore();
 		if (render)
 		{
-			m_RenderWindow = (KEQtRenderWindow*)(render->GetRenderWindow());
+			m_RenderWindow = (KEQtRenderWindow*)(render->GetMainWindow());
 			m_RenderDevice = render->GetRenderDevice();
 			return true;
 		}

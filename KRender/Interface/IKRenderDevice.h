@@ -3,8 +3,6 @@
 #include "KRender/Interface/IKRenderWindow.h"
 #include "KRender/Interface/IKRenderCommand.h"
 
-typedef std::function<void(uint32_t chainIndex, uint32_t frameIndex)> KDevicePresentCallback;
-typedef std::function<void(uint32_t width, uint32_t height)> KSwapChainRecreateCallback;
 typedef std::function<void()> KDeviceInitCallback;
 typedef std::function<void()> KDeviceUnInitCallback;
 typedef std::function<void(IKRenderPassPtr, IKCommandBufferPtr)> RenderPassCallFuncType;
@@ -79,14 +77,6 @@ struct IKRenderDevice
 	virtual bool Present() = 0;
 	virtual bool Wait() = 0;
 
-	virtual bool RegisterPrePresentCallback(KDevicePresentCallback* callback) = 0;
-	virtual bool UnRegisterPrePresentCallback(KDevicePresentCallback* callback) = 0;
-	virtual bool RegisterPostPresentCallback(KDevicePresentCallback* callback) = 0;
-	virtual bool UnRegisterPostPresentCallback(KDevicePresentCallback* callback) = 0;
-
-	virtual bool RegisterSwapChainRecreateCallback(KSwapChainRecreateCallback* callback) = 0;
-	virtual bool UnRegisterSwapChainRecreateCallback(KSwapChainRecreateCallback* callback) = 0;
-
 	virtual bool RegisterDeviceInitCallback(KDeviceInitCallback* callback) = 0;
 	virtual bool UnRegisterDeviceInitCallback(KDeviceInitCallback* callback) = 0;
 
@@ -98,7 +88,7 @@ struct IKRenderDevice
 
 	virtual bool QueryProperty(KRenderDeviceProperties** ppProperty) = 0;
 
-	virtual bool RecreateSwapChain(IKSwapChain* swapChain, IKUIOverlay* ui) = 0;
+	virtual bool RecreateSwapChain(IKSwapChain* swapChain) = 0;
 	virtual IKRenderWindow* GetMainWindow() = 0;
 	virtual IKSwapChain* GetSwapChain() = 0;
 	virtual IKUIOverlay* GetUIOverlay() = 0;

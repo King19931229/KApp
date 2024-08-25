@@ -462,6 +462,7 @@ int main()
 	stream->Close();
 	stream = nullptr;
 	*/
+#if 0
 	{
 		KMeshRawData userData;
 		userData.components.push_back({ AVC_POSITION_3F, AVC_NORMAL_3F, AVC_UV_2F });
@@ -537,6 +538,7 @@ int main()
 		IKRenderScene* scene = engine->GetRenderCore()->GetRenderScene();
 		scene->Add(entity.get());
 	}
+#endif
 #if 0
 	engine->GetScene()->CreateTerrain(glm::vec3(0), 10 * 1024, 4096, { TERRAIN_TYPE_CLIPMAP, {8, 3} });
 	engine->GetScene()->GetTerrain()->LoadHeightMap("Terrain/small_ridge_1025/height.png");

@@ -32,7 +32,7 @@ KRenderCore::KRenderCore()
 	: m_bInit(false),
 	m_bTickShouldEnd(false),
 	m_Device(nullptr),
-	m_Window(nullptr),
+	m_MainWindow(nullptr),
 	m_DebugConsole(nullptr),
 	m_Gizmo(nullptr)
 {
@@ -47,7 +47,7 @@ KRenderCore::~KRenderCore()
 bool KRenderCore::InitPostProcess()
 {
 	size_t width = 0, height = 0;
-	m_Window->GetSize(width, height);
+	m_MainWindow->GetSize(width, height);
 
 	KRenderGlobal::PostProcessManager.Init(width, height, 1, EF_R16G16B16A16_FLOAT, KRenderGlobal::NumFramesInFlight);
 #if 0
@@ -140,7 +140,7 @@ bool KRenderCore::UnInitGlobalManager()
 bool KRenderCore::InitRenderer()
 {
 	size_t width = 0, height = 0;
-	m_Window->GetSize(width, height);
+	m_MainWindow->GetSize(width, height);
 
 	m_CameraCube = CreateCameraCube();
 	m_CameraCube->Init(m_Device, &m_Camera);
@@ -171,9 +171,9 @@ bool KRenderCore::UnInitRenderer()
 bool KRenderCore::InitController()
 {
 	IKUIOverlay* ui = m_Device->GetUIOverlay();
-	m_CameraMoveController.Init(&m_Camera, m_Window, m_Gizmo);
-	m_UIController.Init(ui, m_Window);
-	m_GizmoContoller.Init(m_Gizmo, m_CameraCube, &m_Camera, m_Window);
+	m_CameraMoveController.Init(&m_Camera, m_MainWindow, m_Gizmo);
+	m_UIController.Init(ui, m_MainWindow);
+	m_GizmoContoller.Init(m_Gizmo, m_CameraCube, &m_Camera, m_MainWindow);
 
 	m_KeyCallback = [this](InputKeyboard key, InputAction action)
 	{
@@ -216,7 +216,7 @@ bool KRenderCore::InitController()
 	};
 
 #if defined(_WIN32)
-	m_Window->RegisterKeyboardCallback(&m_KeyCallback);
+	m_MainWindow->RegisterKeyboardCallback(&m_KeyCallback);
 #endif
 	return true;
 }
@@ -296,7 +296,7 @@ bool KRenderCore::Init(IKRenderDevicePtr& device, IKRenderWindowPtr& window)
 		KShaderMap::InitializePermuationMap();
 
 		m_Device = device.get();
-		m_Window = window.get();
+		m_MainWindow = window.get();
 		m_DebugConsole = KNEW KDebugConsole();
 		m_DebugConsole->Init();
 
@@ -304,21 +304,6 @@ bool KRenderCore::Init(IKRenderDevicePtr& device, IKRenderWindowPtr& window)
 		m_Camera.SetFar(5000.0f);
 		m_Camera.SetCustomLockYAxis(glm::vec3(0, 1, 0));
 		m_Camera.SetLockYEnable(true);
-
-		m_PrePresentCallback = [this](uint32_t chainIndex, uint32_t frameIndex)
-		{
-			OnPrePresent(chainIndex, frameIndex);
-		};
-
-		m_PostPresentCallback = [this](uint32_t chainIndex, uint32_t frameIndex)
-		{
-			OnPostPresent(chainIndex, frameIndex);
-		};
-
-		m_SwapChainCallback = [this](uint32_t width, uint32_t height)
-		{
-			OnSwapChainRecreate(width, height);
-		};
 
 		m_InitCallback = [this]()
 		{
@@ -377,11 +362,8 @@ bool KRenderCore::Init(IKRenderDevicePtr& device, IKRenderWindowPtr& window)
 
 		KECSGlobal::Init();
 		KRenderGlobal::Scene.Init("GlobalScene", SCENE_MANGER_TYPE_OCTREE, 100000.0f, glm::vec3(0.0f));
-		KRenderGlobal::Renderer.SetCallback(m_Window, &m_MainWindowRenderCB);
+		KRenderGlobal::Renderer.SetCallback(m_MainWindow, &m_MainWindowRenderCB);
 
-		m_Device->RegisterPrePresentCallback(&m_PrePresentCallback);
-		m_Device->RegisterPostPresentCallback(&m_PostPresentCallback);
-		m_Device->RegisterSwapChainRecreateCallback(&m_SwapChainCallback);
 		m_Device->RegisterDeviceInitCallback(&m_InitCallback);
 		m_Device->RegisterDeviceUnInitCallback(&m_UnitCallback);
 
@@ -402,20 +384,25 @@ bool KRenderCore::UnInit()
 		m_RenderThread->ShutDown();
 		m_RenderThread = nullptr;
 
-		KRenderGlobal::Renderer.RemoveCallback(m_Window);
+		KRenderGlobal::Renderer.RemoveCallback(m_MainWindow);
 
 		KECSGlobal::UnInit();
 
 		m_DebugConsole->UnInit();
 		SAFE_DELETE(m_DebugConsole);
 
-		m_Device->UnRegisterPrePresentCallback(&m_PrePresentCallback);
-		m_Device->UnRegisterPostPresentCallback(&m_PostPresentCallback);
-		m_Device->UnRegisterSwapChainRecreateCallback(&m_SwapChainCallback);
 		m_Device->UnRegisterDeviceInitCallback(&m_InitCallback);
 		m_Device->UnRegisterDeviceUnInitCallback(&m_UnitCallback);
 
-		m_Window = nullptr;
+		if (m_MainWindow && m_MainWindow->GetSwapChain())
+		{
+			m_MainWindow->GetSwapChain()->UnRegisterPrePresentCallback(&m_PrePresentCallback);
+			m_MainWindow->GetSwapChain()->UnRegisterPostPresentCallback(&m_PostPresentCallback);
+			m_MainWindow->GetSwapChain()->UnRegisterSwapChainRecreateCallback(&m_SwapChainCallback);
+		}
+
+		m_MainWindow = nullptr;
+
 		m_Device = nullptr;
 
 		GRenderImGui.Exit();
@@ -429,6 +416,29 @@ bool KRenderCore::UnInit()
 	return true;
 }
 
+bool KRenderCore::AttachMainSwapChain()
+{
+	m_PrePresentCallback = [this](uint32_t chainIndex, uint32_t frameIndex)
+	{
+	};
+
+	m_PostPresentCallback = [this](uint32_t chainIndex, uint32_t frameIndex)
+	{
+		OnPostPresent(chainIndex, frameIndex);
+	};
+
+	m_SwapChainCallback = [this](uint32_t width, uint32_t height)
+	{
+		OnSwapChainRecreate(width, height);
+	};
+
+	m_MainWindow->GetSwapChain()->RegisterPrePresentCallback(&m_PrePresentCallback);
+	m_MainWindow->GetSwapChain()->RegisterPostPresentCallback(&m_PostPresentCallback);
+	m_MainWindow->GetSwapChain()->RegisterSwapChainRecreateCallback(&m_SwapChainCallback);
+
+	return true;
+}
+
 bool KRenderCore::IsInit() const
 {
 	return m_bInit;
@@ -439,7 +449,7 @@ bool KRenderCore::Loop()
 {
 	if (m_bInit)
 	{
-		m_Window->Loop();
+		m_MainWindow->Loop();
 		return true;
 	}
 	return false;
@@ -450,13 +460,98 @@ bool KRenderCore::TickShouldEnd()
 	return m_bTickShouldEnd;
 }
 
+void KRenderCore::Update()
+{
+	KRenderGlobal::TaskExecutor.ProcessSyncTask();
+
+	UpdateFrameTime();
+	UpdateUIOverlay();
+	UpdateController();
+	UpdateGizmo();
+
+	bool enableCameraControl = !GRenderImGui.WantCaptureInput();
+	m_CameraMoveController.SetEnable(enableCameraControl);
+}
+
+void KRenderCore::Render()
+{
+	KRenderGlobal::CommandPool->Reset();
+
+	uint32_t frameIndex = 0;
+
+	IKSwapChain* mainSwapChain = m_MainWindow->GetSwapChain();
+	IKUIOverlay* uiOverlay = m_Device->GetUIOverlay();
+
+	mainSwapChain->WaitForInFlightFrame(frameIndex);
+
+	KRenderGlobal::CurrentInFlightFrameIndex = frameIndex;
+
+	uint32_t chainImageIndex = 0;
+	mainSwapChain->AcquireNextImage(chainImageIndex);
+
+	Update();
+
+	{
+		KRenderGlobal::Renderer.SetSwapChain(mainSwapChain);
+		KRenderGlobal::Renderer.SetUIOverlay(uiOverlay);
+
+		KRenderGlobal::Renderer.Update();
+		KRenderGlobal::Renderer.Execute(chainImageIndex);
+
+		bool needResize = false;
+		mainSwapChain->PresentQueue(needResize);
+
+		if (needResize)
+		{
+			m_Device->RecreateSwapChain(mainSwapChain);
+			if (uiOverlay)
+			{
+				uiOverlay->UnInit();
+				uiOverlay->Init(m_Device, mainSwapChain->GetFrameInFlight());
+				uiOverlay->Resize(mainSwapChain->GetWidth(), mainSwapChain->GetHeight());
+			}
+		}
+	}
+
+	std::unordered_map<IKRenderWindow*, IKSwapChainPtr> m_SecordaryWindow;
+
+	if (!m_SecordaryWindow.empty())
+	{
+		// 等待设备空闲 不再进行FrameInFlight
+		m_Device->Wait();
+	}
+
+	for (auto& pair : m_SecordaryWindow)
+	{
+		IKSwapChain* secordarySwapChain = pair.second.get();
+		// 处理次交换链的FrameInFlight 但是FrameIndex依然使用主交换链的结果
+		uint32_t secordaryFrameIndex = 0;
+		secordarySwapChain->WaitForInFlightFrame(secordaryFrameIndex);
+		secordarySwapChain->AcquireNextImage(chainImageIndex);
+
+		{
+			KRenderGlobal::Renderer.SetSwapChain(secordarySwapChain);
+			KRenderGlobal::Renderer.Update();
+			KRenderGlobal::Renderer.Execute(chainImageIndex);
+
+			bool needResize = false;
+			secordarySwapChain->PresentQueue(needResize);
+
+			if (needResize)
+			{
+				m_Device->RecreateSwapChain(secordarySwapChain);
+			}
+		}
+	}
+}
+
 bool KRenderCore::Tick()
 {
 	if (m_bInit && !m_bTickShouldEnd)
 	{
 		GetTaskGraphManager()->ProcessTaskUntilIdle(NamedThread::GAME_THREAD);
 
-		if (m_Window->Tick())
+		if (m_MainWindow->Tick())
 		{
 			if (KECS::EntityManager)
 			{
@@ -483,7 +578,7 @@ bool KRenderCore::Tick()
 
 			ENQUEUE_RENDER_COMMAND(Render)([this]()
 			{
-				m_Device->Present();
+				Render();
 			});
 
 			if (KECS::EntityManager)
@@ -634,7 +729,7 @@ bool KRenderCore::UpdateFrameTime()
 	{
 		char szBuffer[1024] = {};
 		sprintf(szBuffer, "[FPS] %f [FrameTime] %f", statistics.frame.fps, statistics.frame.frametime);
-		m_Window->SetWindowTitle(szBuffer);
+		m_MainWindow->SetWindowTitle(szBuffer);
 	};
 
 	if (GetTaskGraphManager()->GetThisThreadId() == NamedThread::GAME_THREAD)
@@ -687,21 +782,6 @@ bool KRenderCore::UpdateGizmo()
 {
 	m_Gizmo->Update();
 	return true;
-}
-
-void KRenderCore::OnPrePresent(uint32_t chainIndex, uint32_t frameIndex)
-{
-	assert(KRenderGlobal::CurrentInFlightFrameIndex == frameIndex);
-
-	KRenderGlobal::TaskExecutor.ProcessSyncTask();
-
-	UpdateFrameTime();
-	UpdateUIOverlay();
-	UpdateController();
-	UpdateGizmo();
-
-	bool enableCameraControl = !GRenderImGui.WantCaptureInput();
-	m_CameraMoveController.SetEnable(enableCameraControl);
 }
 
 void KRenderCore::OnPostPresent(uint32_t chainIndex, uint32_t frameIndex)

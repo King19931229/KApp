@@ -52,7 +52,7 @@ void KGLFWRenderWindow::FramebufferResizeCallback(GLFWwindow* handle, int width,
 		IKSwapChain* mainSwapChain = window->m_Device->GetSwapChain();
 		IKUIOverlay* mainUIOverlay = window->m_Device->GetUIOverlay();
 		// 主窗口才更新UI
-		window->m_Device->RecreateSwapChain(window->m_SwapChain, mainSwapChain == window->m_SwapChain ? mainUIOverlay : nullptr);
+		// window->m_Device->RecreateSwapChain(window->m_SwapChain, mainSwapChain == window->m_SwapChain ? mainUIOverlay : nullptr);
 	}
 }
 
@@ -379,6 +379,7 @@ bool KGLFWRenderWindow::IdleUntilForeground()
 	if (m_Window)
 	{
 		int width = 0, height = 0;
+		glfwGetFramebufferSize(m_Window, &width, &height);
 		while (width == 0 || height == 0)
 		{
 			glfwGetFramebufferSize(m_Window, &width, &height);

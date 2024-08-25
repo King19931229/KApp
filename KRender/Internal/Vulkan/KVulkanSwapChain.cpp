@@ -13,6 +13,7 @@
 KVulkanSwapChain::KVulkanSwapChain()
 	: m_MaxFramesInFight(0)
 	, m_CurrentFlightIndex(0)
+	, m_CurrentImageIndex(0)
 {
 	m_SwapChain = VK_NULL_HANDLE;
 
@@ -336,6 +337,8 @@ bool KVulkanSwapChain::DestroyFrameBuffers()
 
 bool KVulkanSwapChain::Init(IKRenderWindow* window, uint32_t frameInFlight)
 {
+	UnInit();
+
 	ASSERT_RESULT(m_SwapChain == VK_NULL_HANDLE);
 	ASSERT_RESULT(KVulkanGlobal::deviceReady);
 
@@ -354,7 +357,6 @@ bool KVulkanSwapChain::Init(IKRenderWindow* window, uint32_t frameInFlight)
 
 bool KVulkanSwapChain::UnInit()
 {
-	ASSERT_RESULT(m_SwapChain != VK_NULL_HANDLE);
 	ASSERT_RESULT(DestroyFrameBuffers());
 	ASSERT_RESULT(CleanupSwapChain());
 	ASSERT_RESULT(DestroySyncObjects());
@@ -364,6 +366,11 @@ bool KVulkanSwapChain::UnInit()
 		m_pWindow->SetSwapChain(nullptr);
 		m_pWindow = nullptr;
 	}
+
+	m_PrePresentCallback.clear();
+	m_PostPresentCallback.clear();
+	m_SwapChainCallback.clear();
+
 	return true;
 }
 
@@ -419,25 +426,31 @@ IKFrameBufferPtr KVulkanSwapChain::GetDepthStencilFrameBuffer(uint32_t chainInde
 	return nullptr;
 }
 
-VkResult KVulkanSwapChain::WaitForInFlightFrame(uint32_t& frameIndex)
+void KVulkanSwapChain::WaitForInFlightFrame(uint32_t& frameIndex)
 {
 	// 这个Wait保证Queue已经被执行完
 	VkFence fence = ((KVulkanFence*)(m_InFlightFence.get()))->GetVkFence();
-	VkResult result = vkWaitForFences(KVulkanGlobal::device, 1, &fence, VK_TRUE, UINT64_MAX);
+	VkResult vkResult = vkWaitForFences(KVulkanGlobal::device, 1, &fence, VK_TRUE, UINT64_MAX);
+	VK_ASSERT_RESULT(vkResult);
 	frameIndex = m_CurrentFlightIndex;
-	return result;
 }
 
-VkResult KVulkanSwapChain::AcquireNextImage(uint32_t& imageIndex)
+void KVulkanSwapChain::AcquireNextImage(uint32_t& imageIndex)
 {
 	// 获取可用交换链Image索引 促发交换链Image可用信号量
 	VkSemaphore singalSemaphore = ((KVulkanSemaphore*)m_ImageAvailableSemaphore.get())->GetVkSemaphore();
-	VkResult result = vkAcquireNextImageKHR(KVulkanGlobal::device, m_SwapChain, UINT64_MAX, singalSemaphore, VK_NULL_HANDLE, &imageIndex);
-	return result;
+	VkResult vkResult = vkAcquireNextImageKHR(KVulkanGlobal::device, m_SwapChain, UINT64_MAX, singalSemaphore, VK_NULL_HANDLE, &imageIndex);
+	m_CurrentImageIndex = imageIndex;
+	VK_ASSERT_RESULT(vkResult);
 }
 
-VkResult KVulkanSwapChain::PresentQueue(uint32_t imageIndex)
+void KVulkanSwapChain::PresentQueue(bool& needResize)
 {
+	for (KDevicePresentCallback* callback : m_PrePresentCallback)
+	{
+		(*callback)(m_CurrentImageIndex, m_CurrentFlightIndex);
+	}
+
 	VkResult vkResult = VK_RESULT_MAX_ENUM;
 
 	// Present等待此信号量
@@ -453,7 +466,7 @@ VkResult KVulkanSwapChain::PresentQueue(uint32_t imageIndex)
 	VkSwapchainKHR swapChains[] = {m_SwapChain};
 	presentInfo.swapchainCount = 1;
 	presentInfo.pSwapchains = swapChains;
-	presentInfo.pImageIndices = &imageIndex;
+	presentInfo.pImageIndices = &m_CurrentImageIndex;
 
 	presentInfo.pResults = nullptr;
 	vkResult = vkQueuePresentKHR(m_PresentQueue, &presentInfo);
@@ -468,17 +481,96 @@ VkResult KVulkanSwapChain::PresentQueue(uint32_t imageIndex)
 	但并不能保证该Image没有准备提交的绘制命令
 	*/
 	vkQueueWaitIdle(m_PresentQueue);
-#endif	
+#endif
+
+	for (KDevicePresentCallback* callback : m_PostPresentCallback)
+	{
+		(*callback)(m_CurrentImageIndex, m_CurrentFlightIndex);
+	}
 
 	m_CurrentFlightIndex = (m_CurrentFlightIndex + 1) %  m_MaxFramesInFight;
 
-	return vkResult;
+	assert(vkResult == VK_SUCCESS || vkResult == VK_ERROR_OUT_OF_DATE_KHR || vkResult == VK_SUBOPTIMAL_KHR);
+
+	needResize = (vkResult == VK_ERROR_OUT_OF_DATE_KHR || vkResult == VK_SUBOPTIMAL_KHR);
 }
 
 bool KVulkanSwapChain::ChooseQueue()
 {
 	m_PresentQueue = KVulkanGlobal::presentQueue;
 	return true;
+}
+
+bool KVulkanSwapChain::RegisterPrePresentCallback(KDevicePresentCallback* callback)
+{
+	if (callback)
+	{
+		m_PrePresentCallback.insert(callback);
+		return true;
+	}
+	return false;
+}
+
+bool KVulkanSwapChain::UnRegisterPrePresentCallback(KDevicePresentCallback* callback)
+{
+	if (callback)
+	{
+		auto it = m_PrePresentCallback.find(callback);
+		if (it != m_PrePresentCallback.end())
+		{
+			m_PrePresentCallback.erase(it);
+			return true;
+		}
+	}
+	return false;
+}
+
+bool KVulkanSwapChain::RegisterPostPresentCallback(KDevicePresentCallback* callback)
+{
+	if (callback)
+	{
+		m_PostPresentCallback.insert(callback);
+		return true;
+	}
+	return false;
+}
+
+bool KVulkanSwapChain::UnRegisterPostPresentCallback(KDevicePresentCallback* callback)
+{
+	if (callback)
+	{
+		auto it = m_PostPresentCallback.find(callback);
+		if (it != m_PostPresentCallback.end())
+		{
+			m_PostPresentCallback.erase(it);
+			return true;
+		}
+	}
+	return false;
+}
+
+bool KVulkanSwapChain::RegisterSwapChainRecreateCallback(KSwapChainRecreateCallback* callback)
+{
+	if (callback)
+	{
+		m_SwapChainCallback.insert(callback);
+		return true;
+	}
+	return false;
+}
+
+bool KVulkanSwapChain::UnRegisterSwapChainRecreateCallback(KSwapChainRecreateCallback* callback)
+{
+	if (callback)
+	{
+		auto it = m_SwapChainCallback.find(callback);
+		if (it != m_SwapChainCallback.end())
+		{
+			m_SwapChainCallback.erase(it);
+			return true;
+		}
+	}
+	return false;
 }
 
 #if defined(_WIN32)

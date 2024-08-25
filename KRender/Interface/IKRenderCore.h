@@ -34,10 +34,12 @@ struct IKRenderCore
 	virtual bool UnRegisterUIRenderCallback(KRenderCoreUIRenderCallback* callback) = 0;
 	virtual bool UnRegistertAllUIRenderCallback() = 0;
 
+	virtual bool AttachMainSwapChain() = 0;
+
 	// 获取主场景
 	virtual IKRenderScene* GetRenderScene() = 0;
 	virtual IKRenderer* GetRenderer() = 0;
-	virtual IKRenderWindow* GetRenderWindow() = 0;
+	virtual IKRenderWindow* GetMainWindow() = 0;
 	virtual IKRenderDevice* GetRenderDevice() = 0;
 
 	virtual IKGizmoPtr GetGizmo() = 0;

@@ -124,7 +124,8 @@ public:
 	const KCamera* GetCamera() override { return m_Camera; }
 
 	bool SetCameraCubeDisplay(bool display) override;
-	bool SetSwapChain(IKSwapChain* swapChain, IKUIOverlay* uiOverlay);
+	bool SetSwapChain(IKSwapChain* swapChain);
+	bool SetUIOverlay(IKUIOverlay* uiOverlay);
 	bool SetSceneCamera(IKRenderScene* scene, const KCamera* camera) override;
 	bool SetCallback(IKRenderWindow* window, OnWindowRenderCallback* callback) override;
 	bool RemoveCallback(IKRenderWindow* window) override;

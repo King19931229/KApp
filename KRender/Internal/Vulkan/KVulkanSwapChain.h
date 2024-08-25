@@ -3,6 +3,7 @@
 #include "KVulkanRenderTarget.h"
 #include "KVulkanConfig.h"
 #include <vector>
+#include <unordered_set>
 #include <memory>
 
 class KVulkanSwapChain : public IKSwapChain
@@ -32,6 +33,7 @@ protected:
 
 	uint32_t m_MaxFramesInFight;
 	uint32_t m_CurrentFlightIndex;
+	uint32_t m_CurrentImageIndex;
 
 	std::vector<VkImage> m_SwapChainImages;
 	std::vector<VkImageView> m_SwapChainImageViews;
@@ -43,6 +45,13 @@ protected:
 	SwapChainSupportDetails m_SwapChainSupportDetails;
 	std::vector<FrameBuffer> m_FrameBuffers;
 	std::vector<IKRenderPassPtr> m_RenderPasses;
+
+	typedef std::unordered_set<KDevicePresentCallback*> PresentCallbackSet;
+	PresentCallbackSet m_PrePresentCallback;
+	PresentCallbackSet m_PostPresentCallback;
+
+	typedef std::unordered_set<KSwapChainRecreateCallback*> SwapChainCallbackSet;
+	SwapChainCallbackSet m_SwapChainCallback;
 
 	bool QuerySwapChainSupport();
 	bool ChooseSwapSurfaceFormat();
@@ -78,9 +87,17 @@ public:
 	virtual IKFrameBufferPtr GetColorFrameBuffer(uint32_t chainIndex);
 	virtual IKFrameBufferPtr GetDepthStencilFrameBuffer(uint32_t chainIndex);
 
-	VkResult WaitForInFlightFrame(uint32_t& frameIndex);
-	VkResult AcquireNextImage(uint32_t& imageIndex);
-	VkResult PresentQueue(uint32_t imageIndex);
+	virtual bool RegisterPrePresentCallback(KDevicePresentCallback* callback);
+	virtual bool UnRegisterPrePresentCallback(KDevicePresentCallback* callback);
+	virtual bool RegisterPostPresentCallback(KDevicePresentCallback* callback);
+	virtual bool UnRegisterPostPresentCallback(KDevicePresentCallback* callback);
+
+	virtual bool RegisterSwapChainRecreateCallback(KSwapChainRecreateCallback* callback);
+	virtual bool UnRegisterSwapChainRecreateCallback(KSwapChainRecreateCallback* callback);
+
+	virtual void WaitForInFlightFrame(uint32_t& frameIndex);
+	virtual void AcquireNextImage(uint32_t& imageIndex);
+	virtual void PresentQueue(bool& needResize);
 
 	inline VkImage GetImage(size_t imageIndex) { return (imageIndex >= m_SwapChainImages.size()) ? VK_NULL_HANDLE : m_SwapChainImages[imageIndex]; }
 	inline VkImageView GetImageView(size_t imageIndex) { return (imageIndex >= m_SwapChainImageViews.size()) ? VK_NULL_HANDLE : m_SwapChainImageViews[imageIndex]; }

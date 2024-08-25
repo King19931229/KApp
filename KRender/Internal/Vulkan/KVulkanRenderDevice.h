@@ -89,16 +89,10 @@ protected:
 
 	IKSwapChainPtr m_SwapChain;
 	std::vector<IKSwapChain*> m_SecordarySwapChains;
+	// TODO 放到Window持有
 	IKUIOverlayPtr m_UIOverlay;
 
 	void* m_GpuCrashTracker;
-
-	typedef std::unordered_set<KDevicePresentCallback*> PresentCallbackSet;
-	PresentCallbackSet m_PrePresentCallback;
-	PresentCallbackSet m_PostPresentCallback;
-
-	typedef std::unordered_set<KSwapChainRecreateCallback*> SwapChainCallbackSet;
-	SwapChainCallbackSet m_SwapChainCallback;
 
 	typedef std::unordered_set<KDeviceInitCallback*> DeviceInitCallbackSet;
 	DeviceInitCallbackSet m_InitCallback;
@@ -194,15 +188,7 @@ public:
 	virtual bool Present();
 	virtual bool Wait();
 
-	virtual bool RecreateSwapChain(IKSwapChain* swapChain, IKUIOverlay* ui);
-
-	virtual bool RegisterPrePresentCallback(KDevicePresentCallback* callback);
-	virtual bool UnRegisterPrePresentCallback(KDevicePresentCallback* callback);
-	virtual bool RegisterPostPresentCallback(KDevicePresentCallback* callback);
-	virtual bool UnRegisterPostPresentCallback(KDevicePresentCallback* callback);
-
-	virtual bool RegisterSwapChainRecreateCallback(KSwapChainRecreateCallback* callback);
-	virtual bool UnRegisterSwapChainRecreateCallback(KSwapChainRecreateCallback* callback);
+	virtual bool RecreateSwapChain(IKSwapChain* swapChain);
 
 	virtual bool RegisterDeviceInitCallback(KDeviceInitCallback* callback);
 	virtual bool UnRegisterDeviceInitCallback(KDeviceInitCallback* callback);

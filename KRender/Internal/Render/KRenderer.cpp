@@ -554,9 +554,14 @@ bool KRenderer::SetCameraCubeDisplay(bool display)
 	return true;
 }
 
-bool KRenderer::SetSwapChain(IKSwapChain* swapChain, IKUIOverlay* uiOverlay)
+bool KRenderer::SetSwapChain(IKSwapChain* swapChain)
 {
 	m_SwapChain = swapChain;
+	return true;
+}
+
+bool KRenderer::SetUIOverlay(IKUIOverlay* uiOverlay)
+{
 	m_UIOverlay = uiOverlay;
 	return true;
 }

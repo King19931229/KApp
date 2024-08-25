@@ -51,10 +51,10 @@ default:
 #define VK_ASSERT_RESULT(exp)\
 do\
 {\
-	VkResult result = (VkResult)(exp);\
-	if(result != VK_SUCCESS)\
+	VkResult result##__LINE__ = (VkResult)(exp);\
+	if(result##__LINE__ != VK_SUCCESS)\
 	{\
-		printf("Vulkan Failure:[%s] File:[%s] Line:[%d]\n", VK_ERROR_STRING(result), __FILE__, __LINE__);\
+		printf("Vulkan Failure:[%s] File:[%s] Line:[%d]\n", VK_ERROR_STRING(result##__LINE__), __FILE__, __LINE__);\
 		assert(false && "Vulkan failure please check");\
 	}\
 }\

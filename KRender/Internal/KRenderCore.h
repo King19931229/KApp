@@ -2,6 +2,7 @@
 #include "Interface/IKRenderCore.h"
 #include "Interface/IKRenderDevice.h"
 #include "Interface/IKRenderer.h"
+#include "Interface/IKSwapChain.h"
 
 #include "KRender/Internal/KDebugConsole.h"
 
@@ -18,7 +19,6 @@ class KRenderCore : public IKRenderCore
 {
 protected:
 	IKRenderDevice* m_Device;
-	IKRenderWindow* m_Window;
 	KDebugConsole* m_DebugConsole;
 	KCamera m_Camera;
 
@@ -37,11 +37,13 @@ protected:
 	KDevicePresentCallback m_PrePresentCallback;
 	KDevicePresentCallback m_PostPresentCallback;
 	KSwapChainRecreateCallback m_SwapChainCallback;
+
 	KDeviceInitCallback m_InitCallback;
 	KDeviceUnInitCallback m_UnitCallback;
 
 	IKRenderer::OnWindowRenderCallback m_MainWindowRenderCB;
 
+	IKRenderWindow* m_MainWindow;
 	std::unordered_map<IKRenderWindow*, IKSwapChainPtr> m_SecordaryWindow;
 
 	typedef std::unordered_set<KRenderCoreInitCallback*> InitCallbackSet;
@@ -75,9 +77,11 @@ protected:
 	bool UpdateController();
 	bool UpdateGizmo();
 
-	void OnPrePresent(uint32_t chainIndex, uint32_t frameIndex);
 	void OnPostPresent(uint32_t chainIndex, uint32_t frameIndex);
 	void OnSwapChainRecreate(uint32_t width, uint32_t height);
+
+	void Update();
+	void Render();
 
 	// 为了敏捷开发插入的测试代码
 	void DebugCode();
@@ -94,6 +98,8 @@ public:
 	virtual bool Tick();
 	virtual bool Wait();
 
+	virtual bool AttachMainSwapChain();
+
 	virtual bool RegisterSecordaryWindow(IKRenderWindowPtr& window);
 	virtual bool UnRegisterSecordaryWindow(IKRenderWindowPtr& window);
 
@@ -108,7 +114,7 @@ public:
 	virtual IKRenderScene* GetRenderScene();
 	virtual IKRenderer* GetRenderer();
 
-	virtual IKRenderWindow* GetRenderWindow() { return m_Window; }
+	virtual IKRenderWindow* GetMainWindow() { return m_MainWindow; }
 	virtual IKRenderDevice* GetRenderDevice() { return m_Device; }
 
 	virtual IKGizmoPtr GetGizmo() { return m_Gizmo; }
