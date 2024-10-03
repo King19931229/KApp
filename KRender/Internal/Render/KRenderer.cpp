@@ -337,6 +337,11 @@ bool KRenderer::Render(uint32_t chainImageIndex)
 
 bool KRenderer::Init(const KRendererInitContext& initContext)
 {
+	m_RHIThread = KRunableThreadPtr(new KRunableThread(IKRunablePtr(new KRHIThread), "RHIThread"));
+	m_RHIThread->StartUp();
+
+	m_RHICommandList.SetImmediate(false);
+
 	const KCamera* camera = initContext.camera;
 	IKCameraCubePtr cameraCube = initContext.cameraCube;
 	uint32_t width = initContext.width;
@@ -545,6 +550,9 @@ bool KRenderer::UnInit()
 
 	SAFE_UNINIT(m_Pass);
 
+	m_RHIThread->ShutDown();
+	m_RHIThread = nullptr;
+
 	return true;
 }
 
@@ -677,7 +685,10 @@ bool KRenderer::UpdateCamera()
 					memcpy(pWritePos, &frustumPlanes, sizeof(frustumPlanes));
 				}
 			}
-			cameraBuffer->Write(pData);
+
+			m_RHICommandList.UpdateUniformBuffer(cameraBuffer, pData, 0, (uint32_t)cameraBuffer->GetBufferSize());
+			m_RHICommandList.Flush(RHICommandFlush::DispatchToRHIThread);
+			m_RHICommandList.Flush(RHICommandFlush::FlushRHIThread);
 			return true;
 		}
 	}

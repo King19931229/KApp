@@ -571,6 +571,9 @@
     <ClInclude Include="Internal\KRenderThread.h">
       <Filter>Internal</Filter>
     </ClInclude>
+    <ClInclude Include="Internal\Render\KRHICommandList.h">
+      <Filter>Internal\Render</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Internal\KRenderDevice.cpp">
@@ -930,6 +933,9 @@
     </ClCompile>
     <ClCompile Include="Internal\KRenderThread.cpp">
       <Filter>Internal</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\Render\KRHICommandList.cpp">
+      <Filter>Internal\Render</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

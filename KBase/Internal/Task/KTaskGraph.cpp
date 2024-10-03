@@ -201,6 +201,7 @@ void KGraphTaskEvent::Dispatch()
 
 void KGraphTaskEvent::OnTaskDone()
 {
+	std::unique_lock<decltype(m_TaskProcessLock)> lock(m_TaskProcessLock);
 	if (m_Task)
 	{
 		*m_Done = true;

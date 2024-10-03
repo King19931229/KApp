@@ -9,7 +9,9 @@
 #include "Internal/FrameGraph/KFrameGraph.h"
 #include "Internal/KRenderThreadPool.h"
 #include "KBase/Publish/KThreadPool.h"
+#include "KBase/Publish/KRunableThread.h"
 #include "Publish/KCamera.h"
+#include "KRHICommandList.h"
 
 class KRenderer;
 
@@ -67,6 +69,8 @@ protected:
 	RenderPassCallFuncType m_DebugCallFunc;
 	RenderPassCallFuncType m_ForegroundCallFunc;
 	std::unordered_map<IKRenderWindow*, OnWindowRenderCallback*> m_WindowRenderCB;
+	
+	KRHICommandList m_RHICommandList;
 
 	struct GPUQueueMiscs
 	{
@@ -96,6 +100,8 @@ protected:
 	GPUQueueMiscs m_Compute;
 
 	KRenderThreadPool m_ThreadPool;
+
+	KRunableThreadPtr m_RHIThread;
 
 	int m_PrevMultithreadCount;
 	int m_MultithreadCount;

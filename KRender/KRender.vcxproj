@@ -133,6 +133,7 @@
     <ClInclude Include="Internal\Render\KDeferredRenderer.h" />
     <ClInclude Include="Internal\Render\KRenderer.h" />
     <ClInclude Include="Internal\Render\KRenderUtil.h" />
+    <ClInclude Include="Internal\Render\KRHICommandList.h" />
     <ClInclude Include="Internal\Scene\KOctreeNode.h" />
     <ClInclude Include="Internal\Scene\KOctreeSceneManager.h" />
     <ClInclude Include="Internal\Scene\KRenderScene.h" />
@@ -260,6 +261,7 @@
     <ClCompile Include="Internal\Render\KDeferredRenderer.cpp" />
     <ClCompile Include="Internal\Render\KRenderer.cpp" />
     <ClCompile Include="Internal\Render\KRenderUtil.cpp" />
+    <ClCompile Include="Internal\Render\KRHICommandList.cpp" />
     <ClCompile Include="Internal\Scene\KOctreeSceneManager.cpp" />
     <ClCompile Include="Internal\Scene\KRenderScene.cpp" />
     <ClCompile Include="Internal\ShaderMap\KShaderMap.cpp" />
