@@ -31,6 +31,9 @@ void KGraphTask::DoWork()
 		{
 			((KGraphTaskEvent*)taskEvent.Get())->OnTaskDone();
 		}
+#if KTASK_GRAPH_DEBUG_PRINT_LEVEL
+		printf("[GraphTask] Done %s\n", GetDebugInfo());
+#endif
 	}
 	m_TaskQueue = nullptr;
 	m_TaskEvent.Release();
@@ -119,7 +122,7 @@ void KGraphTaskEvent::SetupPrerequisite(IKGraphTaskEventRef taskEvent, const std
 {
 	KGraphTaskEvent* graphTaskEvent = (KGraphTaskEvent*)taskEvent.Get();
 #if KTASK_GRAPH_DEBUG_PRINT_LEVEL
-	printf("[GraphTask] SetupPrerequisite %s\n", GetDebugInfo());
+	printf("[GraphTask] SetupPrerequisite %s\n", taskEvent->GetDebugInfo());
 #endif
 	for (IKGraphTaskEventRef prerequisite : prerequisites)
 	{
@@ -130,7 +133,7 @@ void KGraphTaskEvent::SetupPrerequisite(IKGraphTaskEventRef taskEvent, const std
 		else
 		{
 #if KTASK_GRAPH_DEBUG_PRINT_LEVEL
-			printf("\t[GraphTask] AddSubsequent %s->%s\n", prerequisite->GetDebugInfo(), GetDebugInfo());
+			printf("\t[GraphTask] AddSubsequent %s->%s\n", prerequisite->GetDebugInfo(), taskEvent->GetDebugInfo());
 #endif
 		}
 	}
@@ -214,6 +217,10 @@ void KGraphTaskEvent::OnTaskDone()
 void KGraphTaskEvent::QueueTask()
 {
 	std::unique_lock<decltype(m_TaskProcessLock)> lock(m_TaskProcessLock);
+	if (m_Queued)
+	{
+		return;
+	}
 	for (IKGraphTaskEventRef eventToWaitFor : m_EventToWaitFor)
 	{
 		if (!eventToWaitFor->IsCompleted())
@@ -233,6 +240,9 @@ void KGraphTaskEvent::QueueTask()
 	}
 	GetTaskGraphManager()->AddTask(m_Task, m_ThreadToExecuteOn);
 	m_Queued = true;
+#if KTASK_GRAPH_DEBUG_PRINT_LEVEL
+	printf("[GraphTask] Queue %s\n", GetDebugInfo());
+#endif
 }
 
 void KGraphTaskEvent::Abandon()

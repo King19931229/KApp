@@ -370,24 +370,27 @@ KVulkanRenderDevice::PhysicalDevice KVulkanRenderDevice::GetPhysicalDeviceProper
 		// Discrete GPUs have a significant performance advantage
 		if (device.deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
 		{
-			device.score += 5000;
+			device.score += 50000;
 		}
 
 		// Support raytracing
 		if (device.supportRaytraceExtension)
 		{
-			device.score += 500;
+			device.score += 1000;
 		}
 
 		// Support meshshader
 		if (device.supportKHRMeshShaderExtension)
 		{
-			device.score += 50;
+			device.score += 500;
 		}
 		if (device.supportNVMeshShaderExtension)
 		{
 			device.score += 50;
 		}
+
+		KG_LOG(LM_RENDER, "Find physical device %s (%s) for vulkan", device.deviceProperties.deviceName,
+			(device.deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) ? "Discrete" : "Integrated");
 	}
 	else
 	{
@@ -431,10 +434,12 @@ bool KVulkanRenderDevice::PickPhysicsDevice()
 		{
 			std::sort(devices.begin(), devices.end(), [&](PhysicalDevice& lhs, PhysicalDevice rhs)->bool
 			{
-				return lhs.score < rhs.score;
+				return lhs.score > rhs.score;
 			});
 
 			m_PhysicalDevice = devices[0];
+			KG_LOG(LM_RENDER, "Pick physical device %s for vulkan", m_PhysicalDevice.deviceProperties.deviceName);
+
 			return true;
 		}
 	}

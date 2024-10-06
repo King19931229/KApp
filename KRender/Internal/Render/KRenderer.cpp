@@ -713,7 +713,11 @@ bool KRenderer::UpdateGlobal()
 				memcpy(pWritePos, &sunLightDirAndMaxReflectionLod, sizeof(sunLightDirAndMaxReflectionLod));
 			}
 		}
-		globalBuffer->Write(pData);
+
+		m_RHICommandList.UpdateUniformBuffer(globalBuffer, pData, 0, (uint32_t)globalBuffer->GetBufferSize());
+		m_RHICommandList.Flush(RHICommandFlush::DispatchToRHIThread);
+		m_RHICommandList.Flush(RHICommandFlush::FlushRHIThread);
+
 		return true;
 	}
 	return false;
