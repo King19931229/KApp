@@ -8,5 +8,5 @@ public:
 	KVulkanUIOverlay();
 	virtual ~KVulkanUIOverlay();
 
-	virtual bool Draw(IKRenderPassPtr renderPass, IKCommandBufferPtr commandBufferPtr);
+	virtual bool Draw(IKRenderPassPtr renderPass, KRHICommandList& commandList);
 };

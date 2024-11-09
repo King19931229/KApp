@@ -3,6 +3,7 @@
 #include "Interface/IKRenderDevice.h"
 #include "Interface/IKTexture.h"
 #include "Internal/KVertexDefinition.h"
+#include "Internal/Render/KRHICommandList.h"
 
 class KSkyBox
 {
@@ -35,7 +36,7 @@ public:
 	bool Init(IKRenderDevice* renderDevice,	const char* cubeTexPath);
 	bool UnInit();
 
-	bool Render(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer);
+	bool Render(IKRenderPassPtr renderPass, KRHICommandList& commandList);
 
 	inline IKTexturePtr GetCubeTexture() { return *m_CubeTexture; }
 	inline IKSamplerPtr GetSampler() { return m_CubeSampler; }

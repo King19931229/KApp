@@ -67,8 +67,8 @@ public:
 	bool ReloadShader();
 	bool Resize(uint32_t width, uint32_t height);
 
-	bool DebugRender(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer);
-	bool Execute(IKCommandBufferPtr primaryBuffer);
+	bool DebugRender(IKRenderPassPtr renderPass, KRHICommandList& commandList);
+	bool Execute(KRHICommandList& commandList);
 
 	IKRenderTargetPtr GetAOTarget() { return m_ComposeTarget; }
 };

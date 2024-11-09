@@ -477,12 +477,12 @@ bool KScreenSpaceReflection::Resize(uint32_t width, uint32_t height)
 	return true;
 }
 
-bool KScreenSpaceReflection::DebugRender(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer)
+bool KScreenSpaceReflection::DebugRender(IKRenderPassPtr renderPass, KRHICommandList& commandList)
 {
-	return m_DebugDrawer.Render(renderPass, primaryBuffer);
+	return m_DebugDrawer.Render(renderPass, commandList);
 }
 
-bool KScreenSpaceReflection::Execute(IKCommandBufferPtr primaryBuffer)
+bool KScreenSpaceReflection::Execute(KRHICommandList& commandList)
 {
 	if (m_FirstFrame)
 	{
@@ -490,15 +490,15 @@ bool KScreenSpaceReflection::Execute(IKCommandBufferPtr primaryBuffer)
 		return true;
 	}
 
-	primaryBuffer->BeginDebugMarker("SSR", glm::vec4(1));
+	commandList.BeginDebugMarker("SSR", glm::vec4(1));
 	if (m_Enable)
 	{
-		primaryBuffer->Transition(KRenderGlobal::GBuffer.GetSceneColor()->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+		commandList.Transition(KRenderGlobal::GBuffer.GetSceneColor()->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 		{
-			primaryBuffer->BeginDebugMarker("SSR_Trace", glm::vec4(1));
+			commandList.BeginDebugMarker("SSR_Trace", glm::vec4(1));
 
-			primaryBuffer->BeginRenderPass(m_ReflectionPass, SUBPASS_CONTENTS_INLINE);
-			primaryBuffer->SetViewport(m_ReflectionPass->GetViewPort());
+			commandList.BeginRenderPass(m_ReflectionPass, SUBPASS_CONTENTS_INLINE);
+			commandList.SetViewport(m_ReflectionPass->GetViewPort());
 
 			KRenderCommand command;
 			command.vertexData = &KRenderGlobal::QuadDataProvider.GetVertexData();
@@ -524,21 +524,21 @@ bool KScreenSpaceReflection::Execute(IKCommandBufferPtr primaryBuffer)
 			command.pipeline = m_ReflectionPipeline;
 			command.pipeline->GetHandle(m_ReflectionPass, command.pipelineHandle);
 
-			primaryBuffer->Render(command);
+			commandList.Render(command);
 
-			primaryBuffer->EndRenderPass();
+			commandList.EndRenderPass();
 
-			primaryBuffer->Transition(m_HitResultTarget->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
-			primaryBuffer->Transition(m_HitMaskTarget->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+			commandList.Transition(m_HitResultTarget->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+			commandList.Transition(m_HitMaskTarget->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 
-			primaryBuffer->EndDebugMarker();
+			commandList.EndDebugMarker();
 		}
 
 		{
-			primaryBuffer->BeginDebugMarker("SSR_RayReuse", glm::vec4(1));
+			commandList.BeginDebugMarker("SSR_RayReuse", glm::vec4(1));
 
-			primaryBuffer->BeginRenderPass(m_RayReusePass[m_CurrentIdx], SUBPASS_CONTENTS_INLINE);
-			primaryBuffer->SetViewport(m_RayReusePass[m_CurrentIdx]->GetViewPort());
+			commandList.BeginRenderPass(m_RayReusePass[m_CurrentIdx], SUBPASS_CONTENTS_INLINE);
+			commandList.SetViewport(m_RayReusePass[m_CurrentIdx]->GetViewPort());
 
 			KRenderCommand command;
 			command.vertexData = &KRenderGlobal::QuadDataProvider.GetVertexData();
@@ -563,20 +563,20 @@ bool KScreenSpaceReflection::Execute(IKCommandBufferPtr primaryBuffer)
 			command.pipeline = m_RayReusePipeline;
 			command.pipeline->GetHandle(m_RayReusePass[m_CurrentIdx], command.pipelineHandle);
 
-			primaryBuffer->Render(command);
+			commandList.Render(command);
 
-			primaryBuffer->EndRenderPass();
+			commandList.EndRenderPass();
 
-			primaryBuffer->Transition(m_TemporalTarget[m_CurrentIdx]->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+			commandList.Transition(m_TemporalTarget[m_CurrentIdx]->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 
-			primaryBuffer->EndDebugMarker();
+			commandList.EndDebugMarker();
 		}
 
 		{
-			primaryBuffer->BeginDebugMarker("SSR_Temporal", glm::vec4(1));
+			commandList.BeginDebugMarker("SSR_Temporal", glm::vec4(1));
 
-			primaryBuffer->BeginRenderPass(m_TemporalPass, SUBPASS_CONTENTS_INLINE);
-			primaryBuffer->SetViewport(m_TemporalPass->GetViewPort());
+			commandList.BeginRenderPass(m_TemporalPass, SUBPASS_CONTENTS_INLINE);
+			commandList.SetViewport(m_TemporalPass->GetViewPort());
 
 			KRenderCommand command;
 			command.vertexData = &KRenderGlobal::QuadDataProvider.GetVertexData();
@@ -597,23 +597,23 @@ bool KScreenSpaceReflection::Execute(IKCommandBufferPtr primaryBuffer)
 			command.pipeline = m_TemporalPipeline[m_CurrentIdx];
 			command.pipeline->GetHandle(m_TemporalPass, command.pipelineHandle);
 
-			primaryBuffer->Render(command);
+			commandList.Render(command);
 
-			primaryBuffer->EndRenderPass();
+			commandList.EndRenderPass();
 
-			primaryBuffer->Transition(m_FinalTarget->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
-			primaryBuffer->Transition(m_FinalSquaredTarget->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
-			primaryBuffer->Transition(m_FinalTsppTarget->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
-			primaryBuffer->Transition(m_VarianceTarget->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+			commandList.Transition(m_FinalTarget->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+			commandList.Transition(m_FinalSquaredTarget->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+			commandList.Transition(m_FinalTsppTarget->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+			commandList.Transition(m_VarianceTarget->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 
-			primaryBuffer->EndDebugMarker();
+			commandList.EndDebugMarker();
 		}
 
 		{
-			primaryBuffer->BeginDebugMarker("SSR_Blit", glm::vec4(1));
+			commandList.BeginDebugMarker("SSR_Blit", glm::vec4(1));
 
-			primaryBuffer->BeginRenderPass(m_BlitPass[m_CurrentIdx], SUBPASS_CONTENTS_INLINE);
-			primaryBuffer->SetViewport(m_BlitPass[m_CurrentIdx]->GetViewPort());
+			commandList.BeginRenderPass(m_BlitPass[m_CurrentIdx], SUBPASS_CONTENTS_INLINE);
+			commandList.SetViewport(m_BlitPass[m_CurrentIdx]->GetViewPort());
 
 			KRenderCommand command;
 			command.vertexData = &KRenderGlobal::QuadDataProvider.GetVertexData();
@@ -623,28 +623,28 @@ bool KScreenSpaceReflection::Execute(IKCommandBufferPtr primaryBuffer)
 			command.pipeline = m_BlitPipeline;
 			command.pipeline->GetHandle(m_BlitPass[m_CurrentIdx], command.pipelineHandle);
 
-			primaryBuffer->Render(command);
+			commandList.Render(command);
 
-			primaryBuffer->EndRenderPass();
+			commandList.EndRenderPass();
 
-			primaryBuffer->Transition(m_TemporalTarget[m_CurrentIdx]->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
-			primaryBuffer->Transition(m_TemporalSquaredTarget[m_CurrentIdx]->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
-			primaryBuffer->Transition(m_TemporalTsppTarget[m_CurrentIdx]->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
-			primaryBuffer->Transition(m_BlurTarget[m_CurrentIdx]->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+			commandList.Transition(m_TemporalTarget[m_CurrentIdx]->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+			commandList.Transition(m_TemporalSquaredTarget[m_CurrentIdx]->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+			commandList.Transition(m_TemporalTsppTarget[m_CurrentIdx]->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+			commandList.Transition(m_BlurTarget[m_CurrentIdx]->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 
-			primaryBuffer->EndDebugMarker();
+			commandList.EndDebugMarker();
 		}
 
 		{
-			primaryBuffer->BeginDebugMarker("SSR_Atrous", glm::vec4(1));
+			commandList.BeginDebugMarker("SSR_Atrous", glm::vec4(1));
 			for (int32_t level = 1; level <= m_AtrousLevel; ++level)
 			{
-				primaryBuffer->BeginDebugMarker("SSR_AtrousPass" + std::to_string(level), glm::vec4(1));
+				commandList.BeginDebugMarker("SSR_AtrousPass" + std::to_string(level), glm::vec4(1));
 
 				uint32_t i = level & 1;
 
-				primaryBuffer->BeginRenderPass(m_AtrousPass[i], SUBPASS_CONTENTS_INLINE);
-				primaryBuffer->SetViewport(m_AtrousPass[i]->GetViewPort());
+				commandList.BeginRenderPass(m_AtrousPass[i], SUBPASS_CONTENTS_INLINE);
+				commandList.SetViewport(m_AtrousPass[i]->GetViewPort());
 
 				KRenderCommand command;
 				command.vertexData = &KRenderGlobal::QuadDataProvider.GetVertexData();
@@ -667,24 +667,24 @@ bool KScreenSpaceReflection::Execute(IKCommandBufferPtr primaryBuffer)
 				command.pipeline = m_AtrousPipeline[i];
 				command.pipeline->GetHandle(m_AtrousPass[i], command.pipelineHandle);
 
-				primaryBuffer->Render(command);
+				commandList.Render(command);
 
-				primaryBuffer->EndRenderPass();
+				commandList.EndRenderPass();
 
-				primaryBuffer->Transition(m_BlurTarget[i]->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+				commandList.Transition(m_BlurTarget[i]->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 
-				primaryBuffer->EndDebugMarker();
+				commandList.EndDebugMarker();
 			}
-			primaryBuffer->EndDebugMarker();
+			commandList.EndDebugMarker();
 		}
 
 		{
-			primaryBuffer->BeginDebugMarker("SSR_Compose", glm::vec4(1));
+			commandList.BeginDebugMarker("SSR_Compose", glm::vec4(1));
 
 			uint32_t i = m_AtrousLevel & 1;
 
-			primaryBuffer->BeginRenderPass(m_ComposePass, SUBPASS_CONTENTS_INLINE);
-			primaryBuffer->SetViewport(m_ComposePass->GetViewPort());
+			commandList.BeginRenderPass(m_ComposePass, SUBPASS_CONTENTS_INLINE);
+			commandList.SetViewport(m_ComposePass->GetViewPort());
 
 			KRenderCommand command;
 			command.vertexData = &KRenderGlobal::QuadDataProvider.GetVertexData();
@@ -694,26 +694,26 @@ bool KScreenSpaceReflection::Execute(IKCommandBufferPtr primaryBuffer)
 			command.pipeline = m_ComposePipeline[i];
 			command.pipeline->GetHandle(m_ComposePass, command.pipelineHandle);
 
-			primaryBuffer->Render(command);
+			commandList.Render(command);
 
-			primaryBuffer->EndRenderPass();
+			commandList.EndRenderPass();
 
-			primaryBuffer->Transition(m_ComposeTarget->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+			commandList.Transition(m_ComposeTarget->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 
-			primaryBuffer->EndDebugMarker();
+			commandList.EndDebugMarker();
 		}
-		primaryBuffer->Transition(KRenderGlobal::GBuffer.GetSceneColor()->GetFrameBuffer(), PIPELINE_STAGE_FRAGMENT_SHADER, PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_COLOR_ATTACHMENT);
+		commandList.Transition(KRenderGlobal::GBuffer.GetSceneColor()->GetFrameBuffer(), PIPELINE_STAGE_FRAGMENT_SHADER, PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_COLOR_ATTACHMENT);
 	}
 	else
 	{
-		primaryBuffer->BeginDebugMarker("SSR_Compose", glm::vec4(1));
-		primaryBuffer->BeginRenderPass(m_ComposePass, SUBPASS_CONTENTS_INLINE);
-		primaryBuffer->SetViewport(m_ComposePass->GetViewPort());
-		primaryBuffer->EndRenderPass();
-		primaryBuffer->Transition(m_ComposeTarget->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
-		primaryBuffer->EndDebugMarker();
+		commandList.BeginDebugMarker("SSR_Compose", glm::vec4(1));
+		commandList.BeginRenderPass(m_ComposePass, SUBPASS_CONTENTS_INLINE);
+		commandList.SetViewport(m_ComposePass->GetViewPort());
+		commandList.EndRenderPass();
+		commandList.Transition(m_ComposeTarget->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+		commandList.EndDebugMarker();
 	}
-	primaryBuffer->EndDebugMarker();
+	commandList.EndDebugMarker();
 
 	m_CurrentIdx ^= 1;
 

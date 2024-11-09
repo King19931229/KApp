@@ -2,6 +2,7 @@
 #include "Interface/IKGizmo.h"
 #include "Interface/IKCommandBuffer.h"
 #include "Internal/KVertexDefinition.h"
+#include "Internal/Render/KRHICommandList.h"
 
 class KCameraCube : public IKCameraCube
 {
@@ -227,5 +228,5 @@ public:
 	void OnMouseMove(unsigned int x, unsigned int y) override;
 	void OnMouseUp(unsigned int x, unsigned int y) override;
 
-	bool Render(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer);
+	bool Render(IKRenderPassPtr renderPass, KRHICommandList& commandList);
 };

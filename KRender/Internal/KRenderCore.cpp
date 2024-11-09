@@ -179,18 +179,18 @@ bool KRenderCore::InitController()
 	{
 		if (key == INPUT_KEY_ENTER)
 		{
-			m_Device->Wait();
+			KRenderGlobal::Renderer.GetRHICommandList().Flush(RHICommandFlush::FlushRHIThread);
 			KRenderGlobal::VirtualGeometryManager.ReloadShader();
 		}
 		if (key == INPUT_KEY_SPACE)
 		{
-			m_Device->Wait();
+			KRenderGlobal::Renderer.GetRHICommandList().Flush(RHICommandFlush::FlushRHIThread);
 			KRenderGlobal::VirtualTextureManager.ReloadShader();
 			// KRenderGlobal::GPUScene.ReloadShader();
 		}
 		if (key == INPUT_KEY_R)
 		{
-			m_Device->Wait();
+			KRenderGlobal::Renderer.GetRHICommandList().Flush(RHICommandFlush::FlushRHIThread);
 			KRenderGlobal::RayTraceManager.ReloadShader();
 			KRenderGlobal::VirtualGeometryManager.ReloadShader();
 			KRenderGlobal::VirtualTextureManager.ReloadShader();

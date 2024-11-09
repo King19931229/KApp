@@ -103,6 +103,16 @@ struct KShaderInformation
 			}
 			return hash;
 		}
+
+		std::string ToString() const
+		{
+			std::string result;
+			result += "descriptorSetIndex: " + std::to_string(descriptorSetIndex) + ",";
+			result += "bindingIndex: " + std::to_string(bindingIndex) + ",";
+			result += "size: " + std::to_string(size) + ",";
+			result += "arraysize: " + std::to_string(arraysize) + ",";
+			return result;
+		}
 	};
 
 	struct Texture

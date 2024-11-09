@@ -1,8 +1,8 @@
 #include "KFrameGraphExecutor.h"
 
-KFrameGraphExecutor::KFrameGraphExecutor(KFrameGraphRenderPassMap& map, IKCommandBufferPtr primaryBuffer, uint32_t chainIndex)
+KFrameGraphExecutor::KFrameGraphExecutor(KFrameGraphRenderPassMap& map, KRHICommandList& commandList, uint32_t chainIndex)
 	: m_RenderPassMap(map),
-	m_PrimaryBuffer(primaryBuffer),
+	m_CommandList(commandList),
 	m_SwapChainImageIndex(chainIndex)
 {
 }

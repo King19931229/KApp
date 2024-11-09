@@ -1134,7 +1134,7 @@ void KClipmap::Update(const KCamera* camera)
 		clipLevel->UpdateHeightData();
 	}
 
-	KRenderGlobal::RenderDevice->Wait();
+	KRenderGlobal::Renderer.GetRHICommandList().Flush(RHICommandFlush::FlushRHIThread);
 	for (int32_t level = 0; level < m_LevelCount; ++level)
 	{
 		m_ClipLevels[level]->UpdateTexture();
@@ -1148,7 +1148,7 @@ void KClipmap::Update(const KCamera* camera)
 	m_Updated = true;
 }
 
-void KClipmap::RenderInternal(IKCommandBufferPtr primaryBuffer, IKRenderPassPtr renderPass, int32_t levelIdx, bool hollowCenter)
+void KClipmap::RenderInternal(KRHICommandList& commandList, IKRenderPassPtr renderPass, int32_t levelIdx, bool hollowCenter)
 {
 	KClipmapLevelPtr clipLevel = m_ClipLevels[levelIdx];
 
@@ -1290,15 +1290,15 @@ void KClipmap::RenderInternal(IKCommandBufferPtr primaryBuffer, IKRenderPassPtr 
 		command.pipeline->GetHandle(renderPass, command.pipelineHandle);
 		command.indexDraw = true;
 
-		primaryBuffer->Render(command);
+		commandList.Render(command);
 	}
 }
 
-bool KClipmap::Render(IKCommandBufferPtr primaryBuffer, IKRenderPassPtr renderPass)
+bool KClipmap::Render(KRHICommandList& commandList, IKRenderPassPtr renderPass)
 {
 	for (int32_t levelIdx = 0; levelIdx <= m_FinestLevel; ++levelIdx)
 	{
-		RenderInternal(primaryBuffer, renderPass, levelIdx, levelIdx != m_FinestLevel);
+		RenderInternal(commandList, renderPass, levelIdx, levelIdx != m_FinestLevel);
 	}
 	return true;
 }
@@ -1337,8 +1337,8 @@ bool KClipmap::DisableDebugDraw()
 	return true;
 }
 
-bool KClipmap::DebugRender(IKCommandBufferPtr primaryBuffer, IKRenderPassPtr renderPass)
+bool KClipmap::DebugRender(KRHICommandList& commandList, IKRenderPassPtr renderPass)
 {
-	m_DebugDrawer.Render(renderPass, primaryBuffer);
+	m_DebugDrawer.Render(renderPass, commandList);
 	return true;
 }

@@ -68,6 +68,6 @@ public:
 	bool Resize(uint32_t width, uint32_t height);
 
 	bool& GetDebugDrawEnable() { return m_DebugDrawer.GetEnable(); }
-	bool DebugRender(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer);
-	bool Execute(IKCommandBufferPtr primaryBuffer);
+	bool DebugRender(IKRenderPassPtr renderPass, KRHICommandList& commandList);
+	bool Execute(KRHICommandList& commandList);
 };

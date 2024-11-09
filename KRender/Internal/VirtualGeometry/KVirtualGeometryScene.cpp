@@ -476,7 +476,7 @@ bool KVirtualGeometryScene::UnInit()
 	return true;
 }
 
-bool KVirtualGeometryScene::UpdateInstanceData()
+bool KVirtualGeometryScene::UpdateInstanceData(KRHICommandList& commandList)
 {
 	void* pWrite = nullptr;
 
@@ -500,10 +500,7 @@ bool KVirtualGeometryScene::UpdateInstanceData()
 		KRenderGlobal::GBuffer.GetSceneColor()->GetSize(sceneWidth, sceneHeight);
 		globalData.misc.z = m_Camera ? (sceneHeight / m_Camera->GetHeight()) : 1.0f;
 
-		m_GlobalDataBuffer->Map(&pWrite);
-		memcpy(pWrite, &globalData, sizeof(globalData));
-		m_GlobalDataBuffer->UnMap();
-		pWrite = nullptr;
+		commandList.UpdateUniformBuffer(m_GlobalDataBuffer, &globalData, 0, sizeof(globalData));
 
 		m_PrevViewProj = globalData.worldToClip;
 	}
@@ -666,7 +663,7 @@ bool KVirtualGeometryScene::UpdateInstanceData()
 
 			if (m_IndirectDrawBuffer->GetBufferSize() != targetBufferSize)
 			{
-				KRenderGlobal::RenderDevice->Wait();
+				KRenderGlobal::Renderer.GetRHICommandList().Flush(RHICommandFlush::FlushRHIThread);
 				m_IndirectDrawBuffer->UnInit();
 				m_IndirectDrawBuffer->InitMemory(targetBufferSize, nullptr);
 				m_IndirectDrawBuffer->InitDevice(true, false);
@@ -680,7 +677,7 @@ bool KVirtualGeometryScene::UpdateInstanceData()
 
 			if (m_IndirectMeshBuffer->GetBufferSize() != targetBufferSize)
 			{
-				KRenderGlobal::RenderDevice->Wait();
+				KRenderGlobal::Renderer.GetRHICommandList().Flush(RHICommandFlush::FlushRHIThread);
 				m_IndirectMeshBuffer->UnInit();
 				m_IndirectMeshBuffer->InitMemory(targetBufferSize, nullptr);
 				m_IndirectMeshBuffer->InitDevice(true, false);
@@ -697,7 +694,7 @@ bool KVirtualGeometryScene::UpdateInstanceData()
 
 		if (m_BinningHeaderBuffer->GetBufferSize() != targetBufferSize)
 		{
-			KRenderGlobal::RenderDevice->Wait();
+			KRenderGlobal::Renderer.GetRHICommandList().Flush(RHICommandFlush::FlushRHIThread);
 			m_BinningHeaderBuffer->UnInit();
 			m_BinningHeaderBuffer->InitMemory(targetBufferSize, nullptr);
 			m_BinningHeaderBuffer->InitDevice(false, false);
@@ -723,7 +720,7 @@ bool KVirtualGeometryScene::UpdateInstanceData()
 
 		if (m_InstanceDataBuffer->GetBufferSize() != targetBufferSize)
 		{
-			KRenderGlobal::RenderDevice->Wait();
+			KRenderGlobal::Renderer.GetRHICommandList().Flush(RHICommandFlush::FlushRHIThread);
 
 			m_InstanceDataBuffer->UnInit();
 			m_InstanceDataBuffer->InitMemory(targetBufferSize, nullptr);
@@ -745,7 +742,7 @@ bool KVirtualGeometryScene::UpdateInstanceData()
 
 		if (m_MainCullResultBuffer->GetBufferSize() != targetBufferSize)
 		{
-			KRenderGlobal::RenderDevice->Wait();
+			KRenderGlobal::Renderer.GetRHICommandList().Flush(RHICommandFlush::FlushRHIThread);
 
 			m_MainCullResultBuffer->UnInit();
 			m_MainCullResultBuffer->InitMemory(targetBufferSize, nullptr);
@@ -772,124 +769,124 @@ std::string KVirtualGeometryScene::InstanceCullString(KVirtualGeometryScene::Ins
 	}
 }
 
-bool KVirtualGeometryScene::Execute(IKCommandBufferPtr primaryBuffer, InstanceCull cullMode)
+bool KVirtualGeometryScene::Execute(KRHICommandList& commandList, InstanceCull cullMode)
 {
-	UpdateInstanceData();
+	UpdateInstanceData(commandList);
 
 	std::string cullString = InstanceCullString(cullMode);
 	uint32_t currentFrame = KRenderGlobal::CurrentInFlightFrameIndex;
 
-	primaryBuffer->BeginDebugMarker("VirtualGeometry" + cullString, glm::vec4(1));
+	commandList.BeginDebugMarker("VirtualGeometry" + cullString, glm::vec4(1));
 	if (m_InitQueueStatePipeline)
 	{
 		{
-			primaryBuffer->BeginDebugMarker("VirtualGeometry_Init" + cullString, glm::vec4(1));
-			m_InitQueueStatePipeline[cullMode]->Execute(primaryBuffer, 1, 1, 1, nullptr);
-			primaryBuffer->EndDebugMarker();
+			commandList.BeginDebugMarker("VirtualGeometry_Init" + cullString, glm::vec4(1));
+			commandList.Execute(m_InitQueueStatePipeline[cullMode], 1, 1, 1, nullptr);
+			commandList.EndDebugMarker();
 		}
 
 		{
-			primaryBuffer->BeginDebugMarker("VirtualGeometry_InstanceCull" + cullString, glm::vec4(1));
+			commandList.BeginDebugMarker("VirtualGeometry_InstanceCull" + cullString, glm::vec4(1));
 			if (cullMode != INSTANCE_CULL_POST)
 			{
 				uint32_t groupNum = 0;
 				groupNum = ((uint32_t)m_Instances.size() + VG_GROUP_SIZE - 1) / VG_GROUP_SIZE;
-				m_InstanceCullPipeline[cullMode]->Execute(primaryBuffer, groupNum, 1, 1, nullptr);
+				commandList.Execute(m_InstanceCullPipeline[cullMode], groupNum, 1, 1, nullptr);
 			}
 			else
 			{
-				m_InstanceCullPipeline[cullMode]->ExecuteIndirect(primaryBuffer, m_PostCullIndirectArgsBuffer, nullptr);
+				commandList.ExecuteIndirect(m_InstanceCullPipeline[cullMode], m_PostCullIndirectArgsBuffer, nullptr);
 			}
-			primaryBuffer->EndDebugMarker();
+			commandList.EndDebugMarker();
 		}
 
 		if (KRenderGlobal::VirtualGeometryManager.GetUsePersistentCull())
 		{
-			primaryBuffer->BeginDebugMarker("VirtualGeometry_NodeCull_Persistent", glm::vec4(1));
-			m_PersistentCullPipelines[cullMode][currentFrame]->Execute(primaryBuffer, 1024, 1, 1, nullptr);
-			primaryBuffer->EndDebugMarker();
+			commandList.BeginDebugMarker("VirtualGeometry_NodeCull_Persistent", glm::vec4(1));
+			commandList.Execute(m_PersistentCullPipelines[cullMode][currentFrame], 1024, 1, 1, nullptr);
+			commandList.EndDebugMarker();
 		}
 		else
 		{
 			for (uint32_t level = 0; level < 12; ++level)
 			{
-				primaryBuffer->BeginDebugMarker(("VirtualGeometry_NodeProcess_" + std::to_string(level) + "_" + cullString).c_str(), glm::vec4(1));
+				commandList.BeginDebugMarker(("VirtualGeometry_NodeProcess_" + std::to_string(level) + "_" + cullString).c_str(), glm::vec4(1));
 				{
-					primaryBuffer->BeginDebugMarker(("VirtualGeometry_InitNodeCullArgs_" + std::to_string(level) + "_" + cullString).c_str(), glm::vec4(1));
-					m_InitNodeCullArgsPipeline[cullMode]->Execute(primaryBuffer, 1, 1, 1, nullptr);
-					primaryBuffer->EndDebugMarker();
+					commandList.BeginDebugMarker(("VirtualGeometry_InitNodeCullArgs_" + std::to_string(level) + "_" + cullString).c_str(), glm::vec4(1));
+					commandList.Execute(m_InitNodeCullArgsPipeline[cullMode], 1, 1, 1, nullptr);
+					commandList.EndDebugMarker();
 
-					primaryBuffer->BeginDebugMarker(("VirtualGeometry_NodeCull_" + std::to_string(level) + "_" + cullString).c_str(), glm::vec4(1));
-					m_NodeCullPipelines[cullMode][currentFrame]->ExecuteIndirect(primaryBuffer, m_IndirectAgrsBuffer, nullptr);
-					primaryBuffer->EndDebugMarker();
+					commandList.BeginDebugMarker(("VirtualGeometry_NodeCull_" + std::to_string(level) + "_" + cullString).c_str(), glm::vec4(1));
+					commandList.ExecuteIndirect(m_NodeCullPipelines[cullMode][currentFrame], m_IndirectAgrsBuffer, nullptr);
+					commandList.EndDebugMarker();
 				}
-				primaryBuffer->EndDebugMarker();
+				commandList.EndDebugMarker();
 			}
 
-			primaryBuffer->BeginDebugMarker("VirtualGeometry_InitNodeCulusterArgs" + cullString, glm::vec4(1));
-			m_InitClusterCullArgsPipeline[cullMode]->Execute(primaryBuffer, 1, 1, 1, nullptr);
-			primaryBuffer->EndDebugMarker();
+			commandList.BeginDebugMarker("VirtualGeometry_InitNodeCulusterArgs" + cullString, glm::vec4(1));
+			commandList.Execute(m_InitClusterCullArgsPipeline[cullMode], 1, 1, 1, nullptr);
+			commandList.EndDebugMarker();
 
-			primaryBuffer->BeginDebugMarker("VirtualGeometry_ClusterCull" + cullString, glm::vec4(1));
-			m_ClusterCullPipelines[cullMode][currentFrame]->ExecuteIndirect(primaryBuffer, m_IndirectAgrsBuffer, nullptr);
-			primaryBuffer->EndDebugMarker();
+			commandList.BeginDebugMarker("VirtualGeometry_ClusterCull" + cullString, glm::vec4(1));
+			commandList.ExecuteIndirect(m_ClusterCullPipelines[cullMode][currentFrame], m_IndirectAgrsBuffer, nullptr);
+			commandList.EndDebugMarker();
 		}
 
 		{
-			primaryBuffer->BeginDebugMarker("VirtualGeometry_CalcDrawArgs" + cullString, glm::vec4(1));
-			m_CalcDrawArgsPipeline[cullMode]->ExecuteIndirect(primaryBuffer, m_IndirectAgrsBuffer, nullptr);
-			primaryBuffer->EndDebugMarker();
+			commandList.BeginDebugMarker("VirtualGeometry_CalcDrawArgs" + cullString, glm::vec4(1));
+			commandList.ExecuteIndirect(m_CalcDrawArgsPipeline[cullMode], m_IndirectAgrsBuffer, nullptr);
+			commandList.EndDebugMarker();
 		}
 
 		{
-			primaryBuffer->BeginDebugMarker("VirtualGeometry_Binning" + cullString, glm::vec4(1));
+			commandList.BeginDebugMarker("VirtualGeometry_Binning" + cullString, glm::vec4(1));
 			{
 				uint32_t numGroup = (uint32_t)(m_BinningMaterials.size() + VG_GROUP_SIZE - 1) / VG_GROUP_SIZE;
 				{
-					primaryBuffer->BeginDebugMarker("VirtualGeometry_InitBinning" + cullString, glm::vec4(1));
-					m_InitBinningPipline[cullMode]->Execute(primaryBuffer, numGroup, 1, 1, nullptr);
-					primaryBuffer->EndDebugMarker();
+					commandList.BeginDebugMarker("VirtualGeometry_InitBinning" + cullString, glm::vec4(1));
+					commandList.Execute(m_InitBinningPipline[cullMode], numGroup, 1, 1, nullptr);
+					commandList.EndDebugMarker();
 
-					primaryBuffer->BeginDebugMarker("VirtualGeometry_BinningClassify" + cullString, glm::vec4(1));
-					m_BinningClassifyPipline[cullMode]->ExecuteIndirect(primaryBuffer, m_IndirectAgrsBuffer, nullptr);
-					primaryBuffer->EndDebugMarker();
+					commandList.BeginDebugMarker("VirtualGeometry_BinningClassify" + cullString, glm::vec4(1));
+					commandList.ExecuteIndirect(m_BinningClassifyPipline[cullMode], m_IndirectAgrsBuffer, nullptr);
+					commandList.EndDebugMarker();
 
-					primaryBuffer->BeginDebugMarker("VirtualGeometry_BinningAllocate" + cullString, glm::vec4(1));
-					m_BinningAllocatePipline[cullMode]->Execute(primaryBuffer, numGroup, 1, 1, nullptr);
-					primaryBuffer->EndDebugMarker();
+					commandList.BeginDebugMarker("VirtualGeometry_BinningAllocate" + cullString, glm::vec4(1));
+					commandList.Execute(m_BinningAllocatePipline[cullMode], numGroup, 1, 1, nullptr);
+					commandList.EndDebugMarker();
 
-					primaryBuffer->BeginDebugMarker("VirtualGeometry_BinningScatter" + cullString, glm::vec4(1));
-					m_BinningScatterPipline[cullMode]->ExecuteIndirect(primaryBuffer, m_IndirectAgrsBuffer, nullptr);
-					primaryBuffer->EndDebugMarker();
+					commandList.BeginDebugMarker("VirtualGeometry_BinningScatter" + cullString, glm::vec4(1));
+					commandList.ExecuteIndirect(m_BinningScatterPipline[cullMode], m_IndirectAgrsBuffer, nullptr);
+					commandList.EndDebugMarker();
 				}
 			}
-			primaryBuffer->EndDebugMarker();
+			commandList.EndDebugMarker();
 		}
 
-		primaryBuffer->TransitionIndirect(m_IndirectDrawBuffer);
-		primaryBuffer->TransitionIndirect(m_IndirectMeshBuffer);
+		commandList.TransitionIndirect(m_IndirectDrawBuffer);
+		commandList.TransitionIndirect(m_IndirectMeshBuffer);
 	}
-	primaryBuffer->EndDebugMarker();
+	commandList.EndDebugMarker();
 	return true;
 }
 
-bool KVirtualGeometryScene::ExecuteMain(IKCommandBufferPtr primaryBuffer)
+bool KVirtualGeometryScene::ExecuteMain(KRHICommandList& commandList)
 {
 	if (KRenderGlobal::VirtualGeometryManager.GetUseDoubleOcclusion())
 	{
-		return Execute(primaryBuffer, INSTANCE_CULL_MAIN);
+		return Execute(commandList, INSTANCE_CULL_MAIN);
 	}
 	else
 	{
-		return Execute(primaryBuffer, INSTANCE_CULL_NONE);
+		return Execute(commandList, INSTANCE_CULL_NONE);
 	}
 }
 
-bool KVirtualGeometryScene::ExecutePost(IKCommandBufferPtr primaryBuffer)
+bool KVirtualGeometryScene::ExecutePost(KRHICommandList& commandList)
 {
 	if (KRenderGlobal::VirtualGeometryManager.GetUseDoubleOcclusion())
 	{
-		return Execute(primaryBuffer, INSTANCE_CULL_POST);
+		return Execute(commandList, INSTANCE_CULL_POST);
 	}
 	else
 	{
@@ -897,11 +894,11 @@ bool KVirtualGeometryScene::ExecutePost(IKCommandBufferPtr primaryBuffer)
 	}
 }
 
-bool KVirtualGeometryScene::BasePass(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer, InstanceCull cullMode)
+bool KVirtualGeometryScene::BasePass(IKRenderPassPtr renderPass, KRHICommandList& commandList, InstanceCull cullMode)
 {
 	std::string cullString = InstanceCullString(cullMode);
 
-	primaryBuffer->BeginDebugMarker("VirtualGeometry_BasePass" + cullString, glm::vec4(1));
+	commandList.BeginDebugMarker("VirtualGeometry_BasePass" + cullString, glm::vec4(1));
 
 	for (size_t i = 0; i < m_BinningMaterials.size(); ++i)
 	{
@@ -933,7 +930,7 @@ bool KVirtualGeometryScene::BasePass(IKRenderPassPtr renderPass, IKCommandBuffer
 			command.meshShaderDraw = true;
 			command.indirectOffset = (uint32_t)i;
 			command.indirectCount = 1;
-			primaryBuffer->Render(command);
+			commandList.Render(command);
 		}
 		else
 		{
@@ -944,32 +941,32 @@ bool KVirtualGeometryScene::BasePass(IKRenderPassPtr renderPass, IKCommandBuffer
 			command.indirectDraw = true;
 			command.indirectOffset = (uint32_t)i;
 			command.indirectCount = 1;
-			primaryBuffer->Render(command);
+			commandList.Render(command);
 		}
 	}
 
-	primaryBuffer->EndDebugMarker();
+	commandList.EndDebugMarker();
 
 	return true;
 }
 
-bool KVirtualGeometryScene::BasePassMain(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer)
+bool KVirtualGeometryScene::BasePassMain(IKRenderPassPtr renderPass, KRHICommandList& commandList)
 {
 	if (KRenderGlobal::VirtualGeometryManager.GetUseDoubleOcclusion())
 	{
-		return BasePass(renderPass, primaryBuffer, INSTANCE_CULL_MAIN);
+		return BasePass(renderPass, commandList, INSTANCE_CULL_MAIN);
 	}
 	else
 	{
-		return BasePass(renderPass, primaryBuffer, INSTANCE_CULL_NONE);
+		return BasePass(renderPass, commandList, INSTANCE_CULL_NONE);
 	}
 }
 
-bool KVirtualGeometryScene::BasePassPost(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer)
+bool KVirtualGeometryScene::BasePassPost(IKRenderPassPtr renderPass, KRHICommandList& commandList)
 {
 	if (KRenderGlobal::VirtualGeometryManager.GetUseDoubleOcclusion())
 	{
-		return BasePass(renderPass, primaryBuffer, INSTANCE_CULL_POST);
+		return BasePass(renderPass, commandList, INSTANCE_CULL_POST);
 	}
 	else
 	{
@@ -977,9 +974,9 @@ bool KVirtualGeometryScene::BasePassPost(IKRenderPassPtr renderPass, IKCommandBu
 	}
 }
 
-bool KVirtualGeometryScene::DebugRender(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer)
+bool KVirtualGeometryScene::DebugRender(IKRenderPassPtr renderPass, KRHICommandList& commandList)
 {
-	primaryBuffer->BeginDebugMarker("VirtualGeometry_DebugRender", glm::vec4(1));
+	commandList.BeginDebugMarker("VirtualGeometry_DebugRender", glm::vec4(1));
 #if 0
 	for (size_t i = 0; i < m_BinningMaterials.size(); ++i)
 	{
@@ -999,10 +996,10 @@ bool KVirtualGeometryScene::DebugRender(IKRenderPassPtr renderPass, IKCommandBuf
 		command.objectUsage.range = sizeof(material);
 		KRenderGlobal::DynamicConstantBufferManager.Alloc(&material, command.objectUsage);
 
-		primaryBuffer->Render(command);
+		commandList.Render(command);
 	}
 #endif
-	primaryBuffer->EndDebugMarker();
+	commandList.EndDebugMarker();
 	return true;
 }
 

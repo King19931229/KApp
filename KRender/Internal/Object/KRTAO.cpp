@@ -316,61 +316,61 @@ bool KRTAO::DisableDebugDraw()
 	return true;
 }
 
-bool KRTAO::DebugRender(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer)
+bool KRTAO::DebugRender(IKRenderPassPtr renderPass, KRHICommandList& commandList)
 {
-	return m_DebugDrawer.Render(renderPass, primaryBuffer);
+	return m_DebugDrawer.Render(renderPass, commandList);
 }
 
-bool KRTAO::Execute(IKCommandBufferPtr primaryBuffer, IKQueuePtr graphicsQueue, IKQueuePtr computeQueue)
+bool KRTAO::Execute(KRHICommandList& commandList, IKQueuePtr graphicsQueue, IKQueuePtr computeQueue)
 {
 	if (m_AOComputePipeline[m_CurrentAOIndex] && m_Enable)
 	{
-		primaryBuffer->BeginDebugMarker("RTAO", glm::vec4(1));
+		commandList.BeginDebugMarker("RTAO", glm::vec4(1));
 
 		uint32_t groupX = (m_Width + (RTAO_GROUP_SIZE - 1)) / RTAO_GROUP_SIZE;
 		uint32_t groupY = (m_Height + (RTAO_GROUP_SIZE - 1)) / RTAO_GROUP_SIZE;
 
 		{
-			primaryBuffer->BeginDebugMarker("RTAO_ComputeAO", glm::vec4(1));
+			commandList.BeginDebugMarker("RTAO_ComputeAO", glm::vec4(1));
 			UpdateAOUniform();
-			m_AOComputePipeline[m_CurrentAOIndex]->Execute(primaryBuffer, groupX, groupY, 1);
-			primaryBuffer->EndDebugMarker();
+			commandList.Execute(m_AOComputePipeline[m_CurrentAOIndex], groupX, groupY, 1);
+			commandList.EndDebugMarker();
 		}
 
 		{
-			primaryBuffer->BeginDebugMarker("RTAO_ComputeMeanVariance", glm::vec4(1));
+			commandList.BeginDebugMarker("RTAO_ComputeMeanVariance", glm::vec4(1));
 			UpdateMeanUniform();
-			m_MeanHorizontalComputePipeline->Execute(primaryBuffer, groupX, groupY, 1);
-			m_MeanVerticalComputePipeline->Execute(primaryBuffer, groupX, groupY, 1);
-			primaryBuffer->EndDebugMarker();
+			commandList.Execute(m_MeanHorizontalComputePipeline, groupX, groupY, 1);
+			commandList.Execute(m_MeanVerticalComputePipeline, groupX, groupY, 1);
+			commandList.EndDebugMarker();
 		}
 
 		{
-			primaryBuffer->BeginDebugMarker("RTAO_Reproject", glm::vec4(1));
-			m_ReprojectPipeline[m_CurrentAOIndex]->Execute(primaryBuffer, groupX, groupY, 1);
-			primaryBuffer->EndDebugMarker();
+			commandList.BeginDebugMarker("RTAO_Reproject", glm::vec4(1));
+			commandList.Execute(m_ReprojectPipeline[m_CurrentAOIndex], groupX, groupY, 1);
+			commandList.EndDebugMarker();
 		}
 
 		{
-			primaryBuffer->BeginDebugMarker("RTAO_Temporal", glm::vec4(1));
-			m_AOTemporalPipeline[m_CurrentAOIndex]->Execute(primaryBuffer, groupX, groupY, 1);
-			primaryBuffer->EndDebugMarker();
+			commandList.BeginDebugMarker("RTAO_Temporal", glm::vec4(1));
+			commandList.Execute(m_AOTemporalPipeline[m_CurrentAOIndex], groupX, groupY, 1);
+			commandList.EndDebugMarker();
 		}
 
 		{
-			primaryBuffer->BeginDebugMarker("RTAO_Atrous", glm::vec4(1));
-			m_AtrousComputePipeline[m_CurrentAOIndex]->Execute(primaryBuffer, groupX, groupY, 1);
-			primaryBuffer->EndDebugMarker();
+			commandList.BeginDebugMarker("RTAO_Atrous", glm::vec4(1));
+			commandList.Execute(m_AtrousComputePipeline[m_CurrentAOIndex], groupX, groupY, 1);
+			commandList.EndDebugMarker();
 		}
 
 		{
 			for (uint32_t i = 0; i < 3; ++i)
 			{
 				std::string marker = "RTAO_Blur_" + std::to_string(i);
-				primaryBuffer->BeginDebugMarker(marker, glm::vec4(1));
-				m_BlurHorizontalComputePipeline[m_CurrentAOIndex][i]->Execute(primaryBuffer, groupX, groupY, 1);
-				m_BlurVerticalComputePipeline[m_CurrentAOIndex][i]->Execute(primaryBuffer, groupX, groupY, 1);
-				primaryBuffer->EndDebugMarker();
+				commandList.BeginDebugMarker(marker, glm::vec4(1));
+				commandList.Execute(m_BlurHorizontalComputePipeline[m_CurrentAOIndex][i], groupX, groupY, 1);
+				commandList.Execute(m_BlurVerticalComputePipeline[m_CurrentAOIndex][i], groupX, groupY, 1);
+				commandList.EndDebugMarker();
 			}
 		}
 
@@ -378,12 +378,12 @@ bool KRTAO::Execute(IKCommandBufferPtr primaryBuffer, IKQueuePtr graphicsQueue, 
 			IKRenderTargetPtr aoTarget = KRenderGlobal::GBuffer.GetAOTarget();
 			groupX = (aoTarget->GetFrameBuffer()->GetWidth() + (RTAO_GROUP_SIZE - 1)) / RTAO_GROUP_SIZE;
 			groupY = (aoTarget->GetFrameBuffer()->GetHeight() + (RTAO_GROUP_SIZE - 1)) / RTAO_GROUP_SIZE;
-			primaryBuffer->BeginDebugMarker("RTAO_Composed", glm::vec4(1));
-			m_ComposePipeline[m_CurrentAOIndex]->Execute(primaryBuffer, groupX, groupY, 1);
-			primaryBuffer->EndDebugMarker();
+			commandList.BeginDebugMarker("RTAO_Composed", glm::vec4(1));
+			commandList.Execute(m_ComposePipeline[m_CurrentAOIndex], groupX, groupY, 1);
+			commandList.EndDebugMarker();
 		}
 
-		primaryBuffer->EndDebugMarker();
+		commandList.EndDebugMarker();
 
 		m_CurrentAOIndex = (m_CurrentAOIndex + 1) & 1;
 	}

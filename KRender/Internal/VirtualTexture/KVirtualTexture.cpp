@@ -254,7 +254,7 @@ bool KVirtualTexture::UnInit()
 	return true;
 }
 
-bool KVirtualTexture::FeedbackRender(IKCommandBufferPtr primaryBuffer, IKRenderPassPtr renderPass, uint32_t targetBinding, const std::vector<IKEntity*>& cullRes)
+bool KVirtualTexture::FeedbackRender(KRHICommandList& commandList, IKRenderPassPtr renderPass, uint32_t targetBinding, const std::vector<IKEntity*>& cullRes)
 {
 	std::vector<KMaterialSubMeshInstance> subMeshInstances;
 	KRenderUtil::CalculateInstancesByVirtualTexture(cullRes, targetBinding, m_TableTexture, subMeshInstances);
@@ -298,7 +298,7 @@ bool KVirtualTexture::FeedbackRender(IKCommandBufferPtr primaryBuffer, IKRenderP
 
 				if (command.Complete())
 				{
-					primaryBuffer->Render(command);
+					commandList.Render(command);
 				}
 			}
 		}
@@ -335,7 +335,7 @@ bool KVirtualTexture::FeedbackRender(IKCommandBufferPtr primaryBuffer, IKRenderP
 
 					if (command.Complete())
 					{
-						primaryBuffer->Render(command);
+						commandList.Render(command);
 					}
 				}
 			}
@@ -345,7 +345,7 @@ bool KVirtualTexture::FeedbackRender(IKCommandBufferPtr primaryBuffer, IKRenderP
 	return true;
 }
 
-bool KVirtualTexture::UpdateTexture(IKCommandBufferPtr primaryBuffer)
+bool KVirtualTexture::UpdateTexture(KRHICommandList& commandList)
 {
 	uint32_t frameIndex = KRenderGlobal::CurrentInFlightFrameIndex;
 
@@ -358,7 +358,7 @@ bool KVirtualTexture::UpdateTexture(IKCommandBufferPtr primaryBuffer)
 	if (m_PendingTableUpdates.size() > 0)
 	{
 		{
-			primaryBuffer->BeginDebugMarker(("VirtualTexture_UpdateMip_" + m_Path).c_str(), glm::vec4(1));
+			commandList.BeginDebugMarker(("VirtualTexture_UpdateMip_" + m_Path).c_str(), glm::vec4(1));
 
 			m_MipUpdateStorages[frameIndex]->InitMemory(m_PendingTableUpdates.size() * sizeof(KVirtualTextureTableUpdate), m_PendingTableUpdates.data());
 			m_MipUpdateStorages[frameIndex]->InitDevice(false, false);
@@ -379,11 +379,11 @@ bool KVirtualTexture::UpdateTexture(IKCommandBufferPtr primaryBuffer)
 
 			KRenderGlobal::DynamicConstantBufferManager.Alloc(&uploadUsage, objectUsage);
 
-			primaryBuffer->Transition(m_TableTexture->GetFrameBuffer(), PIPELINE_STAGE_FRAGMENT_SHADER, PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_GENERAL);
-			m_MipUpdateComputePipelines[frameIndex]->Execute(primaryBuffer, (uint32_t)(m_PendingTableUpdates.size() + KVirtualTextureManager::GROUP_SIZE - 1) / KVirtualTextureManager::GROUP_SIZE, 1, 1, &objectUsage);
-			primaryBuffer->Transition(m_TableTexture->GetFrameBuffer(), PIPELINE_STAGE_COMPUTE_SHADER, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_GENERAL, IMAGE_LAYOUT_SHADER_READ_ONLY);
+			commandList.Transition(m_TableTexture->GetFrameBuffer(), PIPELINE_STAGE_FRAGMENT_SHADER, PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_GENERAL);
+			commandList.Execute(m_MipUpdateComputePipelines[frameIndex], (uint32_t)(m_PendingTableUpdates.size() + KVirtualTextureManager::GROUP_SIZE - 1) / KVirtualTextureManager::GROUP_SIZE, 1, 1, &objectUsage);
+			commandList.Transition(m_TableTexture->GetFrameBuffer(), PIPELINE_STAGE_COMPUTE_SHADER, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_GENERAL, IMAGE_LAYOUT_SHADER_READ_ONLY);
 
-			primaryBuffer->EndDebugMarker();
+			commandList.EndDebugMarker();
 		}
 
 		std::vector<std::vector<KVirtualTextureTableUpdate>> pendingMipUpdates;
@@ -425,7 +425,7 @@ bool KVirtualTexture::UpdateTexture(IKCommandBufferPtr primaryBuffer)
 				continue;
 			}
 
-			primaryBuffer->BeginDebugMarker(("VirtualTexture_UpdateTable_" + std::to_string(mip) + "_" + m_Path).c_str(), glm::vec4(1));
+			commandList.BeginDebugMarker(("VirtualTexture_UpdateTable_" + std::to_string(mip) + "_" + m_Path).c_str(), glm::vec4(1));
 
 			m_TableUpdateStorages[frameIndex][mip]->InitMemory(pendingMipUpdates[mip].size() * sizeof(KVirtualTextureTableUpdate), pendingMipUpdates[mip].data());
 			m_TableUpdateStorages[frameIndex][mip]->InitDevice(false, false);
@@ -446,11 +446,11 @@ bool KVirtualTexture::UpdateTexture(IKCommandBufferPtr primaryBuffer)
 
 			KRenderGlobal::DynamicConstantBufferManager.Alloc(&uploadUsage, objectUsage);
 
-			primaryBuffer->Transition(m_TableTexture->GetFrameBuffer(), PIPELINE_STAGE_FRAGMENT_SHADER, PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_GENERAL);
-			m_TableUpdateComputePipelines[frameIndex][mip]->Execute(primaryBuffer, (uint32_t)(pendingMipUpdates[mip].size() + KVirtualTextureManager::GROUP_SIZE - 1) / KVirtualTextureManager::GROUP_SIZE, 1, 1, &objectUsage);
-			primaryBuffer->Transition(m_TableTexture->GetFrameBuffer(), PIPELINE_STAGE_COMPUTE_SHADER, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_GENERAL, IMAGE_LAYOUT_SHADER_READ_ONLY);
+			commandList.Transition(m_TableTexture->GetFrameBuffer(), PIPELINE_STAGE_FRAGMENT_SHADER, PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_GENERAL);
+			commandList.Execute(m_TableUpdateComputePipelines[frameIndex][mip], (uint32_t)(pendingMipUpdates[mip].size() + KVirtualTextureManager::GROUP_SIZE - 1) / KVirtualTextureManager::GROUP_SIZE, 1, 1, &objectUsage);
+			commandList.Transition(m_TableTexture->GetFrameBuffer(), PIPELINE_STAGE_COMPUTE_SHADER, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_GENERAL, IMAGE_LAYOUT_SHADER_READ_ONLY);
 
-			primaryBuffer->EndDebugMarker();
+			commandList.EndDebugMarker();
 		}
 
 		m_PendingTableUpdates.clear();
@@ -628,7 +628,7 @@ void KVirtualTexture::ProcessPendingUpdate()
 	}
 }
 
-bool KVirtualTexture::TableDebugRender(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer)
+bool KVirtualTexture::TableDebugRender(IKRenderPassPtr renderPass, KRHICommandList& commandList)
 {
-	return m_TableDebugDrawer.Render(renderPass, primaryBuffer);
+	return m_TableDebugDrawer.Render(renderPass, commandList);
 }

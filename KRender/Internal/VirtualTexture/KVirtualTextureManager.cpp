@@ -333,6 +333,11 @@ void KVirtualTextureManager::LRUSortTile()
 
 void KVirtualTextureManager::HandleFeedbackResult()
 {
+	if (!m_TextureMap.size())
+	{
+		return;
+	}
+
 	std::vector<KVirtualTextureResourceRef> virtualIdMap;
 	uint32_t maxID = 0;
 
@@ -511,7 +516,7 @@ void KVirtualTextureManager::UpdateBuffer()
 
 		if (descriptionBuffer->GetBufferSize() < m_VirtualIDCounter * sizeof(glm::uvec4))
 		{
-			KRenderGlobal::RenderDevice->Wait();
+			KRenderGlobal::Renderer.GetRHICommandList().Flush(RHICommandFlush::FlushRHIThread);
 			uint32_t bufferSize = KMath::SmallestPowerOf2GreaterEqualThan(m_VirtualIDCounter) * sizeof(glm::uvec4);
 			descriptionBuffer->UnInit();
 			descriptionBuffer->InitMemory(bufferSize, nullptr);
@@ -545,31 +550,31 @@ void KVirtualTextureManager::UpdateBuffer()
 	}
 }
 
-void KVirtualTextureManager::FeedbackRender(IKCommandBufferPtr primaryBuffer, const std::vector<IKEntity*>& cullRes)
+void KVirtualTextureManager::FeedbackRender(KRHICommandList& commandList, const std::vector<IKEntity*>& cullRes)
 {
-	primaryBuffer->Transition(m_FeedbackTarget->GetFrameBuffer(), PIPELINE_STAGE_FRAGMENT_SHADER, PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_COLOR_ATTACHMENT);
+	commandList.Transition(m_FeedbackTarget->GetFrameBuffer(), PIPELINE_STAGE_FRAGMENT_SHADER, PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_COLOR_ATTACHMENT);
 
 	if (m_EnableStandaloneFeedbackPass)
 	{
-		primaryBuffer->BeginDebugMarker("VirtualTexture_FeedbackRender", glm::vec4(1));
-		primaryBuffer->BeginRenderPass(m_FeedbackPass, SUBPASS_CONTENTS_INLINE);
-		primaryBuffer->SetViewport(m_FeedbackPass->GetViewPort());
+		commandList.BeginDebugMarker("VirtualTexture_FeedbackRender", glm::vec4(1));
+		commandList.BeginRenderPass(m_FeedbackPass, SUBPASS_CONTENTS_INLINE);
+		commandList.SetViewport(m_FeedbackPass->GetViewPort());
 
 		for (auto& pair : m_TextureMap)
 		{
 			KVirtualTextureResourceRef resource = pair.second;
-			resource->FeedbackRender(primaryBuffer, m_FeedbackPass, m_CurrentTargetBinding, cullRes);
+			resource->FeedbackRender(commandList, m_FeedbackPass, m_CurrentTargetBinding, cullRes);
 		}
 
-		primaryBuffer->EndRenderPass();
-		primaryBuffer->EndDebugMarker();
+		commandList.EndRenderPass();
+		commandList.EndDebugMarker();
 	}
 }
 
-void KVirtualTextureManager::DispatchFeedbackAnalyze(IKCommandBufferPtr primaryBuffer)
+void KVirtualTextureManager::DispatchFeedbackAnalyze(KRHICommandList& commandList)
 {
 	{
-		primaryBuffer->BeginDebugMarker("VirtualTexture_FeedbackResultInit", glm::vec4(1));
+		commandList.BeginDebugMarker("VirtualTexture_FeedbackResultInit", glm::vec4(1));
 
 		struct
 		{
@@ -582,33 +587,33 @@ void KVirtualTextureManager::DispatchFeedbackAnalyze(IKCommandBufferPtr primaryB
 		objectUsage.range = sizeof(objectData);
 		KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, objectUsage);
 
-		m_InitFeedbackResultPipeline->Execute(primaryBuffer, (m_FeedbackTileCount + GROUP_SIZE - 1) / GROUP_SIZE, 1, 1, &objectUsage);
+		commandList.Execute(m_InitFeedbackResultPipeline, (m_FeedbackTileCount + GROUP_SIZE - 1) / GROUP_SIZE, 1, 1, &objectUsage);
 
-		primaryBuffer->EndDebugMarker();
+		commandList.EndDebugMarker();
 	}
 
 	{
-		primaryBuffer->BeginDebugMarker("VirtualTexture_FeedbackResultCount", glm::vec4(1));
-		primaryBuffer->Transition(m_FeedbackTarget->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_GENERAL);
+		commandList.BeginDebugMarker("VirtualTexture_FeedbackResultCount", glm::vec4(1));
+		commandList.Transition(m_FeedbackTarget->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_GENERAL);
 
 		if (m_EnableStandaloneFeedbackPass)
 		{
 			uint32_t width = m_FeedbackTarget->GetFrameBuffer()->GetWidth();
 			uint32_t height = m_FeedbackTarget->GetFrameBuffer()->GetHeight();
-			m_StandaloneCountFeedbackResultPipeline->Execute(primaryBuffer, (width + SQRT_GROUP_SIZE - 1) / SQRT_GROUP_SIZE, (height + SQRT_GROUP_SIZE - 1) / SQRT_GROUP_SIZE, 1, nullptr);
+			commandList.Execute(m_StandaloneCountFeedbackResultPipeline, (width + SQRT_GROUP_SIZE - 1) / SQRT_GROUP_SIZE, (height + SQRT_GROUP_SIZE - 1) / SQRT_GROUP_SIZE, 1, nullptr);
 		}
 		else
 		{
-			m_GBufferCountFeedbackResultPipeline->Execute(primaryBuffer, (m_VirtualTextureFeedbackWidth * m_VirtualTextureFeedbackHeight + GROUP_SIZE - 1) / GROUP_SIZE, 1, 1, nullptr);
+			commandList.Execute(m_GBufferCountFeedbackResultPipeline, (m_VirtualTextureFeedbackWidth * m_VirtualTextureFeedbackHeight + GROUP_SIZE - 1) / GROUP_SIZE, 1, 1, nullptr);
 		}
 
-		primaryBuffer->Transition(m_FeedbackTarget->GetFrameBuffer(), PIPELINE_STAGE_COMPUTE_SHADER, PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, IMAGE_LAYOUT_GENERAL, IMAGE_LAYOUT_COLOR_ATTACHMENT);
+		commandList.Transition(m_FeedbackTarget->GetFrameBuffer(), PIPELINE_STAGE_COMPUTE_SHADER, PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, IMAGE_LAYOUT_GENERAL, IMAGE_LAYOUT_COLOR_ATTACHMENT);
 
-		primaryBuffer->EndDebugMarker();
+		commandList.EndDebugMarker();
 	}
 
 	{
-		primaryBuffer->BeginDebugMarker("VirtualTexture_FeedbackReslutMerge", glm::vec4(1));
+		commandList.BeginDebugMarker("VirtualTexture_FeedbackReslutMerge", glm::vec4(1));
 
 		struct
 		{
@@ -621,18 +626,18 @@ void KVirtualTextureManager::DispatchFeedbackAnalyze(IKCommandBufferPtr primaryB
 		objectUsage.range = sizeof(objectData);
 		KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, objectUsage);
 
-		m_MergeFeedbackResultPipeline->Execute(primaryBuffer, (m_FeedbackTileCount + GROUP_SIZE - 1) / GROUP_SIZE, 1, 1, &objectUsage);
+		commandList.Execute(m_MergeFeedbackResultPipeline, (m_FeedbackTileCount + GROUP_SIZE - 1) / GROUP_SIZE, 1, 1, &objectUsage);
 
-		primaryBuffer->EndDebugMarker();
+		commandList.EndDebugMarker();
 	}
 
-	primaryBuffer->Transition(m_FeedbackTarget->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
-	primaryBuffer->Transition(m_PhysicalContentTarget->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+	commandList.Transition(m_FeedbackTarget->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+	commandList.Transition(m_PhysicalContentTarget->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 }
 
-void KVirtualTextureManager::ProcessPhysicalUpdate(IKCommandBufferPtr primaryBuffer)
+void KVirtualTextureManager::ProcessPhysicalUpdate(KRHICommandList& commandList)
 {
-	primaryBuffer->Transition(m_PhysicalContentTarget->GetFrameBuffer(), PIPELINE_STAGE_FRAGMENT_SHADER, PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_COLOR_ATTACHMENT);
+	commandList.Transition(m_PhysicalContentTarget->GetFrameBuffer(), PIPELINE_STAGE_FRAGMENT_SHADER, PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_COLOR_ATTACHMENT);
 
 	uint32_t frameIdx = KRenderGlobal::CurrentInFlightFrameIndex;
 	m_PendingSourceTextures[frameIdx].clear();
@@ -650,9 +655,9 @@ void KVirtualTextureManager::ProcessPhysicalUpdate(IKCommandBufferPtr primaryBuf
 		{
 			std::vector<KVirtualTexturePhysicalUpdate> updates = std::move(m_PendingMipContentUpdates[mip]);
 
-			primaryBuffer->BeginDebugMarker("VirtualTexture_PhysicalContentUpdate_" + std::to_string(mip), glm::vec4(1));
-			primaryBuffer->BeginRenderPass(m_UploadContentMipPasses[mip], SUBPASS_CONTENTS_INLINE);
-			primaryBuffer->SetViewport(m_UploadContentMipPasses[mip]->GetViewPort());
+			commandList.BeginDebugMarker("VirtualTexture_PhysicalContentUpdate_" + std::to_string(mip), glm::vec4(1));
+			commandList.BeginRenderPass(m_UploadContentMipPasses[mip], SUBPASS_CONTENTS_INLINE);
+			commandList.SetViewport(m_UploadContentMipPasses[mip]->GetViewPort());
 
 			for (const KVirtualTexturePhysicalUpdate& update : updates)
 			{
@@ -672,13 +677,13 @@ void KVirtualTextureManager::ProcessPhysicalUpdate(IKCommandBufferPtr primaryBuf
 					command.pipeline = m_UploadContentPipeline;
 					command.pipeline->GetHandle(m_UploadContentMipPasses[mip], command.pipelineHandle);
 
-					primaryBuffer->SetViewport(viewport);
-					primaryBuffer->Render(command);
+					commandList.SetViewport(viewport);
+					commandList.Render(command);
 				}
 			}
 
-			primaryBuffer->EndRenderPass();
-			primaryBuffer->EndDebugMarker();
+			commandList.EndRenderPass();
+			commandList.EndDebugMarker();
 		}
 	}
 
@@ -688,27 +693,27 @@ void KVirtualTextureManager::ProcessPhysicalUpdate(IKCommandBufferPtr primaryBuf
 		for (auto& pair : m_TextureMap)
 		{
 			KVirtualTextureResourceRef resource = pair.second;
-			resource->UpdateTexture(primaryBuffer);
+			resource->UpdateTexture(commandList);
 		}
 	}
 }
 
-bool KVirtualTextureManager::InitFeedbackTarget(IKCommandBufferPtr primaryBuffer)
+bool KVirtualTextureManager::InitFeedbackTarget(KRHICommandList& commandList)
 {
-	primaryBuffer->BeginDebugMarker("VirtualTexture_FeedbackTargetInit", glm::vec4(1));
-	m_InitFeedbackTargetPipeline->Execute(primaryBuffer, (m_VirtualTextureFeedbackWidth * m_VirtualTextureFeedbackHeight + GROUP_SIZE - 1) / GROUP_SIZE, 1, 1, nullptr);
-	primaryBuffer->EndDebugMarker();
+	commandList.BeginDebugMarker("VirtualTexture_FeedbackTargetInit", glm::vec4(1));
+	commandList.Execute(m_InitFeedbackTargetPipeline, (m_VirtualTextureFeedbackWidth * m_VirtualTextureFeedbackHeight + GROUP_SIZE - 1) / GROUP_SIZE, 1, 1, nullptr);
+	commandList.EndDebugMarker();
 	return true;
 }
 
-bool KVirtualTextureManager::Update(IKCommandBufferPtr primaryBuffer, const std::vector<IKEntity*>& cullRes)
+bool KVirtualTextureManager::Update(KRHICommandList& commandList, const std::vector<IKEntity*>& cullRes)
 {
 	UpdateBuffer();
 	LRUSortTile();
 	HandleFeedbackResult();
-	ProcessPhysicalUpdate(primaryBuffer);
-	FeedbackRender(primaryBuffer, cullRes);
-	DispatchFeedbackAnalyze(primaryBuffer);
+	ProcessPhysicalUpdate(commandList);
+	FeedbackRender(commandList, cullRes);
+	DispatchFeedbackAnalyze(commandList);
 	return true;
 }
 
@@ -931,22 +936,22 @@ void KVirtualTextureManager::UploadToPhysical(const std::string& sourceTexture, 
 	m_PendingMipContentUpdates[location.mip].push_back(newUpdate);
 }
 
-bool KVirtualTextureManager::FeedbackDebugRender(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer)
+bool KVirtualTextureManager::FeedbackDebugRender(IKRenderPassPtr renderPass, KRHICommandList& commandList)
 {
-	return m_FeedbackDebugDrawer.Render(renderPass, primaryBuffer);
+	return m_FeedbackDebugDrawer.Render(renderPass, commandList);
 }
 
-bool KVirtualTextureManager::PhysicalDebugRender(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer)
+bool KVirtualTextureManager::PhysicalDebugRender(IKRenderPassPtr renderPass, KRHICommandList& commandList)
 {
-	return m_PhysicalDebugDrawer.Render(renderPass, primaryBuffer);
+	return m_PhysicalDebugDrawer.Render(renderPass, commandList);
 }
 
-bool KVirtualTextureManager::TableDebugRender(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer)
+bool KVirtualTextureManager::TableDebugRender(IKRenderPassPtr renderPass, KRHICommandList& commandList)
 {
 	for (auto& pair : m_TextureMap)
 	{
 		KVirtualTextureResourceRef resource = pair.second;
-		resource->TableDebugRender(renderPass, primaryBuffer);
+		resource->TableDebugRender(renderPass, commandList);
 	}
 	return true;
 }

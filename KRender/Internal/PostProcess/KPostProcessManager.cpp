@@ -376,7 +376,7 @@ bool KPostProcessManager::PopulateRenderCommand(KRenderCommand& command, IKPipel
 
 bool KPostProcessManager::Construct()
 {
-	KRenderGlobal::RenderDevice->Wait();
+	KRenderGlobal::Renderer.GetRHICommandList().Flush(RHICommandFlush::FlushRHIThread);
 
 	ClearDeletedPassConnection();
 
@@ -416,13 +416,13 @@ bool KPostProcessManager::Construct()
 	return false;
 }
 
-bool KPostProcessManager::Execute(unsigned int chainImageIndex, IKSwapChain* swapChain, IKUIOverlay* ui, IKCommandBufferPtr primaryCommandBuffer)
+bool KPostProcessManager::Execute(unsigned int chainImageIndex, IKSwapChain* swapChain, IKUIOverlay* ui, KRHICommandList& commandList)
 {
 	KPostProcessPass* endPass = nullptr;
 
 	KClearValue clearValue = { { 0,0,0,0 },{ 1, 0 } };
 
-	IterPostProcessGraph([=, &endPass](IKPostProcessNode* node)
+	IterPostProcessGraph([=, &endPass, &commandList](IKPostProcessNode* node)
 	{
 		PostProcessNodeType type = node->GetType();
 		if (type == PPNT_PASS)
@@ -435,47 +435,43 @@ bool KPostProcessManager::Execute(unsigned int chainImageIndex, IKSwapChain* swa
 				return;
 			}
 
-			IKCommandBufferPtr commandBuffer = pass->GetCommandBuffer();
 			IKRenderPassPtr renderPass = pass->GetRenderPass();
 
-			primaryCommandBuffer->BeginDebugMarker("PostProcess", glm::vec4(1));
-			primaryCommandBuffer->BeginRenderPass(renderPass, SUBPASS_CONTENTS_SECONDARY);
+			commandList.BeginDebugMarker("PostProcess", glm::vec4(1));
+			commandList.BeginRenderPass(renderPass, SUBPASS_CONTENTS_INLINE);
 			{
-				commandBuffer->BeginSecondary(renderPass);
-				commandBuffer->SetViewport(renderPass->GetViewPort());
+				commandList.SetViewport(renderPass->GetViewPort());
 
 				KRenderCommand command;
 				if (PopulateRenderCommand(command, pass->GetPipeline(), renderPass))
 				{
-					commandBuffer->Render(command);
+					commandList.Render(command);
 				}
-				commandBuffer->End();
 			}
-			primaryCommandBuffer->Execute(commandBuffer);
-			primaryCommandBuffer->EndRenderPass();
-			primaryCommandBuffer->EndDebugMarker();
+			commandList.EndRenderPass();
+			commandList.EndDebugMarker();
 
-			primaryCommandBuffer->Transition(pass->GetRenderTarget()->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+			commandList.Transition(pass->GetRenderTarget()->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 		}
 	});
 
 	if (endPass)
 	{
 		IKRenderPassPtr renderPass = swapChain->GetRenderPass(chainImageIndex);
-		primaryCommandBuffer->BeginDebugMarker("MainChain", glm::vec4(1));
-		primaryCommandBuffer->BeginRenderPass(renderPass, SUBPASS_CONTENTS_INLINE);
-		primaryCommandBuffer->SetViewport(renderPass->GetViewPort());
+		commandList.BeginDebugMarker("MainChain", glm::vec4(1));
+		commandList.BeginRenderPass(renderPass, SUBPASS_CONTENTS_INLINE);
+		commandList.SetViewport(renderPass->GetViewPort());
 		KRenderCommand command;
 		if (PopulateRenderCommand(command, endPass->GetScreenDrawPipeline(), renderPass))
 		{
-			primaryCommandBuffer->Render(command);
+			commandList.Render(command);
 		}
 		if (ui)
 		{
-			ui->Draw(renderPass, primaryCommandBuffer);
+			ui->Draw(renderPass, commandList);
 		}
-		primaryCommandBuffer->EndRenderPass();
-		primaryCommandBuffer->EndDebugMarker();
+		commandList.EndRenderPass();
+		commandList.EndDebugMarker();
 	}
 
 	return true;

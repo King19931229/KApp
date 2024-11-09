@@ -257,7 +257,7 @@ bool KFrameGraph::Release()
 	return true;
 }
 
-bool KFrameGraph::Execute(IKCommandBufferPtr primaryBuffer, uint32_t chainIndex)
+bool KFrameGraph::Execute(KRHICommandList& commandList, uint32_t chainIndex)
 {
 	enum class ExecuteNodeType
 	{
@@ -347,7 +347,7 @@ bool KFrameGraph::Execute(IKCommandBufferPtr primaryBuffer, uint32_t chainIndex)
 			assert(!pass->m_Executed);
 
 			// 执行这个Pass
-			KFrameGraphExecutor executor(m_RenderPassMap, primaryBuffer, chainIndex);
+			KFrameGraphExecutor executor(m_RenderPassMap, commandList, chainIndex);
 			pass->Execute(executor);
 			pass->m_Executed = true;
 

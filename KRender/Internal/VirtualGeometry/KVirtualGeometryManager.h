@@ -4,6 +4,7 @@
 #include "Interface/IKBuffer.h"
 #include "KVirtualGeomerty.h"
 #include "KVirtualGeometryStreaming.h"
+#include "Internal/Render/KRHICommandList.h"
 #include <map>
 
 class KVirtualGeometryStorageBuffer
@@ -98,8 +99,8 @@ public:
 	bool CreateVirtualGeometryScene(IKVirtualGeometryScenePtr& scene);
 	bool RemoveVirtualGeometryScene(IKVirtualGeometryScenePtr& scene);
 
-	bool ExecuteMain(IKCommandBufferPtr primaryBuffer);
-	bool ExecutePost(IKCommandBufferPtr primaryBuffer);
+	bool ExecuteMain(KRHICommandList& commandList);
+	bool ExecutePost(KRHICommandList& commandList);
 
 	IKStorageBufferPtr GetStreamingRequestPipeline(uint32_t frameIndex);
 	IKStorageBufferPtr GetPageDataBuffer();

@@ -79,8 +79,8 @@ public:
 	virtual bool DisableDebugDraw();
 	virtual bool EnableAutoUpdateImageSize(float scale);
 	virtual bool EnableCustomImageSize(uint32_t width, uint32_t height);
-	virtual bool DebugRender(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer);
-	virtual bool Execute(IKCommandBufferPtr primaryBuffer);
+	virtual bool DebugRender(IKRenderPassPtr renderPass, KRHICommandList& commandList);
+	virtual bool Execute(KRHICommandList& commandList);
 
 	virtual bool AddRaytracePipeline(IKRayTracePipelinePtr& pipeline);
 	virtual bool RemoveRaytracePipeline(IKRayTracePipelinePtr& pipeline);

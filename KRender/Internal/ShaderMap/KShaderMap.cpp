@@ -166,7 +166,7 @@ void KShaderMap::EnsureMacroMap(const bool* macrosToEnable)
 				fsGPUSceneMacros.push_back({ PERMUTATING_MACRO[i].macro, pEnableOrDisable });
 			}
 
-			hasVirtualTexture |= (PERMUTATING_MACRO[i].type == MT_HAS_VIRTUAL_TEXTURE);
+			hasVirtualTexture |= (PERMUTATING_MACRO[i].type == MT_HAS_VIRTUAL_TEXTURE && macrosToEnable[i]);
 		}
 
 		fsMacros.push_back({ VIRTUAL_TEXTURE_INPUT_MACRO, hasVirtualTexture ? "1" : "0" });

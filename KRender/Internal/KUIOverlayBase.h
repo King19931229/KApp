@@ -1,4 +1,5 @@
 #include "Interface/IKUIOverlay.h"
+#include "Internal/Render/KRHICommandList.h"
 #include "glm/glm.hpp"
 
 class KUIOverlayBase : public IKUIOverlay
@@ -36,7 +37,7 @@ public:
 	virtual bool UnInit();
 	virtual bool Resize(size_t width, size_t height);
 	virtual bool Update();
-	virtual bool Draw(IKRenderPassPtr renderPass, IKCommandBufferPtr commandBufferPtr) = 0;
+	virtual bool Draw(IKRenderPassPtr renderPass, KRHICommandList& commandList) = 0;
 
 	virtual bool SetMousePosition(unsigned int x, unsigned int y);
 	virtual bool SetMouseDown(InputMouseButton button, bool down);

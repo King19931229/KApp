@@ -5,7 +5,6 @@
 
 typedef std::function<void()> KDeviceInitCallback;
 typedef std::function<void()> KDeviceUnInitCallback;
-typedef std::function<void(IKRenderPassPtr, IKCommandBufferPtr)> RenderPassCallFuncType;
 
 struct KRenderDeviceProperties
 {

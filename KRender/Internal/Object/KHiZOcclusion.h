@@ -56,7 +56,7 @@ protected:
 	bool m_Enable;
 	bool m_EnableDebugDraw;
 
-	void PushCandidatesInformation(IKCommandBufferPtr primaryBuffer);
+	void PushCandidatesInformation(KRHICommandList& commandList);
 	void PullCandidatesResult();
 
 	uint32_t CalcBlockX(uint32_t idx);
@@ -85,6 +85,6 @@ public:
 	bool& GetEnable();
 	bool& GetDebugDrawEnable();
 
-	bool DebugRender(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer);
-	bool Execute(IKCommandBufferPtr primaryBuffer, const std::vector<IKEntity*>& cullRes);
+	bool DebugRender(IKRenderPassPtr renderPass, KRHICommandList& commandList);
+	bool Execute(KRHICommandList& commandList, const std::vector<IKEntity*>& cullRes);
 };

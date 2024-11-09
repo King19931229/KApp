@@ -680,7 +680,7 @@ bool KVulkanCommandBuffer::EndRenderPass()
 	return false;
 }
 
-bool KVulkanCommandBuffer::BeginDebugMarker(const std::string& marker, const glm::vec4 color)
+bool KVulkanCommandBuffer::BeginDebugMarker(const std::string& marker, const glm::vec4& color)
 {
 	VkCommandBuffer commandBuffer = GetVkHandle();
 #ifdef VK_USE_DEBUG_UTILS_AS_DEBUG_MARKER

@@ -6,6 +6,7 @@
 #include "Internal/ECS/System/KCullSystem.h"
 #include "Internal/KStatistics.h"
 #include "Internal/FrameGraph/KFrameGraph.h"
+#include "Internal/Render/KRHICommandList.h"
 
 class KCascadedShadowMap;
 
@@ -177,11 +178,11 @@ protected:
 
 	bool UpdatePipelineFromRTChanged();
 
-	bool UpdateRT(KMultithreadingRenderContext& renderContext, IKRenderPassPtr renderPass, size_t cascadedIndex, bool isStatic);
-	bool UpdateMask(IKCommandBufferPtr primaryBuffer, bool isStatic);
-	bool CombineMask(IKCommandBufferPtr primaryBuffer);
+	bool UpdateRT(KRHICommandList& commandList, IKRenderPassPtr renderPass, size_t cascadedIndex, bool isStatic);
+	bool UpdateMask(KRHICommandList& commandList, bool isStatic);
+	bool CombineMask(KRHICommandList& commandList);
 
-	void ExecuteCasterUpdate(KMultithreadingRenderContext& renderContext, std::function<IKRenderTargetPtr(uint32_t, bool)> getCascadedTarget);
+	void ExecuteCasterUpdate(KRHICommandList& commandList, std::function<IKRenderTargetPtr(uint32_t, bool)> getCascadedTarget);
 
 	enum MaskType
 	{
@@ -189,7 +190,7 @@ protected:
 		DYNAMIC_MASK,
 		COMBINE_MASK
 	};
-	void ExecuteMaskUpdate(IKCommandBufferPtr commandBuffer, std::function<IKRenderTargetPtr(MaskType)> getMaskTarget);
+	void ExecuteMaskUpdate(KRHICommandList& commandList, std::function<IKRenderTargetPtr(MaskType)> getMaskTarget);
 
 	inline IKRenderTargetPtr GetStaticTarget(uint32_t cascadedIndex) { return m_CasterPass ? m_CasterPass->GetStaticTarget(cascadedIndex) : m_StaticCascadeds[cascadedIndex].rendertarget; }
 	inline IKRenderTargetPtr GetDynamicTarget(uint32_t cascadedIndex) { return m_CasterPass ? m_CasterPass->GetDynamicTarget(cascadedIndex) : m_DynamicCascadeds[cascadedIndex].rendertarget; }
@@ -206,8 +207,8 @@ public:
 	bool Resize();
 
 	bool UpdateShadowMap();
-	bool UpdateCasters(KMultithreadingRenderContext& renderContext);
-	bool UpdateMask(IKCommandBufferPtr commandBuffer);
+	bool UpdateCasters(KRHICommandList& commandList);
+	bool UpdateMask(KRHICommandList& commandList);
 
 	bool DebugRender(IKRenderPassPtr renderPass, std::vector<IKCommandBufferPtr>& buffers);
 

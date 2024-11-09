@@ -6,6 +6,7 @@
 #include "Interface/IKComputePipeline.h"
 #include "Internal/KVertexDefinition.h"
 #include "Internal/Object/KDebugDrawer.h"
+#include "Internal/Render/KRHICommandList.h"
 
 enum VoxelClipmapBinding
 {
@@ -219,32 +220,32 @@ protected:
 	std::vector<KClipmapVoxelizationRegion> ComputeRevoxelizationRegionsByMovement(uint32_t levelIdx, const glm::ivec3& movement);
 
 	void UpdateVoxelBuffer();
-	void UpdateInternal(IKCommandBufferPtr primaryBuffer);
+	void UpdateInternal(KRHICommandList& commandList);
 	void ApplyUpdateMovement();
-	void ClearUpdateRegion(IKCommandBufferPtr commandBuffer);
-	void VoxelizeStaticScene(IKCommandBufferPtr commandBuffer);
-	void ClearRadiance(IKCommandBufferPtr commandBuffer);
-	void UpdateRadiance(IKCommandBufferPtr commandBuffer);
-	void InjectRadiance(IKCommandBufferPtr commandBuffer);
-	void InjectPropagation(IKCommandBufferPtr commandBuffer);
-	void DownSampleVisibility(IKCommandBufferPtr commandBuffer);
-	void DownSampleRadiance(IKCommandBufferPtr commandBuffer);
-	void WrapBorder(IKCommandBufferPtr commandBuffer);
+	void ClearUpdateRegion(KRHICommandList& commandList);
+	void VoxelizeStaticScene(KRHICommandList& commandList);
+	void ClearRadiance(KRHICommandList& commandList);
+	void UpdateRadiance(KRHICommandList& commandList);
+	void InjectRadiance(KRHICommandList& commandList);
+	void InjectPropagation(KRHICommandList& commandList);
+	void DownSampleVisibility(KRHICommandList& commandList);
+	void DownSampleRadiance(KRHICommandList& commandList);
+	void WrapBorder(KRHICommandList& commandList);
 
-	bool UpdateLightingResult(IKCommandBufferPtr primaryBuffer);
+	bool UpdateLightingResult(KRHICommandList& commandList);
 public:
 	KClipmapVoxilzer();
 	~KClipmapVoxilzer();
 
-	void UpdateVoxel(IKCommandBufferPtr primaryBuffer);
+	void UpdateVoxel(KRHICommandList& commandList);
 	void ReloadShader();
 
 	inline uint32_t GetVoxelDimension() const { return m_VolumeDimension; }
 	inline float GetBaseVoxelSize() const { return m_BaseVoxelSize; }
 
 	void Resize(uint32_t width, uint32_t height);
-	bool RenderVoxel(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer);
-	bool UpdateFrame(IKCommandBufferPtr primaryBuffer);
+	bool RenderVoxel(IKRenderPassPtr renderPass, KRHICommandList& commandList);
+	bool UpdateFrame(KRHICommandList& commandList);
 
 	bool& GetEnable() { return m_Enable; }
 	bool& GetVoxelDebugUpdate() { return m_VoxelDebugUpdate; }
@@ -261,7 +262,7 @@ public:
 	inline bool IsVoxelDrawWireFrame() const { return m_VoxelDrawWireFrame; }
 	inline void SetVoxelDrawWireFrame(bool wireframe) { m_VoxelDrawWireFrame = wireframe; }
 
-	bool DebugRender(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer);
+	bool DebugRender(IKRenderPassPtr renderPass, KRHICommandList& commandList);
 
 	IKFrameBufferPtr GetStaticFlag() { return m_StaticFlag ? m_StaticFlag->GetFrameBuffer() : nullptr; }
 	IKFrameBufferPtr GetVoxelAlbedo() { return m_VoxelAlbedo ? m_VoxelAlbedo->GetFrameBuffer() : nullptr; }

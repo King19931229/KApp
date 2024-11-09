@@ -19,6 +19,7 @@ enum EntitySceneOp
 typedef std::function<void(EntitySceneOp, IKEntity*)> EntityObserverFunc;
 
 struct IKRenderScene;
+class KRHICommandList;
 
 struct IKRayTraceScene
 {
@@ -30,8 +31,8 @@ struct IKRayTraceScene
 	virtual bool DisableDebugDraw() = 0;
 	virtual bool EnableAutoUpdateImageSize(float scale) = 0;
 	virtual bool EnableCustomImageSize(uint32_t width, uint32_t height) = 0;
-	virtual bool DebugRender(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer) = 0;
-	virtual bool Execute(IKCommandBufferPtr primaryBuffer) = 0;
+	virtual bool DebugRender(IKRenderPassPtr renderPass, KRHICommandList& commandList) = 0;
+	virtual bool Execute(KRHICommandList& commandList) = 0;
 	virtual bool AddRaytracePipeline(IKRayTracePipelinePtr& pipeline) = 0;
 	virtual bool RemoveRaytracePipeline(IKRayTracePipelinePtr& pipeline) = 0;
 	virtual const KCamera* GetCamera() = 0;
@@ -44,11 +45,11 @@ struct IKVirtualGeometryScene
 	virtual ~IKVirtualGeometryScene() {}
 	virtual bool Init(IKRenderScene* scene, const KCamera* camera) = 0;
 	virtual bool UnInit() = 0;
-	virtual bool ExecuteMain(IKCommandBufferPtr primaryBuffer) = 0;
-	virtual bool ExecutePost(IKCommandBufferPtr primaryBuffer) = 0;
-	virtual bool BasePassMain(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer) = 0;
-	virtual bool BasePassPost(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer) = 0;
-	virtual bool DebugRender(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer) = 0;
+	virtual bool ExecuteMain(KRHICommandList& commandList) = 0;
+	virtual bool ExecutePost(KRHICommandList& commandList) = 0;
+	virtual bool BasePassMain(IKRenderPassPtr renderPass, KRHICommandList& commandList) = 0;
+	virtual bool BasePassPost(IKRenderPassPtr renderPass, KRHICommandList& commandList) = 0;
+	virtual bool DebugRender(IKRenderPassPtr renderPass, KRHICommandList& commandList) = 0;
 };
 typedef std::shared_ptr<IKVirtualGeometryScene> IKVirtualGeometryScenePtr;
 

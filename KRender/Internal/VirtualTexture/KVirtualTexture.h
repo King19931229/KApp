@@ -2,6 +2,7 @@
 #include "Interface/IKTexture.h"
 #include "KBase/Interface/Entity/IKEntity.h"
 #include "Internal/Object/KDebugDrawer.h"
+#include "Internal/Render/KRHICommandList.h"
 #include <queue>
 
 struct KVirtualTextureTile
@@ -155,8 +156,8 @@ public:
 	bool Init(const std::string& path, uint32_t tileNum, uint32_t virtualId);
 	bool UnInit();
 
-	bool FeedbackRender(IKCommandBufferPtr primaryBuffer, IKRenderPassPtr renderPass, uint32_t targetBinding, const std::vector<IKEntity*>& cullRes);
-	bool UpdateTexture(IKCommandBufferPtr primaryBuffer);
+	bool FeedbackRender(KRHICommandList& commandList, IKRenderPassPtr renderPass, uint32_t targetBinding, const std::vector<IKEntity*>& cullRes);
+	bool UpdateTexture(KRHICommandList& commandList);
 
 	void BeginRequest();
 	void AddRequest(const KVirtualTextureTile& tile, uint32_t count);
@@ -164,7 +165,7 @@ public:
 	void ProcessPendingUpdate();
 
 	bool& GetPhysicalDrawEnable() { return m_TableDebugDrawer.GetEnable(); }
-	bool TableDebugRender(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer);
+	bool TableDebugRender(IKRenderPassPtr renderPass, KRHICommandList& commandList);
 
 	IKTexturePtr GetTableTexture() { return m_TableTexture; }
 	uint32_t GetVirtualID() const { return m_VirtualID; }

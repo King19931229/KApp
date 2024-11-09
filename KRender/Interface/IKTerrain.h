@@ -44,11 +44,11 @@ struct IKTerrain
 	virtual TerrainType GetType() const = 0;
 
 	virtual void Update(const KCamera* camera) = 0;
-	virtual bool Render(IKCommandBufferPtr primaryBuffer, IKRenderPassPtr renderPass) = 0;
+	virtual bool Render(class KRHICommandList& commandList, IKRenderPassPtr renderPass) = 0;
 
 	virtual bool EnableDebugDraw(const KTerrainDebug& debug) = 0;
 	virtual bool DisableDebugDraw() = 0;
-	virtual bool DebugRender(IKCommandBufferPtr primaryBuffer, IKRenderPassPtr renderPass) = 0;
+	virtual bool DebugRender(class KRHICommandList& commandList, IKRenderPassPtr renderPass) = 0;
 };
 
 typedef std::shared_ptr<IKTerrain> IKTerrainPtr;

@@ -231,9 +231,9 @@ bool KDepthOfField::Resize(uint32_t width, uint32_t height)
 	return true;
 }
 
-bool KDepthOfField::DebugRender(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer)
+bool KDepthOfField::DebugRender(IKRenderPassPtr renderPass, KRHICommandList& commandList)
 {
-	return m_DebugDrawer.Render(renderPass, primaryBuffer);
+	return m_DebugDrawer.Render(renderPass, commandList);
 }
 
 float KDepthOfField::CalcCoC(float distance)
@@ -258,7 +258,7 @@ float KDepthOfField::CalcDofFar(float C)
 	return numerator / denominator;
 }
 
-bool KDepthOfField::Execute(IKCommandBufferPtr primaryBuffer)
+bool KDepthOfField::Execute(KRHICommandList& commandList)
 {
 	float aperture = m_FocalLength / m_FStop;
 
@@ -309,14 +309,14 @@ bool KDepthOfField::Execute(IKCommandBufferPtr primaryBuffer)
 	objectData.dofParams2[2] = F;
 	objectData.dofParams2[3] = 1.0f;
 
-	primaryBuffer->BeginDebugMarker("DOF", glm::vec4(1));
-	primaryBuffer->Transition(KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET0)->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
-	primaryBuffer->Transition(KRenderGlobal::GBuffer.GetSceneColor()->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+	commandList.BeginDebugMarker("DOF", glm::vec4(1));
+	commandList.Transition(KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET0)->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+	commandList.Transition(KRenderGlobal::GBuffer.GetSceneColor()->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 	{
-		primaryBuffer->BeginDebugMarker("DOF_CoC", glm::vec4(1));
+		commandList.BeginDebugMarker("DOF_CoC", glm::vec4(1));
 
-		primaryBuffer->BeginRenderPass(m_CoCPass, SUBPASS_CONTENTS_INLINE);
-		primaryBuffer->SetViewport(m_CoCPass->GetViewPort());
+		commandList.BeginRenderPass(m_CoCPass, SUBPASS_CONTENTS_INLINE);
+		commandList.SetViewport(m_CoCPass->GetViewPort());
 
 		KRenderCommand command;
 		command.vertexData = &KRenderGlobal::QuadDataProvider.GetVertexData();
@@ -334,20 +334,20 @@ bool KDepthOfField::Execute(IKCommandBufferPtr primaryBuffer)
 		command.pipeline = m_CoCPipeline;
 		command.pipeline->GetHandle(m_CoCPass, command.pipelineHandle);
 
-		primaryBuffer->Render(command);
+		commandList.Render(command);
 
-		primaryBuffer->EndRenderPass();
+		commandList.EndRenderPass();
 
-		primaryBuffer->Transition(m_CoC->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+		commandList.Transition(m_CoC->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 
-		primaryBuffer->EndDebugMarker();
+		commandList.EndDebugMarker();
 	}
 
 	{
-		primaryBuffer->BeginDebugMarker("DOF_Horizontal", glm::vec4(1));
+		commandList.BeginDebugMarker("DOF_Horizontal", glm::vec4(1));
 
-		primaryBuffer->BeginRenderPass(m_HorizontalPass, SUBPASS_CONTENTS_INLINE);
-		primaryBuffer->SetViewport(m_HorizontalPass->GetViewPort());
+		commandList.BeginRenderPass(m_HorizontalPass, SUBPASS_CONTENTS_INLINE);
+		commandList.SetViewport(m_HorizontalPass->GetViewPort());
 
 		KRenderCommand command;
 		command.vertexData = &KRenderGlobal::QuadDataProvider.GetVertexData();
@@ -365,22 +365,22 @@ bool KDepthOfField::Execute(IKCommandBufferPtr primaryBuffer)
 		command.pipeline = m_HorizontalPipeline;
 		command.pipeline->GetHandle(m_HorizontalPass, command.pipelineHandle);
 
-		primaryBuffer->Render(command);
+		commandList.Render(command);
 
-		primaryBuffer->EndRenderPass();
+		commandList.EndRenderPass();
 
-		primaryBuffer->Transition(m_Red->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
-		primaryBuffer->Transition(m_Green->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
-		primaryBuffer->Transition(m_Blue->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+		commandList.Transition(m_Red->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+		commandList.Transition(m_Green->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+		commandList.Transition(m_Blue->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 
-		primaryBuffer->EndDebugMarker();
+		commandList.EndDebugMarker();
 	}
 
 	{
-		primaryBuffer->BeginDebugMarker("DOF_Vertical", glm::vec4(1));
+		commandList.BeginDebugMarker("DOF_Vertical", glm::vec4(1));
 
-		primaryBuffer->BeginRenderPass(m_VerticalPass, SUBPASS_CONTENTS_INLINE);
-		primaryBuffer->SetViewport(m_VerticalPass->GetViewPort());
+		commandList.BeginRenderPass(m_VerticalPass, SUBPASS_CONTENTS_INLINE);
+		commandList.SetViewport(m_VerticalPass->GetViewPort());
 
 		KRenderCommand command;
 		command.vertexData = &KRenderGlobal::QuadDataProvider.GetVertexData();
@@ -398,17 +398,17 @@ bool KDepthOfField::Execute(IKCommandBufferPtr primaryBuffer)
 		command.pipeline = m_VerticalPipeline;
 		command.pipeline->GetHandle(m_VerticalPass, command.pipelineHandle);
 
-		primaryBuffer->Render(command);
+		commandList.Render(command);
 
-		primaryBuffer->EndRenderPass();
+		commandList.EndRenderPass();
 
-		primaryBuffer->Transition(m_Final->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+		commandList.Transition(m_Final->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 
-		primaryBuffer->EndDebugMarker();
+		commandList.EndDebugMarker();
 	}
-	primaryBuffer->Transition(KRenderGlobal::GBuffer.GetSceneColor()->GetFrameBuffer(), PIPELINE_STAGE_FRAGMENT_SHADER, PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_COLOR_ATTACHMENT);
-	primaryBuffer->Transition(KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET0)->GetFrameBuffer(), PIPELINE_STAGE_FRAGMENT_SHADER, PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_COLOR_ATTACHMENT);
-	primaryBuffer->EndDebugMarker();
+	commandList.Transition(KRenderGlobal::GBuffer.GetSceneColor()->GetFrameBuffer(), PIPELINE_STAGE_FRAGMENT_SHADER, PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_COLOR_ATTACHMENT);
+	commandList.Transition(KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET0)->GetFrameBuffer(), PIPELINE_STAGE_FRAGMENT_SHADER, PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_COLOR_ATTACHMENT);
+	commandList.EndDebugMarker();
 
 	return true;
 }

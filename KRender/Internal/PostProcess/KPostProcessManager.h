@@ -7,6 +7,7 @@
 #include "Interface/IKCommandBuffer.h"
 #include "Interface/IKPostProcess.h"
 #include "Internal/KVertexDefinition.h"
+#include "Internal/Render/KRHICommandList.h"
 #include "KPostProcessPass.h"
 #include "KPostProcessConnection.h"
 
@@ -82,6 +83,5 @@ public:
 	IKPostProcessNodePtr GetStartPointPass() override;
 
 	bool Construct() override;
-	bool Execute(unsigned int chainImageIndex, IKSwapChain* swapChain, IKUIOverlay* ui, IKCommandBufferPtr primaryCommandBuffer);
-
+	bool Execute(unsigned int chainImageIndex, IKSwapChain* swapChain, IKUIOverlay* ui, KRHICommandList& commandList);
 };

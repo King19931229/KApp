@@ -178,7 +178,7 @@ bool KVolumetricFog::Init(uint32_t gridX, uint32_t gridY, uint32_t gridZ, float 
 	return true;
 }
 
-bool KVolumetricFog::KVolumetricFog::UnInit()
+bool KVolumetricFog::UnInit()
 {
 	for (uint32_t i = 0; i < 2; ++i)
 	{
@@ -199,7 +199,7 @@ bool KVolumetricFog::KVolumetricFog::UnInit()
 	return true;
 }
 
-void KVolumetricFog::UpdateVoxel(IKCommandBufferPtr primaryBuffer)
+void KVolumetricFog::UpdateVoxel(KRHICommandList& commandList)
 {
 	KCamera camera = *m_MainCamera;
 	camera.SetNear(camera.GetNear() + std::max(0.1f, m_Start));
@@ -234,25 +234,25 @@ void KVolumetricFog::UpdateVoxel(IKCommandBufferPtr primaryBuffer)
 	glm::uvec3 group = (glm::uvec3(m_GridX, m_GridY, m_GridZ) + glm::uvec3(GROUP_SIZE - 1)) / glm::uvec3(GROUP_SIZE);
 
 	{
-		primaryBuffer->BeginDebugMarker("InjectLight", glm::vec4(0, 1, 1, 0));
+		commandList.BeginDebugMarker("InjectLight", glm::vec4(0, 1, 1, 0));
 		KDynamicConstantBufferUsage objectUsage;
 		objectUsage.binding = SHADER_BINDING_OBJECT;
 		objectUsage.range = sizeof(m_ObjectData);
 		KRenderGlobal::DynamicConstantBufferManager.Alloc(&m_ObjectData, objectUsage);
 
-		m_VoxelLightInjectPipeline[m_CurrentVoxelIndex]->Execute(primaryBuffer, group.x, group.y, group.z, &objectUsage);
-		primaryBuffer->EndDebugMarker();
+		commandList.Execute(m_VoxelLightInjectPipeline[m_CurrentVoxelIndex], group.x, group.y, group.z, &objectUsage);
+		commandList.EndDebugMarker();
 	}
 
 	{
-		primaryBuffer->BeginDebugMarker("RayMatch", glm::vec4(0, 1, 1, 0));
+		commandList.BeginDebugMarker("RayMatch", glm::vec4(0, 1, 1, 0));
 		KDynamicConstantBufferUsage objectUsage;
 		objectUsage.binding = SHADER_BINDING_OBJECT;
 		objectUsage.range = sizeof(m_ObjectData);
 		KRenderGlobal::DynamicConstantBufferManager.Alloc(&m_ObjectData, objectUsage);
 
-		m_RayMatchPipeline[m_CurrentVoxelIndex]->Execute(primaryBuffer, group.x, group.y, 1, &objectUsage);
-		primaryBuffer->EndDebugMarker();
+		commandList.Execute(m_RayMatchPipeline[m_CurrentVoxelIndex], group.x, group.y, 1, &objectUsage);
+		commandList.EndDebugMarker();
 	}
 
 	m_PrevData.view = m_ObjectData.view;
@@ -262,11 +262,11 @@ void KVolumetricFog::UpdateVoxel(IKCommandBufferPtr primaryBuffer)
 	m_PrevData.inited = true;
 }
 
-void KVolumetricFog::UpdateScattering(IKCommandBufferPtr primaryBuffer)
+void KVolumetricFog::UpdateScattering(KRHICommandList& commandList)
 {
-	primaryBuffer->BeginDebugMarker("Scattering", glm::vec4(0, 1, 1, 0));
-	primaryBuffer->BeginRenderPass(m_ScatteringPass, SUBPASS_CONTENTS_INLINE);
-	primaryBuffer->SetViewport(m_ScatteringPass->GetViewPort());
+	commandList.BeginDebugMarker("Scattering", glm::vec4(0, 1, 1, 0));
+	commandList.BeginRenderPass(m_ScatteringPass, SUBPASS_CONTENTS_INLINE);
+	commandList.SetViewport(m_ScatteringPass->GetViewPort());
 
 	KRenderCommand command;
 	command.vertexData = &KRenderGlobal::QuadDataProvider.GetVertexData();
@@ -283,39 +283,39 @@ void KVolumetricFog::UpdateScattering(IKCommandBufferPtr primaryBuffer)
 
 	command.dynamicConstantUsages.push_back(objectUsage);
 	
-	primaryBuffer->Render(command);
-	primaryBuffer->EndRenderPass();
+	commandList.Render(command);
+	commandList.EndRenderPass();
 
-	primaryBuffer->Transition(m_ScatteringTarget->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+	commandList.Transition(m_ScatteringTarget->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 
-	primaryBuffer->EndDebugMarker();
+	commandList.EndDebugMarker();
 }
 
-bool KVolumetricFog::Execute(IKCommandBufferPtr primaryBuffer)
+bool KVolumetricFog::Execute(KRHICommandList& commandList)
 {
 	if (!m_MainCamera)
 		return false;
 
-	primaryBuffer->BeginDebugMarker("VolumetricFog", glm::vec4(0, 1, 1, 0));
+	commandList.BeginDebugMarker("VolumetricFog", glm::vec4(0, 1, 1, 0));
 
 	if (m_Enable)
 	{
-		UpdateVoxel(primaryBuffer);
-		UpdateScattering(primaryBuffer);
+		UpdateVoxel(commandList);
+		UpdateScattering(commandList);
 	}
 	else
 	{
-		primaryBuffer->BeginDebugMarker("Scattering", glm::vec4(0, 1, 1, 0));
-		primaryBuffer->BeginRenderPass(m_ScatteringPass, SUBPASS_CONTENTS_INLINE);
-		primaryBuffer->SetViewport(m_ScatteringPass->GetViewPort());
-		primaryBuffer->EndRenderPass();
-		primaryBuffer->Transition(m_ScatteringTarget->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
-		primaryBuffer->EndDebugMarker();
+		commandList.BeginDebugMarker("Scattering", glm::vec4(0, 1, 1, 0));
+		commandList.BeginRenderPass(m_ScatteringPass, SUBPASS_CONTENTS_INLINE);
+		commandList.SetViewport(m_ScatteringPass->GetViewPort());
+		commandList.EndRenderPass();
+		commandList.Transition(m_ScatteringTarget->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+		commandList.EndDebugMarker();
 	}
 
 	m_CurrentVoxelIndex ^= 1;
 
-	primaryBuffer->EndDebugMarker();
+	commandList.EndDebugMarker();
 
 	return true;
 }

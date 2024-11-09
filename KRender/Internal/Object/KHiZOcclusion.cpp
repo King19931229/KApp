@@ -295,7 +295,7 @@ uint32_t KHiZOcclusion::XYToIndex(uint32_t x, uint32_t y)
 	return blockIdx * BLOCK_SIZE * BLOCK_SIZE + y * BLOCK_SIZE + x;
 }
 
-void KHiZOcclusion::PushCandidatesInformation(IKCommandBufferPtr primaryBuffer)
+void KHiZOcclusion::PushCandidatesInformation(KRHICommandList& commandList)
 {
 	uint32_t frameIdx = KRenderGlobal::CurrentInFlightFrameIndex;
 	std::vector<Candidate>& candidates = m_Candidates[frameIdx];
@@ -335,10 +335,10 @@ void KHiZOcclusion::PushCandidatesInformation(IKCommandBufferPtr primaryBuffer)
 	dataViewport.width = dimensionX;
 	dataViewport.height = dimensionY;
 
-	primaryBuffer->BeginDebugMarker("PrepareHiZOC", glm::vec4(1));
+	commandList.BeginDebugMarker("PrepareHiZOC", glm::vec4(1));
 	{
-		primaryBuffer->BeginRenderPass(m_PreparePasses[frameIdx], SUBPASS_CONTENTS_INLINE);
-		primaryBuffer->SetViewport(dataViewport);
+		commandList.BeginRenderPass(m_PreparePasses[frameIdx], SUBPASS_CONTENTS_INLINE);
+		commandList.SetViewport(dataViewport);
 
 		command.pipeline = m_PreparePipelines[frameIdx];
 		command.pipeline->GetHandle(m_PreparePasses[frameIdx], command.pipelineHandle);
@@ -359,19 +359,19 @@ void KHiZOcclusion::PushCandidatesInformation(IKCommandBufferPtr primaryBuffer)
 
 		command.dynamicConstantUsages.push_back(objectUsage);
 
-		primaryBuffer->Render(command);
+		commandList.Render(command);
 
-		primaryBuffer->EndRenderPass();
+		commandList.EndRenderPass();
 	}
-	primaryBuffer->EndDebugMarker();
+	commandList.EndDebugMarker();
 
-	primaryBuffer->Transition(m_PositionTargets[frameIdx]->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
-	primaryBuffer->Transition(m_ExtentTargets[frameIdx]->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+	commandList.Transition(m_PositionTargets[frameIdx]->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+	commandList.Transition(m_ExtentTargets[frameIdx]->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 
-	primaryBuffer->BeginDebugMarker("ExecuteHiZOC", glm::vec4(1));
+	commandList.BeginDebugMarker("ExecuteHiZOC", glm::vec4(1));
 	{
-		primaryBuffer->BeginRenderPass(m_ExecutePasses[frameIdx], SUBPASS_CONTENTS_INLINE);
-		primaryBuffer->SetViewport(dataViewport);
+		commandList.BeginRenderPass(m_ExecutePasses[frameIdx], SUBPASS_CONTENTS_INLINE);
+		commandList.SetViewport(dataViewport);
 
 		command.pipeline = m_ExecutePipelines[frameIdx];
 		command.pipeline->GetHandle(m_ExecutePasses[frameIdx], command.pipelineHandle);
@@ -391,21 +391,21 @@ void KHiZOcclusion::PushCandidatesInformation(IKCommandBufferPtr primaryBuffer)
 
 		command.dynamicConstantUsages.push_back(objectUsage);
 
-		primaryBuffer->Render(command);
+		commandList.Render(command);
 
-		primaryBuffer->EndRenderPass();
+		commandList.EndRenderPass();
 	}
-	primaryBuffer->EndDebugMarker();
+	commandList.EndDebugMarker();
 
-	primaryBuffer->Transition(m_ResultTargets[frameIdx]->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+	commandList.Transition(m_ResultTargets[frameIdx]->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 }
 
-bool KHiZOcclusion::DebugRender(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer)
+bool KHiZOcclusion::DebugRender(IKRenderPassPtr renderPass, KRHICommandList& commandList)
 {
 	if (m_EnableDebugDraw)
 	{
 		m_DebugDrawers[KRenderGlobal::CurrentInFlightFrameIndex].EnableDraw();
-		return m_DebugDrawers[KRenderGlobal::CurrentInFlightFrameIndex].Render(renderPass, primaryBuffer);
+		return m_DebugDrawers[KRenderGlobal::CurrentInFlightFrameIndex].Render(renderPass, commandList);
 	}
 	else
 	{
@@ -414,7 +414,7 @@ bool KHiZOcclusion::DebugRender(IKRenderPassPtr renderPass, IKCommandBufferPtr p
 	}	
 }
 
-bool KHiZOcclusion::Execute(IKCommandBufferPtr primaryBuffer, const std::vector<IKEntity*>& cullRes)
+bool KHiZOcclusion::Execute(KRHICommandList& commandList, const std::vector<IKEntity*>& cullRes)
 {
 	if (!m_Enable)
 	{
@@ -459,11 +459,11 @@ bool KHiZOcclusion::Execute(IKCommandBufferPtr primaryBuffer, const std::vector<
 	{
 		m_BlockX = CalcBlockX(m_CandidateNum - 1);
 		m_BlockY = CalcBlockY(m_CandidateNum - 1);
-		PushCandidatesInformation(primaryBuffer);
+		PushCandidatesInformation(commandList);
 	}
 	else
 	{
-		primaryBuffer->Transition(m_ResultTargets[KRenderGlobal::CurrentInFlightFrameIndex]->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+		commandList.Transition(m_ResultTargets[KRenderGlobal::CurrentInFlightFrameIndex]->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 	}
 
 	return true;

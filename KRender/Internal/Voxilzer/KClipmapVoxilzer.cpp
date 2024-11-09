@@ -221,7 +221,7 @@ void KClipmapVoxilzer::Resize(uint32_t width, uint32_t height)
 	SetupLightPassPipeline();
 }
 
-bool KClipmapVoxilzer::RenderVoxel(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer)
+bool KClipmapVoxilzer::RenderVoxel(IKRenderPassPtr renderPass, KRHICommandList& commandList)
 {
 	if (!m_VoxelDrawEnable)
 		return true;
@@ -252,15 +252,15 @@ bool KClipmapVoxilzer::RenderVoxel(IKRenderPassPtr renderPass, IKCommandBufferPt
 
 		command.dynamicConstantUsages.push_back(objectUsage);
 
-		primaryBuffer->Render(command);
+		commandList.Render(command);
 	}
 
 	return true;
 }
 
-bool KClipmapVoxilzer::UpdateLightingResult(IKCommandBufferPtr primaryBuffer)
+bool KClipmapVoxilzer::UpdateLightingResult(KRHICommandList& commandList)
 {
-	primaryBuffer->BeginDebugMarker("VoxelClipmapLightConeTracing", glm::vec4(1));
+	commandList.BeginDebugMarker("VoxelClipmapLightConeTracing", glm::vec4(1));
 
 	struct ObjectData
 	{
@@ -272,9 +272,9 @@ bool KClipmapVoxilzer::UpdateLightingResult(IKCommandBufferPtr primaryBuffer)
 	objectData.params[2] = 1;
 
 	{
-		primaryBuffer->BeginDebugMarker("VoxelClipmapLightPass", glm::vec4(1));
-		primaryBuffer->BeginRenderPass(m_LightPassRenderPass, SUBPASS_CONTENTS_INLINE);
-		primaryBuffer->SetViewport(m_LightPassRenderPass->GetViewPort());
+		commandList.BeginDebugMarker("VoxelClipmapLightPass", glm::vec4(1));
+		commandList.BeginRenderPass(m_LightPassRenderPass, SUBPASS_CONTENTS_INLINE);
+		commandList.SetViewport(m_LightPassRenderPass->GetViewPort());
 
 		KRenderCommand command;
 		command.vertexData = &KRenderGlobal::QuadDataProvider.GetVertexData();
@@ -290,18 +290,18 @@ bool KClipmapVoxilzer::UpdateLightingResult(IKCommandBufferPtr primaryBuffer)
 
 		command.dynamicConstantUsages.push_back(objectUsage);
 
-		primaryBuffer->Render(command);
+		commandList.Render(command);
 
-		primaryBuffer->EndRenderPass();
+		commandList.EndRenderPass();
 
-		primaryBuffer->Transition(m_LightPassTarget->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
-		primaryBuffer->EndDebugMarker();
+		commandList.Transition(m_LightPassTarget->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+		commandList.EndDebugMarker();
 	}
 
 	{
-		primaryBuffer->BeginDebugMarker("VoxelClipmapLightComposePass", glm::vec4(1));
-		primaryBuffer->BeginRenderPass(m_LightComposeRenderPass, SUBPASS_CONTENTS_INLINE);
-		primaryBuffer->SetViewport(m_LightComposeRenderPass->GetViewPort());
+		commandList.BeginDebugMarker("VoxelClipmapLightComposePass", glm::vec4(1));
+		commandList.BeginRenderPass(m_LightComposeRenderPass, SUBPASS_CONTENTS_INLINE);
+		commandList.SetViewport(m_LightComposeRenderPass->GetViewPort());
 
 		KRenderCommand command;
 		command.vertexData = &KRenderGlobal::QuadDataProvider.GetVertexData();
@@ -317,32 +317,32 @@ bool KClipmapVoxilzer::UpdateLightingResult(IKCommandBufferPtr primaryBuffer)
 
 		command.dynamicConstantUsages.push_back(objectUsage);
 
-		primaryBuffer->Render(command);
+		commandList.Render(command);
 
-		primaryBuffer->EndRenderPass();
+		commandList.EndRenderPass();
 
-		primaryBuffer->Transition(m_LightComposeTarget->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
-		primaryBuffer->EndDebugMarker();
+		commandList.Transition(m_LightComposeTarget->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+		commandList.EndDebugMarker();
 	}	
-	primaryBuffer->EndDebugMarker();
+	commandList.EndDebugMarker();
 
 	return true;
 }
 
-bool KClipmapVoxilzer::UpdateFrame(IKCommandBufferPtr primaryBuffer)
+bool KClipmapVoxilzer::UpdateFrame(KRHICommandList& commandList)
 {
 	if (m_Enable)
 	{
-		return UpdateLightingResult(primaryBuffer);
+		return UpdateLightingResult(commandList);
 	}
 	else
 	{
-		primaryBuffer->BeginDebugMarker("VoxelClipmapLightPass", glm::vec4(1));
-		primaryBuffer->BeginRenderPass(m_LightComposeRenderPass, SUBPASS_CONTENTS_INLINE);
-		primaryBuffer->SetViewport(m_LightComposeRenderPass->GetViewPort());
-		primaryBuffer->EndRenderPass();
-		primaryBuffer->Transition(m_LightComposeTarget->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
-		primaryBuffer->EndDebugMarker();
+		commandList.BeginDebugMarker("VoxelClipmapLightPass", glm::vec4(1));
+		commandList.BeginRenderPass(m_LightComposeRenderPass, SUBPASS_CONTENTS_INLINE);
+		commandList.SetViewport(m_LightComposeRenderPass->GetViewPort());
+		commandList.EndRenderPass();
+		commandList.Transition(m_LightComposeTarget->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+		commandList.EndDebugMarker();
 		return true;
 	}
 }
@@ -492,21 +492,21 @@ void KClipmapVoxilzer::UpdateVoxelBuffer()
 	voxelBuffer->Write(pData);
 }
 
-void KClipmapVoxilzer::UpdateInternal(IKCommandBufferPtr primaryBuffer)
+void KClipmapVoxilzer::UpdateInternal(KRHICommandList& commandList)
 {
-	ClearUpdateRegion(primaryBuffer);
-	VoxelizeStaticScene(primaryBuffer);
-	DownSampleVisibility(primaryBuffer);
+	ClearUpdateRegion(commandList);
+	VoxelizeStaticScene(commandList);
+	DownSampleVisibility(commandList);
 
-	UpdateRadiance(primaryBuffer);
-	DownSampleRadiance(primaryBuffer);
-	WrapBorder(primaryBuffer);
+	UpdateRadiance(commandList);
+	DownSampleRadiance(commandList);
+	WrapBorder(commandList);
 
 	if (m_InjectFirstBounce)
 	{
-		InjectPropagation(primaryBuffer);
-		DownSampleRadiance(primaryBuffer);
-		WrapBorder(primaryBuffer);
+		InjectPropagation(commandList);
+		DownSampleRadiance(commandList);
+		WrapBorder(commandList);
 	}
 }
 
@@ -581,7 +581,7 @@ std::vector<KClipmapVoxelizationRegion> KClipmapVoxilzer::ComputeRevoxelizationR
 	return regions;
 }
 
-void KClipmapVoxilzer::ClearUpdateRegion(IKCommandBufferPtr commandBuffer)
+void KClipmapVoxilzer::ClearUpdateRegion(KRHICommandList& commandList)
 {
 	for (uint32_t level = 0; level < m_ClipLevelCount; ++level)
 	{
@@ -611,7 +611,7 @@ void KClipmapVoxilzer::ClearUpdateRegion(IKCommandBufferPtr commandBuffer)
 			usage.range = sizeof(objectData);
 			KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, usage);
 
-			m_ClearRegionPipeline->Execute(commandBuffer, group.x, group.y, group.z, &usage);
+			commandList.Execute(m_ClearRegionPipeline, group.x, group.y, group.z, &usage);
 		}
 	}
 }
@@ -629,11 +629,11 @@ void KClipmapVoxilzer::ApplyUpdateMovement()
 	}
 }
 
-void KClipmapVoxilzer::VoxelizeStaticScene(IKCommandBufferPtr commandBuffer)
+void KClipmapVoxilzer::VoxelizeStaticScene(KRHICommandList& commandList)
 {
-	commandBuffer->BeginDebugMarker("VoxelizeClipmapStaticScene", glm::vec4(0, 1, 1, 0));
-	commandBuffer->BeginRenderPass(m_VoxelRenderPass, SUBPASS_CONTENTS_INLINE);
-	commandBuffer->SetViewport(m_VoxelRenderPass->GetViewPort());
+	commandList.BeginDebugMarker("VoxelizeClipmapStaticScene", glm::vec4(0, 1, 1, 0));
+	commandList.BeginRenderPass(m_VoxelRenderPass, SUBPASS_CONTENTS_INLINE);
+	commandList.SetViewport(m_VoxelRenderPass->GetViewPort());
 
 	for (uint32_t level = 0; level < m_ClipLevelCount; ++level)
 	{
@@ -696,21 +696,21 @@ void KClipmapVoxilzer::VoxelizeStaticScene(IKCommandBufferPtr commandBuffer)
 
 		for (KRenderCommand& command : commands)
 		{
-			commandBuffer->Render(command);
+			commandList.Render(command);
 		}
 	}
 
-	commandBuffer->EndRenderPass();
-	commandBuffer->EndDebugMarker();
+	commandList.EndRenderPass();
+	commandList.EndDebugMarker();
 }
 
-void KClipmapVoxilzer::UpdateRadiance(IKCommandBufferPtr commandBuffer)
+void KClipmapVoxilzer::UpdateRadiance(KRHICommandList& commandList)
 {
-	ClearRadiance(commandBuffer);
-	InjectRadiance(commandBuffer);
+	ClearRadiance(commandList);
+	InjectRadiance(commandList);
 }
 
-void KClipmapVoxilzer::ClearRadiance(IKCommandBufferPtr commandBuffer)
+void KClipmapVoxilzer::ClearRadiance(KRHICommandList& commandList)
 {
 	uint32_t group = (m_VolumeDimension + (VOXEL_CLIPMAP_GROUP_SIZE - 1)) / VOXEL_CLIPMAP_GROUP_SIZE;
 
@@ -735,11 +735,11 @@ void KClipmapVoxilzer::ClearRadiance(IKCommandBufferPtr commandBuffer)
 		usage.range = sizeof(objectData);
 		KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, usage);
 
-		m_ClearRadiancePipeline->Execute(commandBuffer, group, group, group, &usage);
+		commandList.Execute(m_ClearRadiancePipeline, group, group, group, &usage);
 	}
 }
 
-void KClipmapVoxilzer::InjectRadiance(IKCommandBufferPtr commandBuffer)
+void KClipmapVoxilzer::InjectRadiance(KRHICommandList& commandList)
 {
 	uint32_t group = (m_VolumeDimension + (VOXEL_CLIPMAP_GROUP_SIZE - 1)) / VOXEL_CLIPMAP_GROUP_SIZE;
 
@@ -765,11 +765,11 @@ void KClipmapVoxilzer::InjectRadiance(IKCommandBufferPtr commandBuffer)
 		usage.range = sizeof(objectData);
 		KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, usage);
 
-		m_InjectRadiancePipeline->Execute(commandBuffer, group, group, group, &usage);
+		commandList.Execute(m_InjectRadiancePipeline, group, group, group, &usage);
 	}
 }
 
-void KClipmapVoxilzer::InjectPropagation(IKCommandBufferPtr commandBuffer)
+void KClipmapVoxilzer::InjectPropagation(KRHICommandList& commandList)
 {
 	uint32_t group = (m_VolumeDimension + (VOXEL_CLIPMAP_GROUP_SIZE - 1)) / VOXEL_CLIPMAP_GROUP_SIZE;
 
@@ -795,11 +795,11 @@ void KClipmapVoxilzer::InjectPropagation(IKCommandBufferPtr commandBuffer)
 		usage.range = sizeof(objectData);
 		KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, usage);
 
-		m_InjectPropagationPipeline->Execute(commandBuffer, group, group, group, &usage);
+		commandList.Execute(m_InjectPropagationPipeline, group, group, group, &usage);
 	}
 }
 
-void KClipmapVoxilzer::UpdateVoxel(IKCommandBufferPtr primaryBuffer)
+void KClipmapVoxilzer::UpdateVoxel(KRHICommandList& commandList)
 {
 	if (m_Enable)
 	{
@@ -840,7 +840,7 @@ void KClipmapVoxilzer::UpdateVoxel(IKCommandBufferPtr primaryBuffer)
 
 		ApplyUpdateMovement();
 		UpdateVoxelBuffer();
-		UpdateInternal(primaryBuffer);
+		UpdateInternal(commandList);
 
 		for (uint32_t levelIdx = 0; levelIdx < m_ClipLevelCount; ++levelIdx)
 		{
@@ -854,7 +854,7 @@ void KClipmapVoxilzer::UpdateVoxel(IKCommandBufferPtr primaryBuffer)
 	}
 }
 
-void KClipmapVoxilzer::DownSampleVisibility(IKCommandBufferPtr commandBuffer)
+void KClipmapVoxilzer::DownSampleVisibility(KRHICommandList& commandList)
 {
 	uint32_t group = (m_VolumeDimension / 2 + (VOXEL_CLIPMAP_GROUP_SIZE - 1)) / VOXEL_CLIPMAP_GROUP_SIZE;
 
@@ -879,11 +879,11 @@ void KClipmapVoxilzer::DownSampleVisibility(IKCommandBufferPtr commandBuffer)
 		usage.range = sizeof(objectData);
 		KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, usage);
 
-		m_DownSampleVisibilityPipeline->Execute(commandBuffer, group, group, group, &usage);
+		commandList.Execute(m_DownSampleVisibilityPipeline, group, group, group, &usage);
 	}
 }
 
-void KClipmapVoxilzer::DownSampleRadiance(IKCommandBufferPtr commandBuffer)
+void KClipmapVoxilzer::DownSampleRadiance(KRHICommandList& commandList)
 {
 	uint32_t group = (m_VolumeDimension / 2 + (VOXEL_CLIPMAP_GROUP_SIZE - 1)) / VOXEL_CLIPMAP_GROUP_SIZE;
 
@@ -908,11 +908,11 @@ void KClipmapVoxilzer::DownSampleRadiance(IKCommandBufferPtr commandBuffer)
 		usage.range = sizeof(objectData);
 		KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, usage);
 
-		m_DownSampleRadiancePipeline->Execute(commandBuffer, group, group, group, &usage);
+		commandList.Execute(m_DownSampleRadiancePipeline, group, group, group, &usage);
 	}
 }
 
-void KClipmapVoxilzer::WrapBorder(IKCommandBufferPtr commandBuffer)
+void KClipmapVoxilzer::WrapBorder(KRHICommandList& commandList)
 {
 	uint32_t volumeDimensionWithBorder = m_VolumeDimension + 2 * m_BorderSize;
 	uint32_t group = (volumeDimensionWithBorder + (VOXEL_CLIPMAP_GROUP_SIZE - 1)) / VOXEL_CLIPMAP_GROUP_SIZE;
@@ -938,7 +938,7 @@ void KClipmapVoxilzer::WrapBorder(IKCommandBufferPtr commandBuffer)
 		usage.range = sizeof(objectData);
 		KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, usage);
 
-		m_WrapRadianceBorderPipeline->Execute(commandBuffer, group, group, group, &usage);
+		commandList.Execute(m_WrapRadianceBorderPipeline, group, group, group, &usage);
 	}
 }
 
@@ -1263,9 +1263,9 @@ void KClipmapVoxilzer::OnSceneChanged(EntitySceneOp op, IKEntity* entity)
 	m_VoxelEmpty = true;
 }
 
-bool KClipmapVoxilzer::DebugRender(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer)
+bool KClipmapVoxilzer::DebugRender(IKRenderPassPtr renderPass, KRHICommandList& commandList)
 {
-	return m_LightDebugDrawer.Render(renderPass, primaryBuffer);
+	return m_LightDebugDrawer.Render(renderPass, commandList);
 }
 
 bool KClipmapVoxilzer::Init(IKRenderScene* scene, const KCamera* camera, uint32_t dimension, uint32_t levelCount, uint32_t baseVoxelSize, uint32_t width, uint32_t height, float ratio)

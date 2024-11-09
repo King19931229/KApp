@@ -3,6 +3,7 @@
 #include "Interface/IKMaterial.h"
 #include "Interface/IKRenderScene.h"
 #include "Internal/Asset/KMaterialSubMesh.h"
+#include "Internal/Render/KRHICommandList.h"
 
 struct KGPUSceneInstance
 {
@@ -240,10 +241,10 @@ public:
 	bool Init(IKRenderScene* scene, const KCamera* camera);
 	bool UnInit();
 
-	bool Execute(IKCommandBufferPtr primaryBuffer);
+	bool Execute(KRHICommandList& commandList);
 
-	bool BasePassMain(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer);
-	bool BasePassPost(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer);
+	bool BasePassMain(IKRenderPassPtr renderPass, KRHICommandList& commandList);
+	bool BasePassPost(IKRenderPassPtr renderPass, KRHICommandList& commandList);
 
 	void ReloadShader();
 

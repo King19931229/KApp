@@ -96,7 +96,7 @@ void KRTDebugDrawer::DisableDraw()
 	m_Enable = false;
 }
 
-bool KRTDebugDrawer::Render(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer)
+bool KRTDebugDrawer::Render(IKRenderPassPtr renderPass, KRHICommandList& commandList)
 {
 	if (m_Enable)
 	{
@@ -125,7 +125,7 @@ bool KRTDebugDrawer::Render(IKRenderPassPtr renderPass, IKCommandBufferPtr prima
 
 		command.dynamicConstantUsages.push_back(objectUsage);
 
-		primaryBuffer->Render(command);
+		commandList.Render(command);
 	}
 	return true;
 }

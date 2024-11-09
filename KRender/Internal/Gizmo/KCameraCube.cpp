@@ -995,7 +995,7 @@ bool KCameraCube::GetRenderCommand(KRenderCommandList& commands)
 	return false;
 }
 
-bool KCameraCube::Render(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer)
+bool KCameraCube::Render(IKRenderPassPtr renderPass, KRHICommandList& commandList)
 {
 	KRenderCommandList commands;
 	if (GetRenderCommand(commands))
@@ -1003,7 +1003,7 @@ bool KCameraCube::Render(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryB
 		for (KRenderCommand& command : commands)
 		{
 			command.pipeline->GetHandle(renderPass, command.pipelineHandle);
-			primaryBuffer->Render(command);
+			commandList.Render(command);
 		}
 		return true;
 	}

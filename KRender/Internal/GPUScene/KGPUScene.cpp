@@ -213,10 +213,19 @@ uint32_t KGPUScene::CreateOrGetMegaShaderIndex(KSubMeshPtr subMesh, IKMaterialPt
 				IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_CAMERA);
 				pipeline->SetConstantBuffer(SHADER_BINDING_CAMERA, ST_FRAGMENT, cameraBuffer);
 
-				for (uint8_t i = 0; i < MAX_VIRTUAL_PHYSICAL_TEXTURE_BINDING; ++i)
+				bool hasVirtualTexture = false;
+				for (uint8_t i = 0; i < MAX_MATERIAL_TEXTURE_BINDING; ++i)
 				{
-					uint32_t binding = SHADER_BINDING_TEXTURE0 + MAX_MATERIAL_TEXTURE_BINDING + i;
-					pipeline->SetSampler(binding, KRenderGlobal::VirtualTextureManager.GetPhysicalTextureFramebuffer(i), *KRenderGlobal::VirtualTextureManager.GetPhysicalTextureSampler(i), true);
+					hasVirtualTexture |= material->GetTextureBinding()->GetIsVirtualTexture(i);
+				}
+
+				if (hasVirtualTexture)
+				{
+					for (uint8_t i = 0; i < MAX_VIRTUAL_PHYSICAL_TEXTURE_BINDING; ++i)
+					{
+						uint32_t binding = SHADER_BINDING_TEXTURE0 + MAX_MATERIAL_TEXTURE_BINDING + i;
+						pipeline->SetSampler(binding, KRenderGlobal::VirtualTextureManager.GetPhysicalTextureFramebuffer(i), *KRenderGlobal::VirtualTextureManager.GetPhysicalTextureSampler(i), true);
+					}
 				}
 
 				IKUniformBufferPtr virtualTextureBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_VIRTUAL_TEXTURE_CONSTANT);
@@ -1294,7 +1303,7 @@ void KGPUScene::UpdateInstanceDataBuffer()
 	}
 }
 
-bool KGPUScene::Execute(IKCommandBufferPtr primaryBuffer)
+bool KGPUScene::Execute(KRHICommandList& commandList)
 {
 	if (!m_Enable)
 	{
@@ -1307,7 +1316,7 @@ bool KGPUScene::Execute(IKCommandBufferPtr primaryBuffer)
 	uint32_t currentFrameIndex = KRenderGlobal::CurrentInFlightFrameIndex;
 	uint32_t megaShaderNum = (uint32_t)m_MegaShaders.size();
 
-	primaryBuffer->BeginDebugMarker("GPUScene", glm::vec4(1));
+	commandList.BeginDebugMarker("GPUScene", glm::vec4(1));
 
 	{
 		KGPUSceneState sceneState;
@@ -1317,13 +1326,13 @@ bool KGPUScene::Execute(IKCommandBufferPtr primaryBuffer)
 
 		uint32_t numDispatch = ((uint32_t)megaShaderNum + GPUSCENE_GROUP_SIZE - 1) / GPUSCENE_GROUP_SIZE;
 
-		primaryBuffer->BeginDebugMarker("GPUScene_InitState", glm::vec4(1));
-		m_InitStatePipelines[currentFrameIndex]->Execute(primaryBuffer, numDispatch, 1, 1, nullptr);
-		primaryBuffer->EndDebugMarker();
+		commandList.BeginDebugMarker("GPUScene_InitState", glm::vec4(1));
+		commandList.Execute(m_InitStatePipelines[currentFrameIndex], numDispatch, 1, 1, nullptr);
+		commandList.EndDebugMarker();
 	}
 
 	{
-		primaryBuffer->BeginDebugMarker("GPUScene_InstanceCull", glm::vec4(1));
+		commandList.BeginDebugMarker("GPUScene_InstanceCull", glm::vec4(1));
 		uint32_t numDispatch = ((uint32_t)m_Instances.size() + GPUSCENE_GROUP_SIZE - 1) / GPUSCENE_GROUP_SIZE;
 		struct
 		{
@@ -1343,27 +1352,27 @@ bool KGPUScene::Execute(IKCommandBufferPtr primaryBuffer)
 
 		KRenderGlobal::DynamicConstantBufferManager.Alloc(&cameraObjectUsage, objectUsage);
 
-		m_InstanceCullPipelines[currentFrameIndex]->Execute(primaryBuffer, numDispatch, 1, 1, &objectUsage);
-		primaryBuffer->EndDebugMarker();
+		commandList.Execute(m_InstanceCullPipelines[currentFrameIndex], numDispatch, 1, 1, &objectUsage);
+		commandList.EndDebugMarker();
 	}
 
 	{
-		primaryBuffer->BeginDebugMarker("GPUScene_CalcDispatchArgs", glm::vec4(1));
-		m_CalcDispatchArgsPipelines[currentFrameIndex]->Execute(primaryBuffer, 1, 1, 1, nullptr);
-		primaryBuffer->EndDebugMarker();
+		commandList.BeginDebugMarker("GPUScene_CalcDispatchArgs", glm::vec4(1));
+		commandList.Execute(m_CalcDispatchArgsPipelines[currentFrameIndex], 1, 1, 1, nullptr);
+		commandList.EndDebugMarker();
 	}
 
 	{
-		primaryBuffer->BeginDebugMarker("GPUScene_GroupAllocate", glm::vec4(1));
+		commandList.BeginDebugMarker("GPUScene_GroupAllocate", glm::vec4(1));
 		uint32_t numDispatch = (megaShaderNum + GPUSCENE_GROUP_SIZE - 1) / GPUSCENE_GROUP_SIZE;
-		m_GroupAllocatePipelines[currentFrameIndex]->Execute(primaryBuffer, numDispatch, 1, 1, nullptr);
-		primaryBuffer->EndDebugMarker();
+		commandList.Execute(m_GroupAllocatePipelines[currentFrameIndex], numDispatch, 1, 1, nullptr);
+		commandList.EndDebugMarker();
 	}
 
 	{
-		primaryBuffer->BeginDebugMarker("GPUScene_GroupScatter", glm::vec4(1));
-		m_GroupScatterPipelines[currentFrameIndex]->ExecuteIndirect(primaryBuffer, m_DispatchArgsBuffers[currentFrameIndex], nullptr);
-		primaryBuffer->EndDebugMarker();
+		commandList.BeginDebugMarker("GPUScene_GroupScatter", glm::vec4(1));
+		commandList.ExecuteIndirect(m_GroupScatterPipelines[currentFrameIndex], m_DispatchArgsBuffers[currentFrameIndex], nullptr);
+		commandList.EndDebugMarker();
 	}
 
 	{
@@ -1376,7 +1385,7 @@ bool KGPUScene::Execute(IKCommandBufferPtr primaryBuffer)
 
 		for (uint32_t i = 0; i < m_MegaShaders.size(); ++i)
 		{
-			primaryBuffer->BeginDebugMarker((std::string("GPUScene_MegaShaderCalcDrawArgs_") + std::to_string(i)).c_str(), glm::vec4(1));
+			commandList.BeginDebugMarker((std::string("GPUScene_MegaShaderCalcDrawArgs_") + std::to_string(i)).c_str(), glm::vec4(1));
 
 			MegaShaderItem& megaShader = m_MegaShaders[i];
 			megaShaderUsage.index = i;
@@ -1387,25 +1396,25 @@ bool KGPUScene::Execute(IKCommandBufferPtr primaryBuffer)
 
 			KRenderGlobal::DynamicConstantBufferManager.Alloc(&megaShaderUsage, objectUsage);
 
-			megaShader.calcDrawArgsPipelines[currentFrameIndex]->ExecuteIndirect(primaryBuffer, m_DispatchArgsBuffers[currentFrameIndex], &objectUsage);
+			commandList.ExecuteIndirect(megaShader.calcDrawArgsPipelines[currentFrameIndex], m_DispatchArgsBuffers[currentFrameIndex], &objectUsage);
 
-			primaryBuffer->EndDebugMarker();
+			commandList.EndDebugMarker();
 		}
 	}
 
-	primaryBuffer->EndDebugMarker();
+	commandList.EndDebugMarker();
 
 	return true;
 }
 
-bool KGPUScene::BasePassMain(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer)
+bool KGPUScene::BasePassMain(IKRenderPassPtr renderPass, KRHICommandList& commandList)
 {
 	if (!m_Enable)
 	{
 		return true;
 	}
 
-	primaryBuffer->BeginDebugMarker("GPUScene_BasePass_Main", glm::vec4(1));
+	commandList.BeginDebugMarker("GPUScene_BasePass_Main", glm::vec4(1));
 
 	uint32_t frameIndex = KRenderGlobal::CurrentInFlightFrameIndex;
 
@@ -1468,16 +1477,16 @@ bool KGPUScene::BasePassMain(IKRenderPassPtr renderPass, IKCommandBufferPtr prim
 			command.indirectDraw = true;
 			command.indirectOffset = 0;
 			command.indirectCount = (uint32_t)m_Instances.size();
-			primaryBuffer->Render(command);
+			commandList.Render(command);
 		}
 	}
 
-	primaryBuffer->EndDebugMarker();
+	commandList.EndDebugMarker();
 
 	return true;
 }
 
-bool KGPUScene::BasePassPost(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer)
+bool KGPUScene::BasePassPost(IKRenderPassPtr renderPass, KRHICommandList& commandList)
 {
 	if (!m_Enable)
 	{

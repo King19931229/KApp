@@ -103,23 +103,23 @@ bool KGBuffer::Resize(uint32_t width, uint32_t height)
 	return false;
 }
 
-bool KGBuffer::TransitionColor(IKCommandBufferPtr buffer, IKQueuePtr srcQueue, IKQueuePtr dstQueue, PipelineStages srcStages, PipelineStages dstStages, ImageLayout oldLayout, ImageLayout newLayout)
+bool KGBuffer::TransitionColor(KRHICommandList& commandList, IKQueuePtr srcQueue, IKQueuePtr dstQueue, PipelineStages srcStages, PipelineStages dstStages, ImageLayout oldLayout, ImageLayout newLayout)
 {
 	for (uint32_t i = 0; i < GBUFFER_TARGET_COUNT; ++i)
 	{
-		buffer->TransitionOwnership(m_RenderTarget[i]->GetFrameBuffer(), srcQueue, dstQueue, srcStages, dstStages, oldLayout, newLayout);
+		commandList.TransitionOwnership(m_RenderTarget[i]->GetFrameBuffer(), srcQueue, dstQueue, srcStages, dstStages, oldLayout, newLayout);
 	}
 	return true;
 }
 
-bool KGBuffer::TransitionDepthStencil(IKCommandBufferPtr buffer, IKQueuePtr srcQueue, IKQueuePtr dstQueue, PipelineStages srcStages, PipelineStages dstStages, ImageLayout oldLayout, ImageLayout newLayout)
+bool KGBuffer::TransitionDepthStencil(KRHICommandList& commandList, IKQueuePtr srcQueue, IKQueuePtr dstQueue, PipelineStages srcStages, PipelineStages dstStages, ImageLayout oldLayout, ImageLayout newLayout)
 {
-	buffer->TransitionOwnership(m_DepthStencilTarget->GetFrameBuffer(), srcQueue, dstQueue, srcStages, dstStages, oldLayout, newLayout);
+	commandList.TransitionOwnership(m_DepthStencilTarget->GetFrameBuffer(), srcQueue, dstQueue, srcStages, dstStages, oldLayout, newLayout);
 	return true;
 }
 
-bool KGBuffer::TransitionAO(IKCommandBufferPtr buffer, IKQueuePtr srcQueue, IKQueuePtr dstQueue, PipelineStages srcStages, PipelineStages dstStages, ImageLayout oldLayout, ImageLayout newLayout)
+bool KGBuffer::TransitionAO(KRHICommandList& commandList, IKQueuePtr srcQueue, IKQueuePtr dstQueue, PipelineStages srcStages, PipelineStages dstStages, ImageLayout oldLayout, ImageLayout newLayout)
 {
-	buffer->TransitionOwnership(m_AOTarget->GetFrameBuffer(), srcQueue, dstQueue, srcStages, dstStages, oldLayout, newLayout);
+	commandList.TransitionOwnership(m_AOTarget->GetFrameBuffer(), srcQueue, dstQueue, srcStages, dstStages, oldLayout, newLayout);
 	return true;
 }

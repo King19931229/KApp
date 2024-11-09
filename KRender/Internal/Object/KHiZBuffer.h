@@ -2,6 +2,7 @@
 #include "Interface/IKRenderDevice.h"
 #include "Interface/IKShader.h"
 #include "Interface/IKSampler.h"
+#include "Internal/Render/KRHICommandList.h"
 
 class KHiZBuffer
 {
@@ -42,5 +43,5 @@ public:
 
 	uint32_t GetNumMips() const { return m_NumMips; }
 
-	bool Construct(IKCommandBufferPtr primaryBuffer);
+	bool Construct(KRHICommandList& commandList);
 };

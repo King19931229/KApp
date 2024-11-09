@@ -1,6 +1,7 @@
 #pragma once
 #include "Interface/IKTexture.h"
 #include "KVirtualTexture.h"
+#include "Internal/Render/KRHICommandList.h"
 #include <unordered_map>
 #include <unordered_set>
 #include <map>
@@ -128,9 +129,9 @@ protected:
 	void RecyleVirtualID(uint32_t ID);
 
 	void HandleFeedbackResult();
-	void FeedbackRender(IKCommandBufferPtr primaryBuffer, const std::vector<IKEntity*>& cullRes);
-	void DispatchFeedbackAnalyze(IKCommandBufferPtr primaryBuffer);
-	void ProcessPhysicalUpdate(IKCommandBufferPtr primaryBuffer);
+	void FeedbackRender(KRHICommandList& commandList, const std::vector<IKEntity*>& cullRes);
+	void DispatchFeedbackAnalyze(KRHICommandList& commandList);
+	void ProcessPhysicalUpdate(KRHICommandList& commandList);
 public:
 	KVirtualTextureManager();
 	~KVirtualTextureManager();
@@ -139,8 +140,8 @@ public:
 	bool UnInit();
 
 	bool Acqiure(const std::string& path, uint32_t tileNum, KVirtualTextureResourceRef& ref);
-	bool Update(IKCommandBufferPtr primaryBuffer, const std::vector<IKEntity*>& cullRes);
-	bool InitFeedbackTarget(IKCommandBufferPtr primaryBuffer);
+	bool Update(KRHICommandList& commandList, const std::vector<IKEntity*>& cullRes);
+	bool InitFeedbackTarget(KRHICommandList& commandList);
 
 	bool ReloadShader();
 
@@ -152,12 +153,12 @@ public:
 	void UploadToPhysical(const std::string& sourceTexture, KVirtualTexturePhysicalLocation location);
 
 	bool& GetFeedbackDebugDrawEnable() { return m_FeedbackDebugDrawer.GetEnable(); }
-	bool FeedbackDebugRender(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer);
+	bool FeedbackDebugRender(IKRenderPassPtr renderPass, KRHICommandList& commandList);
 
 	bool& GetPhysicalDrawEnable() { return m_PhysicalDebugDrawer.GetEnable(); }
-	bool PhysicalDebugRender(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer);
+	bool PhysicalDebugRender(IKRenderPassPtr renderPass, KRHICommandList& commandList);
 
-	bool TableDebugRender(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer);
+	bool TableDebugRender(IKRenderPassPtr renderPass, KRHICommandList& commandList);
 
 	IKStorageBufferPtr GetVirtualTextureFeedbackBuffer();
 	IKStorageBufferPtr GetVirtualTextrueDescriptionBuffer();

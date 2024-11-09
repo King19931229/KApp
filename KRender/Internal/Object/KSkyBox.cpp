@@ -151,7 +151,7 @@ bool KSkyBox::UnInit()
 	return true;
 }
 
-bool KSkyBox::Render(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer)
+bool KSkyBox::Render(IKRenderPassPtr renderPass, KRHICommandList& commandList)
 {
 	KRenderCommand command;
 	command.vertexData = &m_VertexData;
@@ -160,7 +160,7 @@ bool KSkyBox::Render(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffe
 	command.pipeline->GetHandle(renderPass, command.pipelineHandle);
 	command.indexDraw = true;
 
-	primaryBuffer->Render(command);
+	commandList.Render(command);
 
 	return true;
 }

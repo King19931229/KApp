@@ -1,5 +1,6 @@
 #include "KRenderScene.h"
 #include "KOctreeSceneManager.h"
+#include "Internal/Terrain/Clipmap/KClipmap.h"
 #include "Internal/Terrain/KTerrain.h"
 #include "Internal/KRenderGlobal.h"
 

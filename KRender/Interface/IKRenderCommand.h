@@ -251,16 +251,3 @@ struct KRenderCommand
 };
 
 typedef std::vector<KRenderCommand> KRenderCommandList;
-
-struct KMultithreadingRenderContext
-{
-	IKCommandBufferPtr primaryBuffer;
-	std::vector<IKCommandPoolPtr> threadCommandPools;
-	class KRenderThreadPool* threadPool;
-	bool enableMultithreading;
-
-	KMultithreadingRenderContext()
-		: threadPool(nullptr)
-		, enableMultithreading(false)
-	{}
-};

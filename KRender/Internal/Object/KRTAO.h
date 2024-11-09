@@ -114,8 +114,8 @@ public:
 	bool& GetDebugDrawEnable() { return m_DebugDrawer.GetEnable(); }
 	bool& GetEnable() { return m_Enable; }
 
-	bool DebugRender(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer);
-	bool Execute(IKCommandBufferPtr primaryBuffer, IKQueuePtr graphicsQueue, IKQueuePtr computeQueue);
+	bool DebugRender(IKRenderPassPtr renderPass, KRHICommandList& commandList);
+	bool Execute(KRHICommandList& commandList, IKQueuePtr graphicsQueue, IKQueuePtr computeQueue);
 
 	AoControl& GetAoParameters() { return m_AOParameters; }
 

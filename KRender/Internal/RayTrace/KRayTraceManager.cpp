@@ -26,11 +26,11 @@ bool KRayTraceManager::UnInit()
 	return true;
 }
 
-bool KRayTraceManager::Execute(IKCommandBufferPtr primaryBuffer)
+bool KRayTraceManager::Execute(KRHICommandList& commandList)
 {
 	for (IKRayTraceScenePtr scene : m_Scenes)
 	{
-		scene->Execute(primaryBuffer);
+		scene->Execute(commandList);
 	}
 	return true;
 }
@@ -85,11 +85,11 @@ bool KRayTraceManager::GetAllRayTraceScene(std::unordered_set<IKRayTraceScenePtr
 	return true;
 }
 
-bool KRayTraceManager::DebugRender(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer)
+bool KRayTraceManager::DebugRender(IKRenderPassPtr renderPass, KRHICommandList& commandList)
 {
 	for (IKRayTraceScenePtr scene : m_Scenes)
 	{
-		scene->DebugRender(renderPass, primaryBuffer);
+		scene->DebugRender(renderPass, commandList);
 	}
 	return true;
 }

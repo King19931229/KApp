@@ -1,6 +1,7 @@
 #pragma once
 #include "Interface/IKRenderDevice.h"
 #include "Interface/IKStatistics.h"
+#include "Internal/Render/KRHICommandList.h"
 #include "Publish/KCamera.h"
 
 enum GBufferTarget
@@ -52,9 +53,9 @@ public:
 	bool UnInit();
 	bool Resize(uint32_t width, uint32_t height);
 
-	bool TransitionColor(IKCommandBufferPtr buffer, IKQueuePtr srcQueue, IKQueuePtr dstQueue, PipelineStages srcStages, PipelineStages dstStages, ImageLayout oldLayout, ImageLayout newLayout);
-	bool TransitionDepthStencil(IKCommandBufferPtr buffer, IKQueuePtr srcQueue, IKQueuePtr dstQueue, PipelineStages srcStages, PipelineStages dstStages, ImageLayout oldLayout, ImageLayout newLayout);
-	bool TransitionAO(IKCommandBufferPtr buffer, IKQueuePtr srcQueue, IKQueuePtr dstQueue, PipelineStages srcStages, PipelineStages dstStages, ImageLayout oldLayout, ImageLayout newLayout);
+	bool TransitionColor(KRHICommandList& commandList, IKQueuePtr srcQueue, IKQueuePtr dstQueue, PipelineStages srcStages, PipelineStages dstStages, ImageLayout oldLayout, ImageLayout newLayout);
+	bool TransitionDepthStencil(KRHICommandList& commandList, IKQueuePtr srcQueue, IKQueuePtr dstQueue, PipelineStages srcStages, PipelineStages dstStages, ImageLayout oldLayout, ImageLayout newLayout);
+	bool TransitionAO(KRHICommandList& commandList, IKQueuePtr srcQueue, IKQueuePtr dstQueue, PipelineStages srcStages, PipelineStages dstStages, ImageLayout oldLayout, ImageLayout newLayout);
 
 	inline IKRenderTargetPtr GetGBufferTarget(GBufferTarget target) { return m_RenderTarget[target]; }
 	inline IKRenderTargetPtr GetDepthStencilTarget() { return m_DepthStencilTarget; }

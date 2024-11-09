@@ -195,9 +195,9 @@ bool KHiZBuffer::UnInit()
 	return true;
 }
 
-bool KHiZBuffer::Construct(IKCommandBufferPtr primaryBuffer)
+bool KHiZBuffer::Construct(KRHICommandList& commandList)
 {
-	primaryBuffer->BeginDebugMarker("HiZMinBuild", glm::vec4(1));
+	commandList.BeginDebugMarker("HiZMinBuild", glm::vec4(1));
 	for (uint32_t i = 0; i < m_NumMips; ++i)
 	{
 		if (i == 0)
@@ -209,10 +209,10 @@ bool KHiZBuffer::Construct(IKCommandBufferPtr primaryBuffer)
 
 			IKRenderPassPtr renderPass = m_HiZMinRenderPass[i];
 
-			primaryBuffer->BeginDebugMarker("HiZMinInit", glm::vec4(1));
+			commandList.BeginDebugMarker("HiZMinInit", glm::vec4(1));
 
-			primaryBuffer->BeginRenderPass(renderPass, SUBPASS_CONTENTS_INLINE);
-			primaryBuffer->SetViewport(renderPass->GetViewPort());
+			commandList.BeginRenderPass(renderPass, SUBPASS_CONTENTS_INLINE);
+			commandList.SetViewport(renderPass->GetViewPort());
 
 			command.pipeline = m_ReadDepthPipeline;
 			command.pipeline->GetHandle(renderPass, command.pipelineHandle);
@@ -249,11 +249,11 @@ bool KHiZBuffer::Construct(IKCommandBufferPtr primaryBuffer)
 
 			command.dynamicConstantUsages = { objectUsage };
 
-			primaryBuffer->Render(command);
+			commandList.Render(command);
 
-			primaryBuffer->EndRenderPass();
-			primaryBuffer->EndDebugMarker();
-			primaryBuffer->TransitionMipmap(m_HiZMinBuffer->GetFrameBuffer(), i, PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+			commandList.EndRenderPass();
+			commandList.EndDebugMarker();
+			commandList.TransitionMipmap(m_HiZMinBuffer->GetFrameBuffer(), i, PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 		}
 		else
 		{
@@ -264,10 +264,10 @@ bool KHiZBuffer::Construct(IKCommandBufferPtr primaryBuffer)
 
 			IKRenderPassPtr renderPass = m_HiZMinRenderPass[i];
 
-			primaryBuffer->BeginDebugMarker("HiZMinBuild_" + std::to_string(i), glm::vec4(1));
+			commandList.BeginDebugMarker("HiZMinBuild_" + std::to_string(i), glm::vec4(1));
 
-			primaryBuffer->BeginRenderPass(renderPass, SUBPASS_CONTENTS_INLINE);
-			primaryBuffer->SetViewport(renderPass->GetViewPort());
+			commandList.BeginRenderPass(renderPass, SUBPASS_CONTENTS_INLINE);
+			commandList.SetViewport(renderPass->GetViewPort());
 
 			command.pipeline = m_BuildHiZMinPipelines[i - 1];
 			command.pipeline->GetHandle(renderPass, command.pipelineHandle);
@@ -285,16 +285,16 @@ bool KHiZBuffer::Construct(IKCommandBufferPtr primaryBuffer)
 
 			command.dynamicConstantUsages.push_back(objectUsage);
 
-			primaryBuffer->Render(command);
+			commandList.Render(command);
 
-			primaryBuffer->EndRenderPass();
-			primaryBuffer->EndDebugMarker();
-			primaryBuffer->TransitionMipmap(m_HiZMinBuffer->GetFrameBuffer(), i, PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+			commandList.EndRenderPass();
+			commandList.EndDebugMarker();
+			commandList.TransitionMipmap(m_HiZMinBuffer->GetFrameBuffer(), i, PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 		}
 	}
-	primaryBuffer->EndDebugMarker();
+	commandList.EndDebugMarker();
 
-	primaryBuffer->BeginDebugMarker("HiZMaxBuild", glm::vec4(1));
+	commandList.BeginDebugMarker("HiZMaxBuild", glm::vec4(1));
 	for (uint32_t i = 0; i < m_NumMips; ++i)
 	{
 		if (i == 0)
@@ -306,10 +306,10 @@ bool KHiZBuffer::Construct(IKCommandBufferPtr primaryBuffer)
 
 			IKRenderPassPtr renderPass = m_HiZMaxRenderPass[i];
 
-			primaryBuffer->BeginDebugMarker("HiZMaxInit", glm::vec4(1));
+			commandList.BeginDebugMarker("HiZMaxInit", glm::vec4(1));
 
-			primaryBuffer->BeginRenderPass(renderPass, SUBPASS_CONTENTS_INLINE);
-			primaryBuffer->SetViewport(renderPass->GetViewPort());
+			commandList.BeginRenderPass(renderPass, SUBPASS_CONTENTS_INLINE);
+			commandList.SetViewport(renderPass->GetViewPort());
 
 			command.pipeline = m_ReadDepthPipeline;
 			command.pipeline->GetHandle(renderPass, command.pipelineHandle);
@@ -337,11 +337,11 @@ bool KHiZBuffer::Construct(IKCommandBufferPtr primaryBuffer)
 
 			command.dynamicConstantUsages.push_back(objectUsage);
 
-			primaryBuffer->Render(command);
+			commandList.Render(command);
 
-			primaryBuffer->EndRenderPass();
-			primaryBuffer->EndDebugMarker();
-			primaryBuffer->TransitionMipmap(m_HiZMaxBuffer->GetFrameBuffer(), i, PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+			commandList.EndRenderPass();
+			commandList.EndDebugMarker();
+			commandList.TransitionMipmap(m_HiZMaxBuffer->GetFrameBuffer(), i, PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 		}
 		else
 		{
@@ -352,10 +352,10 @@ bool KHiZBuffer::Construct(IKCommandBufferPtr primaryBuffer)
 
 			IKRenderPassPtr renderPass = m_HiZMaxRenderPass[i];
 
-			primaryBuffer->BeginDebugMarker("HiZMaxBuild_" + std::to_string(i), glm::vec4(1));
+			commandList.BeginDebugMarker("HiZMaxBuild_" + std::to_string(i), glm::vec4(1));
 
-			primaryBuffer->BeginRenderPass(renderPass, SUBPASS_CONTENTS_INLINE);
-			primaryBuffer->SetViewport(renderPass->GetViewPort());
+			commandList.BeginRenderPass(renderPass, SUBPASS_CONTENTS_INLINE);
+			commandList.SetViewport(renderPass->GetViewPort());
 
 			command.pipeline = m_BuildHiZMaxPipelines[i - 1];
 			command.pipeline->GetHandle(renderPass, command.pipelineHandle);
@@ -373,14 +373,14 @@ bool KHiZBuffer::Construct(IKCommandBufferPtr primaryBuffer)
 
 			command.dynamicConstantUsages.push_back(objectUsage);
 
-			primaryBuffer->Render(command);
+			commandList.Render(command);
 
-			primaryBuffer->EndRenderPass();
-			primaryBuffer->EndDebugMarker();
-			primaryBuffer->TransitionMipmap(m_HiZMaxBuffer->GetFrameBuffer(), i, PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+			commandList.EndRenderPass();
+			commandList.EndDebugMarker();
+			commandList.TransitionMipmap(m_HiZMaxBuffer->GetFrameBuffer(), i, PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 		}
 	}
-	primaryBuffer->EndDebugMarker();
+	commandList.EndDebugMarker();
 
 	return true;
 }

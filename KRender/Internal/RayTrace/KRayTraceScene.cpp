@@ -97,11 +97,11 @@ void KRayTraceScene::RecreateAS()
 	}
 }
 
-bool KRayTraceScene::DebugRender(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer)
+bool KRayTraceScene::DebugRender(IKRenderPassPtr renderPass, KRHICommandList& commandList)
 {
 	for (auto it = m_RaytracePipelineInfos.begin(); it != m_RaytracePipelineInfos.end(); ++it)
 	{
-		return it->debugDrawer.Render(renderPass, primaryBuffer);
+		return it->debugDrawer.Render(renderPass, commandList);
 	}
 	return true;
 }
@@ -385,7 +385,7 @@ void KRayTraceScene::ReloadShader()
 	}
 }
 
-bool KRayTraceScene::Execute(IKCommandBufferPtr primaryBuffer)
+bool KRayTraceScene::Execute(KRHICommandList& commandList)
 {
 	if (m_bNeedRecreateAS)
 	{
@@ -394,7 +394,7 @@ bool KRayTraceScene::Execute(IKCommandBufferPtr primaryBuffer)
 
 	for (auto it = m_RaytracePipelineInfos.begin(); it != m_RaytracePipelineInfos.end(); ++it)
 	{
-		it->pipeline->Execute(primaryBuffer);
+		commandList.Execute(it->pipeline);
 	}
 	return true;
 }

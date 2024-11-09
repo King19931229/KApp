@@ -366,7 +366,7 @@ void KVirtualGeometryStreamingManager::EnsureFixupOrder()
 	m_HierarchyFixupUpdates = std::move(hierarchyFixupUpdates);
 }
 
-void KVirtualGeometryStreamingManager::ApplyStreamingUpdate(IKCommandBufferPtr primaryBuffer)
+void KVirtualGeometryStreamingManager::ApplyStreamingUpdate(KRHICommandList& commandList)
 {
 	// 0.Ensure stream out fixup overwrite stream in fixup
 	EnsureFixupOrder();
@@ -391,11 +391,7 @@ void KVirtualGeometryStreamingManager::ApplyStreamingUpdate(IKCommandBufferPtr p
 		streamingData.misc5.x = clusterFixupNum;
 		streamingData.misc5.y = hierarchyFixupNum;
 
-		void* pWrite = nullptr;
-		m_StreamingDataBuffer->Map(&pWrite);
-		memcpy(pWrite, &streamingData, sizeof(streamingData));
-		m_StreamingDataBuffer->UnMap();
-		pWrite = nullptr;
+		commandList.UpdateUniformBuffer(m_StreamingDataBuffer, &streamingData, 0, sizeof(streamingData));
 	}
 
 	// 2.Release previous upload buffer
@@ -460,7 +456,7 @@ void KVirtualGeometryStreamingManager::ApplyStreamingUpdate(IKCommandBufferPtr p
 		pageUploadContentBuffer->InitDevice(false, false);
 
 		uint32_t numDispatch = (((pageSize + 3) / 4) + VG_GROUP_SIZE - 1) / VG_GROUP_SIZE;
-		m_PageUploadPipelines[currentFrame]->Execute(primaryBuffer, numDispatch, 1, 1, nullptr);
+		commandList.Execute(m_PageUploadPipelines[currentFrame], numDispatch, 1, 1, nullptr);
 	}
 
 	// 4.Update fixup
@@ -486,7 +482,7 @@ void KVirtualGeometryStreamingManager::ApplyStreamingUpdate(IKCommandBufferPtr p
 		fixupUploadContentBuffer->InitDevice(false, false);
 
 		uint32_t numDispatch = (clusterFixupNum + VG_GROUP_SIZE - 1) / VG_GROUP_SIZE;
-		m_ClusterFixupUploadPipelines[currentFrame]->Execute(primaryBuffer, numDispatch, 1, 1, nullptr);
+		commandList.Execute(m_ClusterFixupUploadPipelines[currentFrame], numDispatch, 1, 1, nullptr);
 	}
 
 	if (m_HierarchyFixupUpdates.size() > 0)
@@ -512,7 +508,7 @@ void KVirtualGeometryStreamingManager::ApplyStreamingUpdate(IKCommandBufferPtr p
 		fixupUploadContentBuffer->InitDevice(false, false);
 
 		uint32_t numDispatch = (hierarchyFixupNum + VG_GROUP_SIZE - 1) / VG_GROUP_SIZE;
-		m_HierarchyFixupUploadPipelines[currentFrame]->Execute(primaryBuffer, numDispatch, 1, 1, nullptr);
+		commandList.Execute(m_HierarchyFixupUploadPipelines[currentFrame], numDispatch, 1, 1, nullptr);
 	}
 
 	m_ActualStreamInPages.clear();
@@ -520,7 +516,7 @@ void KVirtualGeometryStreamingManager::ApplyStreamingUpdate(IKCommandBufferPtr p
 	m_HierarchyFixupUpdates.clear();
 }
 
-void KVirtualGeometryStreamingManager::UpdateStreamingRequests(IKCommandBufferPtr primaryBuffer)
+void KVirtualGeometryStreamingManager::UpdateStreamingRequests(KRHICommandList& commandList)
 {
 	uint32_t currentFrame = KRenderGlobal::CurrentInFlightFrameIndex;
 
@@ -592,11 +588,11 @@ void KVirtualGeometryStreamingManager::UpdateStreamingRequests(IKCommandBufferPt
 		--m_DiscardRequestCounter;
 	}
 
-	primaryBuffer->BeginDebugMarker("VirtualGeometry_StreamingRequestClear", glm::vec4(1.0f));
+	commandList.BeginDebugMarker("VirtualGeometry_StreamingRequestClear", glm::vec4(1.0f));
 	{
-		m_StreamingRequestClearPipelines[currentFrame]->Execute(primaryBuffer, 1, 1, 1);
+		commandList.Execute(m_StreamingRequestClearPipelines[currentFrame], 1, 1, 1);
 	}
-	primaryBuffer->EndDebugMarker();
+	commandList.EndDebugMarker();
 }
 
 bool KVirtualGeometryStreamingManager::IsRootPage(const KVirtualGeometryStreamingPageDesc& pageDesc)
@@ -627,7 +623,7 @@ bool KVirtualGeometryStreamingManager::GetPageLevel(const KVirtualGeometryStream
 	return false;
 }
 
-void KVirtualGeometryStreamingManager::UpdateStreamingPages(IKCommandBufferPtr primaryBuffer)
+void KVirtualGeometryStreamingManager::UpdateStreamingPages(KRHICommandList& commandList)
 {
 	// 1.LRU sort streaming page and generate pending stream in.
 	LRUSortPagesByRequests();
@@ -726,11 +722,11 @@ void KVirtualGeometryStreamingManager::LRUSortPagesByRequests()
 	}
 }
 
-bool KVirtualGeometryStreamingManager::Update(IKCommandBufferPtr primaryBuffer)
+bool KVirtualGeometryStreamingManager::Update(KRHICommandList& commandList)
 {
-	UpdateStreamingRequests(primaryBuffer);
-	UpdateStreamingPages(primaryBuffer);
-	ApplyStreamingUpdate(primaryBuffer);
+	UpdateStreamingRequests(commandList);
+	UpdateStreamingPages(commandList);
+	ApplyStreamingUpdate(commandList);
 	return true;
 }
 

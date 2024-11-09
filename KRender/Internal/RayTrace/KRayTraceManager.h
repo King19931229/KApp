@@ -15,7 +15,7 @@ public:
 
 	bool Init();
 	bool UnInit();
-	bool Execute(IKCommandBufferPtr primaryBuffer);
+	bool Execute(KRHICommandList& commandList);
 	bool UpdateCamera();
 	bool Resize(size_t width, size_t height);
 	bool ReloadShader();
@@ -23,5 +23,5 @@ public:
 	virtual bool CreateRayTraceScene(IKRayTraceScenePtr& scene);
 	virtual bool RemoveRayTraceScene(IKRayTraceScenePtr& scene);
 	virtual bool GetAllRayTraceScene(std::unordered_set<IKRayTraceScenePtr>& scenes);
-	virtual bool DebugRender(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer);
+	virtual bool DebugRender(IKRenderPassPtr renderPass, KRHICommandList& commandList);
 };

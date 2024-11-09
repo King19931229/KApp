@@ -46,7 +46,6 @@ protected:
 	IKRenderPassPtr	m_RenderPass;
 	IKPipelinePtr m_Pipeline;
 	IKPipelinePtr m_ScreenDrawPipeline;
-	IKCommandBufferPtr m_CommandBuffer;
 
 	// 一个输出槽可能连接到多个节点输出
 	std::unordered_set<IKPostProcessConnection*> m_OutputConnection[PostProcessPort::MAX_OUTPUT_SLOT_COUNT];
@@ -100,6 +99,5 @@ public:
 	inline IKRenderPassPtr GetRenderPass() { return m_RenderPass; }
 	inline IKPipelinePtr GetPipeline() { return m_Pipeline; }
 	inline IKPipelinePtr GetScreenDrawPipeline() { return m_ScreenDrawPipeline; }
-	inline IKCommandBufferPtr GetCommandBuffer() { return m_CommandBuffer; }
 	inline bool IsInit() { return m_bInit; }
 };

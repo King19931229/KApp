@@ -109,7 +109,7 @@ bool KVirtualGeometryStorageBuffer::Append(size_t size, void* pData)
 
 	if (newBufferSize > m_Buffer->GetBufferSize())
 	{
-		KRenderGlobal::RenderDevice->Wait();
+		KRenderGlobal::Renderer.GetRHICommandList().Flush(RHICommandFlush::FlushRHIThread);
 
 		std::vector<unsigned char> bufferData;
 		if (m_Size > 0)
@@ -495,21 +495,21 @@ bool KVirtualGeometryManager::RemoveVirtualGeometryScene(IKVirtualGeometrySceneP
 	return true;
 }
 
-bool KVirtualGeometryManager::ExecuteMain(IKCommandBufferPtr primaryBuffer)
+bool KVirtualGeometryManager::ExecuteMain(KRHICommandList& commandList)
 {
-	m_StreamingManager.Update(primaryBuffer);
+	m_StreamingManager.Update(commandList);
 	for (IKVirtualGeometryScenePtr scene : m_Scenes)
 	{
-		scene->ExecuteMain(primaryBuffer);
+		scene->ExecuteMain(commandList);
 	}
 	return true;
 }
 
-bool KVirtualGeometryManager::ExecutePost(IKCommandBufferPtr primaryBuffer)
+bool KVirtualGeometryManager::ExecutePost(KRHICommandList& commandList)
 {
 	for (IKVirtualGeometryScenePtr scene : m_Scenes)
 	{
-		scene->ExecutePost(primaryBuffer);
+		scene->ExecutePost(commandList);
 	}
 	return true;
 }

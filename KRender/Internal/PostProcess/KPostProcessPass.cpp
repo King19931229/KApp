@@ -42,7 +42,6 @@ KPostProcessPass::~KPostProcessPass()
 	assert(!m_VSShader);
 	assert(!m_FSShader);
 	assert(m_RenderTarget == nullptr);
-	assert(m_CommandBuffer == nullptr);
 
 	for (auto& conn : m_InputConnection)
 	{

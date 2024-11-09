@@ -112,7 +112,7 @@ protected:
 	RenderComponentObserverFunc m_OnRenderComponentChangedFunc;
 	void OnRenderComponentChanged(IKRenderComponent* renderComponent, bool init);
 
-	bool UpdateInstanceData();
+	bool UpdateInstanceData(KRHICommandList& commandList);
 
 	InstancePtr CreateInstance(IKEntity* entity);
 	InstancePtr GetInstance(IKEntity* entity);
@@ -121,8 +121,8 @@ protected:
 	bool TransformInstance(IKEntity* entity, const glm::mat4& transform);
 	bool RemoveInstance(IKEntity* entity);
 
-	bool Execute(IKCommandBufferPtr primaryBuffer, InstanceCull cullMode);
-	bool BasePass(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer, InstanceCull cullMode);
+	bool Execute(KRHICommandList& commandList, InstanceCull cullMode);
+	bool BasePass(IKRenderPassPtr renderPass, KRHICommandList& commandList, InstanceCull cullMode);
 
 	static std::string InstanceCullString(InstanceCull cullMode);
 public:
@@ -132,13 +132,13 @@ public:
 	bool Init(IKRenderScene* scene, const KCamera* camera) override;
 	bool UnInit() override;
 
-	bool ExecuteMain(IKCommandBufferPtr primaryBuffer) override;
-	bool ExecutePost(IKCommandBufferPtr primaryBuffer) override;
+	bool ExecuteMain(KRHICommandList& commandList) override;
+	bool ExecutePost(KRHICommandList& commandList) override;
 
-	bool BasePassMain(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer) override;
-	bool BasePassPost(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer) override;
+	bool BasePassMain(IKRenderPassPtr renderPass, KRHICommandList& commandList) override;
+	bool BasePassPost(IKRenderPassPtr renderPass, KRHICommandList& commandList) override;
 
-	bool DebugRender(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer) override;
+	bool DebugRender(IKRenderPassPtr renderPass, KRHICommandList& commandList) override;
 
 	bool ReloadShader();
 

@@ -4,6 +4,7 @@
 #include "Interface/IKShader.h"
 #include "Interface/IKSampler.h"
 #include "Internal/KVertexDefinition.h"
+#include "Internal/Render/KRHICommandList.h"
 
 class KRTDebugDrawer
 {
@@ -45,5 +46,5 @@ public:
 	void EnableDraw();
 	void DisableDraw();
 
-	bool Render(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer);
+	bool Render(IKRenderPassPtr renderPass, KRHICommandList& commandList);
 };

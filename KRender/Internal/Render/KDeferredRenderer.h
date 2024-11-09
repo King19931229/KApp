@@ -4,6 +4,7 @@
 #include "Internal/KVertexDefinition.h"
 #include "Internal/ECS/Component/KRenderComponent.h"
 #include "Internal/Render/KRenderUtil.h"
+#include "Internal/Render/KRHICommandList.h"
 
 class KDeferredRenderer
 {
@@ -33,7 +34,7 @@ protected:
 
 	void BuildMaterialSubMeshInstance(DeferredRenderStage renderStage, const std::vector<IKEntity*>& cullRes, std::vector<KMaterialSubMeshInstance>& instances);
 	void HandleRenderCommandBinding(DeferredRenderStage renderStage, KRenderCommand& command);
-	void BuildRenderCommand(KMultithreadingRenderContext& renderContext, DeferredRenderStage deferredRenderStage, const std::vector<IKEntity*>& cullRes);
+	void BuildRenderCommand(KRHICommandList& commandList, DeferredRenderStage deferredRenderStage, const std::vector<IKEntity*>& cullRes);
 
 	void RecreateRenderPass(uint32_t width, uint32_t heigh);
 	void RecreatePipeline();
@@ -48,19 +49,19 @@ public:
 	void AddCallFunc(DeferredRenderStage stage, RenderPassCallFuncType* func);
 	void RemoveCallFunc(DeferredRenderStage stage, RenderPassCallFuncType* func);
 	
-	void PrePass(KMultithreadingRenderContext& renderContext, const std::vector<IKEntity*>& cullRes);
-	void MainBasePass(KMultithreadingRenderContext& renderContext, const std::vector<IKEntity*>& cullRes);
-	void PostBasePass(KMultithreadingRenderContext& renderContext);
-	void DeferredLighting(IKCommandBufferPtr primaryBuffer);
-	void ForwardOpaque(KMultithreadingRenderContext& renderContext, const std::vector<IKEntity*>& cullRes);
-	void ForwardTransprant(IKCommandBufferPtr primaryBuffer, const std::vector<IKEntity*>& cullRes);
-	void SkyPass(IKCommandBufferPtr primaryBuffer);
-	void CopySceneColorToFinal(IKCommandBufferPtr primaryBuffer);
-	void DebugObject(IKCommandBufferPtr primaryBuffer, const std::vector<IKEntity*>& cullRes);
-	void Foreground(IKCommandBufferPtr primaryBuffer);
-	void EmptyAO(IKCommandBufferPtr primaryBuffer);
+	void PrePass(KRHICommandList& commandList, const std::vector<IKEntity*>& cullRes);
+	void MainBasePass(KRHICommandList& commandList, const std::vector<IKEntity*>& cullRes);
+	void PostBasePass(KRHICommandList& commandList);
+	void DeferredLighting(KRHICommandList& commandList);
+	void ForwardOpaque(KRHICommandList& commandList, const std::vector<IKEntity*>& cullRes);
+	void ForwardTransprant(KRHICommandList& commandList, const std::vector<IKEntity*>& cullRes);
+	void SkyPass(KRHICommandList& commandList);
+	void CopySceneColorToFinal(KRHICommandList& commandList);
+	void DebugObject(KRHICommandList& commandList, const std::vector<IKEntity*>& cullRes);
+	void Foreground(KRHICommandList& commandList);
+	void EmptyAO(KRHICommandList& commandList);
 
-	void DrawFinalResult(IKRenderPassPtr renderPass, IKCommandBufferPtr buffer);
+	void DrawFinalResult(IKRenderPassPtr renderPass, KRHICommandList& commandList);
 
 	inline IKRenderTargetPtr GetFinal() { return m_FinalTarget; }
 

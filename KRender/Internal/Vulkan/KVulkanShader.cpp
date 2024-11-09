@@ -441,7 +441,7 @@ bool KVulkanShader::DebugDump()
 	const char* annotatedSource = m_SourceFile->GetAnnotatedSource();
 	if (annotatedSource)
 	{
-		KG_LOGE(LM_RENDER, "[DebugDump]\n<%s>\n%s\n", m_Path.c_str(), annotatedSource);
+		KG_LOGE(LM_RENDER, "[DebugDump]\nSource:<%s>\nContent:\n%s\n", m_Path.c_str(), annotatedSource);
 	}
 	return true;
 }

@@ -4,6 +4,7 @@
 #include "Interface/IKSampler.h"
 #include "Interface/IKShader.h"
 #include "KRender/Publish/KCamera.h"
+#include "Internal/Render/KRHICommandList.h"
 
 class KVolumetricFog
 {
@@ -93,8 +94,8 @@ protected:
 
 	void InitializePipeline();
 
-	void UpdateVoxel(IKCommandBufferPtr primaryBuffer);
-	void UpdateScattering(IKCommandBufferPtr primaryBuffer);
+	void UpdateVoxel(KRHICommandList& commandList);
+	void UpdateScattering(KRHICommandList& commandList);
 public:
 	KVolumetricFog();
 	~KVolumetricFog();
@@ -110,7 +111,7 @@ public:
 	bool Init(uint32_t gridX, uint32_t gridY, uint32_t gridZ, float depth, uint32_t width, uint32_t height,	const KCamera* camera);
 	void Resize(uint32_t width, uint32_t height);
 	bool UnInit();
-	bool Execute(IKCommandBufferPtr primaryBuffer);
+	bool Execute(KRHICommandList& commandList);
 	void Reload();
 
 	IKRenderTargetPtr GetScatteringTarget() { return m_ScatteringTarget; }

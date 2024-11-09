@@ -1,6 +1,7 @@
 #pragma once
 #include "KVirtualGeomerty.h"
 #include "KRender/Interface/IKBuffer.h"
+#include "Internal/Render/KRHICommandList.h"
 #include <queue>
 
 struct KVirtualGeometryStreamingPageDesc
@@ -141,9 +142,9 @@ protected:
 	bool GetPageLevel(const KVirtualGeometryStreamingPageDesc& pageDesc, uint32_t& minLevel, uint32_t& maxLevel);
 
 	void LRUSortPagesByRequests();
-	void UpdateStreamingRequests(IKCommandBufferPtr primaryBuffer);
-	void UpdateStreamingPages(IKCommandBufferPtr primaryBuffer);
-	void ApplyStreamingUpdate(IKCommandBufferPtr primaryBuffer);
+	void UpdateStreamingRequests(KRHICommandList& commandList);
+	void UpdateStreamingPages(KRHICommandList& commandList);
+	void ApplyStreamingUpdate(KRHICommandList& commandList);
 	void ApplyFixup(KVirtualGeometryActivePage* page, bool install);
 	void EnsureFixupOrder();
 	void UpdatePageRefCount(KVirtualGeometryActivePage* page, bool install);
@@ -162,7 +163,7 @@ public:
 	void UnInit();
 
 	bool ReloadShader();
-	bool Update(IKCommandBufferPtr primaryBuffer);
+	bool Update(KRHICommandList& commandList);
 
 	IKStorageBufferPtr GetStreamingRequestPipeline(uint32_t frameIndex);
 	IKStorageBufferPtr GetPageDataBuffer();

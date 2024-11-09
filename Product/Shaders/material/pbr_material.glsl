@@ -58,7 +58,6 @@ vec4 SampleTextureArray(in vec2 texCoord, in uint arrayIndex, in uint sliceIndex
 	return vec4(0);
 }
 
-layout(binding = BINDING_TEXTURE0) uniform sampler2DArray diffuseArraySampler;
 vec4 SampleDiffuse(in vec2 texCoord)
 {
 	return SampleTextureArray(texCoord, MaterialTextureBinding[materialIndex].binding[0], MaterialTextureBinding[materialIndex].slice[0]);
@@ -69,33 +68,28 @@ vec4 SampleDiffuseLod(in vec2 texCoord, float mip)
 	return SampleDiffuse(texCoord);
 }
 
-layout(binding = BINDING_TEXTURE1) uniform sampler2DArray normalArraySampler;
 vec4 SampleNormal(in vec2 texCoord)
 {
 	return SampleTextureArray(texCoord, MaterialTextureBinding[materialIndex].binding[1], MaterialTextureBinding[materialIndex].slice[1]);
 }
 
 #if PBR_MATERIAL_SPECULAR_GLOSINESS
-layout(binding = BINDING_TEXTURE2) uniform sampler2DArray specularGlosinessArraySampler;
 vec4 SampleSpecularGlosiness(in vec2 texCoord)
 {
 	return SampleTextureArray(texCoord, MaterialTextureBinding[materialIndex].binding[2], MaterialTextureBinding[materialIndex].slice[2]);
 }
 #else
-layout(binding = BINDING_TEXTURE2) uniform sampler2DArray metalRoughnessArraySampler;
 vec4 SampleMetalRoughness(in vec2 texCoord)
 {
 	return SampleTextureArray(texCoord, MaterialTextureBinding[materialIndex].binding[2], MaterialTextureBinding[materialIndex].slice[2]);
 }
 #endif
 
-layout(binding = BINDING_TEXTURE3) uniform sampler2DArray emissiveArraySampler;
 vec4 SampleEmissive(in vec2 texCoord)
 {
 	return SampleTextureArray(texCoord, MaterialTextureBinding[materialIndex].binding[3], MaterialTextureBinding[materialIndex].slice[3]);
 }
 
-layout(binding = BINDING_TEXTURE4) uniform sampler2DArray aoArraySampler;
 vec4 SampleAO(in vec2 texCoord)
 {
 	return SampleTextureArray(texCoord, MaterialTextureBinding[materialIndex].binding[4], MaterialTextureBinding[materialIndex].slice[4]);
@@ -257,6 +251,8 @@ vec4 SampleFromVirtualTexture(vec2 texCoord, vec4 pageInfo)
 
 #endif
 
+#if VIRTUAL_TEXTURE_INPUT
+
 #if defined(VIRTUAL_TEXTURE_FEEDBACK_PASS)
 
 layout(binding = BINDING_VIRTUAL_TEXTURE_FEEDBACK_TARGET)
@@ -340,6 +336,7 @@ void WriteVirtualFeedback(vec2 uv, uint binding)
 }
 
 #endif // VIRTUAL_TEXTURE_FEEDBACK_PASS
+#endif // VIRTUAL_TEXTURE_INPUT
 
 #define MANUAL_SRGB 0
 #define SRGB_FAST_APPROXIMATION 1
@@ -536,9 +533,6 @@ MaterialPixelParameters ComputeMaterialPixelParameters(
 #else
 	parameters.ao = 1.0;
 #endif
-
-	parameters.roughness = 1;
-	parameters.metal = 0;
 
 	return parameters;
 }
