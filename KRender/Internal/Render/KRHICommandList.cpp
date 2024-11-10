@@ -3,6 +3,7 @@
 #include "Interface/IKComputePipeline.h"
 #include "Interface/IKQueue.h"
 #include "Interface/IKRayTracePipeline.h"
+#include "Internal/KRenderGlobal.h"
 
 KRHIThread::KRHIThread()
 	: m_Stop(false)

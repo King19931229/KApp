@@ -156,6 +156,28 @@ bool KPipelineManager::AcquireHandle(IKPipelineLayout* layout, IKRenderPass* ren
 			KRenderGlobal::RenderDevice->CreatePipelineHandle(pipelineHandle);
 			pipelineHandle->Init(layout, renderPass, state, binding);
 
+			std::string debugName;
+
+			static const char* LAYOUT_SHADER_NAME[LAYOUT_SHADER_COUNT] =
+			{
+				"vertex",
+				"fragment",
+				"geometry",
+				"task",
+				"mesh"
+			};
+
+			for (uint32_t shaderIndex = 0; shaderIndex < LAYOUT_SHADER_COUNT; ++shaderIndex)
+			{
+				if (binding.shaders[shaderIndex])
+				{
+					debugName += LAYOUT_SHADER_NAME[shaderIndex] + std::string(":");
+					debugName += binding.shaders[shaderIndex]->GetPath() + std::string(" ");
+				}
+			}
+
+			pipelineHandle->SetDebugName(debugName.c_str());
+
 			ref = KPipelineHandleRef(pipelineHandle, [this](IKPipelineHandlePtr& pipelineHandle)
 			{
 				pipelineHandle->UnInit();

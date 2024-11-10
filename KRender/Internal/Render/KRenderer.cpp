@@ -145,17 +145,19 @@ void KRenderer::GPUQueueMiscs::SetThreadNum(uint32_t threadNum)
 
 bool KRenderer::Render(uint32_t chainImageIndex)
 {
+	m_RHICommandList.Flush(RHICommandFlush::FlushRHIThread);
+
 	UpdateCamera();
 
 	if (m_PrevEnableAsyncCompute != m_EnableAsyncCompute)
 	{
-		KRenderGlobal::Renderer.GetRHICommandList().Flush(RHICommandFlush::FlushRHIThread);
+		m_RHICommandList.Flush(RHICommandFlush::FlushRHIThread);
 		SwitchAsyncCompute(m_EnableAsyncCompute);
 	}
 
 	if (m_PrevMultithreadCount != m_MultithreadCount)
 	{
-		KRenderGlobal::Renderer.GetRHICommandList().Flush(RHICommandFlush::FlushRHIThread);
+		m_RHICommandList.Flush(RHICommandFlush::FlushRHIThread);
 		ResetThreadNum(m_MultithreadCount);
 	}
 
@@ -186,6 +188,7 @@ bool KRenderer::Render(uint32_t chainImageIndex)
 
 	m_RHICommandList.EndRecord();
 	m_RHICommandList.QueueSubmit(m_Shadow.queue, {}, {}, nullptr);
+	m_RHICommandList.Flush(RHICommandFlush::DispatchToRHIThread);
 
 	m_PreGraphics.Reset();
 	commandBuffer = m_PreGraphics.pool->Request(CBL_PRIMARY);
@@ -250,6 +253,7 @@ bool KRenderer::Render(uint32_t chainImageIndex)
 	}
 	m_RHICommandList.EndRecord();
 	m_RHICommandList.QueueSubmit(m_PreGraphics.queue, {}, { m_PreGraphics.finish }, nullptr);
+	m_RHICommandList.Flush(RHICommandFlush::DispatchToRHIThread);
 
 	m_Compute.Reset();
 	commandBuffer = m_Compute.pool->Request(CBL_PRIMARY);
@@ -270,6 +274,7 @@ bool KRenderer::Render(uint32_t chainImageIndex)
 
 	m_RHICommandList.EndRecord();
 	m_RHICommandList.QueueSubmit(m_Compute.queue, { m_PreGraphics.finish }, { m_Compute.finish }, nullptr);
+	m_RHICommandList.Flush(RHICommandFlush::DispatchToRHIThread);
 
 	m_PostGraphics.Reset();
 	commandBuffer = m_PostGraphics.pool->Request(CBL_PRIMARY);
@@ -330,6 +335,7 @@ bool KRenderer::Render(uint32_t chainImageIndex)
 
 	m_SwapChain->GetInFlightFence()->Reset();
 	m_RHICommandList.QueueSubmit(m_PostGraphics.queue, { m_Compute.finish, m_SwapChain->GetImageAvailableSemaphore() }, { m_SwapChain->GetRenderFinishSemaphore() }, m_SwapChain->GetInFlightFence());
+	KRenderGlobal::Renderer.GetRHICommandList().Flush(RHICommandFlush::DispatchToRHIThread);
 
 	return true;
 }
@@ -683,8 +689,6 @@ bool KRenderer::UpdateCamera()
 			}
 
 			m_RHICommandList.UpdateUniformBuffer(cameraBuffer, pData, 0, (uint32_t)cameraBuffer->GetBufferSize());
-			m_RHICommandList.Flush(RHICommandFlush::DispatchToRHIThread);
-			m_RHICommandList.Flush(RHICommandFlush::FlushRHIThread);
 			return true;
 		}
 	}
@@ -711,9 +715,6 @@ bool KRenderer::UpdateGlobal()
 		}
 
 		m_RHICommandList.UpdateUniformBuffer(globalBuffer, pData, 0, (uint32_t)globalBuffer->GetBufferSize());
-		m_RHICommandList.Flush(RHICommandFlush::DispatchToRHIThread);
-		m_RHICommandList.Flush(RHICommandFlush::FlushRHIThread);
-
 		return true;
 	}
 	return false;

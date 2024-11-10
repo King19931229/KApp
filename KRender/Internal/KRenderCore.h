@@ -34,10 +34,6 @@ protected:
 
 	KKeyboardCallbackType m_KeyCallback;
 
-	KDevicePresentCallback m_PrePresentCallback;
-	KDevicePresentCallback m_PostPresentCallback;
-	KSwapChainRecreateCallback m_SwapChainCallback;
-
 	KDeviceInitCallback m_InitCallback;
 	KDeviceUnInitCallback m_UnitCallback;
 
@@ -78,7 +74,6 @@ protected:
 	bool UpdateGizmo();
 
 	void OnPostPresent(uint32_t chainIndex, uint32_t frameIndex);
-	void OnSwapChainRecreate(uint32_t width, uint32_t height);
 
 	void Update();
 	void Render();
@@ -97,8 +92,6 @@ public:
 	virtual bool TickShouldEnd();
 	virtual bool Tick();
 	virtual bool Wait();
-
-	virtual bool AttachMainSwapChain();
 
 	virtual bool RegisterSecordaryWindow(IKRenderWindowPtr& window);
 	virtual bool UnRegisterSecordaryWindow(IKRenderWindowPtr& window);

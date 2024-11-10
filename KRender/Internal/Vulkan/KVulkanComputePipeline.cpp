@@ -687,6 +687,18 @@ bool KVulkanComputePipeline::Reload()
 	{
 		DestroyPipeline();
 		CreatePipeline();
+		SetDebugName(m_ComputeShader->GetPath());
+		return true;
+	}
+	return false;
+}
+
+bool KVulkanComputePipeline::SetDebugName(const char* name)
+{
+	if (name)
+	{
+		m_Name = name;
+		KVulkanHelper::DebugUtilsSetObjectName(KVulkanGlobal::device, (uint64_t)m_Pipeline, VK_OBJECT_TYPE_PIPELINE, name);
 		return true;
 	}
 	return false;

@@ -247,8 +247,6 @@ bool KEngine::Init(IKRenderWindowPtr window, const KEngineOptions& options)
 			break;
 		}
 
-		m_RenderCore->AttachMainSwapChain();
-
 		m_Scene = IKScenePtr(KNEW KScene());
 		m_Scene->Init(m_RenderCore->GetRenderScene());
 

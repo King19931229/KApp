@@ -31,4 +31,6 @@ struct IKComputePipeline
 	virtual bool Execute(IKCommandBufferPtr primaryBuffer, uint32_t groupX, uint32_t groupY, uint32_t groupZ, const KDynamicConstantBufferUsage* usage = nullptr) = 0;
 	virtual bool ExecuteIndirect(IKCommandBufferPtr primaryBuffer, IKStorageBufferPtr indirectBuffer, const KDynamicConstantBufferUsage* usage = nullptr) = 0;
 	virtual bool Reload() = 0;
+
+	virtual bool SetDebugName(const char* name) = 0;
 };

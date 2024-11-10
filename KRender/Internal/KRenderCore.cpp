@@ -177,42 +177,45 @@ bool KRenderCore::InitController()
 
 	m_KeyCallback = [this](InputKeyboard key, InputAction action)
 	{
-		if (key == INPUT_KEY_ENTER)
+		ENQUEUE_RENDER_COMMAND(ReloadFromKeyboardInput)([this, key]()
 		{
-			KRenderGlobal::Renderer.GetRHICommandList().Flush(RHICommandFlush::FlushRHIThread);
-			KRenderGlobal::VirtualGeometryManager.ReloadShader();
-		}
-		if (key == INPUT_KEY_SPACE)
-		{
-			KRenderGlobal::Renderer.GetRHICommandList().Flush(RHICommandFlush::FlushRHIThread);
-			KRenderGlobal::VirtualTextureManager.ReloadShader();
-			// KRenderGlobal::GPUScene.ReloadShader();
-		}
-		if (key == INPUT_KEY_R)
-		{
-			KRenderGlobal::Renderer.GetRHICommandList().Flush(RHICommandFlush::FlushRHIThread);
-			KRenderGlobal::RayTraceManager.ReloadShader();
-			KRenderGlobal::VirtualGeometryManager.ReloadShader();
-			KRenderGlobal::VirtualTextureManager.ReloadShader();
-			KRenderGlobal::GPUScene.ReloadShader();
-			KRenderGlobal::RTAO.ReloadShader();
-			if (KRenderGlobal::UsingGIMethod == KRenderGlobal::CLIPMAP_GI)
+			if (key == INPUT_KEY_ENTER)
 			{
-				KRenderGlobal::ClipmapVoxilzer.ReloadShader();				
+				KRenderGlobal::Renderer.GetRHICommandList().Flush(RHICommandFlush::FlushRHIThread);
+				KRenderGlobal::VirtualGeometryManager.ReloadShader();
 			}
-			else if (KRenderGlobal::UsingGIMethod == KRenderGlobal::SVO_GI)
+			if (key == INPUT_KEY_SPACE)
 			{
-				KRenderGlobal::Voxilzer.ReloadShader();
+				KRenderGlobal::Renderer.GetRHICommandList().Flush(RHICommandFlush::FlushRHIThread);
+				KRenderGlobal::VirtualTextureManager.ReloadShader();
+				// KRenderGlobal::GPUScene.ReloadShader();
 			}
-			KRenderGlobal::DeferredRenderer.ReloadShader();
-			KRenderGlobal::Scene.GetTerrain()->Reload();
-			KRenderGlobal::HiZBuffer.ReloadShader();
-			KRenderGlobal::HiZOcclusion.ReloadShader();
-			KRenderGlobal::VolumetricFog.Reload();
-			KRenderGlobal::ScreenSpaceReflection.ReloadShader();
-			KRenderGlobal::DepthOfField.ReloadShader();
-			KRenderGlobal::ShaderManager.Reload();
-		}
+			if (key == INPUT_KEY_R)
+			{
+				KRenderGlobal::Renderer.GetRHICommandList().Flush(RHICommandFlush::FlushRHIThread);
+				KRenderGlobal::RayTraceManager.ReloadShader();
+				KRenderGlobal::VirtualGeometryManager.ReloadShader();
+				KRenderGlobal::VirtualTextureManager.ReloadShader();
+				KRenderGlobal::GPUScene.ReloadShader();
+				KRenderGlobal::RTAO.ReloadShader();
+				if (KRenderGlobal::UsingGIMethod == KRenderGlobal::CLIPMAP_GI)
+				{
+					KRenderGlobal::ClipmapVoxilzer.ReloadShader();
+				}
+				else if (KRenderGlobal::UsingGIMethod == KRenderGlobal::SVO_GI)
+				{
+					KRenderGlobal::Voxilzer.ReloadShader();
+				}
+				KRenderGlobal::DeferredRenderer.ReloadShader();
+				KRenderGlobal::Scene.GetTerrain()->Reload();
+				KRenderGlobal::HiZBuffer.ReloadShader();
+				KRenderGlobal::HiZOcclusion.ReloadShader();
+				KRenderGlobal::VolumetricFog.Reload();
+				KRenderGlobal::ScreenSpaceReflection.ReloadShader();
+				KRenderGlobal::DepthOfField.ReloadShader();
+				KRenderGlobal::ShaderManager.Reload();
+			}
+		});
 	};
 
 #if defined(_WIN32)
@@ -394,13 +397,6 @@ bool KRenderCore::UnInit()
 		m_Device->UnRegisterDeviceInitCallback(&m_InitCallback);
 		m_Device->UnRegisterDeviceUnInitCallback(&m_UnitCallback);
 
-		if (m_MainWindow && m_MainWindow->GetSwapChain())
-		{
-			m_MainWindow->GetSwapChain()->UnRegisterPrePresentCallback(&m_PrePresentCallback);
-			m_MainWindow->GetSwapChain()->UnRegisterPostPresentCallback(&m_PostPresentCallback);
-			m_MainWindow->GetSwapChain()->UnRegisterSwapChainRecreateCallback(&m_SwapChainCallback);
-		}
-
 		m_MainWindow = nullptr;
 
 		m_Device = nullptr;
@@ -413,29 +409,6 @@ bool KRenderCore::UnInit()
 		m_InitCallbacks.clear();
 		m_UICallbacks.clear();
 	}
-	return true;
-}
-
-bool KRenderCore::AttachMainSwapChain()
-{
-	m_PrePresentCallback = [this](uint32_t chainIndex, uint32_t frameIndex)
-	{
-	};
-
-	m_PostPresentCallback = [this](uint32_t chainIndex, uint32_t frameIndex)
-	{
-		OnPostPresent(chainIndex, frameIndex);
-	};
-
-	m_SwapChainCallback = [this](uint32_t width, uint32_t height)
-	{
-		OnSwapChainRecreate(width, height);
-	};
-
-	m_MainWindow->GetSwapChain()->RegisterPrePresentCallback(&m_PrePresentCallback);
-	m_MainWindow->GetSwapChain()->RegisterPostPresentCallback(&m_PostPresentCallback);
-	m_MainWindow->GetSwapChain()->RegisterSwapChainRecreateCallback(&m_SwapChainCallback);
-
 	return true;
 }
 
@@ -501,9 +474,14 @@ void KRenderCore::Render()
 		bool needResize = false;
 		mainSwapChain->PresentQueue(needResize);
 
+		++KRenderGlobal::CurrentFrameNum;
+
 		if (needResize)
 		{
 			m_Device->RecreateSwapChain(mainSwapChain);
+
+			KRenderGlobal::Renderer.OnSwapChainRecreate(mainSwapChain->GetWidth(), mainSwapChain->GetHeight());
+
 			if (uiOverlay)
 			{
 				uiOverlay->UnInit();
@@ -782,16 +760,6 @@ bool KRenderCore::UpdateGizmo()
 {
 	m_Gizmo->Update();
 	return true;
-}
-
-void KRenderCore::OnPostPresent(uint32_t chainIndex, uint32_t frameIndex)
-{
-	++KRenderGlobal::CurrentFrameNum;
-}
-
-void KRenderCore::OnSwapChainRecreate(uint32_t width, uint32_t height)
-{
-	KRenderGlobal::Renderer.OnSwapChainRecreate(width, height);
 }
 
 #include "ShaderMap/KShaderMap.h"
