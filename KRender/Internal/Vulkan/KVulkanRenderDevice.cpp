@@ -1176,6 +1176,7 @@ bool KVulkanRenderDevice::CleanupSwapChain()
 
 bool KVulkanRenderDevice::UnInit()
 {
+	KRenderGlobal::Renderer.GetRHICommandList().Flush(RHICommandFlush::FlushRHIThread);
 	Wait();
 
 #if defined(USE_NSIGHT_AFTERMATH)

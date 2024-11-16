@@ -50,6 +50,7 @@ protected:
 
 	bool m_bInit;
 	bool m_bTickShouldEnd;
+	bool m_bSwapChainResized;
 
 	bool InitPostProcess();
 	bool UnInitPostProcess();

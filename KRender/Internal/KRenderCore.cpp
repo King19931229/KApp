@@ -31,6 +31,7 @@ EXPORT_DLL IKRenderCorePtr CreateRenderCore()
 KRenderCore::KRenderCore()
 	: m_bInit(false),
 	m_bTickShouldEnd(false),
+	m_bSwapChainResized(false),
 	m_Device(nullptr),
 	m_MainWindow(nullptr),
 	m_DebugConsole(nullptr),
@@ -448,12 +449,26 @@ void KRenderCore::Update()
 
 void KRenderCore::Render()
 {
+	KRenderGlobal::Renderer.GetRHICommandList().Flush(RHICommandFlush::FlushRHIThread);
+
 	KRenderGlobal::CommandPool->Reset();
 
 	uint32_t frameIndex = 0;
 
 	IKSwapChain* mainSwapChain = m_MainWindow->GetSwapChain();
 	IKUIOverlay* uiOverlay = m_Device->GetUIOverlay();
+
+	if (m_bSwapChainResized)
+	{
+		KRenderGlobal::Renderer.OnSwapChainRecreate(mainSwapChain->GetWidth(), mainSwapChain->GetHeight());
+		if (uiOverlay)
+		{
+			uiOverlay->UnInit();
+			uiOverlay->Init(m_Device, mainSwapChain->GetFrameInFlight());
+			uiOverlay->Resize(mainSwapChain->GetWidth(), mainSwapChain->GetHeight());
+		}
+		m_bSwapChainResized = false;
+	}
 
 	mainSwapChain->WaitForInFlightFrame(frameIndex);
 
@@ -471,30 +486,18 @@ void KRenderCore::Render()
 		KRenderGlobal::Renderer.Update();
 		KRenderGlobal::Renderer.Execute(chainImageIndex);
 
-		bool needResize = false;
-		mainSwapChain->PresentQueue(needResize);
-
-		++KRenderGlobal::CurrentFrameNum;
-
-		if (needResize)
+		KRenderGlobal::Renderer.GetRHICommandList().Present(mainSwapChain, [this](IKSwapChain* swapChain, bool needResize)
 		{
-			m_Device->RecreateSwapChain(mainSwapChain);
-
-			KRenderGlobal::Renderer.OnSwapChainRecreate(mainSwapChain->GetWidth(), mainSwapChain->GetHeight());
-
-			if (uiOverlay)
-			{
-				uiOverlay->UnInit();
-				uiOverlay->Init(m_Device, mainSwapChain->GetFrameInFlight());
-				uiOverlay->Resize(mainSwapChain->GetWidth(), mainSwapChain->GetHeight());
-			}
-		}
+			m_bSwapChainResized = needResize;
+			++KRenderGlobal::CurrentFrameNum;
+		});
 	}
 
 	std::unordered_map<IKRenderWindow*, IKSwapChainPtr> m_SecordaryWindow;
 
 	if (!m_SecordaryWindow.empty())
 	{
+		KRenderGlobal::Renderer.GetRHICommandList().Flush(RHICommandFlush::FlushRHIThread);
 		// 等待设备空闲 不再进行FrameInFlight
 		m_Device->Wait();
 	}
@@ -512,13 +515,7 @@ void KRenderCore::Render()
 			KRenderGlobal::Renderer.Update();
 			KRenderGlobal::Renderer.Execute(chainImageIndex);
 
-			bool needResize = false;
-			secordarySwapChain->PresentQueue(needResize);
-
-			if (needResize)
-			{
-				m_Device->RecreateSwapChain(secordarySwapChain);
-			}
+			KRenderGlobal::Renderer.GetRHICommandList().Present(secordarySwapChain, [](IKSwapChain* swapChain, bool needResize) {});
 		}
 	}
 }

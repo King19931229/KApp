@@ -15,6 +15,10 @@ typedef std::shared_ptr<KRHICommandBase> KRHICommandBasePtr;
 struct KRHICommandBase
 {
 	KRHICommandBasePtr next;
+	KRHICommandBase()
+	{
+		next = nullptr;
+	}
 	virtual void Execute(KRHICommandList& commandList) = 0;
 	virtual const char* GetName() = 0;
 };
@@ -430,11 +434,13 @@ RHICOMMAND_DEFINE(KSetThreadNumCmd)
 
 RHICOMMAND_DEFINE(KBeginThreadedRenderCmd)
 {
+	IKCommandBufferPtr commandBuffer;
 	std::vector<IKCommandPoolPtr> threadCommandPools;
 	KRenderThreadPool* threadPool;
 	IKRenderPassPtr renderPass;
-	KBeginThreadedRenderCmd(const std::vector<IKCommandPoolPtr>& inThreadCommandPools, KRenderThreadPool* inThreadPool, IKRenderPassPtr inRenderPass)
-		: threadCommandPools(inThreadCommandPools)
+	KBeginThreadedRenderCmd(IKCommandBufferPtr inCommandBuffer, const std::vector<IKCommandPoolPtr>& inThreadCommandPools, KRenderThreadPool* inThreadPool, IKRenderPassPtr inRenderPass)
+		: commandBuffer(inCommandBuffer)
+		, threadCommandPools(inThreadCommandPools)
 		, threadPool(inThreadPool)
 		, renderPass(inRenderPass)
 	{
@@ -493,6 +499,19 @@ RHICOMMAND_DEFINE(KQueueSubmitCmd)
 		, waits(inWaits)
 		, singals(inSingals)
 		, fence(inFence)
+	{}
+	virtual void Execute(KRHICommandList& commandList) override;
+};
+
+typedef std::function<void(IKSwapChain*, bool needResize)> SwapChainResizeCallbackType;
+RHICOMMAND_DEFINE(KSwapChainPresentCmd)
+{
+	IKSwapChain* swapChain;
+	SwapChainResizeCallbackType callback;
+
+	KSwapChainPresentCmd(IKSwapChain* inSwapChain, SwapChainResizeCallbackType inCallback)
+		: swapChain(inSwapChain)
+		, callback(inCallback)
 	{}
 	virtual void Execute(KRHICommandList& commandList) override;
 };
@@ -557,6 +576,7 @@ protected:
 	KRenderThreadPool* m_CurrentMultiThreadPool;
 	IKRenderPassPtr m_CurrentThreadedRenderPass;
 	std::vector<IKCommandPoolPtr> m_CurrentThreadCommandPools;
+	IKCommandBufferPtr m_CurrentCommandBuffer;
 	KCommandBufferList m_CurrentThreadedCommandBuffers;
 
 	inline void ExecuteOrInsertNextCommand(KRHICommandBasePtr command)
@@ -631,8 +651,10 @@ public:
 
 	void QueueSubmit(IKQueuePtr queue, std::vector<IKSemaphorePtr> waits, std::vector<IKSemaphorePtr> singals, IKFencePtr fence);
 
+	void Present(IKSwapChain* swapChain, SwapChainResizeCallbackType callback);
+
 	void InternalSetCurrentThreadNum(uint32_t threadNum) { m_CurrentThreadNum = threadNum; }
-	void InternalCurrentThreadedContext(const std::vector<IKCommandPoolPtr>& threadCommandPools, KRenderThreadPool* threadPool, IKRenderPassPtr renderPass);
+	void InternalCurrentThreadedContext(IKCommandBufferPtr commandBuffer, const std::vector<IKCommandPoolPtr>& threadCommandPools, KRenderThreadPool* threadPool, IKRenderPassPtr renderPass);
 	void InternalSetThreadRenderJob(uint32_t threadIndex, ThreadRenderJobType job);
 	void InternalExecuteThreadedCommandBuffer();
 };

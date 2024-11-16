@@ -3,6 +3,7 @@
 #include "Interface/IKComputePipeline.h"
 #include "Interface/IKQueue.h"
 #include "Interface/IKRayTracePipeline.h"
+#include "Interface/IKSwapChain.h"
 #include "Internal/KRenderGlobal.h"
 
 KRHIThread::KRHIThread()
@@ -150,7 +151,7 @@ void KSetThreadNumCmd::Execute(KRHICommandList& commandList)
 
 void KBeginThreadedRenderCmd::Execute(KRHICommandList& commandList)
 {
-	commandList.InternalCurrentThreadedContext(threadCommandPools, threadPool, renderPass);
+	commandList.InternalCurrentThreadedContext(commandBuffer, threadCommandPools, threadPool, renderPass);
 }
 
 void KEndThreadedRenderCmd::Execute(KRHICommandList& commandList)
@@ -171,6 +172,17 @@ void KAddLowLevelRenderJobCmd::Execute(KRHICommandList& commandList)
 void KQueueSubmitCmd::Execute(KRHICommandList& commandList)
 {
 	queue->Submit(commandBuffer, waits, singals, fence);
+}
+
+void KSwapChainPresentCmd::Execute(KRHICommandList& commandList)
+{
+	bool needResize = false;
+	swapChain->PresentQueue(needResize);
+	if (needResize)
+	{
+		KRenderGlobal::RenderDevice->RecreateSwapChain(swapChain);
+	}
+	callback(swapChain, needResize);
 }
 
 void KUpdateUniformBufferCmd::Execute(KRHICommandList& commandList)
@@ -194,8 +206,9 @@ void KRenderCmd::Execute(KRHICommandList& commandList)
 	commandBuffer->Render(command);
 }
 
-void KRHICommandList::InternalCurrentThreadedContext(const std::vector<IKCommandPoolPtr>& threadCommandPools, KRenderThreadPool* threadPool, IKRenderPassPtr renderPass)
+void KRHICommandList::InternalCurrentThreadedContext(IKCommandBufferPtr inCommandBuffer, const std::vector<IKCommandPoolPtr>& threadCommandPools, KRenderThreadPool* threadPool, IKRenderPassPtr renderPass)
 {
+	m_CurrentCommandBuffer = inCommandBuffer;
 	m_CurrentMultiThreadPool = m_MultiThreadPool;
 	m_CurrentThreadedCommandBuffers.resize(threadCommandPools.size());
 	m_CurrentThreadCommandPools = threadCommandPools;
@@ -209,7 +222,7 @@ void KRHICommandList::InternalCurrentThreadedContext(const std::vector<IKCommand
 
 void KRHICommandList::InternalSetThreadRenderJob(uint32_t threadIndex, ThreadRenderJobType job)
 {
-	m_MultiThreadPool->AddJob(threadIndex, [this, job, threadIndex]()
+	m_CurrentMultiThreadPool->AddJob(threadIndex, [this, job, threadIndex]()
 	{
 		m_CurrentThreadedCommandBuffers[threadIndex]->BeginSecondary(m_CurrentThreadedRenderPass);
 		job(*this, m_CurrentThreadedCommandBuffers[threadIndex], m_CurrentThreadedRenderPass);
@@ -218,14 +231,15 @@ void KRHICommandList::InternalSetThreadRenderJob(uint32_t threadIndex, ThreadRen
 }
 
 void KRHICommandList::InternalExecuteThreadedCommandBuffer()
-{	
+{
 	m_CurrentMultiThreadPool->WaitAll();
 	for (uint32_t threadIndex = 0; threadIndex < m_CurrentThreadNum; ++threadIndex)
 	{
-		m_CommandBuffer->Execute(m_CurrentThreadedCommandBuffers[threadIndex]);
+		m_CurrentCommandBuffer->Execute(m_CurrentThreadedCommandBuffers[threadIndex]);
 	}
 
 	m_CurrentThreadNum = 0;
+	m_CurrentCommandBuffer = nullptr;
 	m_CurrentMultiThreadPool = nullptr;
 	m_CurrentThreadedRenderPass = nullptr;
 	m_CurrentThreadCommandPools.clear();
@@ -248,6 +262,10 @@ KRHICommandList::~KRHICommandList()
 
 void KRHICommandList::SetImmediate(bool immediate)
 {
+	if (immediate == m_ImmediateMode)
+	{
+		return;
+	}
 	if (immediate)
 	{
 		Flush(RHICommandFlush::FlushRHIThread);
@@ -448,7 +466,7 @@ void KRHICommandList::SetThreadNum(uint32_t threadNum)
 
 void KRHICommandList::BeginThreadedRender(IKRenderPassPtr renderPass)
 {
-	KRHICommandBasePtr command = KRHICommandBasePtr(KNEW KBeginThreadedRenderCmd(m_ThreadCommandPools, m_MultiThreadPool, renderPass));
+	KRHICommandBasePtr command = KRHICommandBasePtr(KNEW KBeginThreadedRenderCmd(m_CommandBuffer, m_ThreadCommandPools, m_MultiThreadPool, renderPass));
 	ExecuteOrInsertNextCommand(command);
 }
 
@@ -473,5 +491,11 @@ void KRHICommandList::AddLowLevelRenderJob(LowLevelRenderJobType job)
 void KRHICommandList::QueueSubmit(IKQueuePtr queue, std::vector<IKSemaphorePtr> waits, std::vector<IKSemaphorePtr> singals, IKFencePtr fence)
 {
 	KRHICommandBasePtr command = KRHICommandBasePtr(KNEW KQueueSubmitCmd(m_CommandBuffer, queue, waits, singals, fence));
+	ExecuteOrInsertNextCommand(command);
+}
+
+void KRHICommandList::Present(IKSwapChain* swapChain, SwapChainResizeCallbackType callback)
+{
+	KRHICommandBasePtr command = KRHICommandBasePtr(KNEW KSwapChainPresentCmd(swapChain, callback));
 	ExecuteOrInsertNextCommand(command);
 }
