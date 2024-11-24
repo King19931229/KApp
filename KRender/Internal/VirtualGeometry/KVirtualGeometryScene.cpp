@@ -663,7 +663,7 @@ bool KVirtualGeometryScene::UpdateInstanceData(KRHICommandList& commandList)
 
 			if (m_IndirectDrawBuffer->GetBufferSize() != targetBufferSize)
 			{
-				KRenderGlobal::Renderer.GetRHICommandList().Flush(RHICommandFlush::FlushRHIThread);
+				KRenderGlobal::Renderer.GetRHICommandList().Flush(RHICommandFlush::FlushRHIThreadToDone);
 				m_IndirectDrawBuffer->UnInit();
 				m_IndirectDrawBuffer->InitMemory(targetBufferSize, nullptr);
 				m_IndirectDrawBuffer->InitDevice(true, false);
@@ -677,7 +677,7 @@ bool KVirtualGeometryScene::UpdateInstanceData(KRHICommandList& commandList)
 
 			if (m_IndirectMeshBuffer->GetBufferSize() != targetBufferSize)
 			{
-				KRenderGlobal::Renderer.GetRHICommandList().Flush(RHICommandFlush::FlushRHIThread);
+				KRenderGlobal::Renderer.GetRHICommandList().Flush(RHICommandFlush::FlushRHIThreadToDone);
 				m_IndirectMeshBuffer->UnInit();
 				m_IndirectMeshBuffer->InitMemory(targetBufferSize, nullptr);
 				m_IndirectMeshBuffer->InitDevice(true, false);
@@ -694,7 +694,7 @@ bool KVirtualGeometryScene::UpdateInstanceData(KRHICommandList& commandList)
 
 		if (m_BinningHeaderBuffer->GetBufferSize() != targetBufferSize)
 		{
-			KRenderGlobal::Renderer.GetRHICommandList().Flush(RHICommandFlush::FlushRHIThread);
+			KRenderGlobal::Renderer.GetRHICommandList().Flush(RHICommandFlush::FlushRHIThreadToDone);
 			m_BinningHeaderBuffer->UnInit();
 			m_BinningHeaderBuffer->InitMemory(targetBufferSize, nullptr);
 			m_BinningHeaderBuffer->InitDevice(false, false);
@@ -720,7 +720,7 @@ bool KVirtualGeometryScene::UpdateInstanceData(KRHICommandList& commandList)
 
 		if (m_InstanceDataBuffer->GetBufferSize() != targetBufferSize)
 		{
-			KRenderGlobal::Renderer.GetRHICommandList().Flush(RHICommandFlush::FlushRHIThread);
+			KRenderGlobal::Renderer.GetRHICommandList().Flush(RHICommandFlush::FlushRHIThreadToDone);
 
 			m_InstanceDataBuffer->UnInit();
 			m_InstanceDataBuffer->InitMemory(targetBufferSize, nullptr);
@@ -742,7 +742,7 @@ bool KVirtualGeometryScene::UpdateInstanceData(KRHICommandList& commandList)
 
 		if (m_MainCullResultBuffer->GetBufferSize() != targetBufferSize)
 		{
-			KRenderGlobal::Renderer.GetRHICommandList().Flush(RHICommandFlush::FlushRHIThread);
+			KRenderGlobal::Renderer.GetRHICommandList().Flush(RHICommandFlush::FlushRHIThreadToDone);
 
 			m_MainCullResultBuffer->UnInit();
 			m_MainCullResultBuffer->InitMemory(targetBufferSize, nullptr);

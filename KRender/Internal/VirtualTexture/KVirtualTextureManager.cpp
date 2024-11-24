@@ -516,7 +516,7 @@ void KVirtualTextureManager::UpdateBuffer()
 
 		if (descriptionBuffer->GetBufferSize() < m_VirtualIDCounter * sizeof(glm::uvec4))
 		{
-			KRenderGlobal::Renderer.GetRHICommandList().Flush(RHICommandFlush::FlushRHIThread);
+			KRenderGlobal::Renderer.GetRHICommandList().Flush(RHICommandFlush::FlushRHIThreadToDone);
 			uint32_t bufferSize = KMath::SmallestPowerOf2GreaterEqualThan(m_VirtualIDCounter) * sizeof(glm::uvec4);
 			descriptionBuffer->UnInit();
 			descriptionBuffer->InitMemory(bufferSize, nullptr);

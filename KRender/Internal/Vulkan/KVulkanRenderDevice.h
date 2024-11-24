@@ -185,7 +185,6 @@ public:
 
 	virtual bool CreateRenderPass(IKRenderPassPtr& renderPass);
 
-	virtual bool Present();
 	virtual bool Wait();
 
 	virtual bool RecreateSwapChain(IKSwapChain* swapChain);

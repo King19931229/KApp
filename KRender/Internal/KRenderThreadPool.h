@@ -4,12 +4,12 @@
 #include <condition_variable>
 #include <queue>
 #include <memory>
-#include <assert.h>
+#include "KBase/Publish/KSystem.h"
 
-class KRenderThreadPool
+class KRenderJobExecuteThreadPool
 {
 public:
-	class KRenderThread
+	class KRenderJobExecuteThread
 	{
 	protected:
 		std::thread m_Thread;
@@ -41,13 +41,14 @@ public:
 			}
 		}
 	public:
-		KRenderThread()
+		KRenderJobExecuteThread(uint32_t threadIndex)
 			: m_bQuit(false)
 		{
-			m_Thread = std::thread(&KRenderThread::ThreadFunc, this);
+			m_Thread = std::thread(&KRenderJobExecuteThread::ThreadFunc, this);
+			KSystem::SetThreadName(m_Thread, "RenderJobExecuteThread_" + std::to_string(threadIndex));
 		}
 
-		~KRenderThread()
+		~KRenderJobExecuteThread()
 		{
 			if (m_Thread.joinable())
 			{
@@ -70,15 +71,15 @@ public:
 			m_Cond.wait(lock, [this]() { return m_JobQueue.empty() || m_bQuit; });
 		}
 	};
-	typedef std::shared_ptr<KRenderThread> RenderThreadPtr;
+	typedef std::shared_ptr<KRenderJobExecuteThread> KRenderJobExecuteThreadPtr;
 protected:
-	std::vector<RenderThreadPtr> m_Threads;
+	std::vector<KRenderJobExecuteThreadPtr> m_Threads;
 public:	
-	KRenderThreadPool()
+	KRenderJobExecuteThreadPool()
 	{
 	}
 
-	void AddJob(size_t idx, std::function<void()> job)
+	void AddJob(uint32_t idx, std::function<void()> job)
 	{
 		assert(idx < m_Threads.size());
 		if(idx < m_Threads.size())
@@ -87,16 +88,16 @@ public:
 		}
 	}
 
-	void SetThreadCount(size_t count)
+	void SetThreadCount(uint32_t count)
 	{
 		m_Threads.clear();
-		for (size_t i = 0; i < count; i++)
+		for (uint32_t i = 0; i < count; i++)
 		{
-			m_Threads.push_back(std::shared_ptr<KRenderThread>(KNEW KRenderThread()));
+			m_Threads.push_back(KRenderJobExecuteThreadPtr(KNEW KRenderJobExecuteThread(i)));
 		}
 	}
 
-	size_t GetThreadCount()
+	uint32_t GetThreadCount()
 	{
 		return static_cast<uint32_t>(m_Threads.size());
 	}

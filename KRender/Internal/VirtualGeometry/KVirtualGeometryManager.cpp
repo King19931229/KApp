@@ -109,7 +109,7 @@ bool KVirtualGeometryStorageBuffer::Append(size_t size, void* pData)
 
 	if (newBufferSize > m_Buffer->GetBufferSize())
 	{
-		KRenderGlobal::Renderer.GetRHICommandList().Flush(RHICommandFlush::FlushRHIThread);
+		KRenderGlobal::Renderer.GetRHICommandList().Flush(RHICommandFlush::FlushRHIThreadToDone);
 
 		std::vector<unsigned char> bufferData;
 		if (m_Size > 0)

@@ -42,4 +42,5 @@ public:
 	virtual void AttachToThread(NamedThread::Type thread) override;
 	virtual NamedThread::Type GetThisThreadId() const override;
 	virtual void ProcessTaskUntilIdle(NamedThread::Type thread) override;
+	virtual void ProcessTaskUntilQuit(NamedThread::Type thread) override;
 };

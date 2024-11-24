@@ -147,6 +147,14 @@ void KTaskGraphManager::ProcessTaskUntilIdle(NamedThread::Type thread)
 	}
 }
 
+void KTaskGraphManager::ProcessTaskUntilQuit(NamedThread::Type thread)
+{
+	if (thread < m_ThreadGraphExecute.size())
+	{
+		return m_ThreadGraphExecute[thread]->ProcessTaskUntilQuit();
+	}
+}
+
 KTaskGraphManager GTaskGraphManager;
 IKTaskGraphManager* GetTaskGraphManager()
 {

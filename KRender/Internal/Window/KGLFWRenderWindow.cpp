@@ -4,6 +4,7 @@
 #include "Interface/IKRenderDevice.h"
 
 #ifdef _WIN32
+#define NOMINMAX
 #define GLFW_EXPOSE_NATIVE_WIN32
 #include "GLFW/glfw3native.h"
 #endif
@@ -47,12 +48,15 @@ IKSwapChain* KGLFWRenderWindow::GetSwapChain()
 void KGLFWRenderWindow::FramebufferResizeCallback(GLFWwindow* handle, int width, int height)
 {
 	KGLFWRenderWindow* window = (KGLFWRenderWindow*)glfwGetWindowUserPointer(handle);
-	if (window && window->m_Device)
+	if (window)
 	{
-		IKSwapChain* mainSwapChain = window->m_Device->GetSwapChain();
-		IKUIOverlay* mainUIOverlay = window->m_Device->GetUIOverlay();
-		// 主窗口才更新UI
-		// window->m_Device->RecreateSwapChain(window->m_SwapChain, mainSwapChain == window->m_SwapChain ? mainUIOverlay : nullptr);
+		for (KResizeCallbackType* resizeCB : window->m_ResizeCallbacks)
+		{
+			if (resizeCB)
+			{
+				(*resizeCB)(width, height);
+			}
+		}
 	}
 }
 
@@ -373,8 +377,25 @@ void* KGLFWRenderWindow::GetHWND()
 	return nullptr;
 }
 
+bool KGLFWRenderWindow::IsMinimized()
+{
+#ifndef __ANDROID__
+	if (m_Window)
+	{
+		int width = 0, height = 0;
+		glfwGetFramebufferSize(m_Window, &width, &height);
+		if (width == 0 || height == 0)
+		{
+			return true;
+		}
+	}
+#endif
+	return false;
+}
+
 bool KGLFWRenderWindow::IdleUntilForeground()
 {
+	/*
 #ifndef __ANDROID__
 	if (m_Window)
 	{
@@ -388,6 +409,8 @@ bool KGLFWRenderWindow::IdleUntilForeground()
 		return true;
 	}
 #endif
+	return false;
+	*/
 	return false;
 }
 
@@ -410,32 +433,7 @@ bool KGLFWRenderWindow::Tick()
 
 bool KGLFWRenderWindow::Loop()
 {
-#ifndef __ANDROID__
-	if (m_Window)
-	{
-		while (!glfwWindowShouldClose(m_Window))
-		{
-			Tick();
-			if (m_Device && m_bPrimary)
-			{
-				m_Device->Present();
-			}
-		}
-
-		if (m_Device)
-		{
-			m_Device->Wait();
-		}
-
-		return true;
-	}
-	else
-	{
-		return false;
-	}
-#else
 	return false;
-#endif
 }
 
 bool KGLFWRenderWindow::GetPosition(size_t &top, size_t &left)
@@ -470,8 +468,9 @@ bool KGLFWRenderWindow::GetSize(size_t &width, size_t &height)
 	if (m_Window)
 	{
 		int nWidth = -1, nHeight = -1;
-		glfwGetWindowSize(m_Window, &nWidth, &nHeight);
-		width = (size_t) nWidth, height = (size_t) nHeight;
+		glfwGetFramebufferSize(m_Window, &nWidth, &nHeight);
+		width = (size_t)nWidth;
+		height = (size_t)nHeight;
 		return true;
 	}
 #endif

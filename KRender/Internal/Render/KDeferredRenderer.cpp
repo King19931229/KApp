@@ -445,7 +445,7 @@ void KDeferredRenderer::BuildRenderCommand(KRHICommandList& commandList, Deferre
 	RenderStage instanceRenderStage = GDeferredRenderStageDescription[deferredRenderStage].instanceRenderStage;
 	const char* debugMarker = GDeferredRenderStageDescription[deferredRenderStage].debugMarker;
 
-	std::vector<KRenderCommand> commands;
+	KRenderCommandList commands;
 
 	KRenderStageStatistics& statistics = m_Statistics[deferredRenderStage];
 	statistics.Reset();
@@ -592,7 +592,7 @@ void KDeferredRenderer::BuildRenderCommand(KRHICommandList& commandList, Deferre
 
 	if (KRenderGlobal::EnableMultithreadRender)
 	{
-		std::vector<KRenderCommand>& renderCmdList = commands;
+		KRenderCommandList& renderCmdList = commands;
 
 		commandList.BeginRenderPass(renderPass, SUBPASS_CONTENTS_SECONDARY);
 
@@ -602,33 +602,24 @@ void KDeferredRenderer::BuildRenderCommand(KRHICommandList& commandList, Deferre
 		uint32_t currentCommandIndex = 0;
 		uint32_t currentCommandCount = commandEachThread + renderCmdList.size() % threadNum;
 
-		for (auto it = renderCmdList.begin(); it != renderCmdList.end();)
+		for (auto it = renderCmdList.begin(); it != renderCmdList.end(); ++it)
 		{
 			KRenderCommand& command = *it;
-			if (!command.pipeline->GetHandle(renderPass, command.pipelineHandle))
-			{
-				it = renderCmdList.erase(it);
-			}
-			else
-			{
-				++it;
-			}
+			ASSERT_RESULT(command.pipeline->GetHandle(renderPass, command.pipelineHandle));
 		}
 
 		threadNum = (commandEachThread > 0) ? threadNum : 1;
-		commandList.SetThreadNum(threadNum);
 
-		commandList.BeginThreadedRender(renderPass);
-
+		commandList.BeginThreadedRender(threadNum, renderPass, std::move(renderCmdList));
 		for (uint32_t threadIndex = 0; threadIndex < threadNum; ++threadIndex)
 		{
-			commandList.SetThreadedRenderJob(threadIndex, [this, deferredRenderStage, currentCommandIndex, currentCommandCount, threadIndex, renderCmdList](KRHICommandList& commandList, IKCommandBufferPtr commandBuffer, IKRenderPassPtr renderPass)
+			commandList.SetThreadedRenderJob(threadIndex, [this, deferredRenderStage, currentCommandIndex, currentCommandCount, threadIndex](KRHICommandList& commandList, IKCommandBufferPtr commandBuffer, IKRenderPassPtr renderPass, KRenderCommandList& renderCmdList)
 			{
 				commandBuffer->SetViewport(renderPass->GetViewPort());
 
 				for (uint32_t idx = 0; idx < currentCommandCount; ++idx)
 				{
-					KRenderCommand command = renderCmdList[currentCommandIndex + idx];
+					KRenderCommand& command = renderCmdList[currentCommandIndex + idx];
 					command.threadIndex = (uint32_t)threadIndex;
 					commandBuffer->Render(command);
 				}
@@ -637,6 +628,7 @@ void KDeferredRenderer::BuildRenderCommand(KRHICommandList& commandList, Deferre
 				{
 					KRHICommandList subCommandList;
 					subCommandList.SetCommandBuffer(commandBuffer);
+					subCommandList.SetImmediate(true);
 					std::for_each(m_RenderCallFuncs[deferredRenderStage].begin(), m_RenderCallFuncs[deferredRenderStage].end(), [renderPass, &subCommandList](RenderPassCallFuncType* func)
 					{
 						(*func)(renderPass, subCommandList);
@@ -646,7 +638,6 @@ void KDeferredRenderer::BuildRenderCommand(KRHICommandList& commandList, Deferre
 			currentCommandIndex += currentCommandCount;
 			currentCommandCount = commandEachThread;
 		}
-
 		commandList.EndThreadedRender();
 	}
 	else

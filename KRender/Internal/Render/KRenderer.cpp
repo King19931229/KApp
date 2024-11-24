@@ -150,13 +150,13 @@ bool KRenderer::Render(uint32_t chainImageIndex)
 
 	if (m_PrevEnableAsyncCompute != m_EnableAsyncCompute)
 	{
-		m_RHICommandList.Flush(RHICommandFlush::FlushRHIThread);
+		m_RHICommandList.Flush(RHICommandFlush::FlushRHIThreadToDone);
 		SwitchAsyncCompute(m_EnableAsyncCompute);
 	}
 
 	if (m_PrevMultithreadCount != m_MultithreadCount)
 	{
-		m_RHICommandList.Flush(RHICommandFlush::FlushRHIThread);
+		m_RHICommandList.Flush(RHICommandFlush::FlushRHIThreadToDone);
 		ResetThreadNum(m_MultithreadCount);
 	}
 
@@ -182,7 +182,7 @@ bool KRenderer::Render(uint32_t chainImageIndex)
 		KRenderGlobal::CascadedShadowMap.UpdateShadowMap();
 
 		m_RHICommandList.SetThreadCommandPools(m_Shadow.threadPools);
-		m_RHICommandList.SetMultiThreadPool(&m_ThreadPool);
+		m_RHICommandList.SetMultiThreadPool(&m_RenderJobExecuteThreadPool);
 
 		KRenderGlobal::CascadedShadowMap.UpdateCasters(m_RHICommandList);
 	}
@@ -211,7 +211,7 @@ bool KRenderer::Render(uint32_t chainImageIndex)
 		KRenderGlobal::HiZOcclusion.Execute(m_RHICommandList, cullRes);
 
 		m_RHICommandList.SetThreadCommandPools(m_PreGraphics.threadPools);
-		m_RHICommandList.SetMultiThreadPool(&m_ThreadPool);
+		m_RHICommandList.SetMultiThreadPool(&m_RenderJobExecuteThreadPool);
 
 		KRenderGlobal::VirtualTextureManager.InitFeedbackTarget(m_RHICommandList);
 		KRenderGlobal::VirtualGeometryManager.ExecuteMain(m_RHICommandList);
@@ -303,7 +303,7 @@ bool KRenderer::Render(uint32_t chainImageIndex)
 		KRenderGlobal::GBuffer.TransitionDepthStencil(m_RHICommandList, m_PostGraphics.queue, m_PostGraphics.queue, PIPELINE_STAGE_FRAGMENT_SHADER, PIPELINE_STAGE_EARLY_FRAGMENT_TESTS, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT);
 
 		m_RHICommandList.SetThreadCommandPools(m_PostGraphics.threadPools);
-		m_RHICommandList.SetMultiThreadPool(&m_ThreadPool);
+		m_RHICommandList.SetMultiThreadPool(&m_RenderJobExecuteThreadPool);
 
 		KRenderGlobal::DeferredRenderer.SkyPass(m_RHICommandList);
 		KRenderGlobal::DeferredRenderer.ForwardOpaque(m_RHICommandList, cullRes);
@@ -502,7 +502,7 @@ bool KRenderer::ResetThreadNum(uint32_t threadNum)
 {
 	m_PrevMultithreadCount = m_MultithreadCount = threadNum;
 
-	m_ThreadPool.SetThreadCount(threadNum);
+	m_RenderJobExecuteThreadPool.SetThreadCount(threadNum);
 
 	m_Shadow.SetThreadNum(threadNum);
 	m_PreGraphics.SetThreadNum(threadNum);
@@ -514,7 +514,7 @@ bool KRenderer::ResetThreadNum(uint32_t threadNum)
 
 bool KRenderer::UnInit()
 {
-	KRenderGlobal::Renderer.GetRHICommandList().Flush(RHICommandFlush::FlushRHIThread);
+	KRenderGlobal::Renderer.GetRHICommandList().Flush(RHICommandFlush::FlushRHIThreadToDone);
 
 	KRenderGlobal::DeferredRenderer.RemoveCallFunc(DRS_STAGE_MAIN_BASE_PASS, &m_BasePassMainCallFunc);
 	KRenderGlobal::DeferredRenderer.RemoveCallFunc(DRS_STAGE_POST_BASE_PASS, &m_BasePassPostCallFunc);
@@ -723,9 +723,9 @@ bool KRenderer::UpdateGlobal()
 
 void KRenderer::OnSwapChainRecreate(uint32_t width, uint32_t height)
 {
-	KRenderGlobal::FrameGraph.Resize();
+	KRenderGlobal::FrameGraph.Resize(width, height);
 	KRenderGlobal::PostProcessManager.Resize(width, height);
-	KRenderGlobal::CascadedShadowMap.Resize();
+	KRenderGlobal::CascadedShadowMap.Resize(width, height);
 	KRenderGlobal::GBuffer.Resize(width, height);
 	KRenderGlobal::HiZBuffer.Resize(width, height);
 	KRenderGlobal::HiZOcclusion.Resize();

@@ -93,9 +93,9 @@ void* KAndroidRenderWindow::GetHWND()
 	return nullptr;
 }
 
-bool KAndroidRenderWindow::IdleUntilForeground()
+bool KAndroidRenderWindow::IsMinimized()
 {
-	return true;
+	return false;
 }
 
 #ifdef __ANDROID__

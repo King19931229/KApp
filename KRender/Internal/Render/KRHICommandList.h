@@ -420,29 +420,21 @@ RHICOMMAND_DEFINE(KUpdateStorageBufferCmd)
 	virtual void Execute(KRHICommandList& commandList) override;
 };
 
-RHICOMMAND_DEFINE(KSetThreadNumCmd)
-{
-	uint32_t threadNum;
-
-	KSetThreadNumCmd(uint32_t inThreadNum)
-		: threadNum(inThreadNum)
-	{
-	}
-
-	virtual void Execute(KRHICommandList& commandList) override;
-};
-
 RHICOMMAND_DEFINE(KBeginThreadedRenderCmd)
 {
+	uint32_t threadNum;
 	IKCommandBufferPtr commandBuffer;
 	std::vector<IKCommandPoolPtr> threadCommandPools;
-	KRenderThreadPool* threadPool;
+	KRenderJobExecuteThreadPool* threadPool;
 	IKRenderPassPtr renderPass;
-	KBeginThreadedRenderCmd(IKCommandBufferPtr inCommandBuffer, const std::vector<IKCommandPoolPtr>& inThreadCommandPools, KRenderThreadPool* inThreadPool, IKRenderPassPtr inRenderPass)
-		: commandBuffer(inCommandBuffer)
+	KRenderCommandList renderCmdList;
+	KBeginThreadedRenderCmd(uint32_t inThreadNum, IKCommandBufferPtr inCommandBuffer, const std::vector<IKCommandPoolPtr>& inThreadCommandPools, KRenderJobExecuteThreadPool* inThreadPool, IKRenderPassPtr inRenderPass, KRenderCommandList&& inRenderCmdList)
+		: threadNum(inThreadNum)
+		, commandBuffer(inCommandBuffer)
 		, threadCommandPools(inThreadCommandPools)
 		, threadPool(inThreadPool)
 		, renderPass(inRenderPass)
+		, renderCmdList(std::move(inRenderCmdList))
 	{
 	}
 	virtual void Execute(KRHICommandList& commandList) override;
@@ -456,7 +448,7 @@ RHICOMMAND_DEFINE(KEndThreadedRenderCmd)
 	virtual void Execute(KRHICommandList& commandList) override;
 };
 
-typedef std::function<void(KRHICommandList&, IKCommandBufferPtr, IKRenderPassPtr)> ThreadRenderJobType;
+typedef std::function<void(KRHICommandList&, IKCommandBufferPtr, IKRenderPassPtr, KRenderCommandList&)> ThreadRenderJobType;
 RHICOMMAND_DEFINE(KSetThreadedRenderJobCmd)
 {
 	uint32_t threadIndex;
@@ -521,7 +513,8 @@ namespace RHICommandFlush
 	enum Type
 	{
 		DispatchToRHIThread,
-		FlushRHIThread
+		FlushRHIThread,
+		FlushRHIThreadToDone
 	};
 }
 
@@ -565,7 +558,7 @@ class KRHICommandList
 protected:
 	std::vector<IKCommandPoolPtr> m_ThreadCommandPools;
 	IKCommandBufferPtr m_CommandBuffer;
-	KRenderThreadPool* m_MultiThreadPool;
+	KRenderJobExecuteThreadPool* m_MultiThreadPool;
 	KRHICommandBasePtr m_CommandHead;
 	KRHICommandBasePtr* m_CommandNext;
 	IKGraphTaskEventRef m_AsyncTask;
@@ -573,11 +566,12 @@ protected:
 	bool m_ImmediateMode;
 
 	uint32_t m_CurrentThreadNum;
-	KRenderThreadPool* m_CurrentMultiThreadPool;
+	KRenderJobExecuteThreadPool* m_CurrentMultiThreadPool;
 	IKRenderPassPtr m_CurrentThreadedRenderPass;
 	std::vector<IKCommandPoolPtr> m_CurrentThreadCommandPools;
 	IKCommandBufferPtr m_CurrentCommandBuffer;
 	KCommandBufferList m_CurrentThreadedCommandBuffers;
+	KRenderCommandList m_CurrentRenderCmdList;
 
 	inline void ExecuteOrInsertNextCommand(KRHICommandBasePtr command)
 	{
@@ -593,7 +587,7 @@ public:
 	KRHICommandList();
 	~KRHICommandList();
 
-	inline void SetMultiThreadPool(KRenderThreadPool* multiThreadPool) { m_MultiThreadPool = multiThreadPool; }
+	inline void SetMultiThreadPool(KRenderJobExecuteThreadPool* multiThreadPool) { m_MultiThreadPool = multiThreadPool; }
 	inline void SetThreadCommandPools(const std::vector<IKCommandPoolPtr>& threadPools) { m_ThreadCommandPools = threadPools; }
 	inline void SetCommandBuffer(IKCommandBufferPtr commandBuffer) { m_CommandBuffer = commandBuffer; }
 
@@ -642,8 +636,7 @@ public:
 	void UpdateUniformBuffer(IKUniformBufferPtr uniformBuffer, void* data, uint32_t offset, uint32_t size);
 	void UpdateStorageBuffer(IKStorageBufferPtr storageBuffer, void* data, uint32_t offset, uint32_t size);
 
-	void SetThreadNum(uint32_t threadNum);
-	void BeginThreadedRender(IKRenderPassPtr renderPass);
+	void BeginThreadedRender(uint32_t threadNum, IKRenderPassPtr renderPass, KRenderCommandList&& renderCmdList);
 	void EndThreadedRender();
 	void SetThreadedRenderJob(uint32_t threadIndex, ThreadRenderJobType job);
 
@@ -653,8 +646,7 @@ public:
 
 	void Present(IKSwapChain* swapChain, SwapChainResizeCallbackType callback);
 
-	void InternalSetCurrentThreadNum(uint32_t threadNum) { m_CurrentThreadNum = threadNum; }
-	void InternalCurrentThreadedContext(IKCommandBufferPtr commandBuffer, const std::vector<IKCommandPoolPtr>& threadCommandPools, KRenderThreadPool* threadPool, IKRenderPassPtr renderPass);
+	void InternalCurrentThreadedContext(uint32_t threadNum, IKCommandBufferPtr commandBuffer, const std::vector<IKCommandPoolPtr>& threadCommandPools, KRenderJobExecuteThreadPool* threadPool, IKRenderPassPtr renderPass, KRenderCommandList&& renderCmdList);
 	void InternalSetThreadRenderJob(uint32_t threadIndex, ThreadRenderJobType job);
 	void InternalExecuteThreadedCommandBuffer();
 };

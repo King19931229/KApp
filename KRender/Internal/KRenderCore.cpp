@@ -182,18 +182,18 @@ bool KRenderCore::InitController()
 		{
 			if (key == INPUT_KEY_ENTER)
 			{
-				KRenderGlobal::Renderer.GetRHICommandList().Flush(RHICommandFlush::FlushRHIThread);
+				KRenderGlobal::Renderer.GetRHICommandList().Flush(RHICommandFlush::FlushRHIThreadToDone);
 				KRenderGlobal::VirtualGeometryManager.ReloadShader();
 			}
 			if (key == INPUT_KEY_SPACE)
 			{
-				KRenderGlobal::Renderer.GetRHICommandList().Flush(RHICommandFlush::FlushRHIThread);
+				KRenderGlobal::Renderer.GetRHICommandList().Flush(RHICommandFlush::FlushRHIThreadToDone);
 				KRenderGlobal::VirtualTextureManager.ReloadShader();
 				// KRenderGlobal::GPUScene.ReloadShader();
 			}
 			if (key == INPUT_KEY_R)
 			{
-				KRenderGlobal::Renderer.GetRHICommandList().Flush(RHICommandFlush::FlushRHIThread);
+				KRenderGlobal::Renderer.GetRHICommandList().Flush(RHICommandFlush::FlushRHIThreadToDone);
 				KRenderGlobal::RayTraceManager.ReloadShader();
 				KRenderGlobal::VirtualGeometryManager.ReloadShader();
 				KRenderGlobal::VirtualTextureManager.ReloadShader();
@@ -311,7 +311,7 @@ bool KRenderCore::Init(IKRenderDevicePtr& device, IKRenderWindowPtr& window)
 
 		m_InitCallback = [this]()
 		{
-			KRenderGlobal::TaskExecutor.Init("RenderTaskThread", std::thread::hardware_concurrency());
+			KRenderGlobal::TaskExecutor.Init("RenderTaskThread", 1);
 			InitGlobalManager();
 			InitPostProcess();
 			InitRenderer();
@@ -458,6 +458,11 @@ void KRenderCore::Render()
 	IKSwapChain* mainSwapChain = m_MainWindow->GetSwapChain();
 	IKUIOverlay* uiOverlay = m_Device->GetUIOverlay();
 
+	if (m_MainWindow->IsMinimized())
+	{
+		return;
+	}
+
 	if (m_bSwapChainResized)
 	{
 		KRenderGlobal::Renderer.OnSwapChainRecreate(mainSwapChain->GetWidth(), mainSwapChain->GetHeight());
@@ -497,9 +502,8 @@ void KRenderCore::Render()
 
 	if (!m_SecordaryWindow.empty())
 	{
-		KRenderGlobal::Renderer.GetRHICommandList().Flush(RHICommandFlush::FlushRHIThread);
 		// 等待设备空闲 不再进行FrameInFlight
-		m_Device->Wait();
+		KRenderGlobal::Renderer.GetRHICommandList().Flush(RHICommandFlush::FlushRHIThreadToDone);
 	}
 
 	for (auto& pair : m_SecordaryWindow)
@@ -579,7 +583,7 @@ bool KRenderCore::Wait()
 	if (m_bInit)
 	{
 		FLUSH_RENDER_COMMAND();
-		m_Device->Wait();
+		KRenderGlobal::Renderer.GetRHICommandList().Flush(RHICommandFlush::FlushRHIThreadToDone);
 		return true;
 	}
 	return false;

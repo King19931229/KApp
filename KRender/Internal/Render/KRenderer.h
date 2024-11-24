@@ -99,7 +99,7 @@ protected:
 	GPUQueueMiscs m_PostGraphics;
 	GPUQueueMiscs m_Compute;
 
-	KRenderThreadPool m_ThreadPool;
+	KRenderJobExecuteThreadPool m_RenderJobExecuteThreadPool;
 
 	KRunableThreadPtr m_RHIThread;
 

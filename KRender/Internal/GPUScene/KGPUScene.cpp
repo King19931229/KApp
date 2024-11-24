@@ -1259,7 +1259,7 @@ void KGPUScene::RebuildDirtyBuffer()
 {
 	if (m_DataDirtyBits)
 	{
-		KRenderGlobal::RenderDevice->Wait();
+		KRenderGlobal::Renderer.GetRHICommandList().Flush(RHICommandFlush::FlushRHIThreadToDone);
 		RebuildEntityDataIndex();
 	}
 	if (m_DataDirtyBits & MEGA_BUFFER_DIRTY)
@@ -1283,7 +1283,7 @@ void KGPUScene::RebuildDirtyBuffer()
 	m_DataDirtyBits = 0;
 }
 
-void KGPUScene::UpdateInstanceDataBuffer()
+void KGPUScene::UpdateInstanceDataBuffer(KRHICommandList& commandList)
 {
 	if (m_Instances.size() > 0)
 	{
@@ -1299,7 +1299,7 @@ void KGPUScene::UpdateInstanceDataBuffer()
 			instance.transform = sceneEntity->transform;
 		}
 
-		instanceDataBuffer->Write(m_Instances.data());
+		commandList.UpdateStorageBuffer(instanceDataBuffer, m_Instances.data(), 0, (uint32_t)(m_Instances.size() * sizeof(KGPUSceneInstance)));
 	}
 }
 
@@ -1311,7 +1311,7 @@ bool KGPUScene::Execute(KRHICommandList& commandList)
 	}
 
 	RebuildDirtyBuffer();
-	UpdateInstanceDataBuffer();
+	UpdateInstanceDataBuffer(commandList);
 
 	uint32_t currentFrameIndex = KRenderGlobal::CurrentInFlightFrameIndex;
 	uint32_t megaShaderNum = (uint32_t)m_MegaShaders.size();
@@ -1436,13 +1436,10 @@ bool KGPUScene::BasePassMain(IKRenderPassPtr renderPass, KRHICommandList& comman
 		KRenderGlobal::DynamicConstantBufferManager.Alloc(&drawParameter, objectUsage);
 
 		{
-			void* pData = nullptr;
-			/*
 			std::vector<char> datas;
 			datas.resize(megaShader.parametersBuffers[frameIndex]->GetBufferSize());
-			pData = datas.data();
-			*/
-			megaShader.parametersBuffers[frameIndex]->Map(&pData);
+			void* pData = datas.data();
+
 			for (uint32_t materialIndex : megaShader.materialIndices)
 			{
 				const MaterialItem& materialItem = m_Materials[materialIndex];
@@ -1463,8 +1460,8 @@ bool KGPUScene::BasePassMain(IKRenderPassPtr renderPass, KRHICommandList& comman
 				}
 				pData = POINTER_OFFSET(pData, megaShader.parameterDataSize);
 			}
-			megaShader.parametersBuffers[frameIndex]->UnMap();
-			// megaShader.parametersBuffers[frameIndex]->Write(datas.data());
+			
+			commandList.UpdateStorageBuffer(megaShader.parametersBuffers[frameIndex], datas.data(), 0, (uint32_t)datas.size());
 		}
 
 		{

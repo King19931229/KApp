@@ -54,7 +54,7 @@ public:
 	bool RegisterPass(KFrameGraphPass* pass);
 	bool UnRegisterPass(KFrameGraphPass* pass);
 
-	bool Resize();
+	bool Resize(uint32_t width, uint32_t height);
 	bool Compile();
 	bool Execute(KRHICommandList& commandList, uint32_t chainIndex);
 	bool Alloc();

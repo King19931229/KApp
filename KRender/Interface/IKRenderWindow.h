@@ -43,7 +43,7 @@ struct IKRenderWindow
 	virtual bool Tick() = 0;
 	virtual bool Loop() = 0;
 
-	virtual bool IdleUntilForeground() = 0;
+	virtual bool IsMinimized() = 0;
 
 	virtual bool GetPosition(size_t &top, size_t &left) = 0;
 	virtual bool SetPosition(size_t top, size_t left) = 0;

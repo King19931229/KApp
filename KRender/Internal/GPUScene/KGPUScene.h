@@ -220,7 +220,7 @@ protected:
 	bool RemoveEntity(IKEntity* entity);
 
 	void RebuildDirtyBuffer();
-	void UpdateInstanceDataBuffer();
+	void UpdateInstanceDataBuffer(KRHICommandList& commandList);
 
 	void RebuildEntityDataIndex();
 	void RebuildMegaBuffer();

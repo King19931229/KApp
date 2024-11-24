@@ -201,7 +201,7 @@ KCascadedShadowMapReceiverPass::~KCascadedShadowMapReceiverPass()
 {
 }
 
-void KCascadedShadowMapReceiverPass::Recreate()
+void KCascadedShadowMapReceiverPass::Recreate(uint32_t width, uint32_t height)
 {
 	if (m_StaticMaskID.IsVaild())
 	{
@@ -221,32 +221,32 @@ void KCascadedShadowMapReceiverPass::Recreate()
 		m_CombineMaskID.Clear();
 	}
 
-	IKRenderWindow* window = KRenderGlobal::RenderDevice->GetMainWindow();
-	size_t w = 0, h = 0;
-	if (window && window->GetSize(w, h))
-	{
-		KFrameGraph::RenderTargetCreateParameter parameter;
-		parameter.width = (uint32_t)w;
-		parameter.height = (uint32_t)h;
-		parameter.format = KCascadedShadowMap::RECEIVER_TARGET_FORMAT;
-		m_StaticMaskID = KRenderGlobal::FrameGraph.CreateRenderTarget(parameter);
-		m_DynamicMaskID = KRenderGlobal::FrameGraph.CreateRenderTarget(parameter);
-		m_CombineMaskID = KRenderGlobal::FrameGraph.CreateRenderTarget(parameter);
-	}
+	KFrameGraph::RenderTargetCreateParameter parameter;
+	parameter.width = width;
+	parameter.height = height;
+	parameter.format = KCascadedShadowMap::RECEIVER_TARGET_FORMAT;
+	m_StaticMaskID = KRenderGlobal::FrameGraph.CreateRenderTarget(parameter);
+	m_DynamicMaskID = KRenderGlobal::FrameGraph.CreateRenderTarget(parameter);
+	m_CombineMaskID = KRenderGlobal::FrameGraph.CreateRenderTarget(parameter);
 
 	m_Master.UpdatePipelineFromRTChanged();
 }
 
-bool KCascadedShadowMapReceiverPass::Resize(KFrameGraphBuilder& builder)
+bool KCascadedShadowMapReceiverPass::Resize(KFrameGraphBuilder& builder, uint32_t width, uint32_t height)
 {
-	Recreate();
+	Recreate(width, height);
 	return true;
 }
 
 bool KCascadedShadowMapReceiverPass::Init()
 {
 	UnInit();
-	Recreate();
+	IKRenderWindow* window = KRenderGlobal::RenderDevice->GetMainWindow();
+	size_t w = 0, h = 0;
+	if (window && window->GetSize(w, h))
+	{
+		Recreate((uint32_t)w, (uint32_t)h);
+	}
 	KRenderGlobal::FrameGraph.RegisterPass(this);
 	return true;
 }
@@ -881,7 +881,12 @@ bool KCascadedShadowMap::Init(const KCamera* camera, uint32_t numCascaded, uint3
 		// 先把需要的RT创建好(TODO) 后面要引用
 		// KRenderGlobal::FrameGraph.Compile();
 
-		Resize();
+		IKRenderWindow* window = KRenderGlobal::RenderDevice->GetMainWindow();
+		size_t w = 0, h = 0;
+		if (window && window->GetSize(w, h))
+		{
+			Resize((uint32_t)w, (uint32_t)h);
+		}
 
 		ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "shadow/quad.vert", m_QuadVS, false));
 		ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "shadow/cascaded/static_mask.frag", m_StaticReceiverFS, false));
@@ -1036,7 +1041,7 @@ bool KCascadedShadowMap::UnInit()
 	return true;
 }
 
-bool KCascadedShadowMap::Resize()
+bool KCascadedShadowMap::Resize(uint32_t width, uint32_t height)
 {
 	SAFE_UNINIT(m_StaticReceiverTarget);
 	SAFE_UNINIT(m_DynamicReceiverTarget);
@@ -1044,16 +1049,14 @@ bool KCascadedShadowMap::Resize()
 
 	IKRenderWindow* window = KRenderGlobal::RenderDevice->GetMainWindow();
 	size_t w = 0, h = 0;
-	if (window && window->GetSize(w, h))
-	{
-		KRenderGlobal::RenderDevice->CreateRenderTarget(m_StaticReceiverTarget);
-		KRenderGlobal::RenderDevice->CreateRenderTarget(m_DynamicReceiverTarget);
-		KRenderGlobal::RenderDevice->CreateRenderTarget(m_CombineReceiverTarget);
 
-		m_StaticReceiverTarget->InitFromColor((uint32_t)w, (uint32_t)h, 1, 1, KCascadedShadowMap::RECEIVER_TARGET_FORMAT);
-		m_DynamicReceiverTarget->InitFromColor((uint32_t)w, (uint32_t)h, 1, 1, KCascadedShadowMap::RECEIVER_TARGET_FORMAT);
-		m_CombineReceiverTarget->InitFromColor((uint32_t)w, (uint32_t)h, 1, 1, KCascadedShadowMap::RECEIVER_TARGET_FORMAT);
-	}
+	KRenderGlobal::RenderDevice->CreateRenderTarget(m_StaticReceiverTarget);
+	KRenderGlobal::RenderDevice->CreateRenderTarget(m_DynamicReceiverTarget);
+	KRenderGlobal::RenderDevice->CreateRenderTarget(m_CombineReceiverTarget);
+
+	m_StaticReceiverTarget->InitFromColor(width, height, 1, 1, KCascadedShadowMap::RECEIVER_TARGET_FORMAT);
+	m_DynamicReceiverTarget->InitFromColor(width, height, 1, 1, KCascadedShadowMap::RECEIVER_TARGET_FORMAT);
+	m_CombineReceiverTarget->InitFromColor(width, height, 1, 1, KCascadedShadowMap::RECEIVER_TARGET_FORMAT);
 
 	UpdatePipelineFromRTChanged();
 
@@ -1310,27 +1313,18 @@ bool KCascadedShadowMap::UpdateRT(KRHICommandList& commandList, IKRenderPassPtr 
 			uint32_t currentCommandIndex = 0;
 			uint32_t currentCommandCount = commandEachThread + renderCmdList.size() % threadNum;
 
-			for (auto it = renderCmdList.begin(); it != renderCmdList.end();)
+			for (auto it = renderCmdList.begin(); it != renderCmdList.end(); ++it)
 			{
 				KRenderCommand& command = *it;
-				if (!command.pipeline->GetHandle(renderPass, command.pipelineHandle))
-				{
-					it = renderCmdList.erase(it);
-				}
-				else
-				{
-					++it;
-				}
+				ASSERT_RESULT(command.pipeline->GetHandle(renderPass, command.pipelineHandle));
 			}
 
 			threadNum = (commandEachThread > 0) ? threadNum : 1;
-			commandList.SetThreadNum(threadNum);
 
-			commandList.BeginThreadedRender(renderPass);
-
+			commandList.BeginThreadedRender(threadNum, renderPass, std::move(renderCmdList));
 			for (uint32_t threadIndex = 0; threadIndex < threadNum; ++threadIndex)
 			{
-				commandList.SetThreadedRenderJob(threadIndex, [this, cascadedIndex, currentCommandIndex, currentCommandCount, &commandList, threadIndex, renderCmdList](KRHICommandList& commandList, IKCommandBufferPtr commandBuffer, IKRenderPassPtr renderPass)
+				commandList.SetThreadedRenderJob(threadIndex, [this, cascadedIndex, currentCommandIndex, currentCommandCount, threadIndex](KRHICommandList& commandList, IKCommandBufferPtr commandBuffer, IKRenderPassPtr renderPass, KRenderCommandList& renderCmdList)
 				{
 					commandBuffer->SetViewport(renderPass->GetViewPort());
 					// Set depth bias (aka "Polygon offset")
@@ -1339,7 +1333,7 @@ bool KCascadedShadowMap::UpdateRT(KRHICommandList& commandList, IKRenderPassPtr 
 
 					for (uint32_t idx = 0; idx < currentCommandCount; ++idx)
 					{
-						KRenderCommand command = renderCmdList[currentCommandIndex + idx];
+						KRenderCommand& command = renderCmdList[currentCommandIndex + idx];
 						command.threadIndex = (uint32_t)threadIndex;
 						commandBuffer->Render(command);
 					}

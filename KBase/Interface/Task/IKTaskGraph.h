@@ -128,6 +128,7 @@ struct IKTaskGraphManager
 	virtual void AttachToThread(NamedThread::Type thread) = 0;
 	virtual NamedThread::Type GetThisThreadId() const = 0;
 	virtual void ProcessTaskUntilIdle(NamedThread::Type thread) = 0;
+	virtual void ProcessTaskUntilQuit(NamedThread::Type thread) = 0;
 };
 
 IKTaskGraphManager* GetTaskGraphManager();

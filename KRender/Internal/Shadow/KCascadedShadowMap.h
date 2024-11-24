@@ -43,7 +43,7 @@ protected:
 	KFrameGraphID m_DynamicMaskID;
 	KFrameGraphID m_CombineMaskID;
 
-	void Recreate();
+	void Recreate(uint32_t width, uint32_t height);
 public:
 	KCascadedShadowMapReceiverPass(KCascadedShadowMap& master);
 	~KCascadedShadowMapReceiverPass();
@@ -54,7 +54,7 @@ public:
 	bool HasSideEffect() const override { return true; }
 
 	bool Setup(KFrameGraphBuilder& builder) override;
-	bool Resize(KFrameGraphBuilder& builder) override;
+	bool Resize(KFrameGraphBuilder& builder, uint32_t width, uint32_t height) override;
 	bool Execute(KFrameGraphExecutor& executor) override;
 
 	IKRenderTargetPtr GetStaticMask();
@@ -204,7 +204,7 @@ public:
 	bool Init(const KCamera* camera, uint32_t numCascaded, uint32_t shadowMapSize, uint32_t width, uint32_t height);
 	bool UnInit();
 
-	bool Resize();
+	bool Resize(uint32_t width, uint32_t height);
 
 	bool UpdateShadowMap();
 	bool UpdateCasters(KRHICommandList& commandList);

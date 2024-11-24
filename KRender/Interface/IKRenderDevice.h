@@ -73,7 +73,6 @@ struct IKRenderDevice
 	virtual bool CreateSwapChain(IKSwapChainPtr& swapChain) = 0;
 	virtual bool CreateRenderPass(IKRenderPassPtr& renderPass) = 0;
 
-	virtual bool Present() = 0;
 	virtual bool Wait() = 0;
 
 	virtual bool RegisterDeviceInitCallback(KDeviceInitCallback* callback) = 0;

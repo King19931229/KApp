@@ -56,6 +56,7 @@ public:
 	virtual bool Tick();
 	virtual bool Loop();
 
+	virtual bool IsMinimized();
 	virtual bool IdleUntilForeground();
 
 	virtual bool GetPosition(size_t &top, size_t &left);

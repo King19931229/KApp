@@ -98,9 +98,9 @@ bool KEQtRenderWindow::Loop()
 	return false;
 }
 
-bool KEQtRenderWindow::IdleUntilForeground()
+bool KEQtRenderWindow::IsMinimized()
 {
-	return true;
+	return false;
 }
 
 bool KEQtRenderWindow::GetPosition(size_t &top, size_t &left)

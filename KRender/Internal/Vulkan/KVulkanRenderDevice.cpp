@@ -1176,7 +1176,6 @@ bool KVulkanRenderDevice::CleanupSwapChain()
 
 bool KVulkanRenderDevice::UnInit()
 {
-	KRenderGlobal::Renderer.GetRHICommandList().Flush(RHICommandFlush::FlushRHIThread);
 	Wait();
 
 #if defined(USE_NSIGHT_AFTERMATH)
@@ -1612,73 +1611,6 @@ bool KVulkanRenderDevice::SetCheckPointMarker(IKCommandBuffer* commandBuffer, ui
 	return true;
 }
 
-bool KVulkanRenderDevice::Present()
-{
-	KRenderGlobal::CommandPool->Reset();
-
-	uint32_t frameIndex = 0;
-	m_SwapChain->WaitForInFlightFrame(frameIndex);
-
-	KRenderGlobal::CurrentInFlightFrameIndex = frameIndex;
-
-	uint32_t chainImageIndex = 0;
-	m_SwapChain->AcquireNextImage(chainImageIndex);
-
-	{
-		KRenderGlobal::Renderer.SetSwapChain(m_SwapChain.get());
-		KRenderGlobal::Renderer.SetUIOverlay(m_UIOverlay.get());
-
-		KRenderGlobal::Renderer.Update();
-		KRenderGlobal::Renderer.Execute(chainImageIndex);
-
-		bool needResize = false;
-		m_SwapChain->PresentQueue(needResize);
-
-		if (needResize)
-		{
-			RecreateSwapChain(m_SwapChain.get());
-			if (m_UIOverlay)
-			{
-				m_UIOverlay->UnInit();
-				m_UIOverlay->Init(this, m_SwapChain->GetFrameInFlight());
-				m_UIOverlay->Resize(m_SwapChain->GetWidth(), m_SwapChain->GetHeight());
-			}
-		}
-	}
-
-	if (!m_SecordarySwapChains.empty())
-	{
-		// 等待设备空闲 主交换链不再进行FrameInFlight
-		vkDeviceWaitIdle(m_Device);
-	}
-
-	for (IKSwapChain* secordarySwapChain : m_SecordarySwapChains)
-	{
-		// 处理次交换链的FrameInFlight 但是FrameIndex依然使用主交换链的结果
-		uint32_t secordaryFrameIndex = 0;
-		secordarySwapChain->WaitForInFlightFrame(secordaryFrameIndex);
-		secordarySwapChain->AcquireNextImage(chainImageIndex);
-
-		{
-			KRenderGlobal::Renderer.SetSwapChain(secordarySwapChain);
-			KRenderGlobal::Renderer.SetUIOverlay(nullptr);
-
-			KRenderGlobal::Renderer.Update();
-			KRenderGlobal::Renderer.Execute(chainImageIndex);
-
-			bool needResize = false;
-			secordarySwapChain->PresentQueue(needResize);
-
-			if (needResize)
-			{
-				RecreateSwapChain(secordarySwapChain);
-			}
-		}
-	}
-
-	return true;
-}
-
 bool KVulkanRenderDevice::RegisterSecordarySwapChain(IKSwapChain* swapChain)
 {
 	if (std::find(m_SecordarySwapChains.begin(), m_SecordarySwapChains.end(), swapChain) == m_SecordarySwapChains.end())
@@ -1812,16 +1744,12 @@ bool KVulkanRenderDevice::RecreateSwapChain(IKSwapChain* swapChain)
 		// 主交换链必须等到撤销最小化
 		if (swapChain == m_SwapChain.get())
 		{
-			window->IdleUntilForeground();
+			// window->IdleUntilForeground();
 		}
-		else
+
+		if (window->IsMinimized())
 		{
-			size_t width = 0, height = 0;
-			window->GetSize(width, height);
-			if (width == 0 && height == 0)
-			{
-				return true;
-			}
+			return false;
 		}
 
 		vkDeviceWaitIdle(m_Device);

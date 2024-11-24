@@ -51,10 +51,9 @@ namespace KRenderGlobal
 	KTaskExecutor<true> TaskExecutor;
 
 	KStatistics Statistics;
-	KRenderThreadPool RenderThreadPool;
 
 	bool EnableDebugRender = false;
-	bool DisableRayTrace = false;
+	bool DisableRayTrace = true;
 	bool SupportAnisotropySample = true;
 	bool EnableMultithreadRender = true;
 

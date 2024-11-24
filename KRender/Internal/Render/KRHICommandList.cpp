@@ -144,14 +144,9 @@ void KBlitCmd::Execute(KRHICommandList& commandList)
 	commandBuffer->Blit(src, dest);
 }
 
-void KSetThreadNumCmd::Execute(KRHICommandList& commandList)
-{
-	commandList.InternalSetCurrentThreadNum(threadNum);
-}
-
 void KBeginThreadedRenderCmd::Execute(KRHICommandList& commandList)
 {
-	commandList.InternalCurrentThreadedContext(commandBuffer, threadCommandPools, threadPool, renderPass);
+	commandList.InternalCurrentThreadedContext(threadNum, commandBuffer, threadCommandPools, threadPool, renderPass, std::move(renderCmdList));
 }
 
 void KEndThreadedRenderCmd::Execute(KRHICommandList& commandList)
@@ -206,14 +201,16 @@ void KRenderCmd::Execute(KRHICommandList& commandList)
 	commandBuffer->Render(command);
 }
 
-void KRHICommandList::InternalCurrentThreadedContext(IKCommandBufferPtr inCommandBuffer, const std::vector<IKCommandPoolPtr>& threadCommandPools, KRenderThreadPool* threadPool, IKRenderPassPtr renderPass)
+void KRHICommandList::InternalCurrentThreadedContext(uint32_t threadNum, IKCommandBufferPtr inCommandBuffer, const std::vector<IKCommandPoolPtr>& threadCommandPools, KRenderJobExecuteThreadPool* threadPool, IKRenderPassPtr renderPass, KRenderCommandList&& renderCmdList)
 {
+	m_CurrentThreadNum = threadNum;
 	m_CurrentCommandBuffer = inCommandBuffer;
 	m_CurrentMultiThreadPool = m_MultiThreadPool;
-	m_CurrentThreadedCommandBuffers.resize(threadCommandPools.size());
 	m_CurrentThreadCommandPools = threadCommandPools;
 	m_CurrentThreadedRenderPass = renderPass;
+	m_CurrentRenderCmdList = std::move(renderCmdList);
 	assert(threadCommandPools.size() >= m_CurrentThreadNum);
+	m_CurrentThreadedCommandBuffers.resize(m_CurrentThreadNum);
 	for (uint32_t threadIndex = 0; threadIndex < m_CurrentThreadNum; ++threadIndex)
 	{
 		m_CurrentThreadedCommandBuffers[threadIndex] = m_CurrentThreadCommandPools[threadIndex]->Request(CBL_SECONDARY);
@@ -225,7 +222,7 @@ void KRHICommandList::InternalSetThreadRenderJob(uint32_t threadIndex, ThreadRen
 	m_CurrentMultiThreadPool->AddJob(threadIndex, [this, job, threadIndex]()
 	{
 		m_CurrentThreadedCommandBuffers[threadIndex]->BeginSecondary(m_CurrentThreadedRenderPass);
-		job(*this, m_CurrentThreadedCommandBuffers[threadIndex], m_CurrentThreadedRenderPass);
+		job(*this, m_CurrentThreadedCommandBuffers[threadIndex], m_CurrentThreadedRenderPass, m_CurrentRenderCmdList);
 		m_CurrentThreadedCommandBuffers[threadIndex]->End();
 	});
 }
@@ -233,10 +230,7 @@ void KRHICommandList::InternalSetThreadRenderJob(uint32_t threadIndex, ThreadRen
 void KRHICommandList::InternalExecuteThreadedCommandBuffer()
 {
 	m_CurrentMultiThreadPool->WaitAll();
-	for (uint32_t threadIndex = 0; threadIndex < m_CurrentThreadNum; ++threadIndex)
-	{
-		m_CurrentCommandBuffer->Execute(m_CurrentThreadedCommandBuffers[threadIndex]);
-	}
+	m_CurrentCommandBuffer->ExecuteAll(m_CurrentThreadedCommandBuffers);
 
 	m_CurrentThreadNum = 0;
 	m_CurrentCommandBuffer = nullptr;
@@ -305,6 +299,10 @@ void KRHICommandList::Flush(RHICommandFlush::Type flushType)
 			}
 			m_AsyncTask.Release();
 		}
+	}
+	if (flushType >= RHICommandFlush::FlushRHIThreadToDone)
+	{
+		KRenderGlobal::RenderDevice->Wait();
 	}
 }
 
@@ -458,15 +456,9 @@ void KRHICommandList::UpdateStorageBuffer(IKStorageBufferPtr storageBuffer, void
 	ExecuteOrInsertNextCommand(command);
 }
 
-void KRHICommandList::SetThreadNum(uint32_t threadNum)
+void KRHICommandList::BeginThreadedRender(uint32_t threadNum, IKRenderPassPtr renderPass, KRenderCommandList&& renderCmdList)
 {
-	KRHICommandBasePtr command = KRHICommandBasePtr(KNEW KSetThreadNumCmd(threadNum));
-	ExecuteOrInsertNextCommand(command);
-}
-
-void KRHICommandList::BeginThreadedRender(IKRenderPassPtr renderPass)
-{
-	KRHICommandBasePtr command = KRHICommandBasePtr(KNEW KBeginThreadedRenderCmd(m_CommandBuffer, m_ThreadCommandPools, m_MultiThreadPool, renderPass));
+	KRHICommandBasePtr command = KRHICommandBasePtr(KNEW KBeginThreadedRenderCmd(threadNum, m_CommandBuffer, m_ThreadCommandPools, m_MultiThreadPool, renderPass, std::move(renderCmdList)));
 	ExecuteOrInsertNextCommand(command);
 }
 

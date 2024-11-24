@@ -116,12 +116,12 @@ bool KFrameGraph::UnRegisterPass(KFrameGraphPass* pass)
 	return false;
 }
 
-bool KFrameGraph::Resize()
+bool KFrameGraph::Resize(uint32_t width, uint32_t height)
 {
 	for (KFrameGraphPass* pass : m_Passes)
 	{
 		KFrameGraphBuilder builder(pass, this);
-		pass->Resize(builder);
+		pass->Resize(builder, width, height);
 	}
 	return true;
 }

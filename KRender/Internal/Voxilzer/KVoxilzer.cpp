@@ -62,7 +62,7 @@ void KVoxilzer::UpdateInternal(KRHICommandList& commandList)
 		VoxelizeStaticSceneCounter(subCommandList, true);
 		subCommandList.EndRecord();
 		subCommandList.FlushDoneRecord();
-		subCommandList.Flush(RHICommandFlush::FlushRHIThread);
+		subCommandList.Flush(RHICommandFlush::FlushRHIThreadToDone);
 
 		commandBuffer = KRenderGlobal::CommandPool->Request(CBL_PRIMARY);
 		subCommandList.SetCommandBuffer(commandBuffer);
@@ -71,7 +71,7 @@ void KVoxilzer::UpdateInternal(KRHICommandList& commandList)
 		VoxelizeStaticSceneCounter(subCommandList, false);
 		subCommandList.EndRecord();
 		subCommandList.FlushDoneRecord();
-		subCommandList.Flush(RHICommandFlush::FlushRHIThread);
+		subCommandList.Flush(RHICommandFlush::FlushRHIThreadToDone);
 
 		commandBuffer = KRenderGlobal::CommandPool->Request(CBL_PRIMARY);
 		subCommandList.SetCommandBuffer(commandBuffer);
@@ -81,7 +81,7 @@ void KVoxilzer::UpdateInternal(KRHICommandList& commandList)
 		BuildOctree(subCommandList);
 		subCommandList.EndRecord();
 		subCommandList.FlushDoneRecord();
-		subCommandList.Flush(RHICommandFlush::FlushRHIThread);
+		subCommandList.Flush(RHICommandFlush::FlushRHIThreadToDone);
 
 		uint32_t lastBuildinfo[] = { 0, 0 };
 		m_BuildInfoBuffer->Read(lastBuildinfo);
@@ -95,7 +95,7 @@ void KVoxilzer::UpdateInternal(KRHICommandList& commandList)
 		UpdateRadiance(subCommandList);
 		subCommandList.EndRecord();
 		subCommandList.FlushDoneRecord();
-		subCommandList.Flush(RHICommandFlush::FlushRHIThread);
+		subCommandList.Flush(RHICommandFlush::FlushRHIThreadToDone);
 
 		ShrinkOctree();
 		CheckOctreeData();
@@ -123,7 +123,7 @@ void KVoxilzer::UpdateVoxel(KRHICommandList& commandList)
 	{
 		if (m_VoxelLastUseOctree != m_VoxelUseOctree)
 		{
-			KRenderGlobal::Renderer.GetRHICommandList().Flush(RHICommandFlush::FlushRHIThread);
+			KRenderGlobal::Renderer.GetRHICommandList().Flush(RHICommandFlush::FlushRHIThreadToDone);
 			SetupVoxelReleatedData();
 		}
 
