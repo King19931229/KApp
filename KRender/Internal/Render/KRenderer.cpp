@@ -161,6 +161,7 @@ bool KRenderer::Render(uint32_t chainImageIndex)
 	}
 
 	m_RHICommandList.SetImmediate(m_EnableRHIImmediate);
+	m_RHICommandList.TickRenderDevice();
 
 	KRenderGlobal::VirtualGeometryManager.RemoveUnreferenced();
 

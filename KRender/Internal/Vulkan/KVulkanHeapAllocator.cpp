@@ -27,7 +27,9 @@ namespace KVulkanHeapAllocator
 
 	static VkDeviceSize ALLOC_FACTOR = 1024;
 	static VkDeviceSize MAX_ALLOC_COUNT = 0;
-	static VkDeviceSize BLOCK_SIZE_FACTOR = 4;
+
+	const static VkDeviceSize BLOCK_SIZE_FACTOR = 4;
+	const static size_t RELEASE_MEMORY_TICK = 180;
 
 	static std::mutex ALLOC_FREE_LOCK;
 
@@ -106,6 +108,8 @@ namespace KVulkanHeapAllocator
 		int persistentMap;
 		int noShare;
 
+		size_t releaseMemoryCounter;
+
 		PageInfo(MemoryHeap* _pParent,
 			VkDevice _vkDevice,
 			VkDeviceSize _size,
@@ -131,6 +135,8 @@ namespace KVulkanHeapAllocator
 			pParent = _pParent;
 			persistentMap = _persistentMap;
 			noShare = _noShare;
+
+			releaseMemoryCounter = 0;
 		}
 
 		~PageInfo()
@@ -245,24 +251,36 @@ namespace KVulkanHeapAllocator
 			pBlock->isFree = true;
 			// 与前后的freeblock合并
 			Trim(pBlock);
-			// 只剩下最后一个节点 释放内存
-			if(pHead->pNext == nullptr)
+			// 只剩下最后一个节点
+			if (pHead->pNext == nullptr)
 			{
-				SAFE_DELETE(pHead);
-				assert(vkMemroy != VK_NULL_HANDLE);
-#ifdef KVUALKAN_HEAP_TRUELY_ALLOC
-				if (persistentMap)
+				releaseMemoryCounter = 0;
+			}
+		}
+
+		void Tick()
+		{
+			if (pHead->isFree)
+			{
+				++releaseMemoryCounter;
+				if (releaseMemoryCounter >= RELEASE_MEMORY_TICK)
 				{
-					assert(pMapped);
-					vkUnmapMemory(vkDevice, vkMemroy);
-					pMapped = nullptr;
-				}
-				vkFreeMemory(vkDevice, vkMemroy, nullptr);
-				HEAP_REMAIN_SIZE[memoryHeapIndex] += size;
+					SAFE_DELETE(pHead);
+					assert(vkMemroy != VK_NULL_HANDLE);
+#ifdef KVUALKAN_HEAP_TRUELY_ALLOC
+					if (persistentMap)
+					{
+						assert(pMapped);
+						vkUnmapMemory(vkDevice, vkMemroy);
+						pMapped = nullptr;
+					}
+					vkFreeMemory(vkDevice, vkMemroy, nullptr);
+					HEAP_REMAIN_SIZE[memoryHeapIndex] += size;
 #else
-				free(vkMemroy);
+					free(vkMemroy);
 #endif
-				vkMemroy = VK_NULL_HANDLE;
+					vkMemroy = VK_NULL_HANDLE;
+				}
 			}
 		}
 
@@ -289,6 +307,7 @@ namespace KVulkanHeapAllocator
 #endif
 				vkMemroy = VK_NULL_HANDLE;
 			}
+			pMapped = nullptr;
 
 			for(BlockInfo* p = pHead; p != nullptr;)
 			{
@@ -486,6 +505,17 @@ namespace KVulkanHeapAllocator
 				}
 			}
 #endif
+		}
+
+		void Tick()
+		{
+			for (uint32_t i = 0; i < MAT_COUNT; ++i)
+			{
+				if (pHead[i])
+				{
+					pHead[i]->Tick();
+				}
+			}
 		}
 
 		void Clear()
@@ -845,6 +875,19 @@ namespace KVulkanHeapAllocator
 		HEAP_REMAIN_SIZE.clear();
 		MIN_PAGE_SIZE.clear();
 
+		return true;
+	}
+
+	bool Tick()
+	{
+		for (uint32_t memoryTypeIndex = 0; memoryTypeIndex < MEMORY_TYPE_COUNT; ++memoryTypeIndex)
+		{
+			MemoryHeap* pHeap = MEMORY_TYPE_TO_HEAP[memoryTypeIndex];
+			if (pHeap)
+			{
+				pHeap->Tick();
+			}
+		}
 		return true;
 	}
 

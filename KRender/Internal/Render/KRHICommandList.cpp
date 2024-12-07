@@ -201,6 +201,11 @@ void KRenderCmd::Execute(KRHICommandList& commandList)
 	commandBuffer->Render(command);
 }
 
+void KRenderDeviceTickCmd::Execute(KRHICommandList& commandList)
+{
+	KRenderGlobal::RenderDevice->Tick();
+}
+
 void KRHICommandList::InternalCurrentThreadedContext(uint32_t threadNum, IKCommandBufferPtr inCommandBuffer, const std::vector<IKCommandPoolPtr>& threadCommandPools, KRenderJobExecuteThreadPool* threadPool, IKRenderPassPtr renderPass, KRenderCommandList&& renderCmdList)
 {
 	m_CurrentThreadNum = threadNum;
@@ -489,5 +494,11 @@ void KRHICommandList::QueueSubmit(IKQueuePtr queue, std::vector<IKSemaphorePtr> 
 void KRHICommandList::Present(IKSwapChain* swapChain, SwapChainResizeCallbackType callback)
 {
 	KRHICommandBasePtr command = KRHICommandBasePtr(KNEW KSwapChainPresentCmd(swapChain, callback));
+	ExecuteOrInsertNextCommand(command);
+}
+
+void KRHICommandList::TickRenderDevice()
+{
+	KRHICommandBasePtr command = KRHICommandBasePtr(KNEW KRenderDeviceTickCmd());
 	ExecuteOrInsertNextCommand(command);
 }

@@ -24,4 +24,5 @@ namespace KVulkanHeapAllocator
 	bool UnInit();
 	bool Alloc(VkDeviceSize size, VkDeviceSize alignment, uint32_t memoryTypeIndex, VkMemoryPropertyFlags memoryUsage, VkBufferUsageFlags bufferUsage, bool noShared, AllocInfo& info);
 	bool Free(const AllocInfo& data);
+	bool Tick();
 }

@@ -1663,6 +1663,12 @@ bool KVulkanRenderDevice::Wait()
 	return false;
 }
 
+bool KVulkanRenderDevice::Tick()
+{
+	KVulkanHeapAllocator::Tick();
+	return true;
+}
+
 bool KVulkanRenderDevice::RegisterDeviceInitCallback(KDeviceInitCallback* callback)
 {
 	if (callback)

@@ -495,6 +495,11 @@ RHICOMMAND_DEFINE(KQueueSubmitCmd)
 	virtual void Execute(KRHICommandList& commandList) override;
 };
 
+RHICOMMAND_DEFINE(KRenderDeviceTickCmd)
+{
+	virtual void Execute(KRHICommandList & commandList) override;
+};
+
 typedef std::function<void(IKSwapChain*, bool needResize)> SwapChainResizeCallbackType;
 RHICOMMAND_DEFINE(KSwapChainPresentCmd)
 {
@@ -643,6 +648,8 @@ public:
 	void AddLowLevelRenderJob(LowLevelRenderJobType job);
 
 	void QueueSubmit(IKQueuePtr queue, std::vector<IKSemaphorePtr> waits, std::vector<IKSemaphorePtr> singals, IKFencePtr fence);
+
+	void TickRenderDevice();
 
 	void Present(IKSwapChain* swapChain, SwapChainResizeCallbackType callback);
 

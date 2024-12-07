@@ -74,6 +74,7 @@ struct IKRenderDevice
 	virtual bool CreateRenderPass(IKRenderPassPtr& renderPass) = 0;
 
 	virtual bool Wait() = 0;
+	virtual bool Tick() = 0;
 
 	virtual bool RegisterDeviceInitCallback(KDeviceInitCallback* callback) = 0;
 	virtual bool UnRegisterDeviceInitCallback(KDeviceInitCallback* callback) = 0;
