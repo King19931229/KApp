@@ -335,17 +335,16 @@ bool KVulkanSwapChain::DestroyFrameBuffers()
 	return true;
 }
 
-bool KVulkanSwapChain::Init(IKRenderWindow* window, uint32_t frameInFlight)
+bool KVulkanSwapChain::Init(IKRenderWindow* window)
 {
 	UnInit();
 
 	ASSERT_RESULT(m_SwapChain == VK_NULL_HANDLE);
 	ASSERT_RESULT(KVulkanGlobal::deviceReady);
 
-	m_MaxFramesInFight = frameInFlight;
+	m_MaxFramesInFight = KRenderGlobal::NumFramesInFlight;
 
 	m_pWindow = window;
-	m_pWindow->SetSwapChain(this);
 
 	ASSERT_RESULT(CreateSurface());
 	ASSERT_RESULT(CreateSwapChain());
@@ -361,11 +360,7 @@ bool KVulkanSwapChain::UnInit()
 	ASSERT_RESULT(CleanupSwapChain());
 	ASSERT_RESULT(DestroySyncObjects());
 	m_MaxFramesInFight = 0;
-	if (m_pWindow)
-	{
-		m_pWindow->SetSwapChain(nullptr);
-		m_pWindow = nullptr;
-	}
+	m_pWindow = nullptr;
 
 	m_PrePresentCallback.clear();
 	m_PostPresentCallback.clear();

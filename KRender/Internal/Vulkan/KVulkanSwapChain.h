@@ -71,7 +71,7 @@ public:
 	KVulkanSwapChain();
 	~KVulkanSwapChain();
 
-	virtual bool Init(IKRenderWindow* window, uint32_t frameInFlight);
+	virtual bool Init(IKRenderWindow* window);
 	virtual bool UnInit();
 	virtual IKRenderWindow* GetWindow();
 	virtual uint32_t GetFrameInFlight();

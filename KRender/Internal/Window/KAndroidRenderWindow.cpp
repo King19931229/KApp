@@ -1,7 +1,10 @@
 #include "KAndroidRenderWindow.h"
 #include "Interface/IKRenderDevice.h"
+#include "Interface/IKUIOverlay.h"
+#include "Interface/IKSwapChain.h"
 #include "KBase/Interface/IKLog.h"
 #include "KBase/Publish/KTemplate.h"
+#include "Internal/KRenderGlobal.h"
 
 #ifdef __ANDROID__
 #include <android/native_activity.h>
@@ -67,15 +70,44 @@ bool KAndroidRenderWindow::UnInit()
 	return true;
 }
 
-bool KAndroidRenderWindow::SetSwapChain(IKSwapChain* swapChain)
+bool KAndroidRenderWindow::CreateUISwapChain()
 {
-	m_SwapChain = swapChain;
+	DestroyUISwapChain();
+
+	m_Device->CreateSwapChain(m_SwapChain);
+	ASSERT_RESULT(m_SwapChain->Init(this));
+
+	m_Device->CreateUIOverlay(m_UIOverlay);
+	m_UIOverlay->Resize(m_SwapChain->GetWidth(), m_SwapChain->GetHeight());
+
 	return true;
+}
+
+bool KAndroidRenderWindow::DestroyUISwapChain()
+{
+	if (m_UIOverlay)
+	{
+		m_UIOverlay->UnInit();
+		m_UIOverlay = nullptr;
+	}
+
+	if (m_SwapChain)
+	{
+		m_SwapChain->UnInit();
+		m_SwapChain = nullptr;
+	}
+
+	return true;
+}
+
+IKUIOverlay* KAndroidRenderWindow::GetUIOverlay()
+{
+	return m_UIOverlay ? m_UIOverlay.get() : nullptr;
 }
 
 IKSwapChain* KAndroidRenderWindow::GetSwapChain()
 {
-	return m_SwapChain;
+	return m_SwapChain ? m_SwapChain.get() : nullptr;
 }
 
 android_app* KAndroidRenderWindow::GetAndroidApp()

@@ -1,7 +1,10 @@
 #include "KGLFWRenderWindow.h"
+#include "Interface/IKRenderDevice.h"
+#include "Interface/IKUIOverlay.h"
+#include "Interface/IKSwapChain.h"
 #include "KBase/Interface/IKLog.h"
 #include "KBase/Publish/KTemplate.h"
-#include "Interface/IKRenderDevice.h"
+#include "Internal/KRenderGlobal.h"
 
 #ifdef _WIN32
 #define NOMINMAX
@@ -26,22 +29,13 @@ KGLFWRenderWindow::KGLFWRenderWindow()
 
 KGLFWRenderWindow::~KGLFWRenderWindow()
 {
+	ASSERT_RESULT(!m_UIOverlay);
+	ASSERT_RESULT(!m_SwapChain);
 }
 
 RenderWindowType KGLFWRenderWindow::GetType()
 {
 	return RENDER_WINDOW_GLFW;
-}
-
-bool KGLFWRenderWindow::SetSwapChain(IKSwapChain* swapChain)
-{
-	m_SwapChain = swapChain;
-	return true;
-}
-
-IKSwapChain* KGLFWRenderWindow::GetSwapChain()
-{
-	return m_SwapChain;
 }
 
 #ifndef __ANDROID__
@@ -358,6 +352,47 @@ bool KGLFWRenderWindow::UnInit()
 	m_ResizeCallbacks.clear();
 #endif
 	return true;
+}
+
+bool KGLFWRenderWindow::CreateUISwapChain()
+{
+	DestroyUISwapChain();
+
+	m_Device->CreateSwapChain(m_SwapChain);
+	ASSERT_RESULT(m_SwapChain->Init(this));
+
+	m_Device->CreateUIOverlay(m_UIOverlay);
+	m_UIOverlay->Init();
+	m_UIOverlay->Resize(m_SwapChain->GetWidth(), m_SwapChain->GetHeight());
+
+	return true;
+}
+
+bool KGLFWRenderWindow::DestroyUISwapChain()
+{
+	if (m_UIOverlay)
+	{
+		m_UIOverlay->UnInit();
+		m_UIOverlay = nullptr;
+	}
+
+	if (m_SwapChain)
+	{
+		m_SwapChain->UnInit();
+		m_SwapChain = nullptr;
+	}
+
+	return true;
+}
+
+IKUIOverlay* KGLFWRenderWindow::GetUIOverlay()
+{
+	return m_UIOverlay ? m_UIOverlay.get() : nullptr;
+}
+
+IKSwapChain* KGLFWRenderWindow::GetSwapChain()
+{
+	return m_SwapChain ? m_SwapChain.get() : nullptr;
 }
 
 android_app* KGLFWRenderWindow::GetAndroidApp()

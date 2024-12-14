@@ -1114,16 +1114,10 @@ bool KVulkanRenderDevice::Init(IKRenderWindow* window)
 		if (!InitHeapAllocator())
 			return false;
 
-		CreateSwapChain(m_SwapChain);
-		CreateUIOverlay(m_UIOverlay);
-
 		for (KDeviceInitCallback* callback : m_InitCallback)
 		{
 			(*callback)();
 		}
-
-		if (!InitSwapChain())
-			return false;
 
 		m_pWindow->SetRenderDevice(this);
 
@@ -1141,39 +1135,6 @@ bool KVulkanRenderDevice::Init(IKRenderWindow* window)
 	return false;
 }
 
-bool KVulkanRenderDevice::InitSwapChain()
-{
-	ASSERT_RESULT(m_PhysicalDevice.queueComplete);
-	ASSERT_RESULT(m_pWindow != nullptr);
-
-	ASSERT_RESULT(m_SwapChain);
-	ASSERT_RESULT(m_SwapChain->Init(m_pWindow, KRenderGlobal::NumFramesInFlight));
-
-	ASSERT_RESULT(m_UIOverlay);
-	m_UIOverlay->Init(this, KRenderGlobal::NumFramesInFlight);
-	m_UIOverlay->Resize(m_SwapChain->GetWidth(), m_SwapChain->GetHeight());
-
-	return true;
-}
-
-bool KVulkanRenderDevice::CleanupSwapChain()
-{
-	if (m_UIOverlay)
-	{
-		m_UIOverlay->UnInit();
-		m_UIOverlay = nullptr;
-	}
-
-	// clear swapchain
-	if (m_SwapChain)
-	{
-		m_SwapChain->UnInit();
-		m_SwapChain = nullptr;
-	}
-
-	return true;
-}
-
 bool KVulkanRenderDevice::UnInit()
 {
 	Wait();
@@ -1183,14 +1144,6 @@ bool KVulkanRenderDevice::UnInit()
 	delete ((GpuCrashTracker*)m_GpuCrashTracker);
 	m_GpuCrashTracker = nullptr;
 #endif
-
-	for (IKSwapChain* swapChain : m_SecordarySwapChains)
-	{
-		SAFE_UNINIT(swapChain);
-	}
-	m_SecordarySwapChains.clear();
-
-	CleanupSwapChain();
 
 	for (KDeviceUnInitCallback* callback : m_UnInitCallback)
 	{
@@ -1554,6 +1507,12 @@ bool KVulkanRenderDevice::CreateSwapChain(IKSwapChainPtr& swapChain)
 	return true;
 }
 
+bool KVulkanRenderDevice::CreateUIOverlay(IKUIOverlayPtr& ui)
+{
+	ui = IKUIOverlayPtr(static_cast<IKUIOverlay*>(KNEW KVulkanUIOverlay()));
+	return true;
+}
+
 bool KVulkanRenderDevice::CreateRenderPass(IKRenderPassPtr& renderPass)
 {
 	renderPass = IKRenderPassPtr(static_cast<IKRenderPass*>(KNEW KVulkanRenderPass()));
@@ -1596,12 +1555,6 @@ bool KVulkanRenderDevice::CreateComputePipeline(IKComputePipelinePtr& compute)
 	return true;
 }
 
-bool KVulkanRenderDevice::CreateUIOverlay(IKUIOverlayPtr& ui)
-{
-	ui = IKUIOverlayPtr(static_cast<IKUIOverlay*>(KNEW KVulkanUIOverlay()));
-	return true;
-}
-
 bool KVulkanRenderDevice::SetCheckPointMarker(IKCommandBuffer* commandBuffer, uint32_t frameNum, const char* marker)
 {
 #if USE_NSIGHT_AFTERMATH
@@ -1609,26 +1562,6 @@ bool KVulkanRenderDevice::SetCheckPointMarker(IKCommandBuffer* commandBuffer, ui
 	((GpuCrashTracker*)m_GpuCrashTracker)->SetCheckpointMarker(vkCommandBuffer, frameNum, marker);
 #endif
 	return true;
-}
-
-bool KVulkanRenderDevice::RegisterSecordarySwapChain(IKSwapChain* swapChain)
-{
-	if (std::find(m_SecordarySwapChains.begin(), m_SecordarySwapChains.end(), swapChain) == m_SecordarySwapChains.end())
-	{
-		m_SecordarySwapChains.push_back(swapChain);
-	}
-	return true;
-}
-
-bool KVulkanRenderDevice::UnRegisterSecordarySwapChain(IKSwapChain* swapChain)
-{
-	auto it = std::find(m_SecordarySwapChains.begin(), m_SecordarySwapChains.end(), swapChain);
-	if (it != m_SecordarySwapChains.end())
-	{
-		m_SecordarySwapChains.erase(it);
-		return true;
-	}
-	return false;
 }
 
 bool KVulkanRenderDevice::QueryProperty(KRenderDeviceProperties** ppProperty)
@@ -1717,19 +1650,9 @@ bool KVulkanRenderDevice::UnRegisterDeviceUnInitCallback(KDeviceUnInitCallback* 
 	return false;
 }
 
-IKSwapChain* KVulkanRenderDevice::GetSwapChain()
-{
-	return m_SwapChain.get();
-}
-
 IKRenderWindow* KVulkanRenderDevice::GetMainWindow()
 {
 	return m_pWindow;
-}
-
-IKUIOverlay* KVulkanRenderDevice::GetUIOverlay()
-{
-	return m_UIOverlay.get();
 }
 
 /*
@@ -1745,13 +1668,6 @@ bool KVulkanRenderDevice::RecreateSwapChain(IKSwapChain* swapChain)
 	if (swapChain)
 	{
 		IKRenderWindow* window = swapChain->GetWindow();
-		uint32_t frameInFlight = swapChain->GetFrameInFlight();
-
-		// 主交换链必须等到撤销最小化
-		if (swapChain == m_SwapChain.get())
-		{
-			// window->IdleUntilForeground();
-		}
 
 		if (window->IsMinimized())
 		{
@@ -1761,7 +1677,7 @@ bool KVulkanRenderDevice::RecreateSwapChain(IKSwapChain* swapChain)
 		vkDeviceWaitIdle(m_Device);
 
 		swapChain->UnInit();
-		swapChain->Init(window, frameInFlight);
+		swapChain->Init(window);
 
 		return true;
 	}

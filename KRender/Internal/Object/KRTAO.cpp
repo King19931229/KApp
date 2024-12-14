@@ -89,7 +89,7 @@ bool KRTAO::Init(IKRayTraceScene* scene)
 
 			renderDevice->CreateRenderTarget(m_BlurTempTarget);
 
-			IKSwapChain* chain = KRenderGlobal::RenderDevice->GetSwapChain();
+			IKSwapChain* chain = KRenderGlobal::MainWindow->GetSwapChain();
 			Resize(chain->GetWidth(), chain->GetHeight());
 
 			m_Camera = scene->GetCamera();

@@ -364,7 +364,7 @@ void KRayTraceScene::UpdateSize()
 {
 	if (m_AutoUpdateImageSize)
 	{
-		IKSwapChain* chain = KRenderGlobal::RenderDevice->GetSwapChain();
+		IKSwapChain* chain = KRenderGlobal::MainWindow->GetSwapChain();
 		if (chain->GetWidth() && chain->GetHeight())
 		{
 			m_Width = static_cast<uint32_t>(static_cast<float>(chain->GetWidth()) * m_ImageScale);

@@ -8,7 +8,7 @@ typedef std::function<void(uint32_t width, uint32_t height)> KSwapChainRecreateC
 struct IKSwapChain
 {
 	virtual ~IKSwapChain() {}
-	virtual bool Init(IKRenderWindow* window, uint32_t frameInFlight) = 0;
+	virtual bool Init(IKRenderWindow* window) = 0;
 	virtual bool UnInit() = 0;
 	virtual IKRenderWindow* GetWindow() = 0;
 	virtual uint32_t GetFrameInFlight() = 0;

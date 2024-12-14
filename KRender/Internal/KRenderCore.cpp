@@ -41,7 +41,7 @@ KRenderCore::KRenderCore()
 
 KRenderCore::~KRenderCore()
 {
-	ASSERT_RESULT(m_SecordaryWindow.empty());
+	ASSERT_RESULT(m_SecordaryWindows.empty());
 	assert(!m_DebugConsole);
 }
 
@@ -169,9 +169,21 @@ bool KRenderCore::UnInitRenderer()
 	return true;
 }
 
+bool KRenderCore::InitUISwapChain()
+{
+	ASSERT_RESULT(m_MainWindow != nullptr);
+	m_MainWindow->CreateUISwapChain();
+
+	for (IKRenderWindow* window : m_SecordaryWindows)
+	{
+		window->CreateUISwapChain();
+	}
+	return true;
+}
+
 bool KRenderCore::InitController()
 {
-	IKUIOverlay* ui = m_Device->GetUIOverlay();
+	IKUIOverlay* ui = m_MainWindow->GetUIOverlay();
 	m_CameraMoveController.Init(&m_Camera, m_MainWindow, m_Gizmo);
 	m_UIController.Init(ui, m_MainWindow);
 	m_GizmoContoller.Init(m_Gizmo, m_CameraCube, &m_Camera, m_MainWindow);
@@ -222,6 +234,18 @@ bool KRenderCore::InitController()
 #if defined(_WIN32)
 	m_MainWindow->RegisterKeyboardCallback(&m_KeyCallback);
 #endif
+	return true;
+}
+
+bool KRenderCore::UnInitUISwapChain()
+{
+	ASSERT_RESULT(m_MainWindow != nullptr);
+	m_MainWindow->DestroyUISwapChain();
+
+	for (IKRenderWindow* window : m_SecordaryWindows)
+	{
+		window->DestroyUISwapChain();
+	}
 	return true;
 }
 
@@ -309,6 +333,8 @@ bool KRenderCore::Init(IKRenderDevicePtr& device, IKRenderWindowPtr& window)
 		m_Camera.SetCustomLockYAxis(glm::vec3(0, 1, 0));
 		m_Camera.SetLockYEnable(true);
 
+		KRenderGlobal::MainWindow = window.get();
+
 		m_InitCallback = [this]()
 		{
 			KRenderGlobal::TaskExecutor.Init("RenderTaskThread", 1);
@@ -317,6 +343,7 @@ bool KRenderCore::Init(IKRenderDevicePtr& device, IKRenderWindowPtr& window)
 			InitRenderer();
 			InitRenderResource();
 			InitGizmo();
+			InitUISwapChain();
 			InitController();
 
 			for (KRenderCoreInitCallback* callback : m_InitCallbacks)
@@ -329,18 +356,6 @@ bool KRenderCore::Init(IKRenderDevicePtr& device, IKRenderWindowPtr& window)
 
 		m_UnitCallback = [this]()
 		{
-			for (auto& pair : m_SecordaryWindow)
-			{
-				IKRenderWindow* window = pair.first;
-				IKSwapChainPtr& swapChain = pair.second;
-
-				ASSERT_RESULT(m_Device->UnRegisterSecordarySwapChain(swapChain.get()));
-
-				window->UnInit();
-				swapChain->UnInit();
-			}
-			m_SecordaryWindow.clear();
-
 			while (!KRenderGlobal::TaskExecutor.AllTaskDone())
 			{
 				KRenderGlobal::TaskExecutor.ProcessSyncTask();
@@ -351,6 +366,7 @@ bool KRenderCore::Init(IKRenderDevicePtr& device, IKRenderWindowPtr& window)
 			KRenderGlobal::Scene.UnInit();
 
 			UnInitController();
+			UnInitUISwapChain();
 			UnInitGizmo();
 			UnInitRenderResource();
 			UnInitRenderer();
@@ -400,6 +416,12 @@ bool KRenderCore::UnInit()
 
 		m_MainWindow = nullptr;
 
+		for (IKRenderWindow* window : m_SecordaryWindows)
+		{
+			window->UnInit();
+		}
+		m_SecordaryWindows.clear();
+
 		m_Device = nullptr;
 
 		GRenderImGui.Exit();
@@ -409,6 +431,8 @@ bool KRenderCore::UnInit()
 
 		m_InitCallbacks.clear();
 		m_UICallbacks.clear();
+
+		KRenderGlobal::MainWindow = nullptr;
 	}
 	return true;
 }
@@ -456,7 +480,7 @@ void KRenderCore::Render()
 	uint32_t frameIndex = 0;
 
 	IKSwapChain* mainSwapChain = m_MainWindow->GetSwapChain();
-	IKUIOverlay* uiOverlay = m_Device->GetUIOverlay();
+	IKUIOverlay* uiOverlay = m_MainWindow->GetUIOverlay();
 
 	if (m_MainWindow->IsMinimized())
 	{
@@ -468,8 +492,6 @@ void KRenderCore::Render()
 		KRenderGlobal::Renderer.OnSwapChainRecreate(mainSwapChain->GetWidth(), mainSwapChain->GetHeight());
 		if (uiOverlay)
 		{
-			uiOverlay->UnInit();
-			uiOverlay->Init(m_Device, mainSwapChain->GetFrameInFlight());
 			uiOverlay->Resize(mainSwapChain->GetWidth(), mainSwapChain->GetHeight());
 		}
 		m_bSwapChainResized = false;
@@ -537,22 +559,9 @@ bool KRenderCore::Tick()
 				KECS::EntityManager->ViewAllEntity([](IKEntityPtr entity) { entity->PreTick(); });
 			}
 
-			for (auto it = m_SecordaryWindow.begin(), itEnd = m_SecordaryWindow.end();
-				it != itEnd;)
+			for (IKRenderWindow* window : m_SecordaryWindows)
 			{
-				IKRenderWindow* window = it->first;
-				if (!window->Tick())
-				{
-					IKSwapChainPtr& swapChain = it->second;
-					ASSERT_RESULT(m_Device->UnRegisterSecordarySwapChain(swapChain.get()));
-					window->UnInit();
-					swapChain->UnInit();
-					it = m_SecordaryWindow.erase(it);
-				}
-				else
-				{
-					++it;
-				}
+				window->Tick();
 			}
 
 			ENQUEUE_RENDER_COMMAND(Render)([this]()
@@ -593,13 +602,10 @@ bool KRenderCore::RegisterSecordaryWindow(IKRenderWindowPtr& window)
 {
 	if (m_bInit)
 	{
-		if (m_SecordaryWindow.find(window.get()) == m_SecordaryWindow.end())
+		if (std::find(m_SecordaryWindows.begin(), m_SecordaryWindows.end(), window.get()) == m_SecordaryWindows.end())
 		{
-			IKSwapChainPtr swapChain = nullptr;
-			ASSERT_RESULT(m_Device->CreateSwapChain(swapChain));
-			swapChain->Init(window.get(), 1);
-			ASSERT_RESULT(m_Device->RegisterSecordarySwapChain(swapChain.get()));
-			m_SecordaryWindow.insert({ window.get() , std::move(swapChain) });
+			window->CreateUISwapChain();
+			m_SecordaryWindows.push_back(window.get());
 			return true;
 		}
 	}
@@ -610,13 +616,11 @@ bool KRenderCore::UnRegisterSecordaryWindow(IKRenderWindowPtr& window)
 {
 	if (m_bInit)
 	{
-		auto it = m_SecordaryWindow.find(window.get());
-		if (it != m_SecordaryWindow.end())
+		auto it = std::find(m_SecordaryWindows.begin(), m_SecordaryWindows.end(), window.get());
+		if (it != m_SecordaryWindows.end())
 		{
-			IKSwapChainPtr& swapChain = it->second;
-			ASSERT_RESULT(m_Device->UnRegisterSecordarySwapChain(swapChain.get()));
-			SAFE_UNINIT(swapChain);
-			m_SecordaryWindow.erase(it);
+			m_SecordaryWindows.erase(it);
+			window->DestroyUISwapChain();
 			SAFE_UNINIT(window);
 			return true;
 		}
@@ -732,7 +736,7 @@ bool KRenderCore::UpdateFrameTime()
 
 bool KRenderCore::UpdateUIOverlay()
 {
-	IKUIOverlay* ui = m_Device->GetUIOverlay();
+	IKUIOverlay* ui = m_MainWindow->GetUIOverlay();
 	ui->StartNewFrame();
 	GRenderImGui.Run();
 	for (KRenderCoreUIRenderCallback* callback : m_UICallbacks)

@@ -40,7 +40,7 @@ protected:
 	IKRenderer::OnWindowRenderCallback m_MainWindowRenderCB;
 
 	IKRenderWindow* m_MainWindow;
-	std::unordered_map<IKRenderWindow*, IKSwapChainPtr> m_SecordaryWindow;
+	std::vector<IKRenderWindow*> m_SecordaryWindows;
 
 	typedef std::unordered_set<KRenderCoreInitCallback*> InitCallbackSet;
 	InitCallbackSet m_InitCallbacks;
@@ -59,10 +59,12 @@ protected:
 	bool UnInitGlobalManager();
 
 	bool InitRenderer();
+	bool InitUISwapChain();
 	bool InitController();
 	bool InitGizmo();
 
 	bool UnInitRenderer();
+	bool UnInitUISwapChain();
 	bool UnInitController();
 	bool UnInitGizmo();
 

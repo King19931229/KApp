@@ -15,7 +15,8 @@ protected:
 	android_app* m_app;
 	bool m_bFocus;
 #endif
-	IKSwapChain* m_SwapChain;
+	IKUIOverlayPtr m_UIOverlay;
+	IKSwapChainPtr m_SwapChain;
 	std::vector<KTouchCallbackType*> m_TouchCallbacks;
 	std::vector<KResizeCallbackType*> m_ResizeCallbacks;
 public:
@@ -32,7 +33,10 @@ public:
 	virtual android_app* GetAndroidApp();
 	virtual void* GetHWND();
 
-	virtual bool SetSwapChain(IKSwapChain* swapChain);
+	virtual bool CreateUISwapChain();
+	virtual bool DestroyUISwapChain();
+
+	virtual IKUIOverlay* GetUIOverlay();
 	virtual IKSwapChain* GetSwapChain();
 
 	virtual bool Tick();

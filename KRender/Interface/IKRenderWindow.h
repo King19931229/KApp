@@ -34,10 +34,13 @@ struct IKRenderWindow
 	virtual bool Init(void* HWND, bool primary) = 0;
 	virtual bool UnInit() = 0;
 
+	virtual bool CreateUISwapChain() = 0;
+	virtual bool DestroyUISwapChain() = 0;
+
 	virtual android_app* GetAndroidApp() = 0;
 	virtual void* GetHWND() = 0;
 
-	virtual bool SetSwapChain(IKSwapChain* swapChain) = 0;
+	virtual IKUIOverlay* GetUIOverlay() = 0;
 	virtual IKSwapChain* GetSwapChain() = 0;
 
 	virtual bool Tick() = 0;

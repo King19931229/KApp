@@ -18,7 +18,7 @@ struct IKUIOverlay
 {
 	virtual ~IKUIOverlay() {}
 
-	virtual bool Init(IKRenderDevice* renderDevice, size_t frameInFlight) = 0;
+	virtual bool Init() = 0;
 	virtual bool UnInit() = 0;
 	virtual bool Resize(size_t width, size_t height) = 0;
 	virtual bool Update() = 0;

@@ -87,11 +87,6 @@ protected:
 	VkDebugReportCallbackEXT m_DebugReportCallback;
 	PhysicalDevice m_PhysicalDevice;
 
-	IKSwapChainPtr m_SwapChain;
-	std::vector<IKSwapChain*> m_SecordarySwapChains;
-	// TODO 放到Window持有
-	IKUIOverlayPtr m_UIOverlay;
-
 	void* m_GpuCrashTracker;
 
 	typedef std::unordered_set<KDeviceInitCallback*> DeviceInitCallbackSet;
@@ -116,15 +111,10 @@ protected:
 
 	void* GetEnabledFeatures();
 
-	bool CreateUIOverlay(IKUIOverlayPtr& ui);
-
 	bool PickPhysicsDevice();
 	bool CreateLogicalDevice();
 	bool CreatePipelineCache();
 	bool CreateCommandPool();
-
-	bool InitSwapChain();
-	bool CleanupSwapChain();
 
 	bool InitDeviceGlobal();
 	bool UnInitDeviceGlobal();
@@ -183,6 +173,8 @@ public:
 	virtual bool CreateQuery(IKQueryPtr& query);
 	virtual bool CreateSwapChain(IKSwapChainPtr& swapChain);
 
+	virtual bool CreateUIOverlay(IKUIOverlayPtr& ui);
+
 	virtual bool CreateRenderPass(IKRenderPassPtr& renderPass);
 
 	virtual bool Wait();
@@ -196,14 +188,9 @@ public:
 	virtual bool RegisterDeviceUnInitCallback(KDeviceUnInitCallback* callback);
 	virtual bool UnRegisterDeviceUnInitCallback(KDeviceUnInitCallback* callback);
 
-	virtual bool RegisterSecordarySwapChain(IKSwapChain* swapChain);
-	virtual bool UnRegisterSecordarySwapChain(IKSwapChain* swapChain);
-
 	virtual bool QueryProperty(KRenderDeviceProperties** ppProperty);
 
-	virtual IKSwapChain* GetSwapChain();
 	virtual IKRenderWindow* GetMainWindow();
-	virtual IKUIOverlay* GetUIOverlay();
 
 	virtual bool SetCheckPointMarker(IKCommandBuffer* commandBuffer, uint32_t frameNum, const char* marker);
 };

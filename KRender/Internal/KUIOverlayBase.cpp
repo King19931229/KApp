@@ -84,29 +84,27 @@ void KUIOverlayBase::UnInitImgui()
 	}
 }
 
-bool KUIOverlayBase::Init(IKRenderDevice* renderDevice, size_t frameInFlight)
+bool KUIOverlayBase::Init()
 {
-	ASSERT_RESULT(renderDevice != nullptr);
-	ASSERT_RESULT(frameInFlight > 0);
-	ASSERT_RESULT(UnInit());
+	UnInit();
 
-	renderDevice->CreateShader(m_VertexShader);
-	renderDevice->CreateShader(m_FragmentShader);
+	KRenderGlobal::RenderDevice->CreateShader(m_VertexShader);
+	KRenderGlobal::RenderDevice->CreateShader(m_FragmentShader);
 
-	renderDevice->CreateTexture(m_FontTexture);
-	renderDevice->CreateSampler(m_FontSampler);
+	KRenderGlobal::RenderDevice->CreateTexture(m_FontTexture);
+	KRenderGlobal::RenderDevice->CreateSampler(m_FontSampler);
 
-	renderDevice->CreatePipeline(m_Pipeline);
+	KRenderGlobal::RenderDevice->CreatePipeline(m_Pipeline);
 
-	size_t numImages = frameInFlight;
+	size_t numImages = KRenderGlobal::NumFramesInFlight;
 
 	m_IndexBuffers.resize(numImages);
 	m_VertexBuffers.resize(numImages);
 
 	for(size_t i = 0; i < numImages; ++i)
 	{
-		renderDevice->CreateIndexBuffer(m_IndexBuffers[i]);
-		renderDevice->CreateVertexBuffer(m_VertexBuffers[i]);
+		KRenderGlobal::RenderDevice->CreateIndexBuffer(m_IndexBuffers[i]);
+		KRenderGlobal::RenderDevice->CreateVertexBuffer(m_VertexBuffers[i]);
 	}
 
 	InitImgui();

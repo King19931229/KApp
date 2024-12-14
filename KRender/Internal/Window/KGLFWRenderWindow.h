@@ -15,7 +15,8 @@ protected:
 	void* m_HWND;
 #endif
 	GLFWwindow* m_Window;
-	IKSwapChain* m_SwapChain;
+	IKUIOverlayPtr m_UIOverlay;
+	IKSwapChainPtr m_SwapChain;
 	double m_LastMovePos[2];
 	bool m_bPrimary;
 	std::vector<KKeyboardCallbackType*> m_KeyboardCallbacks;
@@ -47,10 +48,13 @@ public:
 	virtual bool Init(void* hwnd, bool primary);
 	virtual bool UnInit();
 
+	virtual bool CreateUISwapChain();
+	virtual bool DestroyUISwapChain();
+
 	virtual android_app* GetAndroidApp();
 	virtual void* GetHWND();
 
-	virtual bool SetSwapChain(IKSwapChain* swapChain);
+	virtual IKUIOverlay* GetUIOverlay();
 	virtual IKSwapChain* GetSwapChain();
 
 	virtual bool Tick();

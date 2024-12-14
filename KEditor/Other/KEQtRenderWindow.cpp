@@ -1,4 +1,6 @@
 #include "KEQtRenderWindow.h"
+#include "KRender/Interface/IKUIOverlay.h"
+#include "KRender/Interface/IKSwapChain.h"
 #include "KBase/Publish/KTemplate.h"
 
 #ifdef _WIN32
@@ -15,7 +17,9 @@ KEQtRenderWindow::KEQtRenderWindow()
 
 KEQtRenderWindow::~KEQtRenderWindow()
 {
-	assert(m_HWND == nullptr);
+	ASSERT_RESULT(m_HWND == nullptr);
+	ASSERT_RESULT(!m_UIOverlay);
+	ASSERT_RESULT(!m_SwapChain);
 }
 
 RenderWindowType KEQtRenderWindow::GetType()
@@ -67,20 +71,50 @@ bool KEQtRenderWindow::UnInit()
 	return true;
 }
 
+bool KEQtRenderWindow::CreateUISwapChain()
+{
+	DestroyUISwapChain();
+
+	m_Device->CreateSwapChain(m_SwapChain);
+	ASSERT_RESULT(m_SwapChain->Init(this));
+
+	m_Device->CreateUIOverlay(m_UIOverlay);
+	m_UIOverlay->Init();
+	m_UIOverlay->Resize(m_SwapChain->GetWidth(), m_SwapChain->GetHeight());
+
+	return true;
+}
+
+bool KEQtRenderWindow::DestroyUISwapChain()
+{
+	if (m_UIOverlay)
+	{
+		m_UIOverlay->UnInit();
+		m_UIOverlay = nullptr;
+	}
+
+	if (m_SwapChain)
+	{
+		m_SwapChain->UnInit();
+		m_SwapChain = nullptr;
+	}
+
+	return true;
+}
+
 android_app* KEQtRenderWindow::GetAndroidApp()
 {
 	return nullptr;
 }
 
-bool KEQtRenderWindow::SetSwapChain(IKSwapChain* swapChain)
+IKUIOverlay* KEQtRenderWindow::GetUIOverlay()
 {
-	m_SwapChain = swapChain;
-	return true;
+	return m_UIOverlay ? m_UIOverlay.get() : nullptr;
 }
 
 IKSwapChain* KEQtRenderWindow::GetSwapChain()
 {
-	return m_SwapChain;
+	return m_SwapChain ? m_SwapChain.get() : nullptr;
 }
 
 void* KEQtRenderWindow::GetHWND()

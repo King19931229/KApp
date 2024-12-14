@@ -8,7 +8,8 @@ class KEQtRenderWindow : public IKRenderWindow
 protected:
 	IKRenderDevice* m_Device;
 	void* m_HWND;
-	IKSwapChain* m_SwapChain;
+	IKUIOverlayPtr m_UIOverlay;
+	IKSwapChainPtr m_SwapChain;
 	bool m_bPrimary;
 	std::vector<KKeyboardCallbackType*> m_KeyboardCallbacks;
 	std::vector<KMouseCallbackType*> m_MouseCallbacks;
@@ -26,10 +27,13 @@ public:
 	virtual bool Init(void* hwnd, bool primary);
 	virtual bool UnInit();
 
+	virtual bool CreateUISwapChain();
+	virtual bool DestroyUISwapChain();
+
 	virtual android_app* GetAndroidApp();
 	virtual void* GetHWND();
 
-	virtual bool SetSwapChain(IKSwapChain* swapChain);
+	virtual IKUIOverlay* GetUIOverlay();
 	virtual IKSwapChain* GetSwapChain();
 
 	virtual bool Tick();

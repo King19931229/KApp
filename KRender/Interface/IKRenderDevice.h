@@ -71,6 +71,7 @@ struct IKRenderDevice
 
 	virtual bool CreateQuery(IKQueryPtr& query) = 0;
 	virtual bool CreateSwapChain(IKSwapChainPtr& swapChain) = 0;
+	virtual bool CreateUIOverlay(IKUIOverlayPtr& ui) = 0;
 	virtual bool CreateRenderPass(IKRenderPassPtr& renderPass) = 0;
 
 	virtual bool Wait() = 0;
@@ -82,15 +83,10 @@ struct IKRenderDevice
 	virtual bool RegisterDeviceUnInitCallback(KDeviceUnInitCallback* callback) = 0;
 	virtual bool UnRegisterDeviceUnInitCallback(KDeviceUnInitCallback* callback) = 0;
 
-	virtual bool RegisterSecordarySwapChain(IKSwapChain* swapChain) = 0;
-	virtual bool UnRegisterSecordarySwapChain(IKSwapChain* swapChain) = 0;
-
 	virtual bool QueryProperty(KRenderDeviceProperties** ppProperty) = 0;
 
 	virtual bool RecreateSwapChain(IKSwapChain* swapChain) = 0;
 	virtual IKRenderWindow* GetMainWindow() = 0;
-	virtual IKSwapChain* GetSwapChain() = 0;
-	virtual IKUIOverlay* GetUIOverlay() = 0;
 
 	virtual bool SetCheckPointMarker(IKCommandBuffer* commandBuffer, uint32_t frameNum, const char* marker) = 0;
 };

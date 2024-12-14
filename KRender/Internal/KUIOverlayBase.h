@@ -33,7 +33,7 @@ public:
 	KUIOverlayBase();
 	virtual ~KUIOverlayBase();
 
-	virtual bool Init(IKRenderDevice* renderDevice, size_t frameInFlight);
+	virtual bool Init();
 	virtual bool UnInit();
 	virtual bool Resize(size_t width, size_t height);
 	virtual bool Update();

@@ -126,6 +126,7 @@ namespace KRenderGlobal
 	extern uint32_t NumTransferQueue;
 
 	// Render Context
+	extern IKRenderWindow* MainWindow;
 	extern IKCommandPoolPtr CommandPool;
 	extern IKRenderDevice* RenderDevice;
 };
