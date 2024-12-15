@@ -1,78 +1,26 @@
 #include "KVulkanSampler.h"
 #include "KVulkanHelper.h"
 #include "KVulkanGlobal.h"
+#include "KBase/Interface/IKLog.h"
 
 KVulkanSampler::KVulkanSampler()
-	: KSamplerBase(),
-	m_TextureSampler(VK_NULL_HANDLE),
-	m_LoadTask(nullptr),
-	m_ResourceState(RS_UNLOADED)
+	: KSamplerBase()
+	, m_TextureSampler(VK_NULL_HANDLE)
 {
 }
 
 KVulkanSampler::~KVulkanSampler()
 {
 	ASSERT_RESULT(m_TextureSampler == VK_NULL_HANDLE);
-	// ASSERT_RESULT(m_LoadTask == nullptr);
-	ASSERT_RESULT(m_ResourceState == RS_UNLOADED);
-}
-
-ResourceState KVulkanSampler::GetResourceState()
-{
-	return m_ResourceState;
-}
-
-void KVulkanSampler::WaitForMemory()
-{
-	return;
-}
-
-void KVulkanSampler::WaitForDevice()
-{
-	WaitDeviceTask();
-}
-
-bool KVulkanSampler::CancelDeviceTask()
-{
-	KTaskUnitProcessorPtr loadTask = nullptr;
-	{
-		std::unique_lock<decltype(m_LoadTaskLock)> guard(m_LoadTaskLock);
-		loadTask = m_LoadTask;
-	}
-
-	if (loadTask)
-	{
-		loadTask->Cancel();
-	}
-
-	return true;
-}
-
-bool KVulkanSampler::WaitDeviceTask()
-{
-	KTaskUnitProcessorPtr loadTask = nullptr;
-	{
-		std::unique_lock<decltype(m_LoadTaskLock)> guard(m_LoadTaskLock);
-		loadTask = m_LoadTask;
-	}
-
-	if (loadTask)
-	{
-		loadTask->Wait();
-	}
-
-	return true;
 }
 
 bool KVulkanSampler::ReleaseDevice()
 {
-	CancelDeviceTask();
 	if (m_TextureSampler != VK_NULL_HANDLE)
 	{
 		vkDestroySampler(KVulkanGlobal::device, m_TextureSampler, nullptr);
 		m_TextureSampler = VK_NULL_HANDLE;
 	}
-	m_ResourceState = RS_UNLOADED;
 	return true;
 }
 
@@ -112,7 +60,10 @@ bool KVulkanSampler::CreateDevice()
 	}
 	else
 	{
-		// TODO Warning
+		if (m_AnisotropicEnable)
+		{
+			KG_LOGE(LM_RENDER, "Try to use anisotropic but not supported");
+		}
 		samplerInfo.anisotropyEnable = VK_FALSE;
 	}
 
@@ -162,64 +113,12 @@ bool KVulkanSampler::CreateDevice()
 
 bool KVulkanSampler::Init(unsigned short minMipmap, unsigned short maxMipmap)
 {
+	UnInit();
 	m_MinMipmap = minMipmap;
 	m_MaxMipmap = maxMipmap;
 	ReleaseDevice();
 	CreateDevice();
-	m_ResourceState = RS_DEVICE_LOADED;
 	return true;
-}
-
-bool KVulkanSampler::Init(IKTexturePtr texture, bool async)
-{
-	if (texture)
-	{
-		ReleaseDevice();
-
-		auto waitImpl = [=]()->bool
-		{
-			texture->WaitForMemory();
-			return true;
-		};
-
-		auto checkImpl = [=]()->bool
-		{
-			return texture->GetResourceState() == RS_DEVICE_LOADED;
-		};
-
-		auto loadImpl = [=]()->bool
-		{
-			m_ResourceState = RS_DEVICE_LOADING;
-			m_MinMipmap = 0;
-			m_MaxMipmap = texture->GetMipmaps();
-			CreateDevice();
-			m_ResourceState = RS_DEVICE_LOADED;
-			return true;
-		};
-
-		auto waitAndLoadImpl = [=]()->bool
-		{
-			waitImpl();
-			return loadImpl();
-		};
-
-		if (async)
-		{
-			m_ResourceState = RS_PENDING;
-			std::unique_lock<decltype(m_LoadTaskLock)> guard(m_LoadTaskLock);
-			m_LoadTask = KRenderGlobal::TaskExecutor.Submit(KTaskUnitPtr(KNEW KSampleAsyncTaskUnit(waitAndLoadImpl)));
-			return true;
-		}
-		else
-		{
-			if (checkImpl())
-			{
-				return loadImpl();
-			}
-			assert(false && "should not be reached");
-		}
-	}
-	return false;
 }
 
 bool KVulkanSampler::UnInit()

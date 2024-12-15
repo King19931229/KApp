@@ -2,6 +2,7 @@
 #include "Internal/KBufferBase.h"
 #include "KVulkanConfig.h"
 #include "KVulkanHeapAllocator.h"
+#include <atomic>
 
 class KVulkanStageBuffer
 {
@@ -38,7 +39,7 @@ protected:
 	bool m_bHostVisible;
 	bool m_Mapping;
 
-	static uint32_t ms_UniqueIDCounter;
+	static std::atomic_uint32_t ms_UniqueIDCounter;
 public:
 	KVulkanBuffer();
 	~KVulkanBuffer();

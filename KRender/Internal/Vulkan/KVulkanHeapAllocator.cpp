@@ -260,7 +260,7 @@ namespace KVulkanHeapAllocator
 
 		void Tick()
 		{
-			if (pHead->isFree)
+			if (pHead && pHead->isFree)
 			{
 				++releaseMemoryCounter;
 				if (releaseMemoryCounter >= RELEASE_MEMORY_TICK)

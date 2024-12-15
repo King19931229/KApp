@@ -1,5 +1,6 @@
 #include "KMaterialManager.h"
 #include "Internal/Asset/KMaterial.h"
+#include "Internal/KRenderGlobal.h"
 
 KMaterialManager::KMaterialManager()
 {
@@ -27,6 +28,13 @@ bool KMaterialManager::UnInit()
 		ASSERT_RESULT(ref.GetRefCount() == 1);
 	}
 	m_Materials.clear();
+	m_Cache.Clear();
+	return true;
+}
+
+bool KMaterialManager::Tick()
+{
+	m_Cache.Clear();
 	return true;
 }
 
@@ -63,6 +71,35 @@ bool KMaterialManager::Acquire(const char* path, KMaterialRef& ref, bool async)
 	}
 
 	return false;
+}
+
+bool KMaterialManager::SetupMaterialGeneratedCode(const std::string& file, std::string& code)
+{
+	{
+		auto it = m_Cache.materialGeneratedCode.find(file);
+		if (it != m_Cache.materialGeneratedCode.end())
+		{
+			code = it->second;
+			return true;
+		}
+	}
+
+	IKFileSystemPtr system = KFileSystem::Manager->GetFileSystem(FSD_SHADER);
+	ASSERT_RESULT(system);
+	IKSourceFilePtr materialSourceFile = GetSourceFile();
+	materialSourceFile->SetIOHooker(IKSourceFile::IOHookerPtr(KNEW KShaderSourceHooker(system)));
+	materialSourceFile->AddIncludeSource(KRenderGlobal::ShaderManager.GetBindingGenerateCode());
+	if (materialSourceFile->Open(file.c_str()))
+	{
+		code = materialSourceFile->GetFinalSource();
+		m_Cache.materialGeneratedCode.insert({file, code});
+		return true;
+	}
+	else
+	{
+		code.clear();
+		return false;
+	}
 }
 
 bool KMaterialManager::Create(const KMeshRawData::Material& input, KMaterialRef& ref, bool async)

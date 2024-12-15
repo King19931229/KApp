@@ -288,128 +288,126 @@ bool KRenderCore::UnInitRenderResource()
 	return true;
 }
 
-bool KRenderCore::Init(IKRenderDevicePtr& device, IKRenderWindowPtr& window)
+bool KRenderCore::Init(IKRenderDevicePtr& device, IKRenderWindowPtr& window, KRenderCoreWindowInit windowInit)
 {
 	UnInit();
 
-	if (!m_bInit)
+	ENQUEUE_RENDER_COMMAND(KRenderCore_Init)([this, &device, &window, windowInit]()
 	{
-		m_RenderThread = KRunableThreadPtr(new KRunableThread(IKRunablePtr(new KRenderThread), "RenderThread"));
-		m_RenderThread->StartUp();
-
-		KShaderMap::InitializePermuationMap();
-
-		m_Device = device.get();
-		m_MainWindow = window.get();
-		m_DebugConsole = KNEW KDebugConsole();
-		m_DebugConsole->Init();
-
-		m_Camera.SetNear(20.0f);
-		m_Camera.SetFar(5000.0f);
-		m_Camera.SetCustomLockYAxis(glm::vec3(0, 1, 0));
-		m_Camera.SetLockYEnable(true);
-
-		m_InitCallback = [this]()
+		if (!m_bInit)
 		{
-			KRenderGlobal::TaskExecutor.Init("RenderTaskThread", 1);
-			InitGlobalManager();
-			InitPostProcess();
-			InitRenderer();
-			InitRenderResource();
-			InitGizmo();
-			InitController();
+			KShaderMap::InitializePermuationMap();
 
-			for (KRenderCoreInitCallback* callback : m_InitCallbacks)
+			m_Device = device.get();
+			m_MainWindow = window.get();
+			m_DebugConsole = KNEW KDebugConsole();
+			m_DebugConsole->Init();
+
+			m_Camera.SetNear(20.0f);
+			m_Camera.SetFar(5000.0f);
+			m_Camera.SetCustomLockYAxis(glm::vec3(0, 1, 0));
+			m_Camera.SetLockYEnable(true);
+
+			m_DeviceInitCallback = [this]()
 			{
-				(*callback)();
-			}
+				InitGlobalManager();
+				InitPostProcess();
+				InitRenderer();
+				InitRenderResource();
+				InitGizmo();
+				InitController();
 
-			DebugCode();
-		};
+				for (KRenderCoreInitCallback* callback : m_InitCallbacks)
+				{
+					(*callback)();
+				}
 
-		m_UnitCallback = [this]()
-		{
-			for (auto& pair : m_SecordaryWindow)
+				DebugCode();
+			};
+
+			m_DeviceUnInitCallback = [this]()
 			{
-				IKRenderWindow* window = pair.first;
-				IKSwapChainPtr& swapChain = pair.second;
+				for (auto& pair : m_SecordaryWindow)
+				{
+					IKRenderWindow* window = pair.first;
+					IKSwapChainPtr& swapChain = pair.second;
 
-				ASSERT_RESULT(m_Device->UnRegisterSecordarySwapChain(swapChain.get()));
+					ASSERT_RESULT(m_Device->UnRegisterSecordarySwapChain(swapChain.get()));
 
-				window->UnInit();
-				swapChain->UnInit();
-			}
-			m_SecordaryWindow.clear();
+					window->UnInit();
+					swapChain->UnInit();
+				}
+				m_SecordaryWindow.clear();
 
-			while (!KRenderGlobal::TaskExecutor.AllTaskDone())
+				KRenderGlobal::Scene.UnInit();
+
+				UnInitController();
+				UnInitGizmo();
+				UnInitRenderResource();
+				UnInitRenderer();
+				UnInitPostProcess();
+				UnInitGlobalManager();
+			};
+
+			m_MainWindowRenderCB = [this](IKRenderer* dispatcher, uint32_t chainImageIndex)
 			{
-				KRenderGlobal::TaskExecutor.ProcessSyncTask();
-			}
-			assert(KRenderGlobal::TaskExecutor.AllTaskDone());
+				dispatcher->SetSceneCamera(&KRenderGlobal::Scene, &m_Camera);
+				dispatcher->SetCameraCubeDisplay(true);
+			};
 
-			KRenderGlobal::TaskExecutor.UnInit();
-			KRenderGlobal::Scene.UnInit();
+			KECSGlobal::Init();
+			KRenderGlobal::Scene.Init("GlobalScene", SCENE_MANGER_TYPE_OCTREE, 100000.0f, glm::vec3(0.0f));
+			KRenderGlobal::Renderer.SetCallback(m_MainWindow, &m_MainWindowRenderCB);
 
-			UnInitController();
-			UnInitGizmo();
-			UnInitRenderResource();
-			UnInitRenderer();
-			UnInitPostProcess();
-			UnInitGlobalManager();
-		};
+			m_Device->RegisterDeviceInitCallback(&m_DeviceInitCallback);
+			m_Device->RegisterDeviceUnInitCallback(&m_DeviceUnInitCallback);
 
-		m_MainWindowRenderCB = [this](IKRenderer* dispatcher, uint32_t chainImageIndex)
-		{
-			dispatcher->SetSceneCamera(&KRenderGlobal::Scene, &m_Camera);
-			dispatcher->SetCameraCubeDisplay(true);
-		};
+			GRenderImGui.Open();
 
-		KECSGlobal::Init();
-		KRenderGlobal::Scene.Init("GlobalScene", SCENE_MANGER_TYPE_OCTREE, 100000.0f, glm::vec3(0.0f));
-		KRenderGlobal::Renderer.SetCallback(m_MainWindow, &m_MainWindowRenderCB);
+			m_bInit = true;
+			m_bTickShouldEnd = false;
 
-		m_Device->RegisterDeviceInitCallback(&m_InitCallback);
-		m_Device->RegisterDeviceUnInitCallback(&m_UnitCallback);
+			return true;
+		}
+		return false;
+	});
 
-		GRenderImGui.Open();
+	FLUSH_RENDER_COMMAND();
+	windowInit(window);
 
-		m_bInit = true;
-		m_bTickShouldEnd = false;
-
-		return true;
-	}
-	return false;
+	return true;
 }
 
 bool KRenderCore::UnInit()
 {
-	if (m_bInit)
+	ENQUEUE_RENDER_COMMAND(KRenderCore_UnInit)([this]()
 	{
-		m_RenderThread->ShutDown();
-		m_RenderThread = nullptr;
+		if (m_bInit)
+		{
+			KRenderGlobal::Renderer.RemoveCallback(m_MainWindow);
 
-		KRenderGlobal::Renderer.RemoveCallback(m_MainWindow);
+			KECSGlobal::UnInit();
 
-		KECSGlobal::UnInit();
+			m_DebugConsole->UnInit();
+			SAFE_DELETE(m_DebugConsole);
 
-		m_DebugConsole->UnInit();
-		SAFE_DELETE(m_DebugConsole);
+			m_Device->UnRegisterDeviceInitCallback(&m_DeviceInitCallback);
+			m_Device->UnRegisterDeviceUnInitCallback(&m_DeviceUnInitCallback);
 
-		m_Device->UnRegisterDeviceInitCallback(&m_InitCallback);
-		m_Device->UnRegisterDeviceUnInitCallback(&m_UnitCallback);
+			m_MainWindow = nullptr;
+			m_Device = nullptr;
 
-		m_MainWindow = nullptr;
+			GRenderImGui.Exit();
 
-		m_Device = nullptr;
+			m_InitCallbacks.clear();
+			m_UICallbacks.clear();
 
-		GRenderImGui.Exit();
-
-		m_bInit = false;
-		m_bTickShouldEnd = true;
-
-		m_InitCallbacks.clear();
-		m_UICallbacks.clear();
-	}
+			m_bInit = false;
+			m_bTickShouldEnd = true;
+		}
+		return true;
+	});
+	FLUSH_RENDER_COMMAND();
 	return true;
 }
 
@@ -418,15 +416,24 @@ bool KRenderCore::IsInit() const
 	return m_bInit;
 }
 
-// 只能Loop到主窗口 废弃该做法
-bool KRenderCore::Loop()
+bool KRenderCore::StartRenderThread()
 {
-	if (m_bInit)
+	if (!m_RenderThread)
 	{
-		m_MainWindow->Loop();
-		return true;
+		m_RenderThread = KRunableThreadPtr(new KRunableThread(IKRunablePtr(new KRenderThread), "RenderThread"));
+		m_RenderThread->StartUp();
 	}
-	return false;
+	return true;
+}
+
+bool KRenderCore::EndRenderThread()
+{
+	if (m_RenderThread)
+	{
+		m_RenderThread->ShutDown();
+		m_RenderThread = nullptr;
+	}
+	return true;
 }
 
 bool KRenderCore::TickShouldEnd()
@@ -436,8 +443,6 @@ bool KRenderCore::TickShouldEnd()
 
 void KRenderCore::Update()
 {
-	KRenderGlobal::TaskExecutor.ProcessSyncTask();
-
 	UpdateFrameTime();
 	UpdateUIOverlay();
 	UpdateController();
@@ -528,8 +533,6 @@ bool KRenderCore::Tick()
 {
 	if (m_bInit && !m_bTickShouldEnd)
 	{
-		GetTaskGraphManager()->ProcessTaskUntilIdle(NamedThread::GAME_THREAD);
-
 		if (m_MainWindow->Tick())
 		{
 			if (KECS::EntityManager)
@@ -555,8 +558,9 @@ bool KRenderCore::Tick()
 				}
 			}
 
-			ENQUEUE_RENDER_COMMAND(Render)([this]()
+			ENQUEUE_RENDER_COMMAND(KRenderCore_Render)([this]()
 			{
+				KRenderGlobal::MaterialManager.Tick();
 				Render();
 			});
 
@@ -711,11 +715,11 @@ bool KRenderCore::UpdateFrameTime()
 		m_MainWindow->SetWindowTitle(szBuffer);
 	};
 
-	if (GetTaskGraphManager()->GetThisThreadId() == NamedThread::GAME_THREAD)
+	if (IsInGameThread())
 	{
 		UpdateWindowFPS();
 	}
-	else if (GetTaskGraphManager()->GetThisThreadId() == NamedThread::RENDER_THREAD)
+	else if (IsInRenderThread())
 	{
 		GetTaskGraphManager()->CreateAndDispatch
 		(

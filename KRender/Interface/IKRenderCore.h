@@ -9,16 +9,19 @@
 
 typedef std::function<void()> KRenderCoreInitCallback;
 typedef std::function<void()> KRenderCoreUIRenderCallback;
+typedef std::function<void(IKRenderWindowPtr& window)> KRenderCoreWindowInit;
 
 struct IKRenderCore
 {
 	virtual ~IKRenderCore() {}
 
-	virtual bool Init(IKRenderDevicePtr& device, IKRenderWindowPtr& window) = 0;
+	virtual bool Init(IKRenderDevicePtr& device, IKRenderWindowPtr& window, KRenderCoreWindowInit windowInit) = 0;
 	virtual bool UnInit() = 0;
 	virtual bool IsInit() const = 0;
 
-	// virtual bool Loop() = 0;
+	virtual bool StartRenderThread() = 0;
+	virtual bool EndRenderThread() = 0;
+
 	virtual bool TickShouldEnd() = 0;
 	virtual bool Tick() = 0;
 	virtual bool Wait() = 0;

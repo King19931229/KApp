@@ -55,39 +55,9 @@ bool KMaterialSubMesh::Init(KSubMeshPtr subMesh, KMaterialRef material)
 	ASSERT_RESULT(CreateVoxelPipeline());
 	ASSERT_RESULT(CreateVirtualFeedbackPipeline());
 
-	const IKMaterialTextureBinding* textureBinding = m_Material->GetTextureBinding().get();
-
-	for (uint32_t stage = RENDER_STAGE_NORMAL_BEGIN; stage <= RENDER_STAGE_NORMAL_END; ++stage)
+	for (size_t i = 0; i < RENDER_STAGE_COUNT; ++i)
 	{
-		IKPipelinePtr pipeline = m_Pipelines[stage];
-		if (pipeline)
-		{
-			bool hasVirtualTexture = false;
-			for (uint8_t i = 0; i < MAX_MATERIAL_TEXTURE_BINDING; ++i)
-			{
-				IKTexturePtr texture = textureBinding->GetTexture(i);
-				IKSamplerPtr sampler = textureBinding->GetSampler(i);
-				hasVirtualTexture |= textureBinding->GetIsVirtualTexture(i);
-				if (texture && sampler)
-				{
-					uint32_t binding = SHADER_BINDING_TEXTURE0 + i;
-					pipeline->SetSampler(binding, texture->GetFrameBuffer(), sampler, true);
-				}
-			}
-
-			if (hasVirtualTexture)
-			{
-				for (uint8_t i = 0; i < MAX_VIRTUAL_PHYSICAL_TEXTURE_BINDING; ++i)
-				{
-					uint32_t binding = SHADER_BINDING_TEXTURE0 + MAX_MATERIAL_TEXTURE_BINDING + i;
-					pipeline->SetSampler(binding, KRenderGlobal::VirtualTextureManager.GetPhysicalTextureFramebuffer(i), *KRenderGlobal::VirtualTextureManager.GetPhysicalTextureSampler(i), true);
-				}
-
-				pipeline->SetConstantBuffer(SHADER_BINDING_VIRTUAL_TEXTURE_CONSTANT, ST_FRAGMENT, KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_VIRTUAL_TEXTURE_CONSTANT));
-				pipeline->SetStorageBuffer(SHADER_BINDING_VIRTUAL_TEXTURE_DESCRIPTION, ST_FRAGMENT, KRenderGlobal::VirtualTextureManager.GetVirtualTextrueDescriptionBuffer());
-				pipeline->SetStorageBuffer(SHADER_BINDING_VIRTUAL_TEXTURE_FEEDBACK_RESULT, ST_FRAGMENT, KRenderGlobal::VirtualTextureManager.GetVirtualTextureFeedbackBuffer());
-			}
-		}
+		m_PipelinesPreqReady[i] = false;
 	}
 
 	return true;
@@ -97,8 +67,8 @@ bool KMaterialSubMesh::InitDebug(KSubMeshPtr subMesh, DebugPrimitive primtive)
 {
 	m_SubMesh = subMesh;
 
-	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "debug.vert", m_DebugVSShader, true));
-	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "debug.frag", m_DebugFSShader, true));
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "debug.vert", m_DebugVSShader, false));
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "debug.frag", m_DebugFSShader, false));
 
 	RenderStage debugStage = RENDER_STAGE_UNKNOWN;
 	switch (primtive)
@@ -135,6 +105,7 @@ bool KMaterialSubMesh::UnInit()
 	for (size_t i = 0; i < RENDER_STAGE_COUNT; ++i)
 	{
 		SAFE_UNINIT(m_Pipelines[i]);
+		m_PipelinesPreqReady[i] = false;
 	}
 
 	return true;
@@ -367,34 +338,6 @@ bool KMaterialSubMesh::CreateVoxelPipeline()
 		pipeline->SetColorWrite(true, true, true, true);
 		pipeline->SetDepthFunc(CF_NEVER, false, false);
 
-		IKMaterialTextureBindingPtr textureBinding = m_Material->GetTextureBinding();
-		for (uint8_t i = 0; i < textureBinding->GetNumSlot(); ++i)
-		{
-			IKTexturePtr texture = textureBinding->GetTexture(i);
-			IKSamplerPtr sampler = textureBinding->GetSampler(i);
-
-			if (!texture || !sampler)
-			{
-				KTextureRef errorTexture;
-				KRenderGlobal::TextureManager.GetErrorTexture(errorTexture);
-				texture = *errorTexture;
-
-				KSamplerRef errorSampler;
-				KSamplerDescription desc;
-				desc.minFilter = desc.magFilter = FM_LINEAR;
-				desc.minMipmap = 0;
-				desc.maxMipmap = texture->GetMipmaps() - 1;
-
-				KRenderGlobal::SamplerManager.Acquire(desc, errorSampler);
-				sampler = *errorSampler;
-			}
-
-			if (i == MTS_DIFFUSE)
-			{
-				pipeline->SetSampler(SHADER_BINDING_TEXTURE0 + i, texture->GetFrameBuffer(), sampler);
-			}
-		}
-
 		if (stage == RENDER_STAGE_VOXEL)
 		{
 			pipeline->SetShader(ST_VERTEX, *m_VoxelVSShader);
@@ -556,10 +499,52 @@ bool KMaterialSubMesh::GetRenderCommand(RenderStage stage, KRenderCommand& comma
 	IKPipelinePtr pipeline = m_Pipelines[stage];
 	if (pipeline)
 	{
+		const IKMaterialTextureBinding* textureBinding = m_Material ? m_Material->GetTextureBinding().get() : nullptr;
+
+		if (textureBinding && !textureBinding->IsResourceReady())
+		{
+			return false;
+		}
+
+		if (!m_PipelinesPreqReady[stage])
+		{
+			if (textureBinding)
+			{
+				bool hasVirtualTexture = false;
+				for (uint8_t i = 0; i < MAX_MATERIAL_TEXTURE_BINDING; ++i)
+				{
+					// 不应该碰撞
+					if (i != MTS_DIFFUSE && stage >= RENDER_STAGE_VOXEL && stage <= RENDER_STAGE_OPAQUE_INSTANCE)
+					{
+						continue;
+					}
+					IKTexturePtr texture = textureBinding->GetTexture(i);
+					IKSamplerPtr sampler = textureBinding->GetSampler(i);
+					hasVirtualTexture |= textureBinding->GetIsVirtualTexture(i);
+					if (texture && sampler)
+					{
+						uint32_t binding = SHADER_BINDING_TEXTURE0 + i;
+						pipeline->SetSampler(binding, texture->GetFrameBuffer(), sampler, true);
+					}
+				}
+
+				if (hasVirtualTexture)
+				{
+					for (uint8_t i = 0; i < MAX_VIRTUAL_PHYSICAL_TEXTURE_BINDING; ++i)
+					{
+						uint32_t binding = SHADER_BINDING_TEXTURE0 + MAX_MATERIAL_TEXTURE_BINDING + i;
+						pipeline->SetSampler(binding, KRenderGlobal::VirtualTextureManager.GetPhysicalTextureFramebuffer(i), *KRenderGlobal::VirtualTextureManager.GetPhysicalTextureSampler(i), true);
+					}
+					pipeline->SetConstantBuffer(SHADER_BINDING_VIRTUAL_TEXTURE_CONSTANT, ST_FRAGMENT, KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_VIRTUAL_TEXTURE_CONSTANT));
+					pipeline->SetStorageBuffer(SHADER_BINDING_VIRTUAL_TEXTURE_DESCRIPTION, ST_FRAGMENT, KRenderGlobal::VirtualTextureManager.GetVirtualTextrueDescriptionBuffer());
+					pipeline->SetStorageBuffer(SHADER_BINDING_VIRTUAL_TEXTURE_FEEDBACK_RESULT, ST_FRAGMENT, KRenderGlobal::VirtualTextureManager.GetVirtualTextureFeedbackBuffer());
+				}
+			}
+			m_PipelinesPreqReady[stage] = true;
+		}
+
 		const KVertexData* vertexData = m_SubMesh->m_pVertexData;
 		const KIndexData* indexData = &m_SubMesh->m_IndexData;
-		// const KMeshData* meshData = &m_SubMesh->m_MeshData;
-		const IKMaterialTextureBinding* textureBinding = m_Material ? m_Material->GetTextureBinding().get() : nullptr;
 		const bool& indexDraw = m_SubMesh->m_IndexDraw;
 
 		ASSERT_RESULT(vertexData);
@@ -567,7 +552,6 @@ bool KMaterialSubMesh::GetRenderCommand(RenderStage stage, KRenderCommand& comma
 
 		command.vertexData = vertexData;
 		command.indexData = indexData;
-		// command.meshData = meshData;
 		command.textureBinding = textureBinding;
 		command.pipeline = pipeline;
 		command.indexDraw = indexDraw;

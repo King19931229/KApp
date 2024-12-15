@@ -644,25 +644,6 @@ bool KMaterial::ReadXMLContent(std::vector<char>& content)
 	return true;
 }
 
-static bool SetupMaterialGeneratedCode(const std::string& file, std::string& code)
-{
-	IKFileSystemPtr system = KFileSystem::Manager->GetFileSystem(FSD_SHADER);
-	ASSERT_RESULT(system);
-	IKSourceFilePtr materialSourceFile = GetSourceFile();
-	materialSourceFile->SetIOHooker(IKSourceFile::IOHookerPtr(KNEW KShaderSourceHooker(system)));
-	materialSourceFile->AddIncludeSource(KRenderGlobal::ShaderManager.GetBindingGenerateCode());
-	if (materialSourceFile->Open(file.c_str()))
-	{
-		code = materialSourceFile->GetFinalSource();
-		return true;
-	}
-	else
-	{
-		code.clear();
-		return false;
-	}
-}
-
 bool KMaterial::InitFromFile(const std::string& path, bool async)
 {
 	UnInit();
@@ -707,7 +688,7 @@ bool KMaterial::InitFromFile(const std::string& path, bool async)
 			}
 
 			std::string materialCode;
-			if (!m_ShaderFile.empty() && SetupMaterialGeneratedCode(m_ShaderFile, materialCode))
+			if (!m_ShaderFile.empty() && KRenderGlobal::MaterialManager.SetupMaterialGeneratedCode(m_ShaderFile, materialCode))
 			{
 				KShaderMapInitContext initContext;
 				if (m_ShadingMode == MSM_OPAQUE)
@@ -794,11 +775,11 @@ bool KMaterial::InitFromImportAssetMaterial(const KMeshRawData::Material& input,
 
 	if (input.metalWorkFlow)
 	{
-		ASSERT_RESULT(SetupMaterialGeneratedCode("material/base_color.glsl", m_MaterialCode));
+		ASSERT_RESULT(KRenderGlobal::MaterialManager.SetupMaterialGeneratedCode("material/base_color.glsl", m_MaterialCode));
 	}
 	else
 	{
-		ASSERT_RESULT(SetupMaterialGeneratedCode("material/diffuse.glsl", m_MaterialCode));
+		ASSERT_RESULT(KRenderGlobal::MaterialManager.SetupMaterialGeneratedCode("material/diffuse.glsl", m_MaterialCode));
 	}
 
 	if (input.alphaMode == MAM_OPAQUE || input.alphaMode == MAM_MASK)

@@ -13,7 +13,7 @@ struct IKTexture : public IKResource
 	virtual bool InitMemoryFromFile(const std::string& filePath, bool bGenerateMipmap, bool async) = 0;
 	// TODO 直接走KCodecResult
 	virtual bool InitMemoryFromData(const void* pRawData, const std::string& name, size_t width, size_t height, size_t depth, ImageFormat format, bool cubeMap, bool bGenerateMipmap, bool async) = 0;
-	virtual bool InitMemoryFrom2DArray(const std::string& name, size_t width, size_t height, size_t slices, ImageFormat format, bool bGenerateMipmap) = 0;
+	virtual bool InitMemoryFrom2DArray(const std::string& name, size_t width, size_t height, size_t slices, ImageFormat format, bool bGenerateMipmap, bool async) = 0;
 	virtual bool InitDevice(bool async) = 0;
 	virtual bool UnInit() = 0;
 

@@ -72,16 +72,9 @@ bool KMaterialTextureBinding::SetTextureVirtual(uint8_t slot, const std::string&
 		UnsetTextrue(slot);
 		if (!path.empty())
 		{
-			if (KRenderGlobal::TextureManager.Acquire(path.c_str(), tileNum, m_VirtualTextures[slot], false))
+			if (KRenderGlobal::TextureManager.Acquire(path.c_str(), tileNum, m_VirtualTextures[slot], KRenderGlobal::EnableAsyncLoad))
 			{
-				KSamplerDescription desc = ToSamplerDesc(sampler);
-				desc.minMipmap = 0;
-				desc.maxMipmap = m_VirtualTextures[slot]->GetMaxMipLevel();
-				desc.anisotropic = false;
-				desc.minFilter = FM_NEAREST;
-				desc.magFilter = FM_NEAREST;
-
-				ASSERT_RESULT(KRenderGlobal::SamplerManager.Acquire(desc, m_Samplers[slot]));
+				m_SamplerDescs[slot] = sampler;
 				return true;
 			}
 			else
@@ -101,15 +94,9 @@ bool KMaterialTextureBinding::SetTexture(uint8_t slot, const std::string& path, 
 		UnsetTextrue(slot);
 		if (!path.empty())
 		{
-			if (KRenderGlobal::TextureManager.Acquire(path.c_str(), m_Textures[slot], false))
+			if (KRenderGlobal::TextureManager.Acquire(path.c_str(), m_Textures[slot], KRenderGlobal::EnableAsyncLoad))
 			{
-				KSamplerDescription desc = ToSamplerDesc(sampler);
-				desc.minMipmap = 0;
-				desc.maxMipmap = (*m_Textures[slot])->GetMipmaps() - 1;
-				desc.anisotropic = true;
-				desc.anisotropicCount = 16;
-
-				ASSERT_RESULT(KRenderGlobal::SamplerManager.Acquire(desc, m_Samplers[slot]));
+				m_SamplerDescs[slot] = sampler;
 				return true;
 			}
 			else
@@ -134,13 +121,9 @@ bool KMaterialTextureBinding::SetTexture(uint8_t slot, const std::string& name, 
 				result.pData->GetData(),
 				result.pData->GetSize(),
 				result.uWidth, result.uHeight, result.uDepth,
-				result.eFormat, result.bCubemap, true, m_Textures[slot], false))
+				result.eFormat, result.bCubemap, true, m_Textures[slot], KRenderGlobal::EnableAsyncLoad))
 			{
-				KSamplerDescription desc = ToSamplerDesc(sampler);
-				desc.minMipmap = 0;
-				desc.maxMipmap = (*m_Textures[slot])->GetMipmaps() - 1;
-			
-				ASSERT_RESULT(KRenderGlobal::SamplerManager.Acquire(desc, m_Samplers[slot]));
+				m_SamplerDescs[slot] = sampler;
 				return true;
 			}
 			else
@@ -207,6 +190,28 @@ IKSamplerPtr KMaterialTextureBinding::GetSampler(uint8_t slot) const
 {
 	if (slot < GetNumSlot())
 	{
+		if (!m_Samplers[slot].Get())
+		{
+			if (m_Textures[slot] && m_Textures[slot]->GetResourceState() == RS_DEVICE_LOADED)
+			{
+				KSamplerDescription desc = ToSamplerDesc(m_SamplerDescs[slot]);
+				desc.anisotropic = true;
+				desc.anisotropicCount = 16;
+				desc.minMipmap = 0;
+				desc.maxMipmap = (*m_Textures[slot])->GetMipmaps() - 1;
+				ASSERT_RESULT(KRenderGlobal::SamplerManager.Acquire(desc, m_Samplers[slot]));
+			}
+			else if (m_VirtualTextures[slot])
+			{
+				KSamplerDescription desc = ToSamplerDesc(m_SamplerDescs[slot]);
+				desc.anisotropic = false;
+				desc.minFilter = FM_NEAREST;
+				desc.magFilter = FM_NEAREST;
+				desc.minMipmap = 0;
+				desc.maxMipmap = m_VirtualTextures[slot]->GetMaxMipLevel();
+				ASSERT_RESULT(KRenderGlobal::SamplerManager.Acquire(desc, m_Samplers[slot]));
+			}
+		}
 		return *m_Samplers[slot];
 	}
 	return nullptr;
@@ -254,6 +259,18 @@ bool KMaterialTextureBinding::Paste(const IKMaterialTextureBindingPtr& parameter
 		return true;
 	}
 	return false;
+}
+
+bool KMaterialTextureBinding::IsResourceReady() const
+{
+	for (size_t i = 0; i < ARRAY_SIZE(m_Textures); ++i)
+	{
+		if (m_Textures[i] && m_Textures[i]->GetResourceState() != RS_DEVICE_LOADED)
+		{
+			return false;
+		}
+	}
+	return true;
 }
 
 bool KMaterialTextureBinding::Clear()

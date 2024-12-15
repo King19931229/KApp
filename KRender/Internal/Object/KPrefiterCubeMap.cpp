@@ -36,11 +36,6 @@ bool KPrefilerCubeMap::Init(uint32_t width, uint32_t height, size_t mipmaps, con
 {
 	IKRenderDevice* renderDevice = KRenderGlobal::RenderDevice;
 
-	renderDevice->CreateTexture(m_SpecularIrradianceMap);
-	m_SpecularIrradianceMap->InitMemoryFromFile(cubemapPath, true, false);
-	m_SpecularIrradianceMap->InitDevice(false);
-	m_SpecularIrradianceMap->GetFrameBuffer()->SetDebugName("SpecularIrradianceMap");
-
 	renderDevice->CreateTexture(m_DiffuseIrradianceMap);
 	m_DiffuseIrradianceMap->InitMemoryFromFile(cubemapPath, true, false);
 	m_DiffuseIrradianceMap->InitDevice(false);
@@ -49,12 +44,17 @@ bool KPrefilerCubeMap::Init(uint32_t width, uint32_t height, size_t mipmaps, con
 	renderDevice->CreateSampler(m_DiffuseIrradianceSampler);
 	m_DiffuseIrradianceSampler->SetFilterMode(FM_LINEAR, FM_LINEAR);
 	m_DiffuseIrradianceSampler->SetAddressMode(AM_CLAMP_TO_EDGE, AM_CLAMP_TO_EDGE, AM_CLAMP_TO_EDGE);
-	m_DiffuseIrradianceSampler->Init(m_DiffuseIrradianceMap, false);
+	m_DiffuseIrradianceSampler->Init(0, m_DiffuseIrradianceMap->GetMipmaps() - 1);
+
+	renderDevice->CreateTexture(m_SpecularIrradianceMap);
+	m_SpecularIrradianceMap->InitMemoryFromFile(cubemapPath, true, false);
+	m_SpecularIrradianceMap->InitDevice(false);
+	m_SpecularIrradianceMap->GetFrameBuffer()->SetDebugName("SpecularIrradianceMap");
 
 	renderDevice->CreateSampler(m_SpecularIrradianceSampler);
 	m_SpecularIrradianceSampler->SetFilterMode(FM_LINEAR, FM_LINEAR);
 	m_SpecularIrradianceSampler->SetAddressMode(AM_CLAMP_TO_EDGE, AM_CLAMP_TO_EDGE, AM_CLAMP_TO_EDGE);
-	m_SpecularIrradianceSampler->Init(m_SpecularIrradianceMap, false);
+	m_SpecularIrradianceSampler->Init(0, m_SpecularIrradianceMap->GetMipmaps() - 1);
 
 	renderDevice->CreateTexture(m_SrcCubeMap);
 	m_SrcCubeMap->InitMemoryFromFile(cubemapPath, true, false);
@@ -63,7 +63,7 @@ bool KPrefilerCubeMap::Init(uint32_t width, uint32_t height, size_t mipmaps, con
 	renderDevice->CreateSampler(m_SrcCubeSampler);
 	m_SrcCubeSampler->SetFilterMode(FM_LINEAR, FM_LINEAR);
 	m_SrcCubeSampler->SetAddressMode(AM_CLAMP_TO_EDGE, AM_CLAMP_TO_EDGE, AM_CLAMP_TO_EDGE);
-	m_SrcCubeSampler->Init(m_SrcCubeMap, false);
+	m_SrcCubeSampler->Init(0, m_SrcCubeMap->GetMipmaps() - 1);
 
 	renderDevice->CreateRenderTarget(m_IntegrateBRDFTarget);
 	renderDevice->CreateRenderPass(m_IntegrateBRDFPass);

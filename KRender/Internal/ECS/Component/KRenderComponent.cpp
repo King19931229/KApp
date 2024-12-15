@@ -1,5 +1,6 @@
 #include "KRenderComponent.h"
 #include "Internal/KRenderGlobal.h"
+#include "Internal/KRenderThread.h"
 
 RTTR_REGISTRATION
 {
@@ -197,85 +198,103 @@ void KRenderComponent::VirtualGeometryPostInit()
 bool KRenderComponent::InitAsMesh(const std::string& mesh, bool async)
 {
 	UnInit();
-	bool meshAcquire = KRenderGlobal::MeshManager.Acquire(mesh.c_str(), m_Mesh);
-	if (meshAcquire)
+	ENQUEUE_RENDER_COMMAND(KRenderComponent_InitAsAsset)([this, mesh, async]()
 	{
-		MeshPostInit();
-		return true;
-	}
-	return false;
+		bool meshAcquire = KRenderGlobal::MeshManager.Acquire(mesh.c_str(), m_Mesh);
+		if (meshAcquire)
+		{
+			MeshPostInit();
+			return true;
+		}
+		return false;
+	});
+	FLUSH_RENDER_COMMAND();
+	return true;
 }
 
 bool KRenderComponent::InitAsAsset(const std::string& asset, bool async)
 {
 	UnInit();
-	bool meshAcquire = KRenderGlobal::MeshManager.AcquireFromAsset(asset.c_str(), m_Mesh);
-	if (meshAcquire)
+	ENQUEUE_RENDER_COMMAND(KRenderComponent_InitAsAsset)([this, asset, async]()
 	{
-		MeshPostInit();
-		return true;
-	}
-	return false;
+		bool meshAcquire = KRenderGlobal::MeshManager.AcquireFromAsset(asset.c_str(), m_Mesh);
+		if (meshAcquire)
+		{
+			MeshPostInit();
+			return true;
+		}
+		return false;
+	});
+	FLUSH_RENDER_COMMAND();
+	return true;
 }
 
 bool KRenderComponent::InitAsUserData(const KMeshRawData& userData, const std::string& label, bool async)
 {
 	UnInit();
-	bool meshAcquire = KRenderGlobal::MeshManager.AcquireFromUserData(userData, label, m_Mesh);
-	if (meshAcquire)
+	ENQUEUE_RENDER_COMMAND(KRenderComponent_UnInit)([this, userData, label]()
 	{
-		MeshPostInit();
-		return true;
-	}
-	return false;
+		bool meshAcquire = KRenderGlobal::MeshManager.AcquireFromUserData(userData, label, m_Mesh);
+		if (meshAcquire)
+		{
+			MeshPostInit();
+			return true;
+		}
+		return false;
+	});
+	FLUSH_RENDER_COMMAND();
+	return true;
 }
 
 bool KRenderComponent::UnInit()
 {
-	for (KMaterialSubMeshPtr& materialSubMesh : m_MaterialSubMeshes)
+	ENQUEUE_RENDER_COMMAND(KRenderComponent_UnInit)([this]()
 	{
-		materialSubMesh->UnInit();
-	}
-	m_MaterialSubMeshes.clear();
-	if (m_Mesh)
-	{
-		m_Mesh.Release();
-	}
-	if (!m_OCQueries.empty())
-	{
-		KRenderGlobal::MeshManager.ReleaseOCQuery(m_OCQueries);
-		m_OCQueries.clear();
-	}
-	m_OCInstanceQueries.clear();
-	m_VGResource.Release();
+		for (KMaterialSubMeshPtr& materialSubMesh : m_MaterialSubMeshes)
+		{
+			materialSubMesh->UnInit();
+		}
+		m_MaterialSubMeshes.clear();
+		if (m_Mesh)
+		{
+			m_Mesh.Release();
+		}
+		if (!m_OCQueries.empty())
+		{
+			KRenderGlobal::MeshManager.ReleaseOCQuery(m_OCQueries);
+			m_OCQueries.clear();
+		}
+		m_OCInstanceQueries.clear();
+		m_VGResource.Release();
 
-	for (RenderComponentObserverFunc* callback : m_Callbacks)
-	{
-		(*callback)(this, false);
-	}
-
+		for (RenderComponentObserverFunc* callback : m_Callbacks)
+		{
+			(*callback)(this, false);
+		}
+	});
+	FLUSH_RENDER_COMMAND();
 	return true;
 }
 
 bool KRenderComponent::InitAsDebugUtility(const KDebugUtilityInfo& info)
 {
-	if (!IsUtility())
+	UnInit();
+
+	ENQUEUE_RENDER_COMMAND(KRenderComponent_InitAsDebugUtility)([this, info]()
 	{
-		KRenderGlobal::RenderDevice->Wait();
-		UnInit();
 		KRenderGlobal::MeshManager.New(m_Mesh);
-	}
+		m_Mesh->InitFromUtility(info);
 
-	m_Mesh->InitFromUtility(info);
-
-	const std::vector<KSubMeshPtr>& subMeshes = m_Mesh->GetSubMeshes();
-	m_MaterialSubMeshes.reserve(subMeshes.size());
-	for (size_t i = 0; i < subMeshes.size(); ++i)
-	{
-		KMaterialSubMeshPtr materialSubMesh = KMaterialSubMeshPtr(KNEW KMaterialSubMesh());
-		materialSubMesh->InitDebug(subMeshes[i], subMeshes[i]->GetDebugPrimitive());
-		m_MaterialSubMeshes.push_back(materialSubMesh);
-	}
+		const std::vector<KSubMeshPtr>& subMeshes = m_Mesh->GetSubMeshes();
+		m_MaterialSubMeshes.reserve(subMeshes.size());
+		for (size_t i = 0; i < subMeshes.size(); ++i)
+		{
+			KMaterialSubMeshPtr materialSubMesh = KMaterialSubMeshPtr(KNEW KMaterialSubMesh());
+			materialSubMesh->InitDebug(subMeshes[i], subMeshes[i]->GetDebugPrimitive());
+			m_MaterialSubMeshes.push_back(materialSubMesh);
+		}
+	});
+	FLUSH_RENDER_COMMAND();
 
 	return true;
 }
@@ -283,14 +302,17 @@ bool KRenderComponent::InitAsDebugUtility(const KDebugUtilityInfo& info)
 bool KRenderComponent::InitAsVirtualGeometry(const KMeshRawData& userData, const std::string& label)
 {
 	UnInit();
-
-	if (KRenderGlobal::VirtualGeometryManager.AcquireFromUserData(userData, label, m_VGResource))
+	ENQUEUE_RENDER_COMMAND(KRenderComponent_UnInit)([this, userData, label]()
 	{
-		VirtualGeometryPostInit();
-		return true;
-	}
-
-	return false;
+		if (KRenderGlobal::VirtualGeometryManager.AcquireFromUserData(userData, label, m_VGResource))
+		{
+			VirtualGeometryPostInit();
+			return true;
+		}
+		return false;
+	});
+	FLUSH_RENDER_COMMAND();
+	return true;
 }
 
 bool KRenderComponent::GetAllAccelerationStructure(std::vector<IKAccelerationStructurePtr>& as)

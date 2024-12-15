@@ -142,7 +142,7 @@ public:
 	KRHICommandList& GetRHICommandList() { return m_RHICommandList; }
 
 	bool Update();
-	bool Render(uint32_t chainImageIndex_);
+	bool Render(uint32_t chainImageIndex);
 	bool Execute(uint32_t chainImageIndex);
 
 	void OnSwapChainRecreate(uint32_t width, uint32_t height);

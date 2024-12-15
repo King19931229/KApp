@@ -13,8 +13,7 @@ protected:
 	IKFrameBufferPtr m_FrameBuffer;
 	bool m_bDeviceInit;
 
-	std::mutex m_LoadTaskLock;
-	KTaskUnitProcessorPtr m_LoadTask;
+	IKGraphTaskEventRef m_DeviceLoadTask;
 
 	bool CancelDeviceTask();
 	bool WaitDeviceTask();
@@ -24,7 +23,6 @@ public:
 	virtual ~KVulkanTexture();
 
 	virtual ResourceState GetResourceState();
-	virtual void WaitForMemory();
 	virtual void WaitForDevice();
 
 	virtual bool InitDevice(bool async);

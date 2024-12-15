@@ -44,7 +44,7 @@ namespace std
 	};
 }
 
-struct IKSampler : public IKResource
+struct IKSampler
 {
 	virtual ~IKSampler() {}
 
@@ -63,7 +63,6 @@ struct IKSampler : public IKResource
 	virtual bool GetMipmapLod(unsigned short& minMipmap, unsigned short& maxMipmap) = 0;
 
 	virtual bool Init(unsigned short minMipmap, unsigned short maxMipmap) = 0;
-	virtual bool Init(IKTexturePtr texture, bool async) = 0;
 
 	virtual bool UnInit() = 0;
 };

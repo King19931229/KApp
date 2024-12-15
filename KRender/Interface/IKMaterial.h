@@ -75,6 +75,8 @@ struct IKMaterialTextureBinding
 	virtual bool Duplicate(IKMaterialTextureBindingPtr& parameter) = 0;
 	virtual bool Paste(const IKMaterialTextureBindingPtr& parameter) = 0;
 
+	virtual bool IsResourceReady() const = 0;
+
 	virtual bool Clear() = 0;
 };
 

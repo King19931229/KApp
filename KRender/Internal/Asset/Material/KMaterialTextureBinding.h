@@ -8,9 +8,10 @@ class KMaterialTextureBinding : public IKMaterialTextureBinding
 protected:
 	KTextureRef m_Textures[MAX_MATERIAL_TEXTURE_BINDING];
 	KVirtualTextureResourceRef m_VirtualTextures[MAX_MATERIAL_TEXTURE_BINDING];
-	KSamplerRef m_Samplers[MAX_MATERIAL_TEXTURE_BINDING];
+	KMeshTextureSampler m_SamplerDescs[MAX_MATERIAL_TEXTURE_BINDING];
+	mutable KSamplerRef m_Samplers[MAX_MATERIAL_TEXTURE_BINDING];
 
-	KSamplerDescription ToSamplerDesc(const KMeshTextureSampler& sampler);
+	static KSamplerDescription ToSamplerDesc(const KMeshTextureSampler& sampler);
 public:
 	KMaterialTextureBinding();
 	virtual ~KMaterialTextureBinding();
@@ -33,5 +34,6 @@ public:
 	bool GetIsVirtualTexture(uint8_t slot) const override;
 	bool Duplicate(IKMaterialTextureBindingPtr& parameter) override;
 	bool Paste(const IKMaterialTextureBindingPtr& parameter) override;
+	bool IsResourceReady() const override;
 	bool Clear() override;
 };
