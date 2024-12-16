@@ -7,8 +7,7 @@
 
 KVulkanTexture::KVulkanTexture()
 	: KTextureBase(),
-	m_bDeviceInit(false),
-	m_LoadTask(nullptr)
+	m_bDeviceInit(false)
 {
 	ZERO_MEMORY(m_AllocInfo);
 	m_TextureImage = VK_NULL_HANDLE;
@@ -19,18 +18,13 @@ KVulkanTexture::KVulkanTexture()
 
 KVulkanTexture::~KVulkanTexture()
 {
+	ASSERT_RESULT(!m_DeviceLoadTask.Get() || m_DeviceLoadTask->IsCompleted());
 	ASSERT_RESULT(!m_bDeviceInit);
-	// ASSERT_RESULT(m_LoadTask == nullptr);
 }
 
 ResourceState KVulkanTexture::GetResourceState()
 {
 	return m_ResourceState;
-}
-
-void KVulkanTexture::WaitForMemory()
-{
-	WaitMemoryTask();
 }
 
 void KVulkanTexture::WaitForDevice()
@@ -40,33 +34,21 @@ void KVulkanTexture::WaitForDevice()
 
 bool KVulkanTexture::CancelDeviceTask()
 {
-	KTaskUnitProcessorPtr loadTask = nullptr;
+	if (m_DeviceLoadTask)
 	{
-		std::unique_lock<decltype(m_LoadTaskLock)> guard(m_LoadTaskLock);
-		loadTask = m_LoadTask;
+		m_DeviceLoadTask->Abandon();
+		m_DeviceLoadTask.Release();
 	}
-
-	if (loadTask)
-	{
-		loadTask->Cancel();
-	}
-
 	return true;
 }
 
 bool KVulkanTexture::WaitDeviceTask()
 {
-	KTaskUnitProcessorPtr loadTask = nullptr;
+	if (m_DeviceLoadTask)
 	{
-		std::unique_lock<decltype(m_LoadTaskLock)> guard(m_LoadTaskLock);
-		loadTask = m_LoadTask;
+		m_DeviceLoadTask->WaitForCompletion();
+		m_DeviceLoadTask.Release();
 	}
-
-	if (loadTask)
-	{
-		loadTask->Wait();
-	}
-
 	return true;
 }
 
@@ -90,16 +72,13 @@ bool KVulkanTexture::InitDevice(bool async)
 {
 	ReleaseDevice();
 
-	auto waitImpl = [=]()->bool
-	{
-		WaitMemoryTask();
-		if (m_ImageData.pData)
-			return true;
-		return false;
-	};
-
 	auto loadImpl = [=]()->bool
 	{
+		if (!m_ImageData.pData)
+		{
+			return false;
+		}
+
 		ResourceState previousState = m_ResourceState;
 		m_ResourceState = RS_DEVICE_LOADING;
 
@@ -230,14 +209,14 @@ bool KVulkanTexture::InitDevice(bool async)
 				m_bDeviceInit = true;
 				m_ImageData.pData = nullptr;
 
-				m_ResourceState = RS_DEVICE_LOADED;
-
 				((KVulkanFrameBuffer*)m_FrameBuffer.get())->InitExternal(KVulkanFrameBuffer::ET_TEXTUREIMAGE, m_TextureImage, m_TextureImageView,
 					imageType, imageViewType,
 					m_TextureFormat,
 					(uint32_t)m_Width, (uint32_t)m_Height, (uint32_t)m_Depth, m_Mipmaps, 1);
 
 				m_FrameBuffer->SetDebugName(GetPath());
+
+				m_ResourceState = RS_DEVICE_LOADED;
 
 				return true;
 			}
@@ -249,19 +228,14 @@ bool KVulkanTexture::InitDevice(bool async)
 
 	if (async)
 	{
-		std::unique_lock<decltype(m_LoadTaskLock)> guard(m_LoadTaskLock);
-		m_LoadTask = KRenderGlobal::TaskExecutor.Submit(KTaskUnitPtr(KNEW KSampleTaskUnit(waitImpl, loadImpl)));
+		m_DeviceLoadTask = GetTaskGraphManager()->CreateAndDispatch(IKTaskWorkPtr(new KLambdaTaskWork(loadImpl)), NamedThread::RENDER_THREAD, { m_MemoryLoadTask });
 		return true;
 	}
 	else
 	{
-		if (waitImpl())
-		{
-			return loadImpl();
-		}
-		assert(false && "should not be reached");
+		WaitMemoryTask();
+		return loadImpl();
 	}
-	return false;
 }
 
 bool KVulkanTexture::UnInit()

@@ -104,14 +104,13 @@ namespace KRenderGlobal
 
 	extern KRenderer Renderer;
 
-	extern KTaskExecutor<true> TaskExecutor;
-
 	extern KStatistics Statistics;
 
 	extern bool EnableDebugRender;
 	extern bool DisableRayTrace;
 	extern bool SupportAnisotropySample;
 	extern bool EnableMultithreadRender;
+	extern bool EnableAsyncLoad;
 
 	extern uint32_t CurrentInFlightFrameIndex;
 	extern uint32_t CurrentFrameNum;

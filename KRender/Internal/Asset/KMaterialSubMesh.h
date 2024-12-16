@@ -15,6 +15,7 @@ protected:
 	KMaterialRef			m_Material;
 
 	IKPipelinePtr			m_Pipelines[RENDER_STAGE_COUNT];
+	bool					m_PipelinesPreqReady[RENDER_STAGE_COUNT];
 
 	KShaderRef				m_DebugVSShader;
 	KShaderRef				m_DebugFSShader;

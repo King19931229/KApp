@@ -32,7 +32,7 @@ protected:
 
 	VkImageTiling m_Tiling;
 
-	static uint32_t ms_UniqueIDCounter;
+	static std::atomic_uint32_t ms_UniqueIDCounter;
 	uint32_t m_UniqueID;
 
 	bool m_External;

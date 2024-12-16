@@ -99,7 +99,7 @@ bool KVulkanStageBuffer::Read(void* pData)
 	return false;
 }
 
-uint32_t KVulkanBuffer::ms_UniqueIDCounter = 0;
+std::atomic_uint32_t KVulkanBuffer::ms_UniqueIDCounter = 0;
 
 KVulkanBuffer::KVulkanBuffer()
 	: m_vkBuffer(VK_NULL_HANDLE)

@@ -34,8 +34,8 @@ protected:
 
 	KKeyboardCallbackType m_KeyCallback;
 
-	KDeviceInitCallback m_InitCallback;
-	KDeviceUnInitCallback m_UnitCallback;
+	KDeviceInitCallback m_DeviceInitCallback;
+	KDeviceUnInitCallback m_DeviceUnInitCallback;
 
 	IKRenderer::OnWindowRenderCallback m_MainWindowRenderCB;
 
@@ -76,8 +76,6 @@ protected:
 	bool UpdateController();
 	bool UpdateGizmo();
 
-	void OnPostPresent(uint32_t chainIndex, uint32_t frameIndex);
-
 	void Update();
 	void Render();
 
@@ -87,11 +85,13 @@ public:
 	KRenderCore();
 	virtual ~KRenderCore();
 
-	virtual bool Init(IKRenderDevicePtr& device, IKRenderWindowPtr& window);
+	virtual bool Init(IKRenderDevicePtr& device, IKRenderWindowPtr& window, KRenderCoreWindowInit windowInit);
 	virtual bool UnInit();
 	virtual bool IsInit() const;
 
-	virtual bool Loop();
+	virtual bool StartRenderThread();
+	virtual bool EndRenderThread();
+
 	virtual bool TickShouldEnd();
 	virtual bool Tick();
 	virtual bool Wait();

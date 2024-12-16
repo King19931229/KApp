@@ -18,7 +18,7 @@ public:
 typedef std::function<void()> RenderTaskFunctionType;
 
 template<typename TaskName>
-inline IKGraphTaskEventRef EnqueueRenderCommand(RenderTaskFunctionType command)
+inline void EnqueueRenderCommand(RenderTaskFunctionType command)
 {
 	struct KRenderThreadTaskWork : public IKTaskWork
 	{
@@ -42,7 +42,15 @@ inline IKGraphTaskEventRef EnqueueRenderCommand(RenderTaskFunctionType command)
 		}
 	};
 
-	return GetTaskGraphManager()->CreateAndDispatch(IKTaskWorkPtr(new KTaskWork<KRenderThreadTaskWork>(command)), NamedThread::RENDER_THREAD, {});
+	if (!IsInRenderThread())
+	{
+		GetTaskGraphManager()->CreateAndDispatch(IKTaskWorkPtr(new KTaskWork<KRenderThreadTaskWork>(command)), NamedThread::RENDER_THREAD, {});
+	}
+	else
+	{
+		KRenderThreadTaskWork work(command);
+		work.DoWork();
+	}
 }
 
 #define ENQUEUE_RENDER_COMMAND(Name)\
@@ -54,8 +62,11 @@ inline IKGraphTaskEventRef EnqueueRenderCommand(RenderTaskFunctionType command)
 
 #define FLUSH_RENDER_COMMAND()\
 {\
-	IKGraphTaskEventRef completeEvent = GetTaskGraphManager()->CreateAndDispatch(IKTaskWorkPtr(new KEmptyTaskWork()), NamedThread::RENDER_THREAD, {});\
-	completeEvent->WaitForCompletion();\
+	if (!IsInRenderThread())\
+	{\
+		IKGraphTaskEventRef completeEvent = GetTaskGraphManager()->CreateAndDispatch(IKTaskWorkPtr(new KEmptyTaskWork()), NamedThread::RENDER_THREAD, {});\
+		completeEvent->WaitForCompletion();\
+	}\
 }
 
 class KFrameSync

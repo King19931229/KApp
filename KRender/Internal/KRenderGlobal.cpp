@@ -48,14 +48,13 @@ namespace KRenderGlobal
 
 	KRenderer Renderer;
 
-	KTaskExecutor<true> TaskExecutor;
-
 	KStatistics Statistics;
 
 	bool EnableDebugRender = false;
-	bool DisableRayTrace = true;
+	bool DisableRayTrace = false;
 	bool SupportAnisotropySample = true;
 	bool EnableMultithreadRender = true;
+	bool EnableAsyncLoad = true;
 
 	uint32_t CurrentInFlightFrameIndex = 0;
 	uint32_t CurrentFrameNum = 0;

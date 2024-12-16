@@ -5,7 +5,7 @@
 #include "KVulkanCommandBuffer.h"
 #include "KVulkanQueue.h"
 
-uint32_t KVulkanFrameBuffer::ms_UniqueIDCounter = 0;
+std::atomic_uint32_t KVulkanFrameBuffer::ms_UniqueIDCounter = 0;
 
 KVulkanFrameBuffer::KVulkanFrameBuffer()
 	: m_ImageType(VK_IMAGE_TYPE_MAX_ENUM),

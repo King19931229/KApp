@@ -132,3 +132,18 @@ struct IKTaskGraphManager
 };
 
 IKTaskGraphManager* GetTaskGraphManager();
+
+inline bool IsInGameThread()
+{
+	return GetTaskGraphManager()->GetThisThreadId() == NamedThread::GAME_THREAD;
+}
+
+inline bool IsInRenderThread()
+{
+	return GetTaskGraphManager()->GetThisThreadId() == NamedThread::RENDER_THREAD;
+}
+
+inline bool IsInRHIThread()
+{
+	return GetTaskGraphManager()->GetThisThreadId() == NamedThread::RHI_THREAD;
+}

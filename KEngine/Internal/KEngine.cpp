@@ -228,24 +228,26 @@ bool KEngine::Init(IKRenderWindowPtr window, const KEngineOptions& options)
 		m_Window->SetRenderDevice(m_Device.get());
 
 		m_RenderCore = CreateRenderCore();
-		m_RenderCore->Init(m_Device, m_Window);
-
-		const auto& windowInfo = options.window;
-		switch (windowInfo.type)
+		m_RenderCore->StartRenderThread();
+		m_RenderCore->Init(m_Device, m_Window, [options](IKRenderWindowPtr& window)
 		{
-		case KEngineOptions::WindowInitializeInformation::TYPE_DEFAULT:
-			ASSERT_RESULT(m_Window->Init(windowInfo.top, windowInfo.left, windowInfo.width, windowInfo.height, windowInfo.resizable, true));
-			break;
-		case KEngineOptions::WindowInitializeInformation::TYPE_ANDROID:
-			ASSERT_RESULT(m_Window->Init(windowInfo.app));
-			break;
-		case KEngineOptions::WindowInitializeInformation::TYPE_EDITOR:
-			ASSERT_RESULT(m_Window->Init(windowInfo.hwnd, true));
-			break;
-		default:
-			assert(false && "should not reach");
-			break;
-		}
+			const auto& windowInfo = options.window;
+			switch (windowInfo.type)
+			{
+				case KEngineOptions::WindowInitializeInformation::TYPE_DEFAULT:
+					ASSERT_RESULT(window->Init(windowInfo.top, windowInfo.left, windowInfo.width, windowInfo.height, windowInfo.resizable, true));
+					break;
+				case KEngineOptions::WindowInitializeInformation::TYPE_ANDROID:
+					ASSERT_RESULT(window->Init(windowInfo.app));
+					break;
+				case KEngineOptions::WindowInitializeInformation::TYPE_EDITOR:
+					ASSERT_RESULT(window->Init(windowInfo.hwnd, true));
+					break;
+				default:
+					assert(false && "should not reach");
+					break;
+			}
+		});
 
 		m_Scene = IKScenePtr(KNEW KScene());
 		m_Scene->Init(m_RenderCore->GetRenderScene());
@@ -272,6 +274,7 @@ bool KEngine::UnInit()
 		m_Scene = nullptr;
 
 		m_RenderCore->UnInit();
+		m_RenderCore->EndRenderThread();
 		m_RenderCore = nullptr;
 
 		m_Window = nullptr;
@@ -304,6 +307,7 @@ bool KEngine::Loop()
 {
 	while (!m_RenderCore->TickShouldEnd())
 	{
+		GetTaskGraphManager()->ProcessTaskUntilIdle(NamedThread::GAME_THREAD);
 		m_RenderCore->Tick();
 	}
 	return true;

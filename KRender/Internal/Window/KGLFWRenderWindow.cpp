@@ -5,6 +5,7 @@
 #include "KBase/Interface/IKLog.h"
 #include "KBase/Publish/KTemplate.h"
 #include "Internal/KRenderGlobal.h"
+#include "Internal/KRenderThread.h"
 
 #ifdef _WIN32
 #define NOMINMAX
@@ -267,6 +268,7 @@ bool KGLFWRenderWindow::Init(size_t top, size_t left, size_t width, size_t heigh
 {
 #ifndef __ANDROID__
 	ASSERT_RESULT(m_Device);
+	ASSERT_RESULT(IsInGameThread());
 
 	m_bPrimary = primary;
 	m_Window = nullptr;
@@ -300,7 +302,11 @@ bool KGLFWRenderWindow::Init(size_t top, size_t left, size_t width, size_t heigh
 
 			if (m_bPrimary)
 			{
-				return m_Device->Init(this);
+				ENQUEUE_RENDER_COMMAND(GLFW_InitWindow)([this]()
+				{
+					return m_Device->Init(this);
+				});
+				FLUSH_RENDER_COMMAND();
 			}
 
 			return true;
@@ -328,10 +334,11 @@ bool KGLFWRenderWindow::UnInit()
 #ifndef __ANDROID__
 	if (m_Device)
 	{
-		if (m_bPrimary)
+		ENQUEUE_RENDER_COMMAND(GLFW_UnInitWindow)([this]()
 		{
-			m_Device->UnInit();
-		}
+			return m_Device->UnInit();
+		});
+		FLUSH_RENDER_COMMAND();
 		m_Device = nullptr;
 	}
 

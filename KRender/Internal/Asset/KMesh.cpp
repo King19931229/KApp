@@ -152,7 +152,6 @@ void KMesh::UpdateTriangleMesh()
 		{
 			subMesh->m_IndexData.indexBuffer->DiscardMemory();
 		}
-
 	}
 
 	for (IKVertexBufferPtr buffer : m_VertexData.vertexBuffers)
