@@ -176,6 +176,7 @@ bool KShaderManager::Init()
 	#undef VERTEX_SEMANTIC
 
 	m_BindingInclude = std::make_pair("binding_generate_code.h", bindingCode);
+	m_SourceFileIOHooker = IKSourceFile::IOHookerPtr(KNEW KShaderSourceHooker(KFileSystem::Manager->GetFileSystem(FSD_SHADER)));
 
 	return true;
 }
@@ -193,6 +194,7 @@ bool KShaderManager::UnInit()
 		variantionMap.clear();
 	}
 	m_Shaders.clear();
+	m_SourceFileIOHooker = nullptr;
 	return true;
 }
 

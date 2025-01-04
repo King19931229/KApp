@@ -12,6 +12,9 @@ struct IKSourceFile
 {
 	struct IOHooker
 	{
+		virtual bool GetCache(const char* pszPath, std::string& data) = 0;
+		virtual bool AddCache(const char* pszPath, const std::string& data) = 0;
+		virtual void ClearCache() = 0;
 		virtual IKDataStreamPtr Open(const char* pszPath) = 0;
 	};
 	typedef std::shared_ptr<IOHooker> IOHookerPtr;

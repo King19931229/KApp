@@ -34,6 +34,46 @@ bool KPipelineManager::UnInit()
 	return true;
 }
 
+bool KPipelineManager::AddGraphicsPipeline(IKPipeline* pipeline)
+{
+	if (pipeline)
+	{
+		m_GraphicsPipelines.insert(pipeline);
+		return true;
+	}
+	return false;
+}
+
+bool KPipelineManager::RemoveGraphicsPipeline(IKPipeline* pipeline)
+{
+	if (pipeline)
+	{
+		m_GraphicsPipelines.erase(pipeline);
+		return true;
+	}
+	return false;
+}
+
+bool KPipelineManager::AddComputePipeline(IKComputePipeline* pipeline)
+{
+	if (pipeline)
+	{
+		m_ComputePipelines.insert(pipeline);
+		return true;
+	}
+	return false;
+}
+
+bool KPipelineManager::RemoveComputePipeline(IKComputePipeline* pipeline)
+{
+	if (pipeline)
+	{
+		m_ComputePipelines.erase(pipeline);
+		return true;
+	}
+	return false;
+}
+
 size_t KPipelineManager::ComputeBindingLayoutHash(const KPipelineBinding& binding)
 {
 	size_t hash = 0;

@@ -787,10 +787,8 @@ void KRenderCore::DebugCode()
 	initContext.vsFile = "shading/basepass.vert";
 	initContext.fsFile = "shading/basepass.frag";
 
-	IKFileSystemPtr system = KFileSystem::Manager->GetFileSystem(FSD_SHADER);
-	ASSERT_RESULT(system);
 	IKSourceFilePtr materialSourceFile = GetSourceFile();
-	materialSourceFile->SetIOHooker(IKSourceFile::IOHookerPtr(KNEW KShaderSourceHooker(system)));
+	materialSourceFile->SetIOHooker(KRenderGlobal::ShaderManager.GetSourceFileIOHooker());
 	materialSourceFile->AddIncludeSource(KRenderGlobal::ShaderManager.GetBindingGenerateCode());
 	materialSourceFile->Open("material/diffuse.glsl");
 

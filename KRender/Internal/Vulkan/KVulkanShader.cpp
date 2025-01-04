@@ -376,11 +376,8 @@ bool KVulkanShader::GenerateReflection(const std::vector<unsigned int>& spirv, K
 
 KVulkanShader::ShaderInitResult KVulkanShader::InitFromFileImpl(const std::string& path, VkShaderModule* pModule)
 {
-	IKFileSystemPtr system = KFileSystem::Manager->GetFileSystem(FSD_SHADER);
-	ASSERT_RESULT(system);
-
 	m_SourceFile->SetHeaderText("#version 460 core\n");
-	m_SourceFile->SetIOHooker(IKSourceFile::IOHookerPtr(KNEW KShaderSourceHooker(system)));
+	m_SourceFile->SetIOHooker(KRenderGlobal::ShaderManager.GetSourceFileIOHooker());
 	m_SourceFile->AddIncludeSource(KRenderGlobal::ShaderManager.GetBindingGenerateCode());
 
 	if (m_SourceFile->Open(path.c_str()))

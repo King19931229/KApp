@@ -84,10 +84,8 @@ bool KMaterialManager::SetupMaterialGeneratedCode(const std::string& file, std::
 		}
 	}
 
-	IKFileSystemPtr system = KFileSystem::Manager->GetFileSystem(FSD_SHADER);
-	ASSERT_RESULT(system);
 	IKSourceFilePtr materialSourceFile = GetSourceFile();
-	materialSourceFile->SetIOHooker(IKSourceFile::IOHookerPtr(KNEW KShaderSourceHooker(system)));
+	materialSourceFile->SetIOHooker(KRenderGlobal::ShaderManager.GetSourceFileIOHooker());
 	materialSourceFile->AddIncludeSource(KRenderGlobal::ShaderManager.GetBindingGenerateCode());
 	if (materialSourceFile->Open(file.c_str()))
 	{

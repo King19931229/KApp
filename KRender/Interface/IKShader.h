@@ -10,6 +10,8 @@
 #include <string>
 #include <vector>
 #include <tuple>
+#include <unordered_map>
+#include <mutex>
 
 struct KShaderInformation
 {
@@ -236,10 +238,38 @@ class KShaderSourceHooker : public IKSourceFile::IOHooker
 {
 protected:
 	IKFileSystemPtr m_FileSys;
+	std::unordered_map<std::string, std::string> ms_Caches;
+	std::mutex m_CacheLock;
 public:
 	KShaderSourceHooker(IKFileSystemPtr fileSys)
 		: m_FileSys(fileSys)
-	{}
+	{
+	}
+
+	virtual bool GetCache(const char* pszPath, std::string& data) override
+	{
+		std::unique_lock<decltype(m_CacheLock)> lock(m_CacheLock);
+		auto it = ms_Caches.find(pszPath);
+		if (it != ms_Caches.end())
+		{
+			data = it->second;
+			return true;
+		}
+		return false;
+	}
+
+	virtual bool AddCache(const char* pszPath, const std::string& data) override
+	{
+		std::unique_lock<decltype(m_CacheLock)> lock(m_CacheLock);
+		ms_Caches.insert({ pszPath, data });
+		return true;
+	}
+
+	void ClearCache()
+	{
+		std::unique_lock<decltype(m_CacheLock)> lock(m_CacheLock);
+		ms_Caches.clear();
+	}
 
 	IKDataStreamPtr Open(const char* pszPath) override
 	{

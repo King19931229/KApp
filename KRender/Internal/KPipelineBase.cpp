@@ -346,6 +346,7 @@ bool KPipelineBase::DestroyConstantBlock()
 
 bool KPipelineBase::Init()
 {
+	KRenderGlobal::PipelineManager.AddGraphicsPipeline(this);
 	return true;
 }
 
@@ -370,6 +371,8 @@ bool KPipelineBase::UnInit()
 	m_Binding.formats.clear();
 
 	DestroyDevice();
+
+	KRenderGlobal::PipelineManager.RemoveGraphicsPipeline(this);
 
 	return true;
 }

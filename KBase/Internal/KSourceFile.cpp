@@ -18,7 +18,6 @@ KSourceFile::KSourceFile()
 
 KSourceFile::~KSourceFile()
 {
-
 }
 
 bool KSourceFile::Trim(std::string& input)
@@ -197,7 +196,24 @@ bool KSourceFile::Parse(std::string& output, const std::string& dir, const std::
 		// 通过传统文件搜索指认头文件内容
 		else
 		{
-			pData = GetFileData(filePath);
+			std::string cache;
+			if (m_Hooker && m_Hooker->GetCache(filePath.c_str(), cache))
+			{
+				pData = GetDataStream(IT_MEMORY);
+				pData->Open(cache.c_str(), cache.size(), IM_READ);
+			}
+			else
+			{
+				pData = GetFileData(filePath);
+				if (pData && m_Hooker)
+				{
+					size_t dataSize = pData->GetSize();
+					cache.resize(dataSize);
+					pData->Read(&cache[0], dataSize);
+					pData->Seek(0);
+					m_Hooker->AddCache(filePath.c_str(), cache);
+				}
+			}
 		}
 
 		if(pData)

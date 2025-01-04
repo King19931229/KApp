@@ -21,6 +21,7 @@ protected:
 	ShaderMap m_Shaders;
 	KSpirvBuiltInResource m_SpirVBuiltIn;
 	IKShader::IncludeSource m_BindingInclude;
+	IKSourceFile::IOHookerPtr m_SourceFileIOHooker;
 
 	size_t CalcVariantionHash(const KShaderCompileEnvironment& env);
 	void ApplyEnvironment(IKShaderPtr soul, const KShaderCompileEnvironment& env);
@@ -40,4 +41,5 @@ public:
 
 	inline const KSpirvBuiltInResource* GetSpirVBuildInResource() const { return &m_SpirVBuiltIn; }
 	inline const IKShader::IncludeSource& GetBindingGenerateCode() const { return m_BindingInclude; }
+	inline IKSourceFile::IOHookerPtr GetSourceFileIOHooker() { return m_SourceFileIOHooker; }
 };
