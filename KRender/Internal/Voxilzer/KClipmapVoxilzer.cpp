@@ -942,7 +942,7 @@ void KClipmapVoxilzer::WrapBorder(KRHICommandList& commandList)
 	}
 }
 
-void KClipmapVoxilzer::ReloadShader()
+void KClipmapVoxilzer::Reload()
 {
 	(*m_VoxelDrawVS)->Reload();
 	(*m_VoxelDrawGS)->Reload();
@@ -953,11 +953,11 @@ void KClipmapVoxilzer::ReloadShader()
 	(*m_LightPassFS)->Reload();
 	(*m_LightComposeFS)->Reload();
 
-	m_LightPassPipeline->Reload();
-	m_LightComposePipeline->Reload();
+	m_LightPassPipeline->Reload(false);
+	m_LightComposePipeline->Reload(false);
 
-	m_VoxelDrawPipeline->Reload();
-	m_VoxelWireFrameDrawPipeline->Reload();
+	m_VoxelDrawPipeline->Reload(false);
+	m_VoxelWireFrameDrawPipeline->Reload(false);
 
 	m_ClearRegionPipeline->Reload();
 	m_ClearRadiancePipeline->Reload();

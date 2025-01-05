@@ -15,6 +15,7 @@
 KVulkanPipeline::KVulkanPipeline()
 	: m_DescriptorSetLayout(VK_NULL_HANDLE)
 	, m_PipelineLayout(VK_NULL_HANDLE)
+	, m_LastTrimFrame(-1)
 {
 }
 
@@ -56,7 +57,7 @@ bool KVulkanPipeline::CreateLayout()
 		m_DescriptorSetLayout = vulkanPipelineLayout->GetDescriptorSetLayout();
 		m_PipelineLayout = vulkanPipelineLayout->GetPipelineLayout();
 		m_DescriptorSetLayoutBinding = vulkanPipelineLayout->GetDescriptorSetLayoutBinding();
-		CreateDestcriptionWrite();
+		CreateDescriptionWrite();
 		return true;
 	}
 	else
@@ -65,7 +66,7 @@ bool KVulkanPipeline::CreateLayout()
 	}
 }
 
-bool KVulkanPipeline::CreateDestcriptionWrite()
+bool KVulkanPipeline::CreateDescriptionWrite()
 {
 	m_WriteDescriptorSet.clear();
 	m_WriteDescriptorSet.reserve(m_Uniforms.size());
@@ -104,7 +105,7 @@ bool KVulkanPipeline::CreateDestcriptionWrite()
 	return true;
 }
 
-bool KVulkanPipeline::CreateDestcriptionPool(uint32_t threadIndex)
+bool KVulkanPipeline::CreateDescriptionPool(uint32_t threadIndex)
 {
 	if (m_Layout)
 	{
@@ -135,8 +136,9 @@ VkDescriptorSet KVulkanPipeline::AllocDescriptorSet(uint32_t threadIndex,
 	const KDynamicConstantBufferUsage** ppConstantUsage, size_t dynamicBufferUsageCount,
 	const KStorageBufferUsage** ppStorageUsage, size_t storageBufferUsageCount)
 {
+	TrimDescriptionPool();
 	threadIndex = std::min(threadIndex, (uint32_t)(m_Pools.size() - 1));
-	CreateDestcriptionPool(threadIndex);
+	CreateDescriptionPool(threadIndex);
 	return m_Pools[threadIndex].Alloc(KRenderGlobal::CurrentInFlightFrameIndex, KRenderGlobal::CurrentFrameNum, this, ppConstantUsage, dynamicBufferUsageCount, ppStorageUsage, storageBufferUsageCount);
 }
 
@@ -152,9 +154,25 @@ bool KVulkanPipeline::UnInit()
 	return true;
 }
 
-bool KVulkanPipeline::Reload()
+bool KVulkanPipeline::Reload(bool reloadShader)
 {
-	KPipelineBase::Reload();
+	KPipelineBase::Reload(reloadShader);
+	return true;
+}
+
+bool KVulkanPipeline::TrimDescriptionPool()
+{
+	if (m_LastTrimFrame != KRenderGlobal::CurrentFrameNum)
+	{
+		for (uint32_t threadIndex = 0; threadIndex < MAX_THREAD_SUPPORT; ++threadIndex)
+		{
+			if (m_PoolInitializeds[threadIndex])
+			{
+				m_Pools[threadIndex].Trim(KRenderGlobal::CurrentInFlightFrameIndex, KRenderGlobal::CurrentFrameNum);
+			}
+		}
+		m_LastTrimFrame = KRenderGlobal::CurrentFrameNum;
+	}
 	return true;
 }
 

@@ -606,21 +606,16 @@ size_t KVulkanDescriptorPool::HashCombine(const VkWriteDescriptorSet& write, siz
 	return hash;
 }
 
-KVulkanDescriptorPoolAllocatedSetPtr KVulkanDescriptorPool::InternalAlloc(size_t frameIndex, size_t currentFrame)
+bool KVulkanDescriptorPool::Trim(size_t frameIndex, size_t currentFrame)
 {
-	ASSERT_RESULT(m_Layout != VK_NULL_HANDLE);
-
-#ifdef _DEBUG
-	KSectionEnterAssertGuard gurad(m_Allocating);
-#endif
-
 	if (frameIndex >= m_Descriptors.size())
 	{
-		m_Descriptors.resize(frameIndex + 1);
+		return false;
 	}
+
 	DescriptorSetBlockList& blockList = m_Descriptors[frameIndex];
 
-	// 1.释放没用的Set
+	// 释放没用的Set
 	if (blockList.currentFrame != currentFrame)
 	{
 		blockList.currentFrame = currentFrame;
@@ -629,7 +624,7 @@ KVulkanDescriptorPoolAllocatedSetPtr KVulkanDescriptorPool::InternalAlloc(size_t
 		{
 			DescriptorSetBlock& block = *it;
 
-			if (block.useCount < block.sets.size() / 2)
+			if (block.useCount <= block.sets.size() / 2)
 			{
 				size_t newCount = block.sets.size() / 2;
 				for (size_t idx = newCount; idx < block.sets.size(); ++idx)
@@ -640,7 +635,7 @@ KVulkanDescriptorPoolAllocatedSetPtr KVulkanDescriptorPool::InternalAlloc(size_t
 				}
 				block.sets.resize(newCount);
 
-				if (block.sets.size() == 0 && blockList.blocks.size() > 1)
+				if (block.sets.size() == 0)
 				{
 					vkDestroyDescriptorPool(KVulkanGlobal::device, block.pool, nullptr);
 					it = blockList.blocks.erase(it);
@@ -662,9 +657,27 @@ KVulkanDescriptorPoolAllocatedSetPtr KVulkanDescriptorPool::InternalAlloc(size_t
 		}
 	}
 
+	return true;
+}
+
+KVulkanDescriptorPoolAllocatedSetPtr KVulkanDescriptorPool::InternalAlloc(size_t frameIndex, size_t currentFrame)
+{
+	ASSERT_RESULT(m_Layout != VK_NULL_HANDLE);
+
+#ifdef _DEBUG
+	KSectionEnterAssertGuard gurad(m_Allocating);
+#endif
+
+	if (frameIndex >= m_Descriptors.size())
+	{
+		m_Descriptors.resize(frameIndex + 1);
+	}
+	
+	DescriptorSetBlockList& blockList = m_Descriptors[frameIndex];
+
 	size_t blockIndex = 0;
 
-	// 2.找没有超过Block预算的Set
+	// 1.找没有超过Block预算的Set
 	for (auto it = blockList.blocks.begin(), itEnd = blockList.blocks.end(); it != itEnd; ++it)
 	{
 		DescriptorSetBlock& block = *it;
@@ -692,7 +705,7 @@ KVulkanDescriptorPoolAllocatedSetPtr KVulkanDescriptorPool::InternalAlloc(size_t
 		++blockIndex;
 	}
 
-	// 3.新建一个Block
+	// 2.新建一个Block
 	DescriptorSetBlock block;
 	block.useCount = 0;
 	block.maxCount = m_BlockSize;

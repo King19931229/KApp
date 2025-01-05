@@ -464,14 +464,14 @@ bool KVirtualGeometryManager::Update()
 	return true;
 }
 
-bool KVirtualGeometryManager::ReloadShader()
+bool KVirtualGeometryManager::Reload()
 {
 	for (IKVirtualGeometryScenePtr scene : m_Scenes)
 	{
 		KVirtualGeometryScene* vgScene = (KVirtualGeometryScene*)scene.get();
-		vgScene->ReloadShader();
+		vgScene->Reload();
 	}
-	m_StreamingManager.ReloadShader();
+	m_StreamingManager.Reload();
 	return true;
 }
 

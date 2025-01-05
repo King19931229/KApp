@@ -42,6 +42,13 @@ protected:
 	};
 	std::vector<IncludeSource> m_IncludeSources;
 
+	struct IncludeFile
+	{
+		std::string include;
+		std::function<std::string()> fileReader;
+	};
+	std::vector<IncludeFile> m_IncludeFiles;
+
 	void AddIncludeFile(FileInfo* info, const std::string& file);
 
 	bool EarseComment(std::string& out, const std::string& in);
@@ -64,12 +71,19 @@ public:
 	virtual bool SetIOHooker(IOHookerPtr hooker);
 	virtual bool SetHeaderText(const char* text);
 	virtual bool UnsetHeaderText();
+
 	virtual bool AddMacro(const MacroPair& macroPair);
 	virtual bool RemoveAllMacro();
 	virtual bool GetAllMacro(std::vector<MacroPair>& macros);
+
 	virtual bool AddIncludeSource(const IncludeSourcePair& includeSource);
 	virtual bool RemoveAllIncludeSource();
-	virtual bool GetAllIncludeSource(std::vector<IncludeSourcePair>& macros);
+	virtual bool GetAllIncludeSource(std::vector<IncludeSourcePair>& includeSource);
+
+	virtual bool AddIncludeFile(const IncludeFilePair& includeFile);
+	virtual bool RemoveAllIncludeFile();
+	virtual bool GetAllIncludeFile(std::vector<IncludeFilePair>& includeFile);
+
 	virtual const char* GetFilePath();
 	virtual const char* GetFileDirPath();
 	virtual const char* GetFileName();

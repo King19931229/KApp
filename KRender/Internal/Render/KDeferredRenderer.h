@@ -68,5 +68,5 @@ public:
 	inline DeferredRenderDebug GetDebugOption() const { return m_DebugOption; }
 	inline void SetDebugOption(DeferredRenderDebug option) { m_DebugOption = option; }
 
-	void ReloadShader();
+	void Reload();
 };

@@ -195,38 +195,18 @@ bool KRenderCore::InitController()
 			if (key == INPUT_KEY_ENTER)
 			{
 				KRenderGlobal::Renderer.GetRHICommandList().Flush(RHICommandFlush::FlushRHIThreadToDone);
-				KRenderGlobal::VirtualGeometryManager.ReloadShader();
+				KRenderGlobal::VirtualGeometryManager.Reload();
 			}
 			if (key == INPUT_KEY_SPACE)
 			{
 				KRenderGlobal::Renderer.GetRHICommandList().Flush(RHICommandFlush::FlushRHIThreadToDone);
-				KRenderGlobal::VirtualTextureManager.ReloadShader();
-				// KRenderGlobal::GPUScene.ReloadShader();
+				KRenderGlobal::VirtualTextureManager.Reload();
+				// KRenderGlobal::GPUScene.Reload();
 			}
 			if (key == INPUT_KEY_R)
 			{
 				KRenderGlobal::Renderer.GetRHICommandList().Flush(RHICommandFlush::FlushRHIThreadToDone);
-				KRenderGlobal::RayTraceManager.ReloadShader();
-				KRenderGlobal::VirtualGeometryManager.ReloadShader();
-				KRenderGlobal::VirtualTextureManager.ReloadShader();
-				KRenderGlobal::GPUScene.ReloadShader();
-				KRenderGlobal::RTAO.ReloadShader();
-				if (KRenderGlobal::UsingGIMethod == KRenderGlobal::CLIPMAP_GI)
-				{
-					KRenderGlobal::ClipmapVoxilzer.ReloadShader();
-				}
-				else if (KRenderGlobal::UsingGIMethod == KRenderGlobal::SVO_GI)
-				{
-					KRenderGlobal::Voxilzer.ReloadShader();
-				}
-				KRenderGlobal::DeferredRenderer.ReloadShader();
-				KRenderGlobal::Scene.GetTerrain()->Reload();
-				KRenderGlobal::HiZBuffer.ReloadShader();
-				KRenderGlobal::HiZOcclusion.ReloadShader();
-				KRenderGlobal::VolumetricFog.Reload();
-				KRenderGlobal::ScreenSpaceReflection.ReloadShader();
-				KRenderGlobal::DepthOfField.ReloadShader();
-				KRenderGlobal::ShaderManager.Reload();
+				KRenderGlobal::PipelineManager.Reload();
 			}
 		});
 	};

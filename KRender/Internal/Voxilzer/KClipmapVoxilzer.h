@@ -238,7 +238,7 @@ public:
 	~KClipmapVoxilzer();
 
 	void UpdateVoxel(KRHICommandList& commandList);
-	void ReloadShader();
+	void Reload();
 
 	inline uint32_t GetVoxelDimension() const { return m_VolumeDimension; }
 	inline float GetBaseVoxelSize() const { return m_BaseVoxelSize; }

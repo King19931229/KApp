@@ -9,7 +9,7 @@ protected:
 	uint32_t m_Version;
 	std::string m_Path;
 	std::string m_ShaderFile;
-	std::string m_MaterialCode;
+	std::function<std::string()> m_MaterialGeneratedCodeReader;
 	MaterialShadingMode m_ShadingMode;
 	IKMaterialParameterPtr m_Parameter;
 	IKMaterialTextureBindingPtr m_TextureBinding;
@@ -111,7 +111,7 @@ public:
 	virtual bool InitFromImportAssetMaterial(const KMeshRawData::Material& input, bool async);
 	virtual bool UnInit();
 
-	virtual const std::string& GetMaterialGeneratedCode() const { return m_MaterialCode; }
+	virtual std::function<std::string()> GetMaterialGeneratedCodeReader() const { return m_MaterialGeneratedCodeReader; }
 	virtual const std::string& GetPath() const { return m_Path; }
 
 	virtual bool SaveAsFile(const std::string& path);

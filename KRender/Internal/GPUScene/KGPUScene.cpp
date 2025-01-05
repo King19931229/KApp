@@ -1492,7 +1492,7 @@ bool KGPUScene::BasePassPost(IKRenderPassPtr renderPass, KRHICommandList& comman
 	return true;
 }
 
-void KGPUScene::ReloadShader()
+void KGPUScene::Reload()
 {
 	for (IKComputePipelinePtr& pipeline : m_InitStatePipelines)
 	{
@@ -1526,7 +1526,7 @@ void KGPUScene::ReloadShader()
 		{
 			if (pipeline)
 			{
-				pipeline->Reload();
+				pipeline->Reload(false);
 			}
 		}
 	}

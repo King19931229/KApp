@@ -35,7 +35,7 @@ public:
 	bool UnInit();
 	bool Resize(uint32_t width, uint32_t height);
 
-	bool ReloadShader();
+	bool Reload();
 
 	IKSamplerPtr GetHiZSampler() { return *m_HiZSampler; }
 	IKRenderTargetPtr GetMinBuffer() { return m_HiZMinBuffer; }

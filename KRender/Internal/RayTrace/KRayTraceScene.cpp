@@ -377,11 +377,11 @@ void KRayTraceScene::UpdateSize()
 	}
 }
 
-void KRayTraceScene::ReloadShader()
+void KRayTraceScene::Reload()
 {
 	for (auto it = m_RaytracePipelineInfos.begin(); it != m_RaytracePipelineInfos.end(); ++it)
 	{
-		it->pipeline->ReloadShader();
+		it->pipeline->Reload();
 	}
 }
 

@@ -143,7 +143,7 @@ public:
 
 	virtual bool Init();
 	virtual bool UnInit();
-	virtual bool Reload();
+	virtual bool Reload(bool reloadShader = true);
 
 	virtual bool GetHandle(IKRenderPassPtr renderPass, IKPipelineHandlePtr& handle);
 

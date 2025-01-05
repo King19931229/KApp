@@ -35,6 +35,7 @@ public:
 	bool UnInit();
 
 	bool Reload();
+	bool ClearSourceCache();
 
 	bool Acquire(ShaderType type, const char* path, const KShaderCompileEnvironment& env, KShaderRef& shader, bool async);
 	bool Acquire(ShaderType type, const char* path, KShaderRef& shader, bool async);

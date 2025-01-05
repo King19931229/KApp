@@ -73,7 +73,7 @@ public:
 	bool UnInit();
 
 	bool Update();
-	bool ReloadShader();
+	bool Reload();
 
 	bool RemoveUnreferenced();
 

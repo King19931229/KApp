@@ -246,7 +246,7 @@ public:
 	bool BasePassMain(IKRenderPassPtr renderPass, KRHICommandList& commandList);
 	bool BasePassPost(IKRenderPassPtr renderPass, KRHICommandList& commandList);
 
-	void ReloadShader();
+	void Reload();
 
 	bool& GetEnable() { return m_Enable; }
 };

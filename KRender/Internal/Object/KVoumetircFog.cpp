@@ -332,5 +332,5 @@ void KVolumetricFog::Reload()
 	if (m_ScatteringFS)
 		m_ScatteringFS->Reload();
 	if(m_ScatteringPipeline)
-		m_ScatteringPipeline->Reload();
+		m_ScatteringPipeline->Reload(false);
 }

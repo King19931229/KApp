@@ -8,14 +8,6 @@ protected:
 	typedef std::unordered_map<std::string, KMaterialRef> MaterialMap;
 	MaterialMap m_Materials;
 	KMaterialRef m_MissingMaterial;
-	struct Cache
-	{
-		std::unordered_map<std::string, std::string> materialGeneratedCode;
-		void Clear()
-		{
-			materialGeneratedCode.clear();
-		}
-	} m_Cache;
 public:
 	KMaterialManager();
 	~KMaterialManager();

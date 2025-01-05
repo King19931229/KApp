@@ -125,7 +125,7 @@ struct IKMaterial
 	virtual bool InitFromImportAssetMaterial(const KMeshRawData::Material& input, bool async) = 0;
 	virtual bool UnInit() = 0;
 
-	virtual const std::string& GetMaterialGeneratedCode() const = 0;
+	virtual std::function<std::string()> GetMaterialGeneratedCodeReader() const = 0;
 
 	virtual const std::string& GetPath() const = 0;
 	virtual bool SaveAsFile(const std::string& path) = 0;

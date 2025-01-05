@@ -405,8 +405,19 @@ bool KPipelineBase::CreateLayout()
 }
 
 
-bool KPipelineBase::Reload()
+bool KPipelineBase::Reload(bool reloadShader)
 {
+	if (reloadShader)
+	{
+		KRenderGlobal::ShaderManager.ClearSourceCache();
+		for (uint32_t i = 0; i < LAYOUT_SHADER_COUNT; ++i)
+		{
+			if (m_Binding.shaders[i])
+			{
+				m_Binding.shaders[i]->Reload();
+			}
+		}
+	}
 	DestroyDevice();
 	return true;
 }

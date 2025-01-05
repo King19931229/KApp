@@ -385,7 +385,7 @@ bool KHiZBuffer::Construct(KRHICommandList& commandList)
 	return true;
 }
 
-bool KHiZBuffer::ReloadShader()
+bool KHiZBuffer::Reload()
 {
 	if (m_QuadVS)
 		m_QuadVS->Reload();
@@ -395,15 +395,15 @@ bool KHiZBuffer::ReloadShader()
 		m_BuildHiZFS->Reload();
 	if (m_ReadDepthPipeline)
 	{
-		m_ReadDepthPipeline->Reload();
+		m_ReadDepthPipeline->Reload(false);
 	}
 	for (IKPipelinePtr& pipeline : m_BuildHiZMinPipelines)
 	{
-		pipeline->Reload();
+		pipeline->Reload(false);
 	}
 	for (IKPipelinePtr& pipeline : m_BuildHiZMaxPipelines)
 	{
-		pipeline->Reload();
+		pipeline->Reload(false);
 	}
 	return true;
 }

@@ -145,9 +145,13 @@ size_t KShaderManager::CalcVariantionHash(const KShaderCompileEnvironment& env)
 	{
 		fullString += std::get<0>(macroPair) + std::get<1>(macroPair);
 	}
-	for (const IKShader::IncludeSource& includePair : env.includes)
+	for (const IKShader::IncludeSource& includePair : env.includeSources)
 	{
-		fullString += std::get<0>(includePair) + std::get<1>(includePair);
+		fullString += std::get<0>(includePair);
+	}
+	for (const IKShader::IncludeFile& includePair : env.includeFiles)
+	{
+		fullString += std::get<0>(includePair);
 	}
 	fullString += env.enableSourceDebug ? "D1" : "D0";
 
@@ -200,6 +204,7 @@ bool KShaderManager::UnInit()
 
 bool KShaderManager::Reload()
 {
+	ClearSourceCache();
 	for (auto it = m_Shaders.begin(), itEnd = m_Shaders.end(); it != itEnd; ++it)
 	{
 		ShaderVariantionMap& variantionMap = it->second;
@@ -208,6 +213,15 @@ bool KShaderManager::Reload()
 			KShaderRef& ref = it->second;
 			ASSERT_RESULT((*ref)->Reload());
 		}
+	}
+	return true;
+}
+
+bool KShaderManager::ClearSourceCache()
+{
+	if (m_SourceFileIOHooker)
+	{
+		m_SourceFileIOHooker->ClearCache();
 	}
 	return true;
 }
@@ -224,9 +238,13 @@ void KShaderManager::ApplyEnvironment(IKShaderPtr soul, const KShaderCompileEnvi
 		{
 			soul->AddMacro(macroPair);
 		}
-		for (const IKShader::IncludeSource& includePair : env.includes)
+		for (const IKShader::IncludeSource& includePair : env.includeSources)
 		{
 			soul->AddIncludeSource(includePair);
+		}
+		for (const IKShader::IncludeFile& includePair : env.includeFiles)
+		{
+			soul->AddIncludeFile(includePair);
 		}
 		soul->SetSourceDebugEnable(env.enableSourceDebug);
 	}

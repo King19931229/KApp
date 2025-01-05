@@ -132,6 +132,7 @@ struct KShaderMapInitContext
 	std::string vsFile;
 	std::string fsFile;
 	std::vector<std::tuple<std::string, std::string>> includeSources;
+	std::vector<std::tuple<std::string, std::function<std::string()>>> includeFiles;
 	std::vector<std::tuple<std::string, std::string>> macros;
 };
 
@@ -150,7 +151,8 @@ protected:
 
 	std::string m_VSFile;
 	std::string m_FSFile;
-	std::vector<IKShader::IncludeSource> m_Includes;
+	std::vector<IKShader::IncludeSource> m_IncludeSources;
+	std::vector<IKShader::IncludeFile> m_IncludeFiles;
 	std::vector<IKShader::MacroPair> m_Macros;
 
 	bool m_Async;

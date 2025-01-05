@@ -20,6 +20,7 @@ public:
 
 	bool Init();
 	bool UnInit();
+	bool Reload();
 
 	bool AddGraphicsPipeline(IKPipeline* pipeline);
 	bool RemoveGraphicsPipeline(IKPipeline* pipeline);

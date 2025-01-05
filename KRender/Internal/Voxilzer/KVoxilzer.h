@@ -221,7 +221,7 @@ public:
 	~KVoxilzer();
 
 	void UpdateVoxel(KRHICommandList& commandList);
-	void ReloadShader();
+	void Reload();
 	
 	bool& GetEnable() { return m_Enable; }
 	bool& GetVoxelUseOctree() { return m_VoxelUseOctree; }

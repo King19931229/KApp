@@ -183,15 +183,24 @@ bool KSourceFile::Parse(std::string& output, const std::string& dir, const std::
 
 		IKDataStreamPtr pData = nullptr;
 		
-		auto itInclude = std::find_if(m_IncludeSources.begin(), m_IncludeSources.end(), [&filePath](IncludeSource& info)
+		auto itIncludeSource = std::find_if(m_IncludeSources.begin(), m_IncludeSources.end(), [&filePath](IncludeSource& info)
+		{
+			return info.include == filePath;
+		});
+
+		auto itIncludeFile = std::find_if(m_IncludeFiles.begin(), m_IncludeFiles.end(), [&filePath](IncludeFile& info)
 		{
 			return info.include == filePath;
 		});
 
 		// 通过内部指认头文件内容
-		if (itInclude != m_IncludeSources.end())
+		if (itIncludeSource != m_IncludeSources.end())
 		{
-			pData = GetSourceData(itInclude->source);
+			pData = GetSourceData(itIncludeSource->source);
+		}
+		else if (itIncludeFile != m_IncludeFiles.end())
+		{
+			pData = GetSourceData(itIncludeFile->fileReader());
 		}
 		// 通过传统文件搜索指认头文件内容
 		else
@@ -541,6 +550,48 @@ bool KSourceFile::GetAllIncludeSource(std::vector<IncludeSourcePair>& includeSou
 	for (const IncludeSource& includeInfo : m_IncludeSources)
 	{
 		includeSource.push_back(std::make_tuple(includeInfo.include, includeInfo.source));
+	}
+	return true;
+}
+
+bool KSourceFile::AddIncludeFile(const IncludeFilePair& includeFile)
+{
+	const std::string& include = std::get<0>(includeFile);
+	const std::function<std::string()>& reader = std::get<1>(includeFile);
+	if (!include.empty())
+	{
+		auto it = std::find_if(m_IncludeFiles.begin(), m_IncludeFiles.end(), [include](const IncludeFile& inc)
+		{
+			return strcmp(inc.include.c_str(), include.c_str()) == 0;
+		});
+
+		if (it == m_IncludeFiles.end())
+		{
+			IncludeFile info = { include, reader };
+			m_IncludeFiles.emplace_back(std::move(info));
+		}
+		// 覆盖掉之前的值
+		else
+		{
+			it->fileReader = reader;
+		}
+		return true;
+	}
+	return false;
+}
+
+bool KSourceFile::RemoveAllIncludeFile()
+{
+	m_IncludeFiles.clear();
+	return true;
+}
+
+bool KSourceFile::GetAllIncludeFile(std::vector<IncludeFilePair>& includeFile)
+{
+	includeFile.clear();
+	for (const IncludeFile& includeInfo : m_IncludeFiles)
+	{
+		includeFile.push_back(std::make_tuple(includeInfo.include, includeInfo.fileReader));
 	}
 	return true;
 }

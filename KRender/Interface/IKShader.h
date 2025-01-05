@@ -189,6 +189,7 @@ struct IKShader : public IKResource
 
 	typedef std::tuple<std::string, std::string> MacroPair;
 	typedef std::tuple<std::string, std::string> IncludeSource;
+	typedef std::tuple<std::string, std::function<std::string()>> IncludeFile;
 
 	virtual bool DebugDump() = 0;
 
@@ -198,7 +199,11 @@ struct IKShader : public IKResource
 
 	virtual bool AddIncludeSource(const IncludeSource& includeSource) = 0;
 	virtual bool RemoveAllIncludeSource() = 0;
-	virtual bool GetAllIncludeSource(std::vector<MacroPair>& macros) = 0;
+	virtual bool GetAllIncludeSource(std::vector<IncludeSource>& includeSource) = 0;
+
+	virtual bool AddIncludeFile(const IncludeFile& includeSource) = 0;
+	virtual bool RemoveAllIncludeFile() = 0;
+	virtual bool GetAllIncludeFile(std::vector<IncludeFile>& macros) = 0;
 
 	virtual bool SetSourceDebugEnable(bool enable) = 0;
 
@@ -220,7 +225,8 @@ struct KShaderCompileEnvironment
 {
 	const KShaderCompileEnvironment* parentEnv;
 	std::vector<IKShader::MacroPair> macros;
-	std::vector<IKShader::IncludeSource> includes;
+	std::vector<IKShader::IncludeSource> includeSources;
+	std::vector<IKShader::IncludeFile> includeFiles;
 	bool enableSourceDebug;
 
 	KShaderCompileEnvironment()

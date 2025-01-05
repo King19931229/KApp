@@ -578,7 +578,7 @@ bool KVirtualGeometryScene::UpdateInstanceData(KRHICommandList& commandList)
 
 			KShaderCompileEnvironment env;
 			env.parentEnv = &KRenderGlobal::VirtualGeometryManager.GetBasepassBindingEnv();
-			env.includes.push_back({ "material_generate_code.h", m_BinningMaterials[i]->GetMaterialGeneratedCode() });
+			env.includeFiles.push_back({ "material_generate_code.h", m_BinningMaterials[i]->GetMaterialGeneratedCodeReader() });
 
 			const IKMaterialTextureBindingPtr materialTextureBinding = m_BinningMaterials[i]->GetTextureBinding();
 			const IKMaterialTextureBinding* textureBinding = materialTextureBinding.get();
@@ -1003,7 +1003,7 @@ bool KVirtualGeometryScene::DebugRender(IKRenderPassPtr renderPass, KRHICommandL
 	return true;
 }
 
-bool KVirtualGeometryScene::ReloadShader()
+bool KVirtualGeometryScene::Reload()
 {
 	for (uint32_t i = 0; i < INSTANCE_CULL_COUNT; ++i)
 	{
@@ -1071,7 +1071,7 @@ bool KVirtualGeometryScene::ReloadShader()
 		for (size_t i = 0; i < m_BasePassFragmentShaders[k].size(); ++i)
 		{
 			m_BasePassFragmentShaders[k][i]->Reload();
-			m_BinningPipelines[k][i]->Reload();
+			m_BinningPipelines[k][i]->Reload(false);
 		}
 	}
 
@@ -1085,7 +1085,7 @@ bool KVirtualGeometryScene::ReloadShader()
 	}
 	if (m_DebugPipeline)
 	{
-		m_DebugPipeline->Reload();
+		m_DebugPipeline->Reload(false);
 	}
 
 	return true;

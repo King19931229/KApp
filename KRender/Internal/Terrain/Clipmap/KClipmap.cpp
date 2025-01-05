@@ -1311,7 +1311,7 @@ bool KClipmap::Reload()
 		(*m_FSShader)->Reload();
 	for (IKPipelinePtr& pipeline : m_ClipLevelPipelines)
 	{
-		pipeline->Reload();
+		pipeline->Reload(false);
 	}
 	return true;
 }

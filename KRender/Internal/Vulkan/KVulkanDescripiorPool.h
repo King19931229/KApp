@@ -104,6 +104,8 @@ public:
 		const std::vector<VkWriteDescriptorSet>& writeInfo);
 	bool UnInit();
 
+	bool Trim(size_t frameIndex, size_t currentFrame);
+
 	inline void SetDebugName(const std::string& name) { m_Name = name; }
 
 	VkDescriptorSet Alloc(size_t frameIndex, size_t currentFrame, IKPipeline* pipeline,

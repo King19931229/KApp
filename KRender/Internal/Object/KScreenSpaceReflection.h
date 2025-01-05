@@ -64,7 +64,7 @@ public:
 	int32_t& GetAtrousLevel() { return m_AtrousLevel; }
 	int32_t& GetRayReuseCount() { return m_RayReuseCount; }
 
-	bool ReloadShader();
+	bool Reload();
 	bool Resize(uint32_t width, uint32_t height);
 
 	bool DebugRender(IKRenderPassPtr renderPass, KRHICommandList& commandList);

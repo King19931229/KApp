@@ -749,7 +749,7 @@ IKUniformBufferPtr KVirtualGeometryStreamingManager::GetStreamingDataBuffer()
 	return m_StreamingDataBuffer;
 }
 
-bool KVirtualGeometryStreamingManager::ReloadShader()
+bool KVirtualGeometryStreamingManager::Reload()
 {
 	for (IKComputePipelinePtr pipeline : m_StreamingRequestClearPipelines)
 	{

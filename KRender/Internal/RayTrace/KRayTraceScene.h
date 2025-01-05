@@ -89,5 +89,5 @@ public:
 	virtual IKAccelerationStructurePtr GetTopDownAS();
 
 	void UpdateSize();
-	void ReloadShader();
+	void Reload();
 };

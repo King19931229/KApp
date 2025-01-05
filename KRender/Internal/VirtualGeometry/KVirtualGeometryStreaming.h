@@ -162,7 +162,7 @@ public:
 	void Init(uint32_t maxStreamingPages, uint32_t minRootPages);
 	void UnInit();
 
-	bool ReloadShader();
+	bool Reload();
 	bool Update(KRHICommandList& commandList);
 
 	IKStorageBufferPtr GetStreamingRequestPipeline(uint32_t frameIndex);

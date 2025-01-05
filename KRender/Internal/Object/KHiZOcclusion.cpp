@@ -204,7 +204,7 @@ bool KHiZOcclusion::UnInit()
 	return true;
 }
 
-bool KHiZOcclusion::ReloadShader()
+bool KHiZOcclusion::Reload()
 {
 	if (m_QuadVS)
 		m_QuadVS->Reload();

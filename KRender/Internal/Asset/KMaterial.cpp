@@ -687,8 +687,8 @@ bool KMaterial::InitFromFile(const std::string& path, bool async)
 				ReadMaterialTexture(m_TextureBinding, materialTextureEle);
 			}
 
-			std::string materialCode;
-			if (!m_ShaderFile.empty() && KRenderGlobal::MaterialManager.SetupMaterialGeneratedCode(m_ShaderFile, materialCode))
+			
+			if (!m_ShaderFile.empty())
 			{
 				KShaderMapInitContext initContext;
 				if (m_ShadingMode == MSM_OPAQUE)
@@ -696,7 +696,18 @@ bool KMaterial::InitFromFile(const std::string& path, bool async)
 					initContext.vsFile = "shading/basepass.vert";
 					initContext.fsFile = "shading/basepass.frag";
 				}
-				initContext.includeSources = { {"material_generate_code.h", materialCode} };
+				initContext.includeFiles =
+				{
+					{
+						"material_generate_code.h",
+						[sourceFile = m_ShaderFile]()
+						{
+							std::string materialCode;
+							KRenderGlobal::MaterialManager.SetupMaterialGeneratedCode(sourceFile, materialCode);
+							return materialCode;
+						}
+					}
+				};
 
 				if (m_ShaderMap.Init(initContext, async))
 				{
@@ -775,17 +786,27 @@ bool KMaterial::InitFromImportAssetMaterial(const KMeshRawData::Material& input,
 
 	if (input.metalWorkFlow)
 	{
-		ASSERT_RESULT(KRenderGlobal::MaterialManager.SetupMaterialGeneratedCode("material/base_color.glsl", m_MaterialCode));
+		m_MaterialGeneratedCodeReader = []()
+		{
+			std::string materialCode;
+			KRenderGlobal::MaterialManager.SetupMaterialGeneratedCode("material/base_color.glsl", materialCode);
+			return materialCode;
+		};
 	}
 	else
 	{
-		ASSERT_RESULT(KRenderGlobal::MaterialManager.SetupMaterialGeneratedCode("material/diffuse.glsl", m_MaterialCode));
+		m_MaterialGeneratedCodeReader = []()
+		{
+			std::string materialCode;
+			KRenderGlobal::MaterialManager.SetupMaterialGeneratedCode("material/diffuse.glsl", materialCode);
+			return materialCode;
+		};
 	}
 
 	if (input.alphaMode == MAM_OPAQUE || input.alphaMode == MAM_MASK)
 	{
 		KShaderMapInitContext initContext;		
-		initContext.includeSources = { {"material_generate_code.h", m_MaterialCode} };
+		initContext.includeFiles = { {"material_generate_code.h", m_MaterialGeneratedCodeReader} };
 
 		initContext.vsFile = "shading/basepass.vert";
 		initContext.fsFile = "shading/basepass.frag";
@@ -814,7 +835,7 @@ bool KMaterial::InitFromImportAssetMaterial(const KMeshRawData::Material& input,
 		initContext.vsFile = "shading/basepass.vert";
 		initContext.fsFile = "shading/translucent.frag";
 		initContext.macros = { {"TRANSRPANT_PASS", "1"} };
-		initContext.includeSources = { {"material_generate_code.h", m_MaterialCode} };
+		initContext.includeFiles = { {"material_generate_code.h", m_MaterialGeneratedCodeReader} };
 
 		m_ShadingMode = MSM_TRANSRPANT;
 

@@ -281,7 +281,7 @@ bool KScreenSpaceReflection::UnInit()
 	return true;
 }
 
-bool KScreenSpaceReflection::ReloadShader()
+bool KScreenSpaceReflection::Reload()
 {
 	if (m_QuadVS)
 		m_QuadVS->Reload();
@@ -298,19 +298,19 @@ bool KScreenSpaceReflection::ReloadShader()
 	if (m_ComposeFS)
 		m_ComposeFS->Reload();
 	if (m_ReflectionPipeline)
-		m_ReflectionPipeline->Reload();
+		m_ReflectionPipeline->Reload(false);
 	if (m_RayReusePipeline)
-		m_RayReusePipeline->Reload();
+		m_RayReusePipeline->Reload(false);
 	if (m_BlitPipeline)
-		m_BlitPipeline->Reload();
+		m_BlitPipeline->Reload(false);
 	for (uint32_t i = 0; i < 2; ++i)
 	{
 		if (m_TemporalPipeline[i])
-			m_TemporalPipeline[i]->Reload();
+			m_TemporalPipeline[i]->Reload(false);
 		if (m_AtrousPipeline[i])
-			m_AtrousPipeline[i]->Reload();
+			m_AtrousPipeline[i]->Reload(false);
 		if (m_ComposePipeline[i])
-			m_ComposePipeline[i]->Reload();
+			m_ComposePipeline[i]->Reload(false);
 	}
 	return true;
 }

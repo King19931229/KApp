@@ -789,7 +789,7 @@ void KVirtualTextureManager::Resize(uint32_t width, uint32_t height)
 	commandBuffer->Flush();
 }
 
-bool KVirtualTextureManager::ReloadShader()
+bool KVirtualTextureManager::Reload()
 {
 	if (m_QuadVS)
 	{
@@ -801,23 +801,23 @@ bool KVirtualTextureManager::ReloadShader()
 	}
 	if (m_UploadContentPipeline)
 	{
-		m_UploadContentPipeline->Reload();
+		m_UploadContentPipeline->Reload(false);
 	}
 	if (m_InitFeedbackResultPipeline)
 	{
-		m_InitFeedbackResultPipeline->Reload();
+		m_InitFeedbackResultPipeline->Reload(false);
 	}
 	if (m_StandaloneCountFeedbackResultPipeline)
 	{
-		m_StandaloneCountFeedbackResultPipeline->Reload();
+		m_StandaloneCountFeedbackResultPipeline->Reload(false);
 	}
 	if (m_GBufferCountFeedbackResultPipeline)
 	{
-		m_GBufferCountFeedbackResultPipeline->Reload();
+		m_GBufferCountFeedbackResultPipeline->Reload(false);
 	}
 	if (m_MergeFeedbackResultPipeline)
 	{
-		m_MergeFeedbackResultPipeline->Reload();
+		m_MergeFeedbackResultPipeline->Reload(false);
 	}
 	return true;
 }

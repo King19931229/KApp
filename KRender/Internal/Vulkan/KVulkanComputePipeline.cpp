@@ -425,6 +425,7 @@ bool KVulkanComputePipeline::Init(const char* szShader, const KShaderCompileEnvi
 	{
 		CreateLayout();
 		CreatePipeline();
+		KRenderGlobal::PipelineManager.AddComputePipeline(this);
 		return true;
 	}
 	return false;
@@ -432,6 +433,7 @@ bool KVulkanComputePipeline::Init(const char* szShader, const KShaderCompileEnvi
 
 bool KVulkanComputePipeline::UnInit()
 {
+	KRenderGlobal::PipelineManager.RemoveComputePipeline(this);
 	DestroyPipeline();
 	DestroyDescriptorSet();
 	m_ComputeShader.Release();
@@ -681,10 +683,15 @@ bool KVulkanComputePipeline::ExecuteIndirect(IKCommandBufferPtr primaryBuffer, I
 	return false;
 }
 
-bool KVulkanComputePipeline::Reload()
+bool KVulkanComputePipeline::Reload(bool reloadShader)
 {
-	if (m_ComputeShader && (*m_ComputeShader)->Reload())
+	if (m_ComputeShader)
 	{
+		if (reloadShader)
+		{
+			KRenderGlobal::ShaderManager.ClearSourceCache();
+			m_ComputeShader->Reload();
+		}
 		DestroyPipeline();
 		CreatePipeline();
 		SetDebugName(m_ComputeShader->GetPath());

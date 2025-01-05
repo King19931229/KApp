@@ -71,6 +71,7 @@ protected:
 	std::vector<VkWriteDescriptorSet> m_WriteDescriptorSet;
 	std::vector<VkDescriptorBufferInfo> m_BufferWriteInfo;
 
+	uint32_t m_LastTrimFrame;
 	static constexpr uint32_t MAX_THREAD_SUPPORT = 512;
 	std::array<KVulkanDescriptorPool, MAX_THREAD_SUPPORT> m_Pools;
 	std::array<bool, MAX_THREAD_SUPPORT> m_PoolInitializeds;
@@ -78,8 +79,9 @@ protected:
 	std::array<std::atomic_bool, MAX_THREAD_SUPPORT> m_PoolInitialing;
 #endif
 
-	bool CreateDestcriptionWrite();
-	bool CreateDestcriptionPool(uint32_t threadIndex);
+	bool CreateDescriptionWrite();
+	bool CreateDescriptionPool(uint32_t threadIndex);
+	bool TrimDescriptionPool();
 	bool DestroyDevice() override;
 	bool CreateLayout() override;
 public:
@@ -88,7 +90,7 @@ public:
 
 	virtual bool Init();
 	virtual bool UnInit();
-	virtual bool Reload();
+	virtual bool Reload(bool reloadShader);
 
 	inline VkPipelineLayout GetVkPipelineLayout() { return m_PipelineLayout; }
 

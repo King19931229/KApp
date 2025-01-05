@@ -140,7 +140,7 @@ public:
 
 	bool DebugRender(IKRenderPassPtr renderPass, KRHICommandList& commandList) override;
 
-	bool ReloadShader();
+	bool Reload();
 
 	inline IKStorageBufferPtr GetInstanceBuffer() { return m_InstanceDataBuffer; }
 };

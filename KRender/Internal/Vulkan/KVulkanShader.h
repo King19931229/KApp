@@ -65,7 +65,11 @@ public:
 
 	virtual bool AddIncludeSource(const IncludeSource& includeSource);
 	virtual bool RemoveAllIncludeSource();
-	virtual bool GetAllIncludeSource(std::vector<MacroPair>& macros);
+	virtual bool GetAllIncludeSource(std::vector<IncludeSource>& includeSource);
+
+	virtual bool AddIncludeFile(const IncludeFile& includeFile);
+	virtual bool RemoveAllIncludeFile();
+	virtual bool GetAllIncludeFile(std::vector<IncludeFile>& includeFile);
 
 	virtual bool SetSourceDebugEnable(bool enable);
 

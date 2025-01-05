@@ -390,7 +390,7 @@ bool KRTAO::Execute(KRHICommandList& commandList, IKQueuePtr graphicsQueue, IKQu
 	return true;
 }
 
-bool KRTAO::ReloadShader()
+bool KRTAO::Reload()
 {
 	for (uint32_t i = 0; i < 2; ++i)
 	{

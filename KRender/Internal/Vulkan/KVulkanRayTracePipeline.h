@@ -119,7 +119,7 @@ public:
 
 	virtual bool RecreateFromAS();
 	virtual bool ResizeImage(uint32_t width, uint32_t height);
-	virtual bool ReloadShader();
+	virtual bool Reload();
 
 	virtual IKRenderTargetPtr GetStorageTarget();
 

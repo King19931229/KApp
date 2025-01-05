@@ -34,6 +34,20 @@ bool KPipelineManager::UnInit()
 	return true;
 }
 
+bool KPipelineManager::Reload()
+{
+	KRenderGlobal::ShaderManager.Reload();
+	for (IKPipeline* pipeline : m_GraphicsPipelines)
+	{
+		pipeline->Reload(false);
+	}
+	for (IKComputePipeline* pipeline : m_ComputePipelines)
+	{
+		pipeline->Reload(false);
+	}
+	return true;
+}
+
 bool KPipelineManager::AddGraphicsPipeline(IKPipeline* pipeline)
 {
 	if (pipeline)

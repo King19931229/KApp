@@ -64,7 +64,7 @@ public:
 	float& GetFarRange() { return m_FarRange; }
 	// float& GetNearRange() { return m_NearRange; }
 
-	bool ReloadShader();
+	bool Reload();
 	bool Resize(uint32_t width, uint32_t height);
 
 	bool& GetDebugDrawEnable() { return m_DebugDrawer.GetEnable(); }

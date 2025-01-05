@@ -491,6 +491,27 @@ bool KVulkanShader::GetAllIncludeSource(std::vector<IncludeSource>& includeSourc
 	return true;
 }
 
+bool KVulkanShader::AddIncludeFile(const IncludeFile& includeFile)
+{
+	ASSERT_RESULT(m_SourceFile);
+	return m_SourceFile->AddIncludeFile(includeFile);
+	return true;
+}
+
+bool KVulkanShader::RemoveAllIncludeFile()
+{
+	ASSERT_RESULT(m_SourceFile);
+	return m_SourceFile->RemoveAllIncludeFile();
+	return true;
+}
+
+bool KVulkanShader::GetAllIncludeFile(std::vector<IncludeFile>& includeFile)
+{
+	ASSERT_RESULT(m_SourceFile);
+	return m_SourceFile->GetAllIncludeFile(includeFile);
+	return true;
+}
+
 bool KVulkanShader::SetSourceDebugEnable(bool enable)
 {
 	m_EnableSourceDebug = enable;

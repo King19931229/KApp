@@ -76,7 +76,7 @@ public:
 	bool Init();
 	bool UnInit();
 
-	bool ReloadShader();
+	bool Reload();
 	bool Resize();
 
 	bool EnableDebugDraw();

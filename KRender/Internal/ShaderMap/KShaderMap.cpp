@@ -210,7 +210,8 @@ bool KShaderMap::Init(const KShaderMapInitContext& context, bool async)
 
 	m_VSFile = context.vsFile;
 	m_FSFile = context.fsFile;
-	m_Includes = context.includeSources;
+	m_IncludeSources = context.includeSources;
+	m_IncludeFiles = context.includeFiles;
 	m_Macros = context.macros;
 
 	m_Async = false;
@@ -232,7 +233,8 @@ bool KShaderMap::UnInit()
 
 	m_VSFile.clear();
 	m_FSFile.clear();
-	m_Includes.clear();
+	m_IncludeSources.clear();
+	m_IncludeSources.clear();
 	m_Macros.clear();
 
 	for (ShaderMap* shadermap : { &m_VSShaderMap, &m_VSInstanceShaderMap, &m_FSShaderMap, &m_VSGPUSceneShaderMap, &m_FSGPUSceneShaderMap })
@@ -378,8 +380,8 @@ IKShaderPtr KShaderMap::GetShaderImplement(ShaderType shaderType, ShaderMap& sha
 
 				KShaderCompileEnvironment env;
 				env.macros = m_Macros;
-				env.includes = m_Includes;
-
+				env.includeSources = m_IncludeSources;
+				env.includeFiles = m_IncludeFiles;
 				env.macros.insert(env.macros.end(), macros.begin(), macros.end());
 
 				const std::string& shaderFile = (shaderType == ST_VERTEX) ? m_VSFile.c_str() : m_FSFile.c_str();

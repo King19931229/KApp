@@ -160,7 +160,7 @@ void KDepthOfField::InitializePipeline()
 	}
 }
 
-bool KDepthOfField::ReloadShader()
+bool KDepthOfField::Reload()
 {
 	if(m_QuadVS)
 		m_QuadVS->Reload();
@@ -171,11 +171,11 @@ bool KDepthOfField::ReloadShader()
 	if (m_VerticalFS)
 		m_VerticalFS->Reload();
 	if (m_CoCPipeline)
-		m_CoCPipeline->Reload();
+		m_CoCPipeline->Reload(false);
 	if (m_HorizontalPipeline)
-		m_HorizontalPipeline->Reload();
+		m_HorizontalPipeline->Reload(false);
 	if (m_VerticalPipeline)
-		m_VerticalPipeline->Reload();
+		m_VerticalPipeline->Reload(false);
 	return true;
 }
 

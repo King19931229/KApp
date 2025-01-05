@@ -957,7 +957,7 @@ void KDeferredRenderer::DrawFinalResult(IKRenderPassPtr renderPass, KRHICommandL
 	commandList.EndDebugMarker();
 }
 
-void KDeferredRenderer::ReloadShader()
+void KDeferredRenderer::Reload()
 {
 	if (m_QuadVS)
 		m_QuadVS->Reload();
@@ -966,9 +966,9 @@ void KDeferredRenderer::ReloadShader()
 	if (m_SceneColorDrawFS)
 		m_SceneColorDrawFS->Reload();
 	if (m_LightingPipeline)
-		m_LightingPipeline->Reload();
+		m_LightingPipeline->Reload(false);
 	if (m_DrawSceneColorPipeline)
-		m_DrawSceneColorPipeline->Reload();
+		m_DrawSceneColorPipeline->Reload(false);
 	if (m_DrawFinalPipeline)
-		m_DrawSceneColorPipeline->Reload();
+		m_DrawSceneColorPipeline->Reload(false);
 }

@@ -563,7 +563,7 @@ void KVulkanRayTracePipeline::DestroyShader()
 	m_MissShader.shader.Release();
 }
 
-bool KVulkanRayTracePipeline::ReloadShader()
+bool KVulkanRayTracePipeline::Reload()
 {
 	if (m_AnyHitShader.shader|| m_ClosestHitShader.shader || m_RayGenShader.shader || m_MissShader.shader)
 	{
