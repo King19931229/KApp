@@ -101,13 +101,10 @@ bool KHiZBuffer::Resize(uint32_t width, uint32_t height)
 	m_HiZMaxBuffer->UnInit();
 	m_HiZMaxBuffer->InitFromColor(m_HiZWidth, m_HiZHeight, 1, m_NumMips, EF_R32_FLOAT);
 
-	IKCommandBufferPtr primaryBuffer = KRenderGlobal::CommandPool->Request(CBL_PRIMARY);
-
-	primaryBuffer->BeginPrimary();
-	primaryBuffer->Transition(m_HiZMinBuffer->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
-	primaryBuffer->Transition(m_HiZMaxBuffer->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
-	primaryBuffer->End();
-	primaryBuffer->Flush();
+	KRenderGlobal::ImmediateCommandList.BeginRecord();
+	KRenderGlobal::ImmediateCommandList.Transition(m_HiZMinBuffer->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+	KRenderGlobal::ImmediateCommandList.Transition(m_HiZMaxBuffer->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+	KRenderGlobal::ImmediateCommandList.EndRecord();
 
 	SAFE_UNINIT_CONTAINER(m_HiZMinRenderPass);
 	SAFE_UNINIT_CONTAINER(m_HiZMaxRenderPass);

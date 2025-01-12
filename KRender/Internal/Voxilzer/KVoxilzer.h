@@ -194,33 +194,33 @@ protected:
 	void SetupOctreeMipmapPipeline();
 	void SetupLightPassPipeline();
 
-	void ClearDynamicScene(KRHICommandList& commandList);
-	void VoxelizeStaticScene(KRHICommandList& commandList);
-	void UpdateRadiance(KRHICommandList& commandList);
-	void InjectRadiance(KRHICommandList& commandList);
-	void GenerateMipmap(KRHICommandList& commandList);
-	void GenerateMipmapBase(KRHICommandList& commandList);
-	void GenerateMipmapVolume(KRHICommandList& commandList);
-	void GenerateOctreeMipmapBase(KRHICommandList& commandList);
-	void GenerateOctreeMipmapVolume(KRHICommandList& commandList);
+	void ClearDynamicScene(KRHICommandListBase& commandList);
+	void VoxelizeStaticScene(KRHICommandListBase& commandList);
+	void UpdateRadiance(KRHICommandListBase& commandList);
+	void InjectRadiance(KRHICommandListBase& commandList);
+	void GenerateMipmap(KRHICommandListBase& commandList);
+	void GenerateMipmapBase(KRHICommandListBase& commandList);
+	void GenerateMipmapVolume(KRHICommandListBase& commandList);
+	void GenerateOctreeMipmapBase(KRHICommandListBase& commandList);
+	void GenerateOctreeMipmapVolume(KRHICommandListBase& commandList);
 
 	void SetupOctreeBuildPipeline();
 	void SetupRayTestPipeline(uint32_t width, uint32_t height);
-	void VoxelizeStaticSceneCounter(KRHICommandList& commandList, bool countOnly);
+	void VoxelizeStaticSceneCounter(KRHICommandListBase& commandList, bool countOnly);
 	void CheckFragmentlistData();
 	void CheckOctreeData();
-	void BuildOctree(KRHICommandList& commandList);
+	void BuildOctree(KRHICommandListBase& commandList);
 	void ShrinkOctree();
 
-	void UpdateInternal(KRHICommandList& commandList);
+	void UpdateInternal(KRHICommandListBase& commandList);
 
-	bool UpdateLightingResult(KRHICommandList& commandList);
-	bool UpdateOctreRayTestResult(KRHICommandList& commandList);
+	bool UpdateLightingResult(KRHICommandListBase& commandList);
+	bool UpdateOctreRayTestResult(KRHICommandListBase& commandList);
 public:
 	KVoxilzer();
 	~KVoxilzer();
 
-	void UpdateVoxel(KRHICommandList& commandList);
+	void UpdateVoxel(KRHICommandListBase& commandList);
 	void Reload();
 	
 	bool& GetEnable() { return m_Enable; }
@@ -242,15 +242,15 @@ public:
 
 	bool EnableLightDebugDraw();
 	bool DisableLightDebugDraw();
-	bool DebugRender(IKRenderPassPtr renderPass, KRHICommandList& commandList);
+	bool DebugRender(IKRenderPassPtr renderPass, KRHICommandListBase& commandList);
 
 	bool EnableOctreeRayTestDebugDraw();
 	bool DisableOctreeRayTestDebugDraw();
-	bool OctreeRayTestRender(IKRenderPassPtr renderPass, KRHICommandList& commandList);
+	bool OctreeRayTestRender(IKRenderPassPtr renderPass, KRHICommandListBase& commandList);
 
 	void Resize(uint32_t width, uint32_t height);
-	bool RenderVoxel(IKRenderPassPtr renderPass, KRHICommandList& commandList);
-	bool UpdateFrame(KRHICommandList& commandList);
+	bool RenderVoxel(IKRenderPassPtr renderPass, KRHICommandListBase& commandList);
+	bool UpdateFrame(KRHICommandListBase& commandList);
 
 	IKFrameBufferPtr GetStaticFlag() { return m_StaticFlag ? m_StaticFlag->GetFrameBuffer() : nullptr; }
 	IKFrameBufferPtr GetVoxelAlbedo() { return m_VoxelAlbedo ? m_VoxelAlbedo->GetFrameBuffer() : nullptr; }

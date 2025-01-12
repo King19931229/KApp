@@ -192,20 +192,18 @@ bool KVirtualTextureManager::Init(uint32_t tileSize, uint32_t tileDimension, uin
 	m_InitFeedbackTargetPipeline->Init("virtualtexture/init_feedback_target.comp", m_CompileEnv);
 
 	{
-		IKCommandBufferPtr commandBuffer = KRenderGlobal::CommandPool->Request(CBL_PRIMARY);
-		commandBuffer->BeginPrimary();
+		KRenderGlobal::ImmediateCommandList.BeginRecord();
 
 		for (uint32_t mip = 0; mip < m_NumMips; ++mip)
 		{
-			commandBuffer->BeginRenderPass(m_UploadContentMipPasses[mip], SUBPASS_CONTENTS_INLINE);
-			commandBuffer->SetViewport(m_UploadContentMipPasses[mip]->GetViewPort());
-			commandBuffer->EndRenderPass();
+			KRenderGlobal::ImmediateCommandList.BeginRenderPass(m_UploadContentMipPasses[mip], SUBPASS_CONTENTS_INLINE);
+			KRenderGlobal::ImmediateCommandList.SetViewport(m_UploadContentMipPasses[mip]->GetViewPort());
+			KRenderGlobal::ImmediateCommandList.EndRenderPass();
 		}
 
-		commandBuffer->Transition(m_PhysicalContentTarget->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+		KRenderGlobal::ImmediateCommandList.Transition(m_PhysicalContentTarget->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 
-		commandBuffer->End();
-		commandBuffer->Flush();
+		KRenderGlobal::ImmediateCommandList.EndRecord();
 	}
 
 	m_FeedbackDebugDrawer.Init(m_FeedbackTarget->GetFrameBuffer(), 0, 0, 1, 1, false);
@@ -777,16 +775,14 @@ void KVirtualTextureManager::Resize(uint32_t width, uint32_t height)
 		m_VirtualTextureFeedbackBuffer->SetDebugName("VirtualTextureFeedbackBuffer");
 	}
 
-	IKCommandBufferPtr commandBuffer = KRenderGlobal::CommandPool->Request(CBL_PRIMARY);
-	commandBuffer->BeginPrimary();
+	KRenderGlobal::ImmediateCommandList.BeginRecord();
 
-	commandBuffer->BeginRenderPass(m_FeedbackPass, SUBPASS_CONTENTS_INLINE);
-	commandBuffer->SetViewport(m_FeedbackPass->GetViewPort());
-	commandBuffer->EndRenderPass();
-	commandBuffer->Transition(m_FeedbackTarget->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+	KRenderGlobal::ImmediateCommandList.BeginRenderPass(m_FeedbackPass, SUBPASS_CONTENTS_INLINE);
+	KRenderGlobal::ImmediateCommandList.SetViewport(m_FeedbackPass->GetViewPort());
+	KRenderGlobal::ImmediateCommandList.EndRenderPass();
+	KRenderGlobal::ImmediateCommandList.Transition(m_FeedbackTarget->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 
-	commandBuffer->End();
-	commandBuffer->Flush();
+	KRenderGlobal::ImmediateCommandList.EndRecord();
 }
 
 bool KVirtualTextureManager::Reload()

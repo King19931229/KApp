@@ -359,15 +359,15 @@ void KRHICommandList::EndRecord()
 	ExecuteOrInsertNextCommand(command);
 }
 
-void KRHICommandList::FlushDoneRecord()
+void KRHICommandList::FlushRecordDone()
 {
 	KRHICommandBasePtr command = KRHICommandBasePtr(KNEW KFlushCmd(m_CommandBuffer));
 	ExecuteOrInsertNextCommand(command);
 }
 
-void KRHICommandList::BeginRenderPass(IKRenderPassPtr renderPass, SubpassContents conent)
+void KRHICommandList::BeginRenderPass(IKRenderPassPtr renderPass, SubpassContents content)
 {
-	KRHICommandBasePtr command = KRHICommandBasePtr(KNEW KBeginRenderPassCmd(m_CommandBuffer, renderPass, conent));
+	KRHICommandBasePtr command = KRHICommandBasePtr(KNEW KBeginRenderPassCmd(m_CommandBuffer, renderPass, content));
 	ExecuteOrInsertNextCommand(command);
 }
 

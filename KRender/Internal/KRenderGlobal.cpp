@@ -48,6 +48,8 @@ namespace KRenderGlobal
 
 	KRenderer Renderer;
 
+	KRHIImmediateCommandList ImmediateCommandList;
+
 	KStatistics Statistics;
 
 	bool EnableDebugRender = false;
@@ -69,6 +71,5 @@ namespace KRenderGlobal
 	uint32_t NumTransferQueue = 0;
 
 	IKRenderWindow* MainWindow = nullptr;
-	IKCommandPoolPtr CommandPool = nullptr;
 	IKRenderDevice* RenderDevice = nullptr;
 }

@@ -558,7 +558,85 @@ public:
 	virtual void ShutDown() override;
 };
 
-class KRHICommandList
+struct KRHICommandListBase
+{
+	virtual void Execute(IKRayTracePipelinePtr rayTrace) = 0;
+	virtual void Execute(IKComputePipelinePtr compute, uint32_t groupX, uint32_t groupY, uint32_t groupZ, const KDynamicConstantBufferUsage* usage = nullptr) = 0;
+	virtual void ExecuteIndirect(IKComputePipelinePtr compute, IKStorageBufferPtr indirectBuffer, const KDynamicConstantBufferUsage* usage = nullptr) = 0;
+	virtual void SetViewport(const KViewPortArea& area) = 0;
+	virtual void SetDepthBias(float depthBiasConstant, float depthBiasClamp, float depthBiasSlope) = 0;
+	virtual void Render(const KRenderCommand& command) = 0;
+	virtual void BeginRecord() = 0;
+	virtual void EndRecord() = 0;
+	virtual void BeginRenderPass(IKRenderPassPtr renderPass, SubpassContents content) = 0;
+	virtual void ClearColor(uint32_t attachment, const KViewPortArea& area, const KClearColor& color) = 0;
+	virtual void ClearDepthStencil(const KViewPortArea& area, const KClearDepthStencil& depthStencil) = 0;
+	virtual void EndRenderPass() = 0;
+	virtual void BeginDebugMarker(const std::string& marker, const glm::vec4& color) = 0;
+	virtual void EndDebugMarker() = 0;
+	virtual void BeginQuery(IKQueryPtr query) = 0;
+	virtual void EndQuery(IKQueryPtr query) = 0;
+	virtual void ResetQuery(IKQueryPtr query) = 0;
+	virtual void TransitionIndirect(IKStorageBufferPtr buf) = 0;
+	virtual void Transition(IKFrameBufferPtr buf, PipelineStages srcStages, PipelineStages dstStages, ImageLayout oldLayout, ImageLayout newLayout) = 0;
+	virtual void TransitionOwnership(IKFrameBufferPtr buf, IKQueuePtr srcQueue, IKQueuePtr dstQueue, PipelineStages srcStages, PipelineStages dstStages, ImageLayout oldLayout, ImageLayout newLayout) = 0;
+	virtual void TransitionMipmap(IKFrameBufferPtr buf, uint32_t mipmap, PipelineStages srcStages, PipelineStages dstStages, ImageLayout oldLayout, ImageLayout newLayout) = 0;
+	virtual void Blit(IKFrameBufferPtr src, IKFrameBufferPtr dest) = 0;
+	virtual void UpdateUniformBuffer(IKUniformBufferPtr uniformBuffer, void* data, uint32_t offset, uint32_t size) = 0;
+	virtual void UpdateStorageBuffer(IKStorageBufferPtr storageBuffer, void* data, uint32_t offset, uint32_t size) = 0;
+};
+
+struct KRHIImmediateCommandList : public KRHICommandListBase
+{
+protected:
+	IKCommandPoolPtr m_CommandPool;
+	IKCommandBufferPtr m_CommandBuffer;
+public:
+	KRHIImmediateCommandList();
+	~KRHIImmediateCommandList();
+
+	void Init();
+	void UnInit();
+
+	void Execute(IKRayTracePipelinePtr rayTrace);
+	void Execute(IKComputePipelinePtr compute, uint32_t groupX, uint32_t groupY, uint32_t groupZ, const KDynamicConstantBufferUsage* usage = nullptr);
+	void ExecuteIndirect(IKComputePipelinePtr compute, IKStorageBufferPtr indirectBuffer, const KDynamicConstantBufferUsage* usage = nullptr);
+
+	void SetViewport(const KViewPortArea& area);
+	void SetDepthBias(float depthBiasConstant, float depthBiasClamp, float depthBiasSlope);
+
+	void Render(const KRenderCommand& command);
+
+	void BeginRecord();
+	void EndRecord();
+
+	void BeginRenderPass(IKRenderPassPtr renderPass, SubpassContents content);
+
+	void ClearColor(uint32_t attachment, const KViewPortArea& area, const KClearColor& color);
+	void ClearDepthStencil(const KViewPortArea& area, const KClearDepthStencil& depthStencil);
+
+	void EndRenderPass();
+
+	void BeginDebugMarker(const std::string& marker, const glm::vec4& color);
+	void EndDebugMarker();
+
+	void BeginQuery(IKQueryPtr query);
+	void EndQuery(IKQueryPtr query);
+	void ResetQuery(IKQueryPtr query);
+
+	void TransitionIndirect(IKStorageBufferPtr buf);
+
+	void Transition(IKFrameBufferPtr buf, PipelineStages srcStages, PipelineStages dstStages, ImageLayout oldLayout, ImageLayout newLayout);
+	void TransitionOwnership(IKFrameBufferPtr buf, IKQueuePtr srcQueue, IKQueuePtr dstQueue, PipelineStages srcStages, PipelineStages dstStages, ImageLayout oldLayout, ImageLayout newLayout);
+	void TransitionMipmap(IKFrameBufferPtr buf, uint32_t mipmap, PipelineStages srcStages, PipelineStages dstStages, ImageLayout oldLayout, ImageLayout newLayout);
+
+	void Blit(IKFrameBufferPtr src, IKFrameBufferPtr dest);
+
+	void UpdateUniformBuffer(IKUniformBufferPtr uniformBuffer, void* data, uint32_t offset, uint32_t size);
+	void UpdateStorageBuffer(IKStorageBufferPtr storageBuffer, void* data, uint32_t offset, uint32_t size);
+};
+
+class KRHICommandList : public KRHICommandListBase
 {
 protected:
 	std::vector<IKCommandPoolPtr> m_ThreadCommandPools;
@@ -614,9 +692,9 @@ public:
 	void BeginRecord();	
 	void EndRecord();
 
-	void FlushDoneRecord();
+	void FlushRecordDone();
 
-	void BeginRenderPass(IKRenderPassPtr renderPass, SubpassContents conent);
+	void BeginRenderPass(IKRenderPassPtr renderPass, SubpassContents content);
 
 	void ClearColor(uint32_t attachment, const KViewPortArea& area, const KClearColor& color);
 	void ClearDepthStencil(const KViewPortArea& area, const KClearDepthStencil& depthStencil);

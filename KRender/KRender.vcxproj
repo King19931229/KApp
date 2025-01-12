@@ -262,6 +262,7 @@
     <ClCompile Include="Internal\Render\KRenderer.cpp" />
     <ClCompile Include="Internal\Render\KRenderUtil.cpp" />
     <ClCompile Include="Internal\Render\KRHICommandList.cpp" />
+    <ClCompile Include="Internal\Render\KRHIImmediateCommandList.cpp" />
     <ClCompile Include="Internal\Scene\KOctreeSceneManager.cpp" />
     <ClCompile Include="Internal\Scene\KRenderScene.cpp" />
     <ClCompile Include="Internal\ShaderMap\KShaderMap.cpp" />

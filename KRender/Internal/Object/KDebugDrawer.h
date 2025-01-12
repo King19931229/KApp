@@ -46,5 +46,5 @@ public:
 	void EnableDraw();
 	void DisableDraw();
 
-	bool Render(IKRenderPassPtr renderPass, KRHICommandList& commandList);
+	bool Render(IKRenderPassPtr renderPass, KRHICommandListBase& commandList);
 };

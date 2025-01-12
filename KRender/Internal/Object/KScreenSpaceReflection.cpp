@@ -447,32 +447,30 @@ bool KScreenSpaceReflection::Resize(uint32_t width, uint32_t height)
 
 	InitializePipeline();
 
-	IKCommandBufferPtr commandBuffer = KRenderGlobal::CommandPool->Request(CBL_PRIMARY);
-	commandBuffer->BeginPrimary();
+	KRenderGlobal::ImmediateCommandList.BeginRecord();
 
 	for (uint32_t i = 0; i < 2; ++i)
 	{
-		commandBuffer->BeginRenderPass(m_BlitPass[i], SUBPASS_CONTENTS_INLINE);
-		commandBuffer->SetViewport(m_BlitPass[i]->GetViewPort());
-		commandBuffer->EndRenderPass();
-		commandBuffer->Transition(m_TemporalTarget[i]->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
-		commandBuffer->Transition(m_TemporalSquaredTarget[i]->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
-		commandBuffer->Transition(m_TemporalTsppTarget[i]->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
-		commandBuffer->Transition(m_BlurTarget[i]->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+		KRenderGlobal::ImmediateCommandList.BeginRenderPass(m_BlitPass[i], SUBPASS_CONTENTS_INLINE);
+		KRenderGlobal::ImmediateCommandList.SetViewport(m_BlitPass[i]->GetViewPort());
+		KRenderGlobal::ImmediateCommandList.EndRenderPass();
+		KRenderGlobal::ImmediateCommandList.Transition(m_TemporalTarget[i]->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+		KRenderGlobal::ImmediateCommandList.Transition(m_TemporalSquaredTarget[i]->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+		KRenderGlobal::ImmediateCommandList.Transition(m_TemporalTsppTarget[i]->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+		KRenderGlobal::ImmediateCommandList.Transition(m_BlurTarget[i]->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 	}
 
-	commandBuffer->BeginRenderPass(m_TemporalPass, SUBPASS_CONTENTS_INLINE);
-	commandBuffer->SetViewport(m_TemporalPass->GetViewPort());
-	commandBuffer->EndRenderPass();
-	commandBuffer->Transition(m_FinalTarget->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+	KRenderGlobal::ImmediateCommandList.BeginRenderPass(m_TemporalPass, SUBPASS_CONTENTS_INLINE);
+	KRenderGlobal::ImmediateCommandList.SetViewport(m_TemporalPass->GetViewPort());
+	KRenderGlobal::ImmediateCommandList.EndRenderPass();
+	KRenderGlobal::ImmediateCommandList.Transition(m_FinalTarget->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 
-	commandBuffer->BeginRenderPass(m_ComposePass, SUBPASS_CONTENTS_INLINE);
-	commandBuffer->SetViewport(m_ComposePass->GetViewPort());
-	commandBuffer->EndRenderPass();
-	commandBuffer->Transition(m_ComposeTarget->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+	KRenderGlobal::ImmediateCommandList.BeginRenderPass(m_ComposePass, SUBPASS_CONTENTS_INLINE);
+	KRenderGlobal::ImmediateCommandList.SetViewport(m_ComposePass->GetViewPort());
+	KRenderGlobal::ImmediateCommandList.EndRenderPass();
+	KRenderGlobal::ImmediateCommandList.Transition(m_ComposeTarget->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 
-	commandBuffer->End();
-	commandBuffer->Flush();
+	KRenderGlobal::ImmediateCommandList.EndRecord();
 
 	return true;
 }

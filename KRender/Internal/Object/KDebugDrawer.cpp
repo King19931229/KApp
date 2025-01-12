@@ -96,7 +96,7 @@ void KRTDebugDrawer::DisableDraw()
 	m_Enable = false;
 }
 
-bool KRTDebugDrawer::Render(IKRenderPassPtr renderPass, KRHICommandList& commandList)
+bool KRTDebugDrawer::Render(IKRenderPassPtr renderPass, KRHICommandListBase& commandList)
 {
 	if (m_Enable)
 	{

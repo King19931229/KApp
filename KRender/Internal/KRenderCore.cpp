@@ -95,10 +95,8 @@ bool KRenderCore::InitGlobalManager()
 	KRenderDeviceProperties* property = nullptr;
 	ASSERT_RESULT(m_Device->QueryProperty(&property));
 
-	ASSERT_RESULT(m_Device->CreateCommandPool(KRenderGlobal::CommandPool));
-	ASSERT_RESULT(KRenderGlobal::CommandPool->Init(QUEUE_GRAPHICS, 0, CBR_RESET_POOL));
-
 	KRenderGlobal::RenderDevice = m_Device;
+	KRenderGlobal::ImmediateCommandList.Init();
 	KRenderGlobal::FrameResourceManager.Init();
 	KRenderGlobal::MeshManager.Init();
 	KRenderGlobal::ShaderManager.Init();
@@ -132,7 +130,8 @@ bool KRenderCore::UnInitGlobalManager()
 	KRenderGlobal::DynamicConstantBufferManager.UnInit();
 	KRenderGlobal::InstanceBufferManager.UnInit();
 
-	SAFE_UNINIT(KRenderGlobal::CommandPool);
+	KRenderGlobal::ImmediateCommandList.UnInit();
+
 	KRenderGlobal::RenderDevice = nullptr;
 
 	return true;
@@ -464,8 +463,6 @@ void KRenderCore::Update()
 void KRenderCore::Render()
 {
 	KRenderGlobal::Renderer.GetRHICommandList().Flush(RHICommandFlush::FlushRHIThread);
-
-	KRenderGlobal::CommandPool->Reset();
 
 	uint32_t frameIndex = 0;
 

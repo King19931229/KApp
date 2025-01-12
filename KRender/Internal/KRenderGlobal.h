@@ -104,6 +104,8 @@ namespace KRenderGlobal
 
 	extern KRenderer Renderer;
 
+	extern KRHIImmediateCommandList ImmediateCommandList;
+
 	extern KStatistics Statistics;
 
 	extern bool EnableDebugRender;
@@ -124,8 +126,6 @@ namespace KRenderGlobal
 	extern uint32_t NumComputeQueue;
 	extern uint32_t NumTransferQueue;
 
-	// Render Context
 	extern IKRenderWindow* MainWindow;
-	extern IKCommandPoolPtr CommandPool;
 	extern IKRenderDevice* RenderDevice;
 };

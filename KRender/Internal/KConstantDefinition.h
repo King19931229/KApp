@@ -116,7 +116,7 @@ namespace KConstantDefinition
 	struct ConstantBufferDetail
 	{
 		ConstantSemanticDetailList semanticDetails;
-		size_t bufferSize;
+		size_t bufferSize = 0;
 	};
 	const ConstantBufferDetail& GetConstantBufferDetail(ConstantBufferType bufferType);
 }

@@ -179,8 +179,7 @@ bool KRenderer::Render(uint32_t chainImageIndex)
 		KRenderGlobal::VirtualTextureManager.Update(m_RHICommandList, cullRes);
 		KRenderGlobal::GPUScene.Execute(m_RHICommandList);
 
-		// TODO Use CommandList
-		KRenderGlobal::CascadedShadowMap.UpdateShadowMap();
+		KRenderGlobal::CascadedShadowMap.UpdateShadowMap(m_RHICommandList);
 
 		m_RHICommandList.SetThreadCommandPools(m_Shadow.threadPools);
 		m_RHICommandList.SetMultiThreadPool(&m_RenderJobExecuteThreadPool);

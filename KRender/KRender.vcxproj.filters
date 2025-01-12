@@ -937,6 +937,9 @@
     <ClCompile Include="Internal\Render\KRHICommandList.cpp">
       <Filter>Internal\Render</Filter>
     </ClCompile>
+    <ClCompile Include="Internal\Render\KRHIImmediateCommandList.cpp">
+      <Filter>Internal\Render</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="Interface\KVertexSemantic.inl">

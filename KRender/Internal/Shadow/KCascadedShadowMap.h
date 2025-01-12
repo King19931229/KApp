@@ -206,7 +206,7 @@ public:
 
 	bool Resize(uint32_t width, uint32_t height);
 
-	bool UpdateShadowMap();
+	bool UpdateShadowMap(KRHICommandList& commandList);
 	bool UpdateCasters(KRHICommandList& commandList);
 	bool UpdateMask(KRHICommandList& commandList);
 

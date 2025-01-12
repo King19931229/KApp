@@ -244,12 +244,10 @@ void KClipmapLevel::UpdateTextureByRect(const std::vector<KClipmapTextureUpdateR
 		updateTexture->InitDevice(false);
 	}
 
-	IKCommandBufferPtr commandBuffer = KRenderGlobal::CommandPool->Request(CBL_PRIMARY);
-
 	if (m_ComputeShaderUpdate)
 	{
-		commandBuffer->BeginPrimary();
-		commandBuffer->Transition(m_TextureTarget->GetFrameBuffer(), PIPELINE_STAGE_BOTTOM_OF_PIPE, PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_UNDEFINED, IMAGE_LAYOUT_GENERAL);
+		KRenderGlobal::ImmediateCommandList.BeginRecord();
+		KRenderGlobal::ImmediateCommandList.Transition(m_TextureTarget->GetFrameBuffer(), PIPELINE_STAGE_BOTTOM_OF_PIPE, PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_UNDEFINED, IMAGE_LAYOUT_GENERAL);
 
 		for (size_t rectIdx = 0; rectIdx < rects.size(); ++rectIdx)
 		{
@@ -269,22 +267,21 @@ void KClipmapLevel::UpdateTextureByRect(const std::vector<KClipmapTextureUpdateR
 
 			IKComputePipelinePtr& computePipeline = m_UpdateComputePipelines[rectIdx];
 
-			commandBuffer->Transition(m_UpdateTextures[rectIdx]->GetFrameBuffer(), PIPELINE_STAGE_BOTTOM_OF_PIPE, PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_UNDEFINED, IMAGE_LAYOUT_GENERAL);
-			computePipeline->Execute(commandBuffer, groupX, groupY, 1, &usage);
-			commandBuffer->Transition(m_UpdateTextures[rectIdx]->GetFrameBuffer(), PIPELINE_STAGE_COMPUTE_SHADER, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_GENERAL, IMAGE_LAYOUT_SHADER_READ_ONLY);
+			KRenderGlobal::ImmediateCommandList.Transition(m_UpdateTextures[rectIdx]->GetFrameBuffer(), PIPELINE_STAGE_BOTTOM_OF_PIPE, PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_UNDEFINED, IMAGE_LAYOUT_GENERAL);
+			KRenderGlobal::ImmediateCommandList.Execute(computePipeline, groupX, groupY, 1, &usage);
+			KRenderGlobal::ImmediateCommandList.Transition(m_UpdateTextures[rectIdx]->GetFrameBuffer(), PIPELINE_STAGE_COMPUTE_SHADER, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_GENERAL, IMAGE_LAYOUT_SHADER_READ_ONLY);
 		}
 
-		commandBuffer->Transition(m_TextureTarget->GetFrameBuffer(), PIPELINE_STAGE_COMPUTE_SHADER, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_GENERAL, IMAGE_LAYOUT_SHADER_READ_ONLY);
-		commandBuffer->End();
-		commandBuffer->Flush();
+		KRenderGlobal::ImmediateCommandList.Transition(m_TextureTarget->GetFrameBuffer(), PIPELINE_STAGE_COMPUTE_SHADER, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_GENERAL, IMAGE_LAYOUT_SHADER_READ_ONLY);
+		KRenderGlobal::ImmediateCommandList.EndRecord();
 	}
 	else
 	{
-		commandBuffer->BeginPrimary();
-		commandBuffer->Transition(m_TextureTarget->GetFrameBuffer(), PIPELINE_STAGE_BOTTOM_OF_PIPE, PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, IMAGE_LAYOUT_UNDEFINED, IMAGE_LAYOUT_COLOR_ATTACHMENT);
-		commandBuffer->BeginDebugMarker("ClipmapUpdate", glm::vec4(1));
-		commandBuffer->BeginRenderPass(m_UpdateRenderPass, SUBPASS_CONTENTS_INLINE);
-		commandBuffer->SetViewport(m_UpdateRenderPass->GetViewPort());
+		KRenderGlobal::ImmediateCommandList.BeginRecord();
+		KRenderGlobal::ImmediateCommandList.Transition(m_TextureTarget->GetFrameBuffer(), PIPELINE_STAGE_BOTTOM_OF_PIPE, PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, IMAGE_LAYOUT_UNDEFINED, IMAGE_LAYOUT_COLOR_ATTACHMENT);
+		KRenderGlobal::ImmediateCommandList.BeginDebugMarker("ClipmapUpdate", glm::vec4(1));
+		KRenderGlobal::ImmediateCommandList.BeginRenderPass(m_UpdateRenderPass, SUBPASS_CONTENTS_INLINE);
+		KRenderGlobal::ImmediateCommandList.SetViewport(m_UpdateRenderPass->GetViewPort());
 
 		IKPipelineHandlePtr pipeHandle = nullptr;
 		KRenderCommand command;
@@ -298,7 +295,7 @@ void KClipmapLevel::UpdateTextureByRect(const std::vector<KClipmapTextureUpdateR
 			updateViewport.width = rect.endX - rect.startX + 1;
 			updateViewport.height = rect.endY - rect.startY + 1;
 
-			commandBuffer->SetViewport(updateViewport);
+			KRenderGlobal::ImmediateCommandList.SetViewport(updateViewport);
 
 			m_UpdatePipelines[rectIdx]->GetHandle(m_UpdateRenderPass, pipeHandle);
 
@@ -323,14 +320,12 @@ void KClipmapLevel::UpdateTextureByRect(const std::vector<KClipmapTextureUpdateR
 			command.pipeline = m_UpdatePipelines[rectIdx];
 			command.pipelineHandle = pipeHandle;
 			command.indexDraw = true;
-			commandBuffer->Render(command);
+			KRenderGlobal::ImmediateCommandList.Render(command);
 		}
 
-		commandBuffer->EndRenderPass();
-		commandBuffer->EndDebugMarker();
-		commandBuffer->End();
-
-		commandBuffer->Flush();
+		KRenderGlobal::ImmediateCommandList.EndRenderPass();
+		KRenderGlobal::ImmediateCommandList.EndDebugMarker();
+		KRenderGlobal::ImmediateCommandList.EndRecord();
 	}
 }
 

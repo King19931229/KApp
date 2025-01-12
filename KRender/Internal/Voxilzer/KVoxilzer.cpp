@@ -44,58 +44,33 @@ KVoxilzer::~KVoxilzer()
 {
 }
 
-void KVoxilzer::UpdateInternal(KRHICommandList& commandList)
+void KVoxilzer::UpdateInternal(KRHICommandListBase& commandList)
 {
 	UpdateProjectionMatrices();
 
 	if (m_VoxelUseOctree)
 	{
-		// [TODO] SubCommandList
+		KRenderGlobal::ImmediateCommandList.BeginRecord();
+		VoxelizeStaticSceneCounter(KRenderGlobal::ImmediateCommandList, true);
+		KRenderGlobal::ImmediateCommandList.EndRecord();
 
-		KRHICommandList subCommandList;
+		KRenderGlobal::ImmediateCommandList.BeginRecord();
+		VoxelizeStaticSceneCounter(KRenderGlobal::ImmediateCommandList, false);
+		KRenderGlobal::ImmediateCommandList.EndRecord();;
 
-		IKCommandBufferPtr commandBuffer = nullptr;
-		commandBuffer = KRenderGlobal::CommandPool->Request(CBL_PRIMARY);
-		subCommandList.SetCommandBuffer(commandBuffer);
-
-		subCommandList.BeginRecord();
-		VoxelizeStaticSceneCounter(subCommandList, true);
-		subCommandList.EndRecord();
-		subCommandList.FlushDoneRecord();
-		subCommandList.Flush(RHICommandFlush::FlushRHIThreadToDone);
-
-		commandBuffer = KRenderGlobal::CommandPool->Request(CBL_PRIMARY);
-		subCommandList.SetCommandBuffer(commandBuffer);
-
-		subCommandList.BeginRecord();
-		VoxelizeStaticSceneCounter(subCommandList, false);
-		subCommandList.EndRecord();
-		subCommandList.FlushDoneRecord();
-		subCommandList.Flush(RHICommandFlush::FlushRHIThreadToDone);
-
-		commandBuffer = KRenderGlobal::CommandPool->Request(CBL_PRIMARY);
-		subCommandList.SetCommandBuffer(commandBuffer);
-
-		subCommandList.BeginRecord();
+		KRenderGlobal::ImmediateCommandList.BeginRecord();
 		// CheckFragmentlistData();
-		BuildOctree(subCommandList);
-		subCommandList.EndRecord();
-		subCommandList.FlushDoneRecord();
-		subCommandList.Flush(RHICommandFlush::FlushRHIThreadToDone);
+		BuildOctree(KRenderGlobal::ImmediateCommandList);
+		KRenderGlobal::ImmediateCommandList.EndRecord();
 
 		uint32_t lastBuildinfo[] = { 0, 0 };
 		m_BuildInfoBuffer->Read(lastBuildinfo);
 		m_OctreeNonLeafCount = lastBuildinfo[0] + lastBuildinfo[1];
 		m_CounterBuffer->Read(&m_OctreeLeafCount);
 
-		commandBuffer = KRenderGlobal::CommandPool->Request(CBL_PRIMARY);
-		subCommandList.SetCommandBuffer(commandBuffer);
-
-		subCommandList.BeginRecord();
-		UpdateRadiance(subCommandList);
-		subCommandList.EndRecord();
-		subCommandList.FlushDoneRecord();
-		subCommandList.Flush(RHICommandFlush::FlushRHIThreadToDone);
+		KRenderGlobal::ImmediateCommandList.BeginRecord();
+		UpdateRadiance(KRenderGlobal::ImmediateCommandList);
+		KRenderGlobal::ImmediateCommandList.EndRecord();
 
 		ShrinkOctree();
 		CheckOctreeData();
@@ -117,7 +92,7 @@ void KVoxilzer::OnSceneChanged(EntitySceneOp op, IKEntity* entity)
 	m_VoxelNeedUpdate = true;
 }
 
-void KVoxilzer::UpdateVoxel(KRHICommandList& commandList)
+void KVoxilzer::UpdateVoxel(KRHICommandListBase& commandList)
 {
 	if (m_Enable)
 	{
@@ -691,21 +666,18 @@ void KVoxilzer::Resize(uint32_t width, uint32_t height)
 	m_OctreeRayTestPass->SetClearColor(0, { 0.0f, 0.0f, 0.0f, 0.0f });
 	m_OctreeRayTestPass->Init();
 
-	IKCommandBufferPtr commandBuffer = KRenderGlobal::CommandPool->Request(CBL_PRIMARY);
-
 	// 清空RenderTarget同时Translate Layout到Shader可读
-	commandBuffer->BeginPrimary();
+	KRenderGlobal::ImmediateCommandList.BeginRecord();
 
-	commandBuffer->BeginRenderPass(m_LightPassRenderPass, SUBPASS_CONTENTS_INLINE);
-	commandBuffer->SetViewport(m_LightPassRenderPass->GetViewPort());
-	commandBuffer->EndRenderPass();
+	KRenderGlobal::ImmediateCommandList.BeginRenderPass(m_LightPassRenderPass, SUBPASS_CONTENTS_INLINE);
+	KRenderGlobal::ImmediateCommandList.SetViewport(m_LightPassRenderPass->GetViewPort());
+	KRenderGlobal::ImmediateCommandList.EndRenderPass();
 
-	commandBuffer->BeginRenderPass(m_OctreeRayTestPass, SUBPASS_CONTENTS_INLINE);
-	commandBuffer->SetViewport(m_OctreeRayTestPass->GetViewPort());
-	commandBuffer->EndRenderPass();
+	KRenderGlobal::ImmediateCommandList.BeginRenderPass(m_OctreeRayTestPass, SUBPASS_CONTENTS_INLINE);
+	KRenderGlobal::ImmediateCommandList.SetViewport(m_OctreeRayTestPass->GetViewPort());
+	KRenderGlobal::ImmediateCommandList.EndRenderPass();
 
-	commandBuffer->End();
-	commandBuffer->Flush();
+	KRenderGlobal::ImmediateCommandList.EndRecord();
 }
 
 void KVoxilzer::SetupLightPassPipeline()
@@ -819,13 +791,13 @@ void KVoxilzer::SetupRayTestPipeline(uint32_t width, uint32_t height)
 	}
 }
 
-void KVoxilzer::ClearDynamicScene(KRHICommandList& commandList)
+void KVoxilzer::ClearDynamicScene(KRHICommandListBase& commandList)
 {
 	uint32_t group = (m_VolumeDimension + (VOXEL_GROUP_SIZE - 1)) / VOXEL_GROUP_SIZE;
 	commandList.Execute(m_ClearDynamicPipeline, group, group, group, 0);
 }
 
-void KVoxilzer::VoxelizeStaticScene(KRHICommandList& commandList)
+void KVoxilzer::VoxelizeStaticScene(KRHICommandListBase& commandList)
 {
 	KAABBBox sceneBox;
 	m_Scene->GetSceneObjectBound(sceneBox);
@@ -887,7 +859,7 @@ void KVoxilzer::VoxelizeStaticScene(KRHICommandList& commandList)
 	commandList.EndDebugMarker();
 }
 
-void KVoxilzer::VoxelizeStaticSceneCounter(KRHICommandList& commandList, bool bCountOnly)
+void KVoxilzer::VoxelizeStaticSceneCounter(KRHICommandListBase& commandList, bool bCountOnly)
 {
 	KAABBBox sceneBox;
 	m_Scene->GetSceneObjectBound(sceneBox);
@@ -1051,7 +1023,7 @@ void KVoxilzer::CheckOctreeData()
 
 inline static constexpr uint32_t group_x_64(uint32_t x) { return (x >> 6u) + ((x & 0x3fu) ? 1u : 0u); }
 
-void KVoxilzer::BuildOctree(KRHICommandList& commandList)
+void KVoxilzer::BuildOctree(KRHICommandListBase& commandList)
 {
 	uint32_t fragmentCount = 0;
 	m_CounterBuffer->Read(&fragmentCount);
@@ -1152,7 +1124,7 @@ void KVoxilzer::ShrinkOctree()
 	m_OctreeDataBuffer->SetDebugName("SVO_OctreeDataBuffer");
 }
 
-void KVoxilzer::UpdateRadiance(KRHICommandList& commandList)
+void KVoxilzer::UpdateRadiance(KRHICommandListBase& commandList)
 {
 	InjectRadiance(commandList);
 	GenerateMipmap(commandList);
@@ -1166,14 +1138,14 @@ void KVoxilzer::UpdateRadiance(KRHICommandList& commandList)
 	}
 }
 
-void KVoxilzer::InjectRadiance(KRHICommandList& commandList)
+void KVoxilzer::InjectRadiance(KRHICommandListBase& commandList)
 {
 	uint32_t group = (m_VolumeDimension + (VOXEL_GROUP_SIZE - 1)) / VOXEL_GROUP_SIZE;
 	IKComputePipelinePtr& injectPipeline = m_VoxelUseOctree ? m_InjectRadianceOctreePipeline : m_InjectRadiancePipeline;
 	commandList.Execute(injectPipeline, group, group, group, 0);
 }
 
-void KVoxilzer::GenerateMipmap(KRHICommandList& commandList)
+void KVoxilzer::GenerateMipmap(KRHICommandListBase& commandList)
 {
 	if (m_VoxelUseOctree)
 	{
@@ -1192,7 +1164,7 @@ void KVoxilzer::GenerateMipmap(KRHICommandList& commandList)
 	}
 }
 
-void KVoxilzer::GenerateMipmapBase(KRHICommandList& commandList)
+void KVoxilzer::GenerateMipmapBase(KRHICommandListBase& commandList)
 {
 	uint32_t dimension = m_VolumeDimension / 2;
 	uint32_t group = (dimension + (VOXEL_GROUP_SIZE - 1)) / VOXEL_GROUP_SIZE;
@@ -1208,7 +1180,7 @@ void KVoxilzer::GenerateMipmapBase(KRHICommandList& commandList)
 	commandList.Execute(mipmapBasePipeline, group, group, group, &usage);
 }
 
-void KVoxilzer::GenerateMipmapVolume(KRHICommandList& commandList)
+void KVoxilzer::GenerateMipmapVolume(KRHICommandListBase& commandList)
 {
 	uint32_t dimension = m_VolumeDimension / 4;
 	uint32_t mipmap = 1;
@@ -1244,7 +1216,7 @@ void KVoxilzer::GenerateMipmapVolume(KRHICommandList& commandList)
 	ASSERT_RESULT(mipmap == m_NumMipmap);
 }
 
-void KVoxilzer::GenerateOctreeMipmapBase(KRHICommandList& commandList)
+void KVoxilzer::GenerateOctreeMipmapBase(KRHICommandListBase& commandList)
 {
 	uint32_t dimension = m_VolumeDimension / 2;
 	uint32_t group = (dimension + (VOXEL_GROUP_SIZE - 1)) / VOXEL_GROUP_SIZE;
@@ -1259,7 +1231,7 @@ void KVoxilzer::GenerateOctreeMipmapBase(KRHICommandList& commandList)
 	commandList.Execute(m_OctreeMipmapBasePipeline, group, group, group, &usage);
 }
 
-void KVoxilzer::GenerateOctreeMipmapVolume(KRHICommandList& commandList)
+void KVoxilzer::GenerateOctreeMipmapVolume(KRHICommandListBase& commandList)
 {
 	uint32_t dimension = m_VolumeDimension / 4;
 	uint32_t mipmap = 1;
@@ -1296,7 +1268,7 @@ bool KVoxilzer::DisableLightDebugDraw()
 	return true;
 }
 
-bool KVoxilzer::DebugRender(IKRenderPassPtr renderPass, KRHICommandList& commandList)
+bool KVoxilzer::DebugRender(IKRenderPassPtr renderPass, KRHICommandListBase& commandList)
 {
 	return m_LightDebugDrawer.Render(renderPass, commandList);
 }
@@ -1313,12 +1285,12 @@ bool KVoxilzer::DisableOctreeRayTestDebugDraw()
 	return true;
 }
 
-bool KVoxilzer::OctreeRayTestRender(IKRenderPassPtr renderPass, KRHICommandList& commandList)
+bool KVoxilzer::OctreeRayTestRender(IKRenderPassPtr renderPass, KRHICommandListBase& commandList)
 {
 	return m_OctreeRayTestDebugDrawer.Render(renderPass, commandList);
 }
 
-bool KVoxilzer::RenderVoxel(IKRenderPassPtr renderPass, KRHICommandList& commandList)
+bool KVoxilzer::RenderVoxel(IKRenderPassPtr renderPass, KRHICommandListBase& commandList)
 {
 	if (!m_VoxelDrawEnable || !m_Enable)
 		return true;
@@ -1346,7 +1318,7 @@ bool KVoxilzer::RenderVoxel(IKRenderPassPtr renderPass, KRHICommandList& command
 	return true;
 }
 
-bool KVoxilzer::UpdateLightingResult(KRHICommandList& commandList)
+bool KVoxilzer::UpdateLightingResult(KRHICommandListBase& commandList)
 {
 	if (m_Enable)
 	{
@@ -1374,7 +1346,7 @@ bool KVoxilzer::UpdateLightingResult(KRHICommandList& commandList)
 	return true;
 }
 
-bool KVoxilzer::UpdateOctreRayTestResult(KRHICommandList& commandList)
+bool KVoxilzer::UpdateOctreRayTestResult(KRHICommandListBase& commandList)
 {
 	if (m_VoxelUseOctree && m_OctreeRayTestDebugDrawer.GetEnable())
 	{
@@ -1425,7 +1397,7 @@ bool KVoxilzer::UpdateOctreRayTestResult(KRHICommandList& commandList)
 	return true;
 }
 
-bool KVoxilzer::UpdateFrame(KRHICommandList& commandList)
+bool KVoxilzer::UpdateFrame(KRHICommandListBase& commandList)
 {
 	bool result = true;
 	UpdateProjectionMatrices();

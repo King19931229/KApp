@@ -1409,7 +1409,7 @@ bool KCascadedShadowMap::CombineMask(KRHICommandList& commandList)
 	return true;
 }
 
-bool KCascadedShadowMap::UpdateShadowMap()
+bool KCascadedShadowMap::UpdateShadowMap(KRHICommandList& commandList)
 {
 	UpdateDynamicCascades();
 	UpdateStaticCascades();
@@ -1480,7 +1480,7 @@ bool KCascadedShadowMap::UpdateShadowMap()
 			{
 			}
 		}
-		shadowBuffer->Write(pData);
+		commandList.UpdateUniformBuffer(shadowBuffer, pData, 0, (uint32_t)shadowBuffer->GetBufferSize());
 	}
 
 	return true;
