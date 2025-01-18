@@ -32,11 +32,13 @@ protected:
 	KMeshDataLeagcy				m_MeshData;
 	KMeshletGeometry			m_Meshlet;
 	bool						m_NeedMeshlet;
+
+	std::string					m_DebugLabel;
 public:
 	KSubMesh(KMesh* parent);
 	~KSubMesh();
 
-	bool Init(const KVertexData* vertexData, const KIndexData& indexData, KMaterialRef material, const KAABBBox& bound);
+	bool Init(const KVertexData* vertexData, const KIndexData& indexData, KMaterialRef material, const KAABBBox& bound, const std::string& debugLabel);
 	bool InitDebug(DebugPrimitive primtive, const KVertexData* vertexData, const KIndexData* indexData, const KAABBBox& bound);
 	bool UnInit();
 

@@ -72,6 +72,7 @@ void KRayTraceScene::CreateAccelerationStructure()
 	{
 		bottomASs.push_back(it->second);
 	}
+	m_TopDown->SetDebugName((m_Scene->GetName() + "_TLAS").c_str());
 	ASSERT_RESULT(m_TopDown->InitTopDown(bottomASs));
 }
 

@@ -11,4 +11,5 @@ struct IKAccelerationStructure
 	virtual bool InitTopDown(const std::vector<BottomASTransformTuple>& bottomASs) = 0;
 	virtual bool UpdateTopDown(const std::vector<BottomASTransformTuple>& bottomASs) = 0;
 	virtual bool UnInit() = 0;
+	virtual bool SetDebugName(const char* name) = 0;
 };

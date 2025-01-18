@@ -53,7 +53,7 @@ namespace KRenderGlobal
 	KStatistics Statistics;
 
 	bool EnableDebugRender = false;
-	bool DisableRayTrace = true;
+	bool DisableRayTrace = false;
 	bool SupportAnisotropySample = true;
 	bool EnableMultithreadRender = true;
 	bool EnableAsyncLoad = true;

@@ -20,7 +20,7 @@ KSubMesh::~KSubMesh()
 {
 }
 
-bool KSubMesh::Init(const KVertexData* vertexData, const KIndexData& indexData, KMaterialRef material, const KAABBBox& bound)
+bool KSubMesh::Init(const KVertexData* vertexData, const KIndexData& indexData, KMaterialRef material, const KAABBBox& bound, const std::string& debugLabel)
 {
 	UnInit();
 
@@ -29,6 +29,7 @@ bool KSubMesh::Init(const KVertexData* vertexData, const KIndexData& indexData, 
 	m_IndexData = indexData;
 	m_IndexDraw = indexData.indexBuffer && indexData.indexCount > 0;
 	m_Bound = bound;
+	m_DebugLabel = debugLabel;
 
 	if (m_NeedAccelerationStructure)
 	{
@@ -106,6 +107,7 @@ bool KSubMesh::CreateAccelerationStructure()
 
 		IKMaterialTextureBindingPtr tetureBinding = m_Material->GetTextureBinding();
 		assert(tetureBinding);
+		m_AccelerationStructure->SetDebugName((m_DebugLabel + "_BLAS").c_str());
 		m_AccelerationStructure->InitBottomUp(m_pVertexData->vertexFormats[0], m_pVertexData->vertexBuffers[0], m_IndexData.indexBuffer, tetureBinding.get());
 	}
 	else

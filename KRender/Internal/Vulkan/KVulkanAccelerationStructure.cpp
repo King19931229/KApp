@@ -12,6 +12,7 @@ KVulkanAccelerationStructure::KVulkanAccelerationStructure()
 	: m_IndexBuffer(nullptr)
 	, m_VertexBuffer(nullptr)
 	, m_TextureBinding(nullptr)
+	, m_InstancesHash(0)
 {
 }
 
@@ -87,6 +88,12 @@ bool KVulkanAccelerationStructure::InitBottomUp(VertexFormat format, IKVertexBuf
 			accelerationStructureBuildGeometryInfo.dstAccelerationStructure = m_BottomUpAS.handle;
 
 			KVulkanInitializer::BuildBottomUpVkAccelerationStructure(accelerationStructureBuildGeometryInfo, accelerationStructureBuildSizesInfo, numTriangles);
+
+			if (m_DebugName.c_str())
+			{
+				KVulkanHelper::DebugUtilsSetObjectName(KVulkanGlobal::device, (uint64_t)m_BottomUpAS.handle, VK_OBJECT_TYPE_ACCELERATION_STRUCTURE_KHR, m_DebugName.c_str());
+			}
+
 			return true;
 		}
 		else
@@ -100,12 +107,24 @@ bool KVulkanAccelerationStructure::InitBottomUp(VertexFormat format, IKVertexBuf
 	}
 }
 
+uint32_t KVulkanAccelerationStructure::ComputeInstanceHash() const
+{
+	uint32_t hash = 0;
+	for (const KVulkanRayTraceInstance& instance : m_Instances)
+	{
+		KHash::HashCombine(hash, instance.objIndex);
+		KHash::HashCombine(hash, instance.mtlIndex);
+		KHash::HashCombine(hash, instance.materials);
+		KHash::HashCombine(hash, instance.indices);
+		KHash::HashCombine(hash, instance.vertices);
+	}
+	return hash;
+}
+
 bool KVulkanAccelerationStructure::BuildTopDown(const std::vector<BottomASTransformTuple>& bottomASs, bool update)
 {
 	if (KVulkanGlobal::supportRaytrace)
 	{
-		vkDeviceWaitIdle(KVulkanGlobal::device);
-
 		// if (m_Instances.size() != bottomASs.size())
 		{
 			update = false;
@@ -118,7 +137,6 @@ bool KVulkanAccelerationStructure::BuildTopDown(const std::vector<BottomASTransf
 		instances.reserve(bottomASs.size());
 
 		std::unordered_map<IKTexturePtr, uint32_t> texturesMap;
-		std::unordered_map<uint32_t, uint32_t> mtlBuffersMap;
 		m_Textures.clear();
 
 		for (uint32_t objIndex = 0; objIndex < (uint32_t)bottomASs.size(); ++objIndex)
@@ -182,14 +200,14 @@ bool KVulkanAccelerationStructure::BuildTopDown(const std::vector<BottomASTransf
 			MaterialBuffer materialBuffer;
 			VkDeviceAddress materialAddress = VK_NULL_HANDEL;
 
-			auto it = mtlBuffersMap.find(mtlHash);
-			if (it == mtlBuffersMap.end())
+			auto it = m_MaterialBuffersMap.find(mtlHash);
+			if (it == m_MaterialBuffersMap.end())
 			{
 				// 创建材质Buffer
 				KVulkanInitializer::CreateStorageBuffer(sizeof(KVulkanRayTraceMaterial), &material, materialBuffer.buffer, materialBuffer.allocInfo);
 				mtlIndex = (uint32_t)m_Materials.size();
 				m_Materials.push_back(materialBuffer);
-				mtlBuffersMap.insert({ mtlHash, mtlIndex });
+				m_MaterialBuffersMap.insert({ mtlHash, mtlIndex });
 			}
 			else
 			{
@@ -248,6 +266,14 @@ bool KVulkanAccelerationStructure::BuildTopDown(const std::vector<BottomASTransf
 			instances.push_back(instance);
 		}
 
+		uint32_t oldInstanceHash = m_InstancesHash;
+		m_InstancesHash = ComputeInstanceHash();
+
+		if (oldInstanceHash != m_InstancesHash)
+		{
+			update = false;
+		}
+
 		// Buffer for instance data
 		VkBuffer instanceBufferHandle = VK_NULL_HANDEL;
 		KVulkanHeapAllocator::AllocInfo instanceAlloc;
@@ -276,10 +302,6 @@ bool KVulkanAccelerationStructure::BuildTopDown(const std::vector<BottomASTransf
 		vkGetBufferMemoryRequirements2(KVulkanGlobal::device, &bufferReqs, &memReqs);
 
 		memoryRequirements = memReqs.memoryRequirements;
-
-		VkMemoryAllocateFlagsInfo memoryAllocateFlagsInfo{};
-		memoryAllocateFlagsInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_FLAGS_INFO;
-		memoryAllocateFlagsInfo.flags = VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT_KHR;
 
 		uint32_t memoryTypeIndex = 0;
 		ASSERT_RESULT(KVulkanHelper::FindMemoryType(KVulkanGlobal::physicalDevice,
@@ -310,34 +332,41 @@ bool KVulkanAccelerationStructure::BuildTopDown(const std::vector<BottomASTransf
 		ASSERT_RESULT(KVulkanHelper::GetBufferDeviceAddress(instanceBufferHandle, instanceDataDeviceAddress.deviceAddress));
 
 		// Build
+
+		// Create VkAccelerationStructureGeometryInstancesDataKHR
+		// This wraps a device pointer to the above uploaded instances.
+		VkAccelerationStructureGeometryInstancesDataKHR instancesVk = {};
+		instancesVk.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_INSTANCES_DATA_KHR;
+		instancesVk.arrayOfPointers = VK_FALSE;
+		instancesVk.data.deviceAddress = instanceDataDeviceAddress.deviceAddress;
+
+		// Put the above into a VkAccelerationStructureGeometryKHR. We need to put the instances struct in a union and label it as instance data.
 		VkAccelerationStructureGeometryKHR accelerationStructureGeometry = {};
 		accelerationStructureGeometry.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR;
 		accelerationStructureGeometry.geometryType = VK_GEOMETRY_TYPE_INSTANCES_KHR;
 		accelerationStructureGeometry.flags = VK_GEOMETRY_OPAQUE_BIT_KHR;
-		accelerationStructureGeometry.geometry.instances.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_INSTANCES_DATA_KHR;
-		accelerationStructureGeometry.geometry.instances.arrayOfPointers = VK_FALSE;
-		accelerationStructureGeometry.geometry.instances.data = instanceDataDeviceAddress;
+		accelerationStructureGeometry.geometry.instances = instancesVk;
 
 		// Get size info
 		VkAccelerationStructureBuildGeometryInfoKHR accelerationStructureBuildGeometryInfo = {};
 		accelerationStructureBuildGeometryInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR;
 		accelerationStructureBuildGeometryInfo.type = VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_KHR;
-		accelerationStructureBuildGeometryInfo.flags = VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR | VK_BUILD_ACCELERATION_STRUCTURE_ALLOW_UPDATE_BIT_KHR;
+		accelerationStructureBuildGeometryInfo.flags = VK_BUILD_ACCELERATION_STRUCTURE_ALLOW_UPDATE_BIT_KHR | VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR;
 		accelerationStructureBuildGeometryInfo.mode = update ? VK_BUILD_ACCELERATION_STRUCTURE_MODE_UPDATE_KHR : VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR;
 		accelerationStructureBuildGeometryInfo.geometryCount = 1;
 		accelerationStructureBuildGeometryInfo.pGeometries = &accelerationStructureGeometry;
 
-		uint32_t primitive_count = 1;
 		uint32_t instance_count = (uint32_t)instances.size();
 
 		VkAccelerationStructureBuildSizesInfoKHR accelerationStructureBuildSizesInfo = {};
 		accelerationStructureBuildSizesInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_SIZES_INFO_KHR;
 
+		// 注意这里的instance_count不要搞错传1进去，之前的geometryCount是传1
 		KVulkanGlobal::vkGetAccelerationStructureBuildSizesKHR(
 			KVulkanGlobal::device,
 			VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR,
 			&accelerationStructureBuildGeometryInfo,
-			&primitive_count,
+			&instance_count,
 			&accelerationStructureBuildSizesInfo);
 
 		if (accelerationStructureBuildSizesInfo.accelerationStructureSize != m_TopDownAS.sizeInfo.accelerationStructureSize)
@@ -373,6 +402,11 @@ bool KVulkanAccelerationStructure::BuildTopDown(const std::vector<BottomASTransf
 		accelerationStructureBuildGeometryInfo.dstAccelerationStructure = m_TopDownAS.handle;
 
 		KVulkanInitializer::BuildTopDownVkAccelerationStructure(accelerationStructureBuildGeometryInfo, accelerationStructureBuildSizesInfo, instance_count);
+
+		if (m_DebugName.c_str())
+		{
+			KVulkanHelper::DebugUtilsSetObjectName(KVulkanGlobal::device, (uint64_t)m_TopDownAS.handle, VK_OBJECT_TYPE_ACCELERATION_STRUCTURE_KHR, m_DebugName.c_str());
+		}
 
 		vkDestroyBuffer(KVulkanGlobal::device, instanceBufferHandle, nullptr);
 		KVulkanHeapAllocator::Free(instanceAlloc);
@@ -418,9 +452,9 @@ bool KVulkanAccelerationStructure::UnInit()
 		{
 			KVulkanInitializer::DestroyStorageBuffer(material.buffer, material.allocInfo);
 		}
-		m_Materials.clear();
 	}
 
+	m_MaterialBuffersMap.clear();
 	m_Materials.clear();
 	m_Instances.clear();
 	m_Textures.clear();
@@ -428,5 +462,19 @@ bool KVulkanAccelerationStructure::UnInit()
 	m_VertexBuffer = nullptr;
 	m_TextureBinding = nullptr;
 
+	return true;
+}
+
+bool KVulkanAccelerationStructure::SetDebugName(const char* name)
+{
+	m_DebugName = name;
+	if (m_BottomUpAS.handle)
+	{
+		KVulkanHelper::DebugUtilsSetObjectName(KVulkanGlobal::device, (uint64_t)m_BottomUpAS.handle, VK_OBJECT_TYPE_ACCELERATION_STRUCTURE_KHR, "");
+	}
+	if (m_TopDownAS.handle)
+	{
+		KVulkanHelper::DebugUtilsSetObjectName(KVulkanGlobal::device, (uint64_t)m_TopDownAS.handle, VK_OBJECT_TYPE_ACCELERATION_STRUCTURE_KHR, "");
+	}
 	return true;
 }

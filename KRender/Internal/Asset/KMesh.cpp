@@ -252,9 +252,7 @@ bool KMesh::InitFromImportResult(const KMeshRawData& result, const std::vector<V
 
 	for (size_t i = 0; i < result.parts.size(); ++i)
 	{
-		KSubMeshPtr& submesh = m_SubMeshes[i];
-		submesh = KSubMeshPtr(KNEW KSubMesh(this));
-
+		m_SubMeshes[i] = KSubMeshPtr(KNEW KSubMesh(this));
 		KMaterialRef& material = m_SubMaterials[i];
 		if (!KRenderGlobal::MaterialManager.Create(result.parts[i].material, material, false))
 		{
@@ -265,7 +263,7 @@ bool KMesh::InitFromImportResult(const KMeshRawData& result, const std::vector<V
 	IndexType indexType = result.index16Bit ? IT_16 : IT_32;
 	size_t indexSize = result.index16Bit ? 2 : 4;
 
-	for (size_t i = 0; i < m_SubMeshes.size(); ++i)
+	for (uint32_t i = 0; i < (uint32_t)m_SubMeshes.size(); ++i)
 	{
 		KSubMeshPtr& subMesh = m_SubMeshes[i];
 		KMaterialRef& material = m_SubMaterials[i];
@@ -313,7 +311,7 @@ bool KMesh::InitFromImportResult(const KMeshRawData& result, const std::vector<V
 			}
 		}
 
-		ASSERT_RESULT(subMesh->Init(&m_VertexData, indexData, material, bound));
+		ASSERT_RESULT(subMesh->Init(&m_VertexData, indexData, material, bound, label + "_" + std::to_string(i)));
 		indexData.Reset();
 	}
 

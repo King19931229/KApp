@@ -39,13 +39,21 @@ protected:
 	KVulkanInitializer::AccelerationStructureHandle m_TopDownAS;
 
 	std::vector<KVulkanRayTraceInstance> m_Instances;
+
+	std::unordered_map<uint32_t, uint32_t> m_MaterialBuffersMap;
 	std::vector<MaterialBuffer> m_Materials;
+
 	std::vector<VkDescriptorImageInfo> m_Textures;
+
+	std::string m_DebugName;
 
 	const class KVulkanIndexBuffer* m_IndexBuffer;
 	const class KVulkanVertexBuffer* m_VertexBuffer;
 	const class KMaterialTextureBinding* m_TextureBinding;
 
+	uint32_t m_InstancesHash;
+
+	uint32_t ComputeInstanceHash() const;
 	bool BuildTopDown(const std::vector<BottomASTransformTuple>& bottomASs, bool update);
 public:
 	KVulkanAccelerationStructure();
@@ -64,4 +72,5 @@ public:
 	virtual bool InitTopDown(const std::vector<BottomASTransformTuple>& bottomASs);
 	virtual bool UpdateTopDown(const std::vector<BottomASTransformTuple>& bottomASs);
 	virtual bool UnInit();
+	virtual bool SetDebugName(const char* name);
 };

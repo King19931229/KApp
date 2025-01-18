@@ -455,7 +455,7 @@ bool KMeshSerializerV0::LoadFromStream(KMesh* pMesh, const std::string& meshPath
 
 	pMesh->m_VertexData = std::move(vertexData);
 	pMesh->m_SubMeshes.resize(drawInfos.size());
-	for(size_t i = 0; i < drawInfos.size(); ++i)
+	for(uint32_t i = 0; i < (uint32_t)drawInfos.size(); ++i)
 	{
 		const DrawElementInfo& drawInfo = drawInfos[i];
 
@@ -475,7 +475,7 @@ bool KMeshSerializerV0::LoadFromStream(KMesh* pMesh, const std::string& meshPath
 
 		const KIndexData& indexData = indexDatas[drawInfo.indexDataIdx];
 		// TODO
-		ASSERT_RESULT(submesh->Init(&pMesh->m_VertexData, indexData, KMaterialRef(), KAABBBox()));
+		ASSERT_RESULT(submesh->Init(&pMesh->m_VertexData, indexData, KMaterialRef(), KAABBBox(), ""));
 	}
 
 	return true;
