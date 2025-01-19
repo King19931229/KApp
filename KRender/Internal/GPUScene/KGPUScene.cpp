@@ -350,8 +350,17 @@ void KGPUScene::RemoveMegaShader(KSubMeshPtr subMesh, IKMaterialPtr material)
 				pair.second -= 1;
 			}
 		}
-		SAFE_UNINIT_CONTAINER(m_MegaShaders[removeIndex].parametersBuffers);
-		SAFE_UNINIT_CONTAINER(m_MegaShaders[removeIndex].materialIndicesBuffers);
+
+		MegaShaderItem& megaShader = m_MegaShaders[removeIndex];
+		for (uint32_t i = 0; i < GPUSCENE_RENDER_STAGE_COUNT; ++i)
+		{
+			SAFE_UNINIT_CONTAINER(megaShader.darwPipelines[i]);
+		}
+		SAFE_UNINIT_CONTAINER(megaShader.parametersBuffers);
+		SAFE_UNINIT_CONTAINER(megaShader.materialIndicesBuffers);
+		SAFE_UNINIT_CONTAINER(megaShader.indirectDrawArgsBuffers);
+		SAFE_UNINIT_CONTAINER(megaShader.calcDrawArgsPipelines);
+
 		m_MegaShaders.erase(m_MegaShaders.begin() + removeIndex);
 	}
 }
@@ -1002,14 +1011,12 @@ void KGPUScene::RebuildMegaShaderBuffer()
 
 void KGPUScene::OnSceneChanged(EntitySceneOp op, IKEntity* entity)
 {
-	KRenderComponent* renderComponent = nullptr;
-	KTransformComponent* transformComponent = nullptr;
-
-	ASSERT_RESULT(entity->GetComponent(CT_RENDER, &renderComponent));
-	ASSERT_RESULT(entity->GetComponent(CT_TRANSFORM, &transformComponent));
-
 	if (op == ESO_ADD)
 	{
+		KRenderComponent* renderComponent = nullptr;
+		KTransformComponent* transformComponent = nullptr;
+		ASSERT_RESULT(entity->GetComponent(CT_RENDER, &renderComponent));
+		ASSERT_RESULT(entity->GetComponent(CT_TRANSFORM, &transformComponent));
 		const glm::mat4& transform = transformComponent->GetFinal();
 		KAABBBox localBound;
 		entity->GetLocalBound(localBound);
@@ -1023,10 +1030,11 @@ void KGPUScene::OnSceneChanged(EntitySceneOp op, IKEntity* entity)
 	if (op == ESO_REMOVE)
 	{
 		RemoveEntity(entity);
-		renderComponent->UnRegisterCallback(&m_OnRenderComponentChangedFunc);
 	}
 	else if (op == ESO_TRANSFORM)
 	{
+		KTransformComponent* transformComponent = nullptr;
+		ASSERT_RESULT(entity->GetComponent(CT_TRANSFORM, &transformComponent));
 		const glm::mat4& transform = transformComponent->GetFinal();
 		TransformEntity(entity, transform);
 	}

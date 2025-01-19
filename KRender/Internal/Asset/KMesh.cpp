@@ -61,8 +61,11 @@ bool KMesh::UnInit()
 
 void KMesh::UpdateTriangleMesh()
 {
-	// TODO
-	return;
+	if (!KRenderGlobal::InEditor)
+	{
+		return;
+	}
+
 	m_TriangleMesh.Destroy();
 	for (KSubMeshPtr& subMesh : m_SubMeshes)
 	{

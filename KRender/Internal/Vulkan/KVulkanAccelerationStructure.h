@@ -49,9 +49,8 @@ protected:
 
 	const class KVulkanIndexBuffer* m_IndexBuffer;
 	const class KVulkanVertexBuffer* m_VertexBuffer;
-	const class KMaterialTextureBinding* m_TextureBinding;
 
-	uint32_t m_InstancesHash;
+	uint32_t m_TLASInstancesHash;
 
 	uint32_t ComputeInstanceHash() const;
 	bool BuildTopDown(const std::vector<BottomASTransformTuple>& bottomASs, bool update);
@@ -62,13 +61,12 @@ public:
 	const KVulkanInitializer::AccelerationStructureHandle& GetBottomUp() const { return m_BottomUpAS; }
 	const KVulkanVertexBuffer* GetVertexBuffer() const { return m_VertexBuffer; }
 	const KVulkanIndexBuffer* GetIndexBuffer() const { return m_IndexBuffer; }
-	const KMaterialTextureBinding* GetTextureBinding() const { return m_TextureBinding; }
 
 	const KVulkanInitializer::AccelerationStructureHandle& GetTopDown() const { return m_TopDownAS; }
 	const std::vector<KVulkanRayTraceInstance>& GetInstances() const { return m_Instances; }
 	const std::vector<VkDescriptorImageInfo>& GetTextureDescriptors() const { return m_Textures; }
 
-	virtual bool InitBottomUp(VertexFormat format, IKVertexBufferPtr vertexBuffer, IKIndexBufferPtr indexBuffer, IKMaterialTextureBinding* textureBinding);
+	virtual bool InitBottomUp(VertexFormat format, IKVertexBufferPtr vertexBuffer, IKIndexBufferPtr indexBuffer);
 	virtual bool InitTopDown(const std::vector<BottomASTransformTuple>& bottomASs);
 	virtual bool UpdateTopDown(const std::vector<BottomASTransformTuple>& bottomASs);
 	virtual bool UnInit();

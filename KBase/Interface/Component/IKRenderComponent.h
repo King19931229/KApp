@@ -45,6 +45,7 @@ public:
 	virtual bool UnInit() = 0;
 
 	virtual bool GetAllAccelerationStructure(std::vector<IKAccelerationStructurePtr>& as) = 0;
+	virtual bool GetAllTextrueBinding(std::vector<IKMaterialTextureBindingPtr>& binding) = 0;
 
 	virtual bool RegisterCallback(RenderComponentObserverFunc* callback) = 0;
 	virtual bool UnRegisterCallback(RenderComponentObserverFunc* callback) = 0;

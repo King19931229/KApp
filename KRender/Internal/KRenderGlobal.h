@@ -108,11 +108,11 @@ namespace KRenderGlobal
 
 	extern KStatistics Statistics;
 
-	extern bool EnableDebugRender;
-	extern bool DisableRayTrace;
+	extern bool EnableRayTrace;
 	extern bool SupportAnisotropySample;
 	extern bool EnableMultithreadRender;
 	extern bool EnableAsyncLoad;
+	extern bool InEditor;
 
 	extern uint32_t CurrentInFlightFrameIndex;
 	extern uint32_t CurrentFrameNum;

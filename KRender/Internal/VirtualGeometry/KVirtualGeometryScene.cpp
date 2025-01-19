@@ -18,14 +18,12 @@ KVirtualGeometryScene::~KVirtualGeometryScene()
 
 void KVirtualGeometryScene::OnSceneChanged(EntitySceneOp op, IKEntity* entity)
 {
-	KRenderComponent* renderComponent = nullptr;
-	KTransformComponent* transformComponent = nullptr;
-
-	ASSERT_RESULT(entity->GetComponent(CT_RENDER, &renderComponent));
-	ASSERT_RESULT(entity->GetComponent(CT_TRANSFORM, &transformComponent));
-
 	if (op == ESO_ADD)
 	{
+		KRenderComponent* renderComponent = nullptr;
+		KTransformComponent* transformComponent = nullptr;
+		ASSERT_RESULT(entity->GetComponent(CT_RENDER, &renderComponent));
+		ASSERT_RESULT(entity->GetComponent(CT_TRANSFORM, &transformComponent));
 		const glm::mat4& transform = transformComponent->GetFinal();
 		if (renderComponent->IsVirtualGeometry())
 		{
@@ -37,10 +35,11 @@ void KVirtualGeometryScene::OnSceneChanged(EntitySceneOp op, IKEntity* entity)
 	if (op == ESO_REMOVE)
 	{
 		RemoveInstance(entity);
-		renderComponent->UnRegisterCallback(&m_OnRenderComponentChangedFunc);
 	}
 	else if (op == ESO_TRANSFORM)
 	{
+		KTransformComponent* transformComponent = nullptr;
+		ASSERT_RESULT(entity->GetComponent(CT_TRANSFORM, &transformComponent));
 		const glm::mat4& transform = transformComponent->GetFinal();
 		TransformInstance(entity, transform);
 	}

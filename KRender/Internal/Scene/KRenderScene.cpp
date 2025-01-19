@@ -3,6 +3,7 @@
 #include "Internal/Terrain/Clipmap/KClipmap.h"
 #include "Internal/Terrain/KTerrain.h"
 #include "Internal/KRenderGlobal.h"
+#include "Internal/KRenderThread.h"
 
 EXPORT_DLL IKRenderScenePtr CreateRenderScene()
 {
@@ -112,11 +113,14 @@ bool KRenderScene::Add(IKEntity* entity)
 {
 	if (m_SceneMgr)
 	{
-		if (m_SceneMgr->Add(entity))
+		ENQUEUE_RENDER_COMMAND(KRenderScene_Add)([this, entity]()
 		{
-			OnEntityChange(ESO_ADD, entity);
-			return true;
-		}
+			if (m_SceneMgr->Add(entity))
+			{
+				OnEntityChange(ESO_ADD, entity);
+			}
+		});
+		return true;
 	}
 	return false;
 }
@@ -125,11 +129,15 @@ bool KRenderScene::Remove(IKEntity* entity)
 {
 	if (m_SceneMgr)
 	{
-		if (m_SceneMgr->Remove(entity))
+		ENQUEUE_RENDER_COMMAND(KRenderScene_Remove)([this, entity]()
 		{
-			OnEntityChange(ESO_REMOVE, entity);
-			return true;
-		}
+			if (m_SceneMgr->Remove(entity))
+			{
+				OnEntityChange(ESO_REMOVE, entity);
+			}
+		});
+		FLUSH_RENDER_COMMAND();
+		return true;
 	}
 	return false;
 }
@@ -138,11 +146,14 @@ bool KRenderScene::Transform(IKEntity* entity)
 {
 	if(m_SceneMgr)
 	{
-		if (m_SceneMgr->Transform(entity))
+		ENQUEUE_RENDER_COMMAND(KRenderScene_Transform)([this, entity]()
 		{
-			OnEntityChange(ESO_TRANSFORM, entity);
-			return true;
-		}
+			if (m_SceneMgr->Transform(entity))
+			{
+				OnEntityChange(ESO_TRANSFORM, entity);
+				return true;
+			}
+		});
 	}
 	return false;
 }

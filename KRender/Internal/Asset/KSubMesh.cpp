@@ -78,7 +78,6 @@ bool KSubMesh::UnInit()
 
 bool KSubMesh::CreateAccelerationStructure()
 {
-	// TODO 加速结构由MaterialSubMesh创建持有
 	if (m_AccelerationStructure)
 		return true;
 
@@ -105,10 +104,8 @@ bool KSubMesh::CreateAccelerationStructure()
 			m_IndexData.indexBuffer = newIndexBuffer;
 		}
 
-		IKMaterialTextureBindingPtr tetureBinding = m_Material->GetTextureBinding();
-		assert(tetureBinding);
 		m_AccelerationStructure->SetDebugName((m_DebugLabel + "_BLAS").c_str());
-		m_AccelerationStructure->InitBottomUp(m_pVertexData->vertexFormats[0], m_pVertexData->vertexBuffers[0], m_IndexData.indexBuffer, tetureBinding.get());
+		m_AccelerationStructure->InitBottomUp(m_pVertexData->vertexFormats[0], m_pVertexData->vertexBuffers[0], m_IndexData.indexBuffer);
 	}
 	else
 	{

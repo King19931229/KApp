@@ -487,7 +487,15 @@ void KVulkanSwapChain::PresentQueue(bool& needResize)
 
 	assert(vkResult == VK_SUCCESS || vkResult == VK_ERROR_OUT_OF_DATE_KHR || vkResult == VK_SUBOPTIMAL_KHR);
 
-	needResize = (vkResult == VK_ERROR_OUT_OF_DATE_KHR || vkResult == VK_SUBOPTIMAL_KHR);
+	if (vkResult == VK_ERROR_OUT_OF_DATE_KHR || vkResult == VK_SUBOPTIMAL_KHR)
+	{
+		VkSurfaceCapabilitiesKHR surfaceCapabilities;
+		needResize = (vkGetPhysicalDeviceSurfaceCapabilitiesKHR(KVulkanGlobal::physicalDevice, m_Surface, &surfaceCapabilities) != VK_ERROR_SURFACE_LOST_KHR);
+	}
+	else
+	{
+		needResize = false;
+	}
 }
 
 bool KVulkanSwapChain::ChooseQueue()

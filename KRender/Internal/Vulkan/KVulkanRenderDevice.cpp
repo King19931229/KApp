@@ -1207,7 +1207,7 @@ bool KVulkanRenderDevice::CheckExtentionsSupported(PhysicalDevice& device)
 		}
 	}
 
-	device.supportRaytraceExtension = !KRenderGlobal::DisableRayTrace;
+	device.supportRaytraceExtension = KRenderGlobal::EnableRayTrace;
 	for (const char* requiredExt : DEVICE_RAYTRACE_EXTENSIONS)
 	{
 		if (std::find(device.supportedExtensions.begin(), device.supportedExtensions.end(), requiredExt) == device.supportedExtensions.end())

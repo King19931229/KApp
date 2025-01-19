@@ -208,7 +208,7 @@ bool KRenderComponent::InitAsMesh(const std::string& mesh, bool async)
 		}
 		return false;
 	});
-	FLUSH_RENDER_COMMAND();
+
 	return true;
 }
 
@@ -225,7 +225,7 @@ bool KRenderComponent::InitAsAsset(const std::string& asset, bool async)
 		}
 		return false;
 	});
-	FLUSH_RENDER_COMMAND();
+
 	return true;
 }
 
@@ -242,7 +242,7 @@ bool KRenderComponent::InitAsUserData(const KMeshRawData& userData, const std::s
 		}
 		return false;
 	});
-	FLUSH_RENDER_COMMAND();
+
 	return true;
 }
 
@@ -250,6 +250,14 @@ bool KRenderComponent::UnInit()
 {
 	ENQUEUE_RENDER_COMMAND(KRenderComponent_UnInit)([this]()
 	{
+		KRenderGlobal::Renderer.GetRHICommandList().Flush(RHICommandFlush::FlushRHIThread);
+
+		for (RenderComponentObserverFunc* callback : m_Callbacks)
+		{
+			(*callback)(this, false);
+		}
+		m_Callbacks.clear();
+
 		for (KMaterialSubMeshPtr& materialSubMesh : m_MaterialSubMeshes)
 		{
 			materialSubMesh->UnInit();
@@ -266,11 +274,6 @@ bool KRenderComponent::UnInit()
 		}
 		m_OCInstanceQueries.clear();
 		m_VGResource.Release();
-
-		for (RenderComponentObserverFunc* callback : m_Callbacks)
-		{
-			(*callback)(this, false);
-		}
 	});
 	FLUSH_RENDER_COMMAND();
 	return true;
@@ -294,7 +297,6 @@ bool KRenderComponent::InitAsDebugUtility(const KDebugUtilityInfo& info)
 			m_MaterialSubMeshes.push_back(materialSubMesh);
 		}
 	});
-	FLUSH_RENDER_COMMAND();
 
 	return true;
 }
@@ -311,7 +313,7 @@ bool KRenderComponent::InitAsVirtualGeometry(const KMeshRawData& userData, const
 		}
 		return false;
 	});
-	FLUSH_RENDER_COMMAND();
+
 	return true;
 }
 
@@ -322,6 +324,23 @@ bool KRenderComponent::GetAllAccelerationStructure(std::vector<IKAccelerationStr
 		return (*m_Mesh)->GetAllAccelerationStructure(as);
 	}
 	return false;
+}
+
+bool KRenderComponent::GetAllTextrueBinding(std::vector<IKMaterialTextureBindingPtr>& binding)
+{
+	binding.clear();
+	binding.reserve(m_MaterialSubMeshes.size());
+	for (KMaterialSubMeshPtr& materialSubMesh : m_MaterialSubMeshes)
+	{
+		KMaterialRef material = materialSubMesh->GetMaterial();
+		if (!material || !material->GetTextureBinding())
+		{
+			binding.clear();
+			return false;
+		}
+		binding.push_back(material->GetTextureBinding());
+	}
+	return true;
 }
 
 bool KRenderComponent::RegisterCallback(RenderComponentObserverFunc* callback)

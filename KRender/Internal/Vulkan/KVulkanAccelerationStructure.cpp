@@ -11,8 +11,7 @@
 KVulkanAccelerationStructure::KVulkanAccelerationStructure()
 	: m_IndexBuffer(nullptr)
 	, m_VertexBuffer(nullptr)
-	, m_TextureBinding(nullptr)
-	, m_InstancesHash(0)
+	, m_TLASInstancesHash(0)
 {
 }
 
@@ -20,10 +19,9 @@ KVulkanAccelerationStructure::~KVulkanAccelerationStructure()
 {
 	ASSERT_RESULT(!m_IndexBuffer);
 	ASSERT_RESULT(!m_VertexBuffer);
-	ASSERT_RESULT(!m_TextureBinding);
 }
 
-bool KVulkanAccelerationStructure::InitBottomUp(VertexFormat format, IKVertexBufferPtr vertexBuffer, IKIndexBufferPtr indexBuffer, IKMaterialTextureBinding* textureBinding)
+bool KVulkanAccelerationStructure::InitBottomUp(VertexFormat format, IKVertexBufferPtr vertexBuffer, IKIndexBufferPtr indexBuffer)
 {
 	if (KVulkanGlobal::supportRaytrace)
 	{
@@ -31,11 +29,9 @@ bool KVulkanAccelerationStructure::InitBottomUp(VertexFormat format, IKVertexBuf
 		{
 			KVulkanVertexBuffer* vulkanVertexBuffer = static_cast<KVulkanVertexBuffer*>(vertexBuffer.get());
 			KVulkanIndexBuffer* vulkanIndexBuffer = static_cast<KVulkanIndexBuffer*>(indexBuffer.get());
-			KMaterialTextureBinding* matTextureBinding = static_cast<KMaterialTextureBinding*>(textureBinding);
 
 			m_IndexBuffer = vulkanIndexBuffer;
 			m_VertexBuffer = vulkanVertexBuffer;
-			m_TextureBinding = matTextureBinding;
 
 			VkDeviceOrHostAddressConstKHR vertexBufferDeviceAddress = {};
 			VkDeviceOrHostAddressConstKHR indexBufferDeviceAddress = {};
@@ -125,7 +121,7 @@ bool KVulkanAccelerationStructure::BuildTopDown(const std::vector<BottomASTransf
 {
 	if (KVulkanGlobal::supportRaytrace)
 	{
-		// if (m_Instances.size() != bottomASs.size())
+		if (m_Instances.size() != bottomASs.size())
 		{
 			update = false;
 		}
@@ -143,12 +139,12 @@ bool KVulkanAccelerationStructure::BuildTopDown(const std::vector<BottomASTransf
 		{
 			const BottomASTransformTuple& asTuple = bottomASs[objIndex];
 
-			IKAccelerationStructurePtr as = std::get<0>(asTuple);
-			const glm::mat4& transform = std::get<1>(asTuple);
+			IKAccelerationStructurePtr as = asTuple.as;
+			const glm::mat4& transform = asTuple.transform;
 			const glm::mat4 transformIT = glm::transpose(glm::inverse(transform));
+			IKMaterialTextureBindingPtr textureBinding = asTuple.tex;
 
 			KVulkanAccelerationStructure* vulkanAS = static_cast<KVulkanAccelerationStructure*>(as.get());
-			const KMaterialTextureBinding* textureBinding = vulkanAS->GetTextureBinding();
 
 			KVulkanRayTraceMaterial material = {};
 			material.diffuseTex = material.normalTex = material.specularTex = -1;
@@ -266,10 +262,10 @@ bool KVulkanAccelerationStructure::BuildTopDown(const std::vector<BottomASTransf
 			instances.push_back(instance);
 		}
 
-		uint32_t oldInstanceHash = m_InstancesHash;
-		m_InstancesHash = ComputeInstanceHash();
+		uint32_t oldTLASInstanceHash = m_TLASInstancesHash;
+		m_TLASInstancesHash = ComputeInstanceHash();
 
-		if (oldInstanceHash != m_InstancesHash)
+		if (oldTLASInstanceHash != m_TLASInstancesHash)
 		{
 			update = false;
 		}
@@ -460,7 +456,6 @@ bool KVulkanAccelerationStructure::UnInit()
 	m_Textures.clear();
 	m_IndexBuffer = nullptr;
 	m_VertexBuffer = nullptr;
-	m_TextureBinding = nullptr;
 
 	return true;
 }

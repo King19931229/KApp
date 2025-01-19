@@ -28,10 +28,14 @@ KRayTraceScene::~KRayTraceScene()
 	ASSERT_RESULT(m_RaytracePipelineInfos.empty());
 }
 
-uint32_t KRayTraceScene::AddBottomLevelAS(IKAccelerationStructurePtr as, const glm::mat4& transform)
+uint32_t KRayTraceScene::AddBottomLevelAS(IKAccelerationStructurePtr as, const glm::mat4& transform, IKMaterialTextureBindingPtr textureBinding)
 {
 	uint32_t handle = m_Handles.NewHandle();
-	m_BottomASMap[handle] = std::make_tuple(as, transform);
+	IKAccelerationStructure::BottomASTransformTuple tuple;
+	tuple.as = as;
+	tuple.transform = transform;
+	tuple.tex = textureBinding;
+	m_BottomASMap[handle] = tuple;
 	return handle;
 }
 
@@ -44,6 +48,17 @@ bool KRayTraceScene::RemoveBottomLevelAS(uint32_t handle)
 		m_Handles.ReleaseHandle(handle);
 	}
 	return true;
+}
+
+bool KRayTraceScene::TransformBottomLevelAS(uint32_t handle, const glm::mat4& transform)
+{
+	auto it = m_BottomASMap.find(handle);
+	if (it != m_BottomASMap.end())
+	{
+		it->second.transform = transform;
+		return true;
+	}
+	return false;
 }
 
 bool KRayTraceScene::ClearBottomLevelAS()
@@ -109,29 +124,48 @@ bool KRayTraceScene::DebugRender(IKRenderPassPtr renderPass, KRHICommandList& co
 
 void KRayTraceScene::OnSceneChanged(EntitySceneOp op, IKEntity* entity)
 {
-	KRenderComponent* renderComponent = nullptr;
-	KTransformComponent* transformComponent = nullptr;
 	bool bottomUpChanged = false;
-
-	ASSERT_RESULT(entity->GetComponent(CT_RENDER, &renderComponent));
-	ASSERT_RESULT(entity->GetComponent(CT_TRANSFORM, &transformComponent));
 
 	if (op != ESO_REMOVE)
 	{
-		std::vector<IKAccelerationStructurePtr> subAS;
-		renderComponent->GetAllAccelerationStructure(subAS);
-		const glm::mat4& transform = transformComponent->GetFinal();
+		KRenderComponent* renderComponent = nullptr;
+		KTransformComponent* transformComponent = nullptr;
 
-		for (IKAccelerationStructurePtr as : subAS)
-		{
-			uint32_t handle = AddBottomLevelAS(as, transform);
-			m_ASHandles[entity].insert(handle);
-			bottomUpChanged = true;
-		}
+		ASSERT_RESULT(entity->GetComponent(CT_RENDER, &renderComponent));
+		ASSERT_RESULT(entity->GetComponent(CT_TRANSFORM, &transformComponent));
+
+		std::vector<IKAccelerationStructurePtr> subAS;
+		std::vector<IKMaterialTextureBindingPtr> mtlTex;
+
+		renderComponent->GetAllAccelerationStructure(subAS);
+		renderComponent->GetAllTextrueBinding(mtlTex);
+
+		const glm::mat4& transform = transformComponent->GetFinal();
 
 		if (op == ESO_ADD)
 		{
-			renderComponent->RegisterCallback(&m_OnRenderComponentChangedFunc);
+			if (subAS.size() == mtlTex.size())
+			{
+				for (uint32_t idx = 0; idx < subAS.size(); ++idx)
+				{
+						uint32_t handle = AddBottomLevelAS(subAS[idx], transform, mtlTex[idx]);
+						m_ASHandles[entity].insert(handle);					
+				}
+				bottomUpChanged = true;
+				renderComponent->RegisterCallback(&m_OnRenderComponentChangedFunc);
+			}
+		}
+		else if (op == ESO_TRANSFORM)
+		{
+			auto it = m_ASHandles.find(entity);
+			if (it != m_ASHandles.end())
+			{
+				for (uint32_t handle : it->second)
+				{
+					TransformBottomLevelAS(handle, transform);
+				}
+				bottomUpChanged = true;
+			}
 		}
 	}
 	else
@@ -146,8 +180,6 @@ void KRayTraceScene::OnSceneChanged(EntitySceneOp op, IKEntity* entity)
 			m_ASHandles.erase(it);
 			bottomUpChanged = true;
 		}
-
-		renderComponent->UnRegisterCallback(&m_OnRenderComponentChangedFunc);
 	}
 
 	if (m_TopDown && bottomUpChanged)
@@ -173,13 +205,20 @@ void KRayTraceScene::OnRenderComponentChanged(IKRenderComponent* renderComponent
 	if (init)
 	{
 		std::vector<IKAccelerationStructurePtr> subAS;
+		std::vector<IKMaterialTextureBindingPtr> mtlTex;
+
 		renderComponent->GetAllAccelerationStructure(subAS);
+		renderComponent->GetAllTextrueBinding(mtlTex);
+
 		const glm::mat4& transform = transformComponent->GetFinal();
 
-		for (IKAccelerationStructurePtr as : subAS)
+		if (subAS.size() == mtlTex.size())
 		{
-			uint32_t handle = AddBottomLevelAS(as, transform);
-			m_ASHandles[entity].insert(handle);
+			for (uint32_t idx = 0; idx < subAS.size(); ++idx)
+			{
+				uint32_t handle = AddBottomLevelAS(subAS[idx], transform, mtlTex[idx]);
+				m_ASHandles[entity].insert(handle);
+			}
 			bottomUpChanged = true;
 		}
 	}

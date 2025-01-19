@@ -59,8 +59,9 @@ protected:
 	RenderComponentObserverFunc m_OnRenderComponentChangedFunc;
 	void OnRenderComponentChanged(IKRenderComponent* renderComponent, bool init);
 
-	uint32_t AddBottomLevelAS(IKAccelerationStructurePtr as, const glm::mat4& transform);
+	uint32_t AddBottomLevelAS(IKAccelerationStructurePtr as, const glm::mat4& transform, IKMaterialTextureBindingPtr textureBinding);
 	bool RemoveBottomLevelAS(uint32_t handle);
+	bool TransformBottomLevelAS(uint32_t handle, const glm::mat4& transform);
 	bool ClearBottomLevelAS();
 
 	void CreateAccelerationStructure();

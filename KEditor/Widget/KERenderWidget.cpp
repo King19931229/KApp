@@ -32,20 +32,16 @@ IKRenderWindow* KERenderWidget::GetRenderWindow()
 
 void KERenderWidget::resizeEvent(QResizeEvent *event)
 {
-	if (m_RenderDevice)
-	{
-		// TODO
-		// IKSwapChain* mainSwapChain = m_RenderDevice->GetSwapChain();
-		// IKUIOverlay* mainUIOverlay = m_RenderDevice->GetUIOverlay();
-		// 主窗口才更新UI
-		// m_RenderDevice->RecreateSwapChain(m_RenderWindow->m_SwapChain, mainSwapChain == m_RenderWindow->m_SwapChain ? mainUIOverlay : nullptr);
-	}
 }
 
 void KERenderWidget::paintEvent(QPaintEvent *event)
 {
 	// 保证此函数体每一帧都调用
 	update();
+}
+
+void KERenderWidget::closeEvent(QCloseEvent* event)
+{
 }
 
 bool KERenderWidget::QtKeyToInputKeyboard(Qt::Key button, InputKeyboard& keyboard)

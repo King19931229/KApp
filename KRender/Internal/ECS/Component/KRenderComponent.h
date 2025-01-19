@@ -76,6 +76,7 @@ public:
 	bool UnRegisterCallback(RenderComponentObserverFunc* callback) override;
 
 	bool GetAllAccelerationStructure(std::vector<IKAccelerationStructurePtr>& as) override;
+	bool GetAllTextrueBinding(std::vector<IKMaterialTextureBindingPtr>& binding) override;
 
 	IKQueryPtr GetOCQuery();
 	IKQueryPtr GetOCInstacneQuery();

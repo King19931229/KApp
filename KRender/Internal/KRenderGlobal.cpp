@@ -52,11 +52,11 @@ namespace KRenderGlobal
 
 	KStatistics Statistics;
 
-	bool EnableDebugRender = false;
-	bool DisableRayTrace = false;
+	bool EnableRayTrace = true;
 	bool SupportAnisotropySample = true;
 	bool EnableMultithreadRender = true;
 	bool EnableAsyncLoad = true;
+	bool InEditor = false;
 
 	uint32_t CurrentInFlightFrameIndex = 0;
 	uint32_t CurrentFrameNum = 0;
