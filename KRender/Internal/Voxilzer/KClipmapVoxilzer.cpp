@@ -347,7 +347,7 @@ bool KClipmapVoxilzer::UpdateFrame(KRHICommandList& commandList)
 	}
 }
 
-void KClipmapVoxilzer::UpdateVoxelBuffer()
+void KClipmapVoxilzer::UpdateVoxelBuffer(KRHICommandList& commandList)
 {
 	glm::mat4 viewProjections[3 * VOXEL_CLIPMPA_MAX_LEVELCOUNT];
 	glm::mat4 viewProjectionIs[3 * VOXEL_CLIPMPA_MAX_LEVELCOUNT];
@@ -397,99 +397,56 @@ void KClipmapVoxilzer::UpdateVoxelBuffer()
 
 	IKUniformBufferPtr voxelBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_VOXEL_CLIPMAP);
 
-	void* pData = KConstantGlobal::GetGlobalConstantData(CBT_VOXEL_CLIPMAP);
-	const KConstantDefinition::ConstantBufferDetail& details = KConstantDefinition::GetConstantBufferDetail(CBT_VOXEL_CLIPMAP);
+	glm::uvec4 miscs;
+	// volumeDimension
+	miscs[0] = m_VolumeDimension;
+	// borderSize
+	miscs[1] = m_VoxelBorderEnable ? m_BorderSize : 0;
+	// storeVisibility
+	miscs[2] = true;
+	// normalWeightedLambert
+	miscs[3] = 1;
 
-	for (const KConstantDefinition::ConstantSemanticDetail& detail : details.semanticDetails)
+	glm::uvec4 miscs2;
+	// levelCount
+	miscs2[0] = m_ClipLevelCount;
+	// checkBoundaries
+	miscs2[1] = 1;
+
+	glm::vec4 miscs3;
+	// traceShadowHit
+	miscs3[0] = 1.0f;
+	// maxTracingDistanceGlobal
+	miscs3[1] = 0.1f;
+	// occlusionDecay
+	miscs3[2] = 1.0f;
+	// downsampleTransitionRegionSize
+	miscs3[3] = 10.0f;
+
+	glm::vec4 miscs4;
+
+	KConstantDefinition::VOXEL_CLIPMAP VOXEL_CLIPMAP;
+
+	for (uint32_t i = 0; i < 3 * VOXEL_CLIPMPA_MAX_LEVELCOUNT; ++i)
 	{
-		void* pWritePos = nullptr;
-		pWritePos = POINTER_OFFSET(pData, detail.offset);
-		if (detail.semantic == CS_VOXEL_CLIPMAP_VIEW_PROJ)
-		{
-			assert(sizeof(glm::mat4) * 3 * 6 == detail.size);
-			memcpy(pWritePos, viewProjections, sizeof(viewProjections));
-			pWritePos = POINTER_OFFSET(pWritePos, sizeof(viewProjections));
-		}
-		if (detail.semantic == CS_VOXEL_CLIPMAP_VIEW_PROJ_INV)
-		{
-			assert(sizeof(glm::mat4) * 3 * 6 == detail.size);
-			memcpy(pWritePos, viewProjectionIs, sizeof(viewProjectionIs));
-			pWritePos = POINTER_OFFSET(pWritePos, sizeof(viewProjectionIs));
-		}
-		if (detail.semantic == CS_VOXEL_CLIPMAP_UPDATE_REGION_MIN)
-		{
-			assert(sizeof(glm::vec4) * 3 * 6 == detail.size);
-			memcpy(pWritePos, updateRegionMins, sizeof(updateRegionMins));
-			pWritePos = POINTER_OFFSET(pWritePos, sizeof(updateRegionMins));
-		}
-		if (detail.semantic == CS_VOXEL_CLIPMAP_UPDATE_REGION_MAX)
-		{
-			assert(sizeof(glm::vec4) * 3 * 6 == detail.size);
-			memcpy(pWritePos, updateRegionMaxs, sizeof(updateRegionMaxs));
-			pWritePos = POINTER_OFFSET(pWritePos, sizeof(updateRegionMaxs));
-		}
-		if (detail.semantic == CS_VOXEL_CLIPMAP_REIGION_MIN_AND_VOXELSIZE)
-		{
-			assert(sizeof(glm::vec4) * 9 == detail.size);
-			memcpy(pWritePos, minAndVoxelSize, sizeof(minAndVoxelSize));
-			pWritePos = POINTER_OFFSET(pWritePos, sizeof(minAndVoxelSize));
-		}
-		if (detail.semantic == CS_VOXEL_CLIPMAP_REIGION_MAX_AND_EXTENT)
-		{
-			assert(sizeof(glm::vec4) * 9 == detail.size);
-			memcpy(pWritePos, maxAndExtent, sizeof(maxAndExtent));
-			pWritePos = POINTER_OFFSET(pWritePos, sizeof(maxAndExtent));
-		}
-		if (detail.semantic == CS_VOXEL_CLIPMAP_MISCS)
-		{
-			assert(sizeof(glm::uvec4) == detail.size);
-			glm::uvec4 miscs;
-			// volumeDimension
-			miscs[0] = m_VolumeDimension;
-			// borderSize
-			miscs[1] = m_VoxelBorderEnable ? m_BorderSize : 0;
-			// storeVisibility
-			miscs[2] = true;
-			// normalWeightedLambert
-			miscs[3] = 1;
-			memcpy(pWritePos, &miscs, sizeof(glm::uvec4));
-			pWritePos = POINTER_OFFSET(pWritePos, sizeof(glm::uvec4));
-		}
-		if (detail.semantic == CS_VOXEL_CLIPMAP_MISCS2)
-		{
-			assert(sizeof(glm::uvec4) == detail.size);
-			glm::uvec4 miscs;
-			// levelCount
-			miscs[0] = m_ClipLevelCount;
-			// checkBoundaries
-			miscs[1] = 1;
-			memcpy(pWritePos, &miscs, sizeof(glm::uvec4));
-			pWritePos = POINTER_OFFSET(pWritePos, sizeof(glm::uvec4));
-		}
-		if (detail.semantic == CS_VOXEL_CLIPMAP_MISCS3)
-		{
-			assert(sizeof(glm::vec4) == detail.size);
-			glm::vec4 miscs;
-			// traceShadowHit
-			miscs[0] = 1.0f;
-			// maxTracingDistanceGlobal
-			miscs[1] = 0.1f;
-			// occlusionDecay
-			miscs[2] = 1.0f;
-			// downsampleTransitionRegionSize
-			miscs[3] = 10.0f;
-			memcpy(pWritePos, &miscs, sizeof(glm::vec4));
-			pWritePos = POINTER_OFFSET(pWritePos, sizeof(glm::vec4));
-		}
-		if (detail.semantic == CS_VOXEL_CLIPMAP_MISCS4)
-		{
-			assert(sizeof(glm::vec4) == detail.size);
-			glm::vec4 miscs;
-			pWritePos = POINTER_OFFSET(pWritePos, sizeof(glm::vec4));
-		}
+		VOXEL_CLIPMAP.VIEW_PROJ[i] = viewProjections[i];
+		VOXEL_CLIPMAP.VIEW_PROJ_INV[i] = viewProjectionIs[i];
+		VOXEL_CLIPMAP.UPDATE_REGION_MIN[i] = updateRegionMins[i];
+		VOXEL_CLIPMAP.UPDATE_REGION_MAX[i] = updateRegionMaxs[i];
 	}
 
-	voxelBuffer->Write(pData);
+	for (uint32_t i = 0; i < VOXEL_CLIPMPA_MAX_LEVELCOUNT; ++i)
+	{
+		VOXEL_CLIPMAP.REIGION_MIN_AND_VOXELSIZE[i] = minAndVoxelSize[i];
+		VOXEL_CLIPMAP.REIGION_MAX_AND_EXTENT[i] = maxAndExtent[i];
+	}
+
+	VOXEL_CLIPMAP.MISCS = miscs;
+	VOXEL_CLIPMAP.MISCS2 = miscs2;
+	VOXEL_CLIPMAP.MISCS3 = miscs3;
+	VOXEL_CLIPMAP.MISCS4 = miscs4;
+
+	commandList.UpdateUniformBuffer(voxelBuffer, &VOXEL_CLIPMAP, 0, sizeof(VOXEL_CLIPMAP));
 }
 
 void KClipmapVoxilzer::UpdateInternal(KRHICommandList& commandList)
@@ -839,7 +796,7 @@ void KClipmapVoxilzer::UpdateVoxel(KRHICommandList& commandList)
 		}
 
 		ApplyUpdateMovement();
-		UpdateVoxelBuffer();
+		UpdateVoxelBuffer(commandList);
 		UpdateInternal(commandList);
 
 		for (uint32_t levelIdx = 0; levelIdx < m_ClipLevelCount; ++levelIdx)

@@ -151,9 +151,9 @@ bool KRenderScene::Transform(IKEntity* entity)
 			if (m_SceneMgr->Transform(entity))
 			{
 				OnEntityChange(ESO_TRANSFORM, entity);
-				return true;
 			}
 		});
+		return true;
 	}
 	return false;
 }

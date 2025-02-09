@@ -642,54 +642,20 @@ bool KRenderer::UpdateCamera()
 
 			m_PrevViewProj = viewProj;
 
-			void* pData = KConstantGlobal::GetGlobalConstantData(CBT_CAMERA);
-			const KConstantDefinition::ConstantBufferDetail &details = KConstantDefinition::GetConstantBufferDetail(CBT_CAMERA);
-			for (KConstantDefinition::ConstantSemanticDetail detail : details.semanticDetails)
+			KConstantDefinition::CAMERA CAMERA;
+			CAMERA.VIEW = view;
+			CAMERA.VIEW_INV = viewInv;
+			CAMERA.PROJ = proj;
+			CAMERA.PROJ_INV = projInv;
+			CAMERA.VIEW_PROJ = viewProj;
+			CAMERA.PREV_VIEW_PROJ = prevViewProj;
+			CAMERA.PARAMETERS = parameters;
+			for (uint32_t i = 0; i < ARRAY_SIZE(frustumPlanes); ++i)
 			{
-				void* pWritePos = POINTER_OFFSET(pData, detail.offset);
-				if (detail.semantic == CS_VIEW)
-				{
-					assert(sizeof(view) == detail.size);					
-					memcpy(pWritePos, &view, sizeof(view));
-				}
-				else if (detail.semantic == CS_PROJ)
-				{
-					assert(sizeof(proj) == detail.size);
-					memcpy(pWritePos, &proj, sizeof(proj));
-				}
-				else if (detail.semantic == CS_VIEW_INV)
-				{
-					assert(sizeof(viewInv) == detail.size);
-					memcpy(pWritePos, &viewInv, sizeof(viewInv));
-				}
-				else if (detail.semantic == CS_PROJ_INV)
-				{
-					assert(sizeof(projInv) == detail.size);
-					memcpy(pWritePos, &projInv, sizeof(projInv));
-				}
-				else if (detail.semantic == CS_VIEW_PROJ)
-				{
-					assert(sizeof(viewProj) == detail.size);
-					memcpy(pWritePos, &viewProj, sizeof(viewProj));
-				}
-				else if (detail.semantic == CS_PREV_VIEW_PROJ)
-				{
-					assert(sizeof(prevViewProj) == detail.size);
-					memcpy(pWritePos, &prevViewProj, sizeof(prevViewProj));
-				}
-				else if (detail.semantic == CS_CAMERA_PARAMETERS)
-				{
-					assert(sizeof(parameters) == detail.size);
-					memcpy(pWritePos, &parameters, sizeof(parameters));
-				}
-				else if (detail.semantic == CS_FRUSTUM_PLANES)
-				{
-					assert(sizeof(frustumPlanes) == detail.size);
-					memcpy(pWritePos, &frustumPlanes, sizeof(frustumPlanes));
-				}
+				CAMERA.FRUSTUM_PLANES[i] = frustumPlanes[i];
 			}
 
-			m_RHICommandList.UpdateUniformBuffer(cameraBuffer, pData, 0, (uint32_t)cameraBuffer->GetBufferSize());
+			m_RHICommandList.UpdateUniformBuffer(cameraBuffer, &CAMERA, 0, sizeof(CAMERA));
 			return true;
 		}
 	}
@@ -701,21 +667,13 @@ bool KRenderer::UpdateGlobal()
 	IKUniformBufferPtr globalBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_GLOBAL);
 	if (globalBuffer)
 	{
-		void* pData = KConstantGlobal::GetGlobalConstantData(CBT_GLOBAL);
-		const KConstantDefinition::ConstantBufferDetail &details = KConstantDefinition::GetConstantBufferDetail(CBT_GLOBAL);
-		for (KConstantDefinition::ConstantSemanticDetail detail : details.semanticDetails)
-		{
-			void* pWritePos = POINTER_OFFSET(pData, detail.offset);
-			if (detail.semantic == CS_GLOBAL_SUN_LIGHT_DIRECTION_AND_PBR_MAX_REFLECTION_LOD)
-			{
-				float maxLod = (float)(KRenderGlobal::CubeMap.GetSpecularIrradiance()->GetFrameBuffer()->GetMipmaps() - 1);
-				glm::vec4 sunLightDirAndMaxReflectionLod = glm::vec4(KRenderGlobal::CascadedShadowMap.GetCamera().GetForward(), maxLod);
-				assert(sizeof(sunLightDirAndMaxReflectionLod) == detail.size);
-				memcpy(pWritePos, &sunLightDirAndMaxReflectionLod, sizeof(sunLightDirAndMaxReflectionLod));
-			}
-		}
+		float maxLod = (float)(KRenderGlobal::CubeMap.GetSpecularIrradiance()->GetFrameBuffer()->GetMipmaps() - 1);
+		glm::vec4 sunLightDirAndMaxReflectionLod = glm::vec4(KRenderGlobal::CascadedShadowMap.GetCamera().GetForward(), maxLod);
 
-		m_RHICommandList.UpdateUniformBuffer(globalBuffer, pData, 0, (uint32_t)globalBuffer->GetBufferSize());
+		KConstantDefinition::GLOBAL GLOBAL;
+		GLOBAL.SUN_LIGHT_DIRECTION_AND_PBR_MAX_REFLECTION_LOD = sunLightDirAndMaxReflectionLod;
+
+		m_RHICommandList.UpdateUniformBuffer(globalBuffer, &GLOBAL, 0, (uint32_t)sizeof(GLOBAL));
 		return true;
 	}
 	return false;

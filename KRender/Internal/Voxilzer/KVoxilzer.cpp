@@ -46,7 +46,7 @@ KVoxilzer::~KVoxilzer()
 
 void KVoxilzer::UpdateInternal(KRHICommandListBase& commandList)
 {
-	UpdateProjectionMatrices();
+	UpdateProjectionMatrices(commandList);
 
 	if (m_VoxelUseOctree)
 	{
@@ -157,7 +157,7 @@ void KVoxilzer::Reload()
 	m_MipmapVolumePipeline->Reload();
 }
 
-void KVoxilzer::UpdateProjectionMatrices()
+void KVoxilzer::UpdateProjectionMatrices(KRHICommandListBase& commandList)
 {
 	KAABBBox sceneBox;
 	m_Scene->GetSceneObjectBound(sceneBox);
@@ -193,85 +193,49 @@ void KVoxilzer::UpdateProjectionMatrices()
 	}
 
 	IKUniformBufferPtr voxelBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_VOXEL);
+	
+	glm::vec4 minpointScale(min, 1.0f / m_VolumeGridSize);
+	glm::vec4 maxpointScale(max, 1.0f / m_VolumeGridSize);
 
-	void* pData = KConstantGlobal::GetGlobalConstantData(CBT_VOXEL);
-	const KConstantDefinition::ConstantBufferDetail& details = KConstantDefinition::GetConstantBufferDetail(CBT_VOXEL);
+	glm::uvec4 miscs(0);
+	// volumeDimension
+	miscs[0] = m_VolumeDimension;
+	// storeVisibility
+	miscs[1] = 1;
+	// normalWeightedLambert
+	miscs[2] = 1;
+	// checkBoundaries
+	miscs[3] = 1;
 
-	for (const KConstantDefinition::ConstantSemanticDetail& detail : details.semanticDetails)
+	glm::vec4 miscs2(0);
+	// voxelSize
+	miscs2[0] = m_VoxelSize;
+	// volumeSize
+	miscs2[1] = m_VolumeGridSize;
+	// exponents
+	miscs2[2] = miscs2[3] = 0;
+
+	glm::vec4 miscs3(0);
+	// lightBleedingReduction
+	miscs3[0] = 0;
+	// traceShadowHit
+	miscs3[1] = 0.5f;
+	// maxTracingDistanceGlobal
+	miscs3[2] = 0.10f;
+
+	KConstantDefinition::VOXEL VOXEL;
+	for (uint32_t i = 0; i < 3; ++i)
 	{
-		void* pWritePos = nullptr;
-		pWritePos = POINTER_OFFSET(pData, detail.offset);
-		if (detail.semantic == CS_VOXEL_VIEW_PROJ)
-		{
-			assert(sizeof(glm::mat4) * 3 == detail.size);
-			for (size_t i = 0; i < 3; i++)
-			{
-				memcpy(pWritePos, &m_ViewProjectionMatrix[i], sizeof(glm::mat4));
-				pWritePos = POINTER_OFFSET(pWritePos, sizeof(glm::mat4));
-			}
-		}
-		if (detail.semantic == CS_VOXEL_VIEW_PROJ_INV)
-		{
-			assert(sizeof(glm::mat4) * 3 == detail.size);
-			for (size_t i = 0; i < 3; i++)
-			{
-				memcpy(pWritePos, &m_ViewProjectionMatrixI[i], sizeof(glm::mat4));
-				pWritePos = POINTER_OFFSET(pWritePos, sizeof(glm::mat4));
-			}
-		}
-		if (detail.semantic == CS_VOXEL_MINPOINT_SCALE)
-		{
-			assert(sizeof(glm::vec4) == detail.size);
-			glm::vec4 minpointScale(min, 1.0f / m_VolumeGridSize);
-			memcpy(pWritePos, &minpointScale, sizeof(glm::vec4));
-		}
-		if (detail.semantic == CS_VOXEL_MAXPOINT_SCALE)
-		{
-			assert(sizeof(glm::vec4) == detail.size);
-			glm::vec4 maxpointScale(max, 1.0f / m_VolumeGridSize);
-			memcpy(pWritePos, &maxpointScale, sizeof(glm::vec4));
-		}
-		if (detail.semantic == CS_VOXEL_MISCS)
-		{
-			assert(sizeof(uint32_t) * 4 == detail.size);
-			glm::uvec4 miscs(0);
-			// volumeDimension
-			miscs[0] = m_VolumeDimension;
-			// storeVisibility
-			miscs[1] = 1;
-			// normalWeightedLambert
-			miscs[2] = 1;
-			// checkBoundaries
-			miscs[3] = 1;
-			memcpy(pWritePos, &miscs, sizeof(uint32_t) * 4);
-		}
-		if (detail.semantic == CS_VOXEL_MISCS2)
-		{
-			assert(sizeof(float) * 4 == detail.size);
-			glm::vec4 miscs2(0);
-			// voxelSize
-			miscs2[0] = m_VoxelSize;
-			// volumeSize
-			miscs2[1] = m_VolumeGridSize;
-			// exponents
-			miscs2[2] = miscs2[3] = 0;
-			memcpy(pWritePos, &miscs2, sizeof(float) * 4);
-		}
-		if (detail.semantic == CS_VOXEL_MISCS3)
-		{
-			assert(sizeof(float) * 4 == detail.size);
-			glm::vec4 miscs3(0);
-			// lightBleedingReduction
-			miscs3[0] = 0;
-			// traceShadowHit
-			miscs3[1] = 0.5f;
-			// maxTracingDistanceGlobal
-			miscs3[2] = 0.10f;
-			memcpy(pWritePos, &miscs3, sizeof(float) * 4);
-		}
+		VOXEL.VIEW_PROJ[i] = m_ViewProjectionMatrix[i];
+		VOXEL.VIEW_PROJ_INV[i] = m_ViewProjectionMatrixI[i];
 	}
+	VOXEL.MINPOINT_SCALE = minpointScale;
+	VOXEL.MAXPOINT_SCALE = maxpointScale;
+	VOXEL.MISCS = miscs;
+	VOXEL.MISCS2 = miscs2;
+	VOXEL.MISCS3 = miscs3;
 
-	voxelBuffer->Write(pData);
+	commandList.UpdateUniformBuffer(voxelBuffer, &VOXEL, 0, sizeof(VOXEL));
 }
 
 void KVoxilzer::SetupVoxelBuffer()
@@ -412,7 +376,9 @@ void KVoxilzer::SetupVoxelVolumes(uint32_t dimension)
 	m_MipmapSampler->SetFilterMode(FM_LINEAR, FM_LINEAR);
 	m_MipmapSampler->Init(0, m_NumMipmap - 1);
 
-	UpdateProjectionMatrices();
+	KRenderGlobal::ImmediateCommandList.BeginRecord();
+	UpdateProjectionMatrices(KRenderGlobal::ImmediateCommandList);
+	KRenderGlobal::ImmediateCommandList.EndRecord();
 
 	SetupVoxelReleatedData();
 }
@@ -1400,7 +1366,7 @@ bool KVoxilzer::UpdateOctreRayTestResult(KRHICommandListBase& commandList)
 bool KVoxilzer::UpdateFrame(KRHICommandListBase& commandList)
 {
 	bool result = true;
-	UpdateProjectionMatrices();
+	UpdateProjectionMatrices(commandList);
 	if (m_Enable)
 	{
 		result &= UpdateLightingResult(commandList);

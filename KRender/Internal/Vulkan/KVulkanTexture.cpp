@@ -79,6 +79,8 @@ bool KVulkanTexture::InitDevice(bool async)
 			return false;
 		}
 
+		KRenderGlobal::Renderer.GetRHICommandList().Flush(RHICommandFlush::FlushRHIThread);
+
 		ResourceState previousState = m_ResourceState;
 		m_ResourceState = RS_DEVICE_LOADING;
 

@@ -449,13 +449,12 @@ void KVirtualTextureManager::HandleFeedbackResult()
 	}
 }
 
-void KVirtualTextureManager::UpdateBuffer()
+void KVirtualTextureManager::UpdateBuffer(KRHICommandList& commandList)
 {
 	{
 		IKUniformBufferPtr virtualTextureBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_VIRTUAL_TEXTURE_CONSTANT);
 
-		void* pData = KConstantGlobal::GetGlobalConstantData(CBT_VIRTUAL_TEXTURE_CONSTANT);
-		const KConstantDefinition::ConstantBufferDetail& details = KConstantDefinition::GetConstantBufferDetail(CBT_VIRTUAL_TEXTURE_CONSTANT);
+		KConstantDefinition::VIRTUAL_TEXTURE VIRTUAL_TEXTURE;
 
 		glm::uvec4 description;
 		description.x = m_TileSize;
@@ -469,24 +468,10 @@ void KVirtualTextureManager::UpdateBuffer()
 		description2.z = KRenderGlobal::CurrentFrameNum % 4;
 		description2.w = (KRenderGlobal::CurrentFrameNum / 4) % 4;
 
-		for (KConstantDefinition::ConstantSemanticDetail detail : details.semanticDetails)
-		{
-			assert(detail.offset % detail.size == 0);
-			void* pWritePos = nullptr;
-			if (detail.semantic == CS_VIRTUAL_TEXTURE_DESCRIPTION)
-			{
-				assert(sizeof(description) == detail.size);
-				pWritePos = POINTER_OFFSET(pData, detail.offset);
-				memcpy(pWritePos, &description, sizeof(description));
-			}
-			else if (detail.semantic == CS_VIRTUAL_TEXTURE_DESCRIPTION2)
-			{
-				assert(sizeof(description2) == detail.size);
-				pWritePos = POINTER_OFFSET(pData, detail.offset);
-				memcpy(pWritePos, &description2, sizeof(description2));
-			}
-		}
-		virtualTextureBuffer->Write(pData);
+		VIRTUAL_TEXTURE.DESCRIPTION = description;
+		VIRTUAL_TEXTURE.DESCRIPTION2 = description2;
+
+		commandList.UpdateUniformBuffer(virtualTextureBuffer, &VIRTUAL_TEXTURE, 0, sizeof(VIRTUAL_TEXTURE));
 	}
 
 	m_TileOffsetRecords.clear();
@@ -521,16 +506,14 @@ void KVirtualTextureManager::UpdateBuffer()
 			descriptionBuffer->InitDevice(false, false);
 		}
 
-		void* pDst = nullptr;
-		descriptionBuffer->Map(&pDst);
-		memcpy(pDst, descriptions.data(), m_VirtualIDCounter * sizeof(glm::uvec4));
-		descriptionBuffer->UnMap();
+		commandList.UpdateStorageBuffer(descriptionBuffer, descriptions.data(), 0, m_VirtualIDCounter * sizeof(glm::uvec4));
 	}
 
 	{
 		IKStorageBufferPtr feedbackResultBuffer = m_FeedbackResultBuffer;
 		if (feedbackResultBuffer->GetBufferSize() < m_FeedbackTileCount * sizeof(uint32_t))
 		{
+			KRenderGlobal::Renderer.GetRHICommandList().Flush(RHICommandFlush::FlushRHIThreadToDone);
 			uint32_t bufferSize = 4 * ((m_FeedbackTileCount + 3) / 4) * sizeof(uint32_t);
 			feedbackResultBuffer->UnInit();
 			feedbackResultBuffer->InitMemory(bufferSize, nullptr);
@@ -540,6 +523,7 @@ void KVirtualTextureManager::UpdateBuffer()
 		IKStorageBufferPtr mergedFeedbackResultBuffer = m_MergedFeedbackResultBuffer;
 		if (mergedFeedbackResultBuffer->GetBufferSize() < 2 * (1 + m_FeedbackTileCount) * sizeof(uint32_t))
 		{
+			KRenderGlobal::Renderer.GetRHICommandList().Flush(RHICommandFlush::FlushRHIThreadToDone);
 			uint32_t bufferSize = 4 * ((2 * (m_FeedbackTileCount + 1) + 3) / 4) * sizeof(uint32_t);
 			mergedFeedbackResultBuffer->UnInit();
 			mergedFeedbackResultBuffer->InitMemory(bufferSize, nullptr);
@@ -706,7 +690,7 @@ bool KVirtualTextureManager::InitFeedbackTarget(KRHICommandList& commandList)
 
 bool KVirtualTextureManager::Update(KRHICommandList& commandList, const std::vector<IKEntity*>& cullRes)
 {
-	UpdateBuffer();
+	UpdateBuffer(commandList);
 	LRUSortTile();
 	HandleFeedbackResult();
 	ProcessPhysicalUpdate(commandList);

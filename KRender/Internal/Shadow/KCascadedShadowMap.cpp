@@ -1421,66 +1421,20 @@ bool KCascadedShadowMap::UpdateShadowMap(KRHICommandList& commandList)
 		Cascade* cascadeds = (type == CBT_DYNAMIC_CASCADED_SHADOW) ? m_DynamicCascadeds.data() : m_StaticCascadeds.data();
 
 		IKUniformBufferPtr shadowBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(type);
+		glm::vec4 center = glm::vec4((type == CBT_STATIC_CASCADED_SHADOW) ? m_StaticCenter : m_MainCamera->GetPosition(), 1.0f);
 
-		void* pData = KConstantGlobal::GetGlobalConstantData(type);
-		const KConstantDefinition::ConstantBufferDetail& details = KConstantDefinition::GetConstantBufferDetail(type);
-
-		for (KConstantDefinition::ConstantSemanticDetail detail : details.semanticDetails)
+		KConstantDefinition::CASCADED_SHADOW CASCADED_SHADOW;
+		for (uint32_t i = 0; i < (uint32_t)numCascaded; i++)
 		{
-			void* pWritePos = POINTER_OFFSET(pData, detail.offset);
-			if (detail.semantic == CS_CASCADED_SHADOW_VIEW)
-			{
-				assert(sizeof(glm::mat4) * 4 == detail.size);
-				for (size_t i = 0; i < numCascaded; i++)
-				{
-					memcpy(pWritePos, &cascadeds[i].viewMatrix, sizeof(glm::mat4));
-					pWritePos = POINTER_OFFSET(pWritePos, sizeof(glm::mat4));
-				}
-			}
-			else if (detail.semantic == CS_CASCADED_SHADOW_VIEW_PROJ)
-			{
-				assert(sizeof(glm::mat4) * 4 == detail.size);
-				for (size_t i = 0; i < numCascaded; i++)
-				{
-					memcpy(pWritePos, &cascadeds[i].viewProjMatrix, sizeof(glm::mat4));
-					pWritePos = POINTER_OFFSET(pWritePos, sizeof(glm::mat4));
-				}
-			}
-			else if (detail.semantic == CS_CASCADED_SHADOW_LIGHT_INFO)
-			{
-				assert(sizeof(glm::vec4) * 4 == detail.size);
-				for (size_t i = 0; i < numCascaded; i++)
-				{
-					memcpy(pWritePos, &cascadeds[i].viewInfo, sizeof(glm::vec4));
-					pWritePos = POINTER_OFFSET(pWritePos, sizeof(glm::vec4));
-				}
-			}
-			else if (detail.semantic == CS_CASCADED_SHADOW_SPLIT)
-			{
-				assert(sizeof(float) * 4 == detail.size);
-				for (size_t i = 0; i < numCascaded; i++)
-				{
-					memcpy(pWritePos, &cascadeds[i].split, sizeof(float));
-					pWritePos = POINTER_OFFSET(pWritePos, sizeof(float));
-				}
-			}
-			else if (detail.semantic == CS_CASCADED_SHADOW_NUM_CASCADED)
-			{
-				assert(sizeof(uint32_t) == detail.size);
-				uint32_t num = (uint32_t)numCascaded;
-				memcpy(pWritePos, &num, sizeof(uint32_t));
-			}
-			else if (detail.semantic == CS_CASCADED_SHADOW_CENTER)
-			{
-				glm::vec4 center = glm::vec4((type == CBT_STATIC_CASCADED_SHADOW) ? m_StaticCenter : m_MainCamera->GetPosition(), 1.0f);
-				assert(sizeof(float) * 4 == detail.size);
-				memcpy(pWritePos, &center, sizeof(glm::vec4));
-			}
-			else if (detail.semantic == CS_CASCADED_SHADOW_FRUSTUM_PLANES)
-			{
-			}
+			CASCADED_SHADOW.LIGHT_VIEW[i] = cascadeds[i].viewMatrix;
+			CASCADED_SHADOW.LIGHT_VIEW_PROJ[i] = cascadeds[i].viewProjMatrix;
+			CASCADED_SHADOW.LIGHT_INFO[i] = cascadeds[i].viewInfo;
+			CASCADED_SHADOW.SPLIT[i] = cascadeds[i].split;
 		}
-		commandList.UpdateUniformBuffer(shadowBuffer, pData, 0, (uint32_t)shadowBuffer->GetBufferSize());
+		CASCADED_SHADOW.NUM_CASCADED = (uint32_t)numCascaded;
+		CASCADED_SHADOW.CENTER = center;
+
+		commandList.UpdateUniformBuffer(shadowBuffer, &CASCADED_SHADOW, 0, (uint32_t)sizeof(CASCADED_SHADOW));
 	}
 
 	return true;

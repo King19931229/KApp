@@ -123,7 +123,7 @@ protected:
 	void RemoveTileFromList(KVirtualTexturePhysicalTile* tile, KVirtualTexturePhysicalTile*& head);
 	void AddTileToList(KVirtualTexturePhysicalTile* tile, KVirtualTexturePhysicalTile* &head);
 	void LRUSortTile();
-	void UpdateBuffer();
+	void UpdateBuffer(KRHICommandList& commandList);
 
 	uint32_t AcquireVirtualID();
 	void RecyleVirtualID(uint32_t ID);

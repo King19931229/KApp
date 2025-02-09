@@ -180,7 +180,7 @@ protected:
 	KRTDebugDrawer m_OctreeRayTestDebugDrawer;
 
 	void OnSceneChanged(EntitySceneOp op, IKEntity* entity);
-	void UpdateProjectionMatrices();
+	void UpdateProjectionMatrices(KRHICommandListBase& commandList);
 
 	void SetupVoxelBuffer();
 	void SetupSparseVoxelBuffer();

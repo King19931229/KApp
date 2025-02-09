@@ -27,7 +27,7 @@ public:
 	bool Init(IKRenderDevice* renderDevice,	uint32_t shadowMapSize);
 	bool UnInit();
 
-	bool UpdateShadowMap(IKCommandBufferPtr primaryBuffer);
+	bool UpdateShadowMap(KRHICommandList& commandList);
 
 	inline IKRenderTargetPtr GetShadowMapTarget() { return m_RenderTarget; }
 	inline IKSamplerPtr GetSampler() { return m_ShadowSampler; }

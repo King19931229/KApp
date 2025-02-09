@@ -33,9 +33,51 @@ bool KFrameResourceManager::Init()
 		ConstantBufferType bufferType = (ConstantBufferType)cbtIdx;
 		IKUniformBufferPtr& buffer = m_ContantBuffers[cbtIdx];
 		ASSERT_RESULT(KRenderGlobal::RenderDevice->CreateUniformBuffer(buffer));
-		auto& detail = KConstantDefinition::GetConstantBufferDetail(bufferType);
-		void* initData = KConstantGlobal::GetGlobalConstantData(bufferType);
-		ASSERT_RESULT(buffer->InitMemory(detail.bufferSize, initData));
+		switch (cbtIdx)
+		{
+			case CBT_CAMERA:
+			{
+				ASSERT_RESULT(buffer->InitMemory(sizeof(KConstantDefinition::CAMERA), &KConstantDefinition::CAMERA()));
+				break;
+			}
+			case CBT_SHADOW:
+			{
+				ASSERT_RESULT(buffer->InitMemory(sizeof(KConstantDefinition::SHADOW), &KConstantDefinition::SHADOW()));
+				break;
+			}
+			case CBT_DYNAMIC_CASCADED_SHADOW:
+			{
+				ASSERT_RESULT(buffer->InitMemory(sizeof(KConstantDefinition::CASCADED_SHADOW), &KConstantDefinition::CASCADED_SHADOW()));
+				break;
+			}
+			case CBT_STATIC_CASCADED_SHADOW:
+			{
+				ASSERT_RESULT(buffer->InitMemory(sizeof(KConstantDefinition::CASCADED_SHADOW), &KConstantDefinition::CASCADED_SHADOW()));
+				break;
+			}
+			case CBT_VOXEL:
+			{
+				ASSERT_RESULT(buffer->InitMemory(sizeof(KConstantDefinition::VOXEL), &KConstantDefinition::VOXEL()));
+				break;
+			}
+			case CBT_VOXEL_CLIPMAP:
+			{
+				ASSERT_RESULT(buffer->InitMemory(sizeof(KConstantDefinition::VOXEL_CLIPMAP), &KConstantDefinition::VOXEL_CLIPMAP()));
+				break;
+			}
+			case CBT_GLOBAL:
+			{
+				ASSERT_RESULT(buffer->InitMemory(sizeof(KConstantDefinition::GLOBAL), &KConstantDefinition::GLOBAL()));
+				break;
+			}
+			case CBT_VIRTUAL_TEXTURE_CONSTANT:
+			{
+				ASSERT_RESULT(buffer->InitMemory(sizeof(KConstantDefinition::VIRTUAL_TEXTURE), &KConstantDefinition::VIRTUAL_TEXTURE()));
+				break;
+			}
+			default:
+				ASSERT_RESULT("unknown");
+		}		
 		ASSERT_RESULT(buffer->InitDevice());
 		ASSERT_RESULT(buffer->SetDebugName(GConstantBufferTypeDescription[cbtIdx].debugName));
 	}

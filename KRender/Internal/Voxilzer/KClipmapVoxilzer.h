@@ -219,7 +219,7 @@ protected:
 	glm::ivec3 ComputeMovementByCamera(uint32_t levelIdx);
 	std::vector<KClipmapVoxelizationRegion> ComputeRevoxelizationRegionsByMovement(uint32_t levelIdx, const glm::ivec3& movement);
 
-	void UpdateVoxelBuffer();
+	void UpdateVoxelBuffer(KRHICommandList& commandList);
 	void UpdateInternal(KRHICommandList& commandList);
 	void ApplyUpdateMovement();
 	void ClearUpdateRegion(KRHICommandList& commandList);
