@@ -1,6 +1,7 @@
 #pragma once
 #include "KBase/Publish/Mesh/KVirtualGeometryBuilder.h"
 #include "KBase/Publish/KReferenceHolder.h"
+#include "Interface/IKRenderConfig.h"
 
 enum VirtualGeometryBinding
 {
@@ -15,7 +16,9 @@ enum VirtualGeometryConstant
 	VG_MESH_SHADER_GROUP_SIZE = 128,
 	MAX_CANDIDATE_NODE = 1024 * 1024,
 	MAX_CANDIDATE_CLUSTERS = 1024 * 1024 * 4,
-	MAX_STREAMING_REQUEST = 256 * 1024
+	MAX_STREAMING_REQUEST = 256 * 1024,
+	// 避开全局UBO
+	VG_BASEPASS_BINDING_OFFSET = SHADER_BINDING_TEXTURE0
 };
 
 struct KVirtualGeometryResource

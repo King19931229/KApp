@@ -224,7 +224,7 @@ layout (std430, binding = BINDING_QUEUE_STATE) coherent buffer QueueStateBuffer 
 	QueueStateStruct QueueState[];
 };
 
-layout (std430, binding = BINDING_INSTANCE_DATA) coherent buffer InstanceDataBuffer {
+layout (std430, binding = BINDING_VIRTUAL_GEOMETRY_INSTANCE_DATA) coherent buffer InstanceDataBuffer {
 	InstanceStruct InstanceData[];
 };
 

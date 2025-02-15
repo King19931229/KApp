@@ -111,6 +111,7 @@ namespace KRenderGlobal
 	extern bool EnableRayTrace;
 	extern bool SupportAnisotropySample;
 	extern bool EnableMultithreadRender;
+	extern bool EnableRHIImmediate;
 	extern bool EnableAsyncLoad;
 	extern bool InEditor;
 

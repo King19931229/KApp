@@ -54,7 +54,8 @@ namespace KRenderGlobal
 
 	bool EnableRayTrace = true;
 	bool SupportAnisotropySample = true;
-	bool EnableMultithreadRender = true;
+	bool EnableMultithreadRender = false;
+	bool EnableRHIImmediate = true;
 	bool EnableAsyncLoad = true;
 	bool InEditor = false;
 

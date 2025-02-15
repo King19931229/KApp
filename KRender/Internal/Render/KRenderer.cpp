@@ -61,7 +61,6 @@ KRenderer::KRenderer()
 	m_PrevMultithreadCount(std::thread::hardware_concurrency()),
 	m_MultithreadCount(std::thread::hardware_concurrency()),
 	m_EnableAsyncCompute(false),
-	m_EnableRHIImmediate(false),
 	m_DisplayCameraCube(true),
 	m_CameraOutdate(true)
 {
@@ -160,7 +159,7 @@ bool KRenderer::Render(uint32_t chainImageIndex)
 		ResetThreadNum(m_MultithreadCount);
 	}
 
-	m_RHICommandList.SetImmediate(m_EnableRHIImmediate);
+	m_RHICommandList.SetImmediate(KRenderGlobal::EnableRHIImmediate);
 	m_RHICommandList.TickRenderDevice();
 
 	KRenderGlobal::VirtualGeometryManager.RemoveUnreferenced();
@@ -346,7 +345,7 @@ bool KRenderer::Init(const KRendererInitContext& initContext)
 	m_RHIThread = KRunableThreadPtr(new KRunableThread(IKRunablePtr(new KRHIThread), "RHIThread"));
 	m_RHIThread->StartUp();
 
-	m_RHICommandList.SetImmediate(m_EnableRHIImmediate);
+	m_RHICommandList.SetImmediate(KRenderGlobal::EnableRHIImmediate);
 
 	const KCamera* camera = initContext.camera;
 	IKCameraCubePtr cameraCube = initContext.cameraCube;

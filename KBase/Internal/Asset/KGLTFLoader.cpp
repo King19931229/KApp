@@ -881,6 +881,17 @@ void KGLTFLoader::LoadNode(Node* parent, const tinygltf::Node& node, uint32_t no
 					}
 				}
 
+				for (uint32_t i = 0; (i + 3) <= iterateCount; i += 3)
+				{
+					uint32_t idx0 = indices[i];
+					uint32_t idx1 = indices[i + 1];
+					uint32_t idx2 = indices[i + 2];
+					if (idx0 == idx1 || idx0 == idx2 || idx1 == idx2)
+					{
+						exit(0);
+					}
+				}
+
 				loaderInfo.vertexPos -= vertexCount;
 				loaderInfo.indexPos -= indexCount;
 

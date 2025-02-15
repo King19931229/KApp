@@ -511,8 +511,8 @@ bool KMaterialSubMesh::GetRenderCommand(RenderStage stage, KRenderCommand& comma
 				bool hasVirtualTexture = false;
 				for (uint8_t i = 0; i < MAX_MATERIAL_TEXTURE_BINDING; ++i)
 				{
-					// 不应该碰撞
-					if (i != MTS_DIFFUSE && stage >= RENDER_STAGE_VOXEL && stage <= RENDER_STAGE_OPAQUE_INSTANCE)
+					// TODO Voxel不应该碰撞
+					if (stage >= RENDER_STAGE_VOXEL && stage <= RENDER_STAGE_CLIPMAP_VOXEL && i != MTS_DIFFUSE)
 					{
 						continue;
 					}
@@ -526,6 +526,7 @@ bool KMaterialSubMesh::GetRenderCommand(RenderStage stage, KRenderCommand& comma
 					}
 				}
 
+				// 绑定PhysicalTexture
 				if (hasVirtualTexture)
 				{
 					for (uint8_t i = 0; i < MAX_VIRTUAL_PHYSICAL_TEXTURE_BINDING; ++i)

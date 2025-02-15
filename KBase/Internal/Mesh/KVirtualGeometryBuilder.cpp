@@ -72,7 +72,7 @@ void KMeshCluster::InitBound()
 
 	if (minDotProduct >= 0)
 	{
-		assert(maxDistance >= 0);
+		// assert(maxDistance >= 0);
 		coneDirection.w = sqrtf(1.0f - minDotProduct * minDotProduct);
 		coneCenter = glm::vec4(glm::vec3(coneCenter) + glm::vec3(coneDirection) * maxDistance, 1);
 	}

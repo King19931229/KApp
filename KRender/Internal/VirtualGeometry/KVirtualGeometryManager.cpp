@@ -154,7 +154,7 @@ KVirtualGeometryManager::KVirtualGeometryManager()
 #include "KVirtualGeomertyBinding.inl"
 #undef VIRTUAL_GEOMETRY_BINDING
 
-#define VIRTUAL_GEOMETRY_BINDING(SEMANTIC) m_BasepassBindingEnv.macros.push_back( {VIRTUAL_GEOMETRY_BINDING_TO_STR(BINDING_##SEMANTIC), std::to_string(MAX_USER_TEXTURE_BINDING + BINDING_##SEMANTIC) });
+#define VIRTUAL_GEOMETRY_BINDING(SEMANTIC) m_BasepassBindingEnv.macros.push_back( {VIRTUAL_GEOMETRY_BINDING_TO_STR(BINDING_##SEMANTIC), std::to_string(VG_BASEPASS_BINDING_OFFSET + BINDING_##SEMANTIC) });
 #include "KVirtualGeomertyBinding.inl"
 #undef VIRTUAL_GEOMETRY_BINDING
 

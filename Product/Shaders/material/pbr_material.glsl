@@ -14,6 +14,7 @@ layout(std430, binding = BINDING_MATERIAL_PARAMETER) readonly buffer MaterialPar
 layout(std430, binding = BINDING_MATERIAL_TEXTURE_BINDING) readonly buffer MaterialTextureBindingPackBuffer { MaterialTextureBindingStruct MaterialTextureBinding[]; };
 layout(std430, binding = BINDING_MATERIAL_INDEX) readonly buffer MaterialIndexPackBuffer { uint MaterialIndex[]; };
 
+// TODO 重构GPUScene TextureIndex
 layout(binding = BINDING_TEXTURE0) uniform sampler2DArray textureArraySampler0;
 layout(binding = BINDING_TEXTURE1) uniform sampler2DArray textureArraySampler1;
 layout(binding = BINDING_TEXTURE2) uniform sampler2DArray textureArraySampler2;
@@ -111,8 +112,22 @@ struct ShadingStruct
 
 #else // ifndef GPU_SCENE
 
+#ifdef VIRTUAL_GEOMETRY
+#define MATERIAL_TEXTURE_BINDING0 BINDING_VIRTUAL_GEOMETRY_TEXTURE0
+#define MATERIAL_TEXTURE_BINDING1 BINDING_VIRTUAL_GEOMETRY_TEXTURE1
+#define MATERIAL_TEXTURE_BINDING2 BINDING_VIRTUAL_GEOMETRY_TEXTURE2
+#define MATERIAL_TEXTURE_BINDING3 BINDING_VIRTUAL_GEOMETRY_TEXTURE3
+#define MATERIAL_TEXTURE_BINDING4 BINDING_VIRTUAL_GEOMETRY_TEXTURE4
+#else
+#define MATERIAL_TEXTURE_BINDING0 BINDING_TEXTURE0
+#define MATERIAL_TEXTURE_BINDING1 BINDING_TEXTURE1
+#define MATERIAL_TEXTURE_BINDING2 BINDING_TEXTURE2
+#define MATERIAL_TEXTURE_BINDING3 BINDING_TEXTURE3
+#define MATERIAL_TEXTURE_BINDING4 BINDING_TEXTURE4
+#endif
+
 #if HAS_MATERIAL_TEXTURE0
-layout(binding = BINDING_TEXTURE0) uniform sampler2D diffuseSampler;
+layout(binding = MATERIAL_TEXTURE_BINDING0) uniform sampler2D diffuseSampler;
 vec4 SampleDiffuse(in vec2 texCoord)
 {
 	return texture(diffuseSampler, texCoord);
@@ -124,7 +139,7 @@ vec4 SampleDiffuseLod(in vec2 texCoord, float mip)
 #endif
 
 #if HAS_MATERIAL_TEXTURE1
-layout(binding = BINDING_TEXTURE1) uniform sampler2D normalSampler;
+layout(binding = MATERIAL_TEXTURE_BINDING1) uniform sampler2D normalSampler;
 vec4 SampleNormal(in vec2 texCoord)
 {
 	return texture(normalSampler, texCoord);
@@ -133,13 +148,13 @@ vec4 SampleNormal(in vec2 texCoord)
 
 #if HAS_MATERIAL_TEXTURE2
 #if PBR_MATERIAL_SPECULAR_GLOSINESS
-layout(binding = BINDING_TEXTURE2) uniform sampler2D specularGlosinessSampler;
+layout(binding = MATERIAL_TEXTURE_BINDING2) uniform sampler2D specularGlosinessSampler;
 vec4 SampleSpecularGlosiness(in vec2 texCoord)
 {
 	return texture(specularGlosinessSampler, texCoord);
 }
 #else
-layout(binding = BINDING_TEXTURE2) uniform sampler2D metalRoughnessSampler;
+layout(binding = MATERIAL_TEXTURE_BINDING2) uniform sampler2D metalRoughnessSampler;
 vec4 SampleMetalRoughness(in vec2 texCoord)
 {
 	return texture(metalRoughnessSampler, texCoord);
@@ -148,7 +163,7 @@ vec4 SampleMetalRoughness(in vec2 texCoord)
 #endif
 
 #if HAS_MATERIAL_TEXTURE3
-layout(binding = BINDING_TEXTURE3) uniform sampler2D emissiveSampler;
+layout(binding = MATERIAL_TEXTURE_BINDING3) uniform sampler2D emissiveSampler;
 vec4 SampleEmissive(in vec2 texCoord)
 {
 	return texture(emissiveSampler, texCoord);
@@ -156,7 +171,7 @@ vec4 SampleEmissive(in vec2 texCoord)
 #endif
 
 #if HAS_MATERIAL_TEXTURE4
-layout(binding = BINDING_TEXTURE4) uniform sampler2D aoSampler;
+layout(binding = MATERIAL_TEXTURE_BINDING4) uniform sampler2D aoSampler;
 vec4 SampleAO(in vec2 texCoord)
 {
 	return texture(aoSampler, texCoord);

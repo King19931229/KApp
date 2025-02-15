@@ -214,7 +214,7 @@ bool KVirtualGeometryScene::Init(IKRenderScene* scene, const KCamera* camera)
 				m_InstanceCullPipeline[i]->BindUniformBuffer(BINDING_STREAMING_DATA, KRenderGlobal::VirtualGeometryManager.GetStreamingDataBuffer());
 				m_InstanceCullPipeline[i]->BindStorageBuffer(BINDING_RESOURCE, KRenderGlobal::VirtualGeometryManager.GetResourceBuffer(), COMPUTE_RESOURCE_IN, true);
 				m_InstanceCullPipeline[i]->BindStorageBuffer(BINDING_QUEUE_STATE, m_QueueStateBuffer, COMPUTE_RESOURCE_IN, true);
-				m_InstanceCullPipeline[i]->BindStorageBuffer(BINDING_INSTANCE_DATA, m_InstanceDataBuffer, COMPUTE_RESOURCE_IN, true);
+				m_InstanceCullPipeline[i]->BindStorageBuffer(BINDING_VIRTUAL_GEOMETRY_INSTANCE_DATA, m_InstanceDataBuffer, COMPUTE_RESOURCE_IN, true);
 				m_InstanceCullPipeline[i]->BindStorageBuffer(BINDING_CLUSTER_BATCH, KRenderGlobal::VirtualGeometryManager.GetClusterBatchBuffer(), COMPUTE_RESOURCE_IN, true);
 				m_InstanceCullPipeline[i]->BindStorageBuffer(BINDING_CANDIDATE_NODE_BATCH, m_CandidateNodeBuffer, COMPUTE_RESOURCE_OUT, true);
 
@@ -248,7 +248,7 @@ bool KVirtualGeometryScene::Init(IKRenderScene* scene, const KCamera* camera)
 					pipeline->BindUniformBuffer(BINDING_STREAMING_DATA, KRenderGlobal::VirtualGeometryManager.GetStreamingDataBuffer());
 					pipeline->BindStorageBuffer(BINDING_PAGE_DATA, KRenderGlobal::VirtualGeometryManager.GetPageDataBuffer(), COMPUTE_RESOURCE_IN, true);
 					pipeline->BindStorageBuffer(BINDING_RESOURCE, KRenderGlobal::VirtualGeometryManager.GetResourceBuffer(), COMPUTE_RESOURCE_IN, true);
-					pipeline->BindStorageBuffer(BINDING_INSTANCE_DATA, m_InstanceDataBuffer, COMPUTE_RESOURCE_IN, true);
+					pipeline->BindStorageBuffer(BINDING_VIRTUAL_GEOMETRY_INSTANCE_DATA, m_InstanceDataBuffer, COMPUTE_RESOURCE_IN, true);
 					pipeline->BindStorageBuffer(BINDING_HIERARCHY_DATA, KRenderGlobal::VirtualGeometryManager.GetPackedHierarchyBuffer(), COMPUTE_RESOURCE_IN, true);
 					pipeline->BindStorageBuffer(BINDING_QUEUE_STATE, m_QueueStateBuffer, COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, true);
 					pipeline->BindStorageBuffer(BINDING_CANDIDATE_NODE_BATCH, m_CandidateNodeBuffer, COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, true);
@@ -275,7 +275,7 @@ bool KVirtualGeometryScene::Init(IKRenderScene* scene, const KCamera* camera)
 					pipeline->BindUniformBuffer(BINDING_STREAMING_DATA, KRenderGlobal::VirtualGeometryManager.GetStreamingDataBuffer());
 					pipeline->BindStorageBuffer(BINDING_PAGE_DATA, KRenderGlobal::VirtualGeometryManager.GetPageDataBuffer(), COMPUTE_RESOURCE_IN, true);
 					pipeline->BindStorageBuffer(BINDING_RESOURCE, KRenderGlobal::VirtualGeometryManager.GetResourceBuffer(), COMPUTE_RESOURCE_IN, true);
-					pipeline->BindStorageBuffer(BINDING_INSTANCE_DATA, m_InstanceDataBuffer, COMPUTE_RESOURCE_IN, true);
+					pipeline->BindStorageBuffer(BINDING_VIRTUAL_GEOMETRY_INSTANCE_DATA, m_InstanceDataBuffer, COMPUTE_RESOURCE_IN, true);
 					pipeline->BindStorageBuffer(BINDING_QUEUE_STATE, m_QueueStateBuffer, COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, true);
 					pipeline->BindStorageBuffer(BINDING_CLUSTER_BATCH, KRenderGlobal::VirtualGeometryManager.GetClusterBatchBuffer(), COMPUTE_RESOURCE_IN, true);
 					pipeline->BindStorageBuffer(BINDING_CANDIDATE_CLUSTER_BATCH, m_CandidateClusterBuffer, COMPUTE_RESOURCE_IN, true);
@@ -323,7 +323,7 @@ bool KVirtualGeometryScene::Init(IKRenderScene* scene, const KCamera* camera)
 				m_BinningClassifyPipline[i]->BindStorageBuffer(BINDING_PAGE_DATA, KRenderGlobal::VirtualGeometryManager.GetPageDataBuffer(), COMPUTE_RESOURCE_IN, true);
 				m_BinningClassifyPipline[i]->BindStorageBuffer(BINDING_QUEUE_STATE, m_QueueStateBuffer, COMPUTE_RESOURCE_IN, true);
 				m_BinningClassifyPipline[i]->BindStorageBuffer(BINDING_SELECTED_CLUSTER_BATCH, m_SelectedClusterBuffer, COMPUTE_RESOURCE_IN, true);
-				m_BinningClassifyPipline[i]->BindStorageBuffer(BINDING_INSTANCE_DATA, m_InstanceDataBuffer, COMPUTE_RESOURCE_IN, true);
+				m_BinningClassifyPipline[i]->BindStorageBuffer(BINDING_VIRTUAL_GEOMETRY_INSTANCE_DATA, m_InstanceDataBuffer, COMPUTE_RESOURCE_IN, true);
 				m_BinningClassifyPipline[i]->BindStorageBuffer(BINDING_RESOURCE, KRenderGlobal::VirtualGeometryManager.GetResourceBuffer(), COMPUTE_RESOURCE_IN, true);;
 				m_BinningClassifyPipline[i]->BindStorageBuffer(BINDING_CLUSTER_BATCH, KRenderGlobal::VirtualGeometryManager.GetClusterBatchBuffer(), COMPUTE_RESOURCE_IN, true);
 				m_BinningClassifyPipline[i]->BindStorageBuffer(BINDING_CLUSTER_MATERIAL_BUFFER, KRenderGlobal::VirtualGeometryManager.GetClusterMaterialStorageBuffer(), COMPUTE_RESOURCE_IN, true);
@@ -345,7 +345,7 @@ bool KVirtualGeometryScene::Init(IKRenderScene* scene, const KCamera* camera)
 				m_BinningScatterPipline[i]->BindStorageBuffer(BINDING_PAGE_DATA, KRenderGlobal::VirtualGeometryManager.GetPageDataBuffer(), COMPUTE_RESOURCE_IN, true);
 				m_BinningScatterPipline[i]->BindStorageBuffer(BINDING_QUEUE_STATE, m_QueueStateBuffer, COMPUTE_RESOURCE_IN, true);
 				m_BinningScatterPipline[i]->BindStorageBuffer(BINDING_SELECTED_CLUSTER_BATCH, m_SelectedClusterBuffer, COMPUTE_RESOURCE_IN, true);
-				m_BinningScatterPipline[i]->BindStorageBuffer(BINDING_INSTANCE_DATA, m_InstanceDataBuffer, COMPUTE_RESOURCE_IN, true);
+				m_BinningScatterPipline[i]->BindStorageBuffer(BINDING_VIRTUAL_GEOMETRY_INSTANCE_DATA, m_InstanceDataBuffer, COMPUTE_RESOURCE_IN, true);
 				m_BinningScatterPipline[i]->BindStorageBuffer(BINDING_RESOURCE, KRenderGlobal::VirtualGeometryManager.GetResourceBuffer(), COMPUTE_RESOURCE_IN, true);;
 				m_BinningScatterPipline[i]->BindStorageBuffer(BINDING_CLUSTER_BATCH, KRenderGlobal::VirtualGeometryManager.GetClusterBatchBuffer(), COMPUTE_RESOURCE_IN, true);
 				m_BinningScatterPipline[i]->BindStorageBuffer(BINDING_CLUSTER_MATERIAL_BUFFER, KRenderGlobal::VirtualGeometryManager.GetClusterMaterialStorageBuffer(), COMPUTE_RESOURCE_IN, true);
@@ -379,7 +379,7 @@ bool KVirtualGeometryScene::Init(IKRenderScene* scene, const KCamera* camera)
 			m_DebugPipeline->SetShader(ST_FRAGMENT, m_DebugFragmentShader.Get());
 
 			m_DebugPipeline->SetStorageBuffer(BINDING_SELECTED_CLUSTER_BATCH, ST_VERTEX, m_SelectedClusterBuffer);
-			m_DebugPipeline->SetStorageBuffer(BINDING_INSTANCE_DATA, ST_VERTEX, m_InstanceDataBuffer);
+			m_DebugPipeline->SetStorageBuffer(BINDING_VIRTUAL_GEOMETRY_INSTANCE_DATA, ST_VERTEX, m_InstanceDataBuffer);
 			m_DebugPipeline->SetStorageBuffer(BINDING_RESOURCE, ST_VERTEX, KRenderGlobal::VirtualGeometryManager.GetResourceBuffer());
 			m_DebugPipeline->SetStorageBuffer(BINDING_CLUSTER_BATCH, ST_VERTEX, KRenderGlobal::VirtualGeometryManager.GetClusterBatchBuffer());
 
@@ -614,24 +614,22 @@ bool KVirtualGeometryScene::UpdateInstanceData(KRHICommandList& commandList)
 			pipeline->SetColorWrite(true, true, true, true);
 			pipeline->SetDepthFunc(CF_LESS_OR_EQUAL, true, true);
 
-			uint32_t bindingBase = MAX_USER_TEXTURE_BINDING;
+			pipeline->SetStorageBuffer(VG_BASEPASS_BINDING_OFFSET + BINDING_SELECTED_CLUSTER_BATCH, ST_VERTEX, m_SelectedClusterBuffer);
+			pipeline->SetStorageBuffer(VG_BASEPASS_BINDING_OFFSET + BINDING_VIRTUAL_GEOMETRY_INSTANCE_DATA, ST_VERTEX, m_InstanceDataBuffer);
+			pipeline->SetStorageBuffer(VG_BASEPASS_BINDING_OFFSET + BINDING_RESOURCE, ST_VERTEX, KRenderGlobal::VirtualGeometryManager.GetResourceBuffer());
+			pipeline->SetStorageBuffer(VG_BASEPASS_BINDING_OFFSET + BINDING_CLUSTER_BATCH, ST_VERTEX, KRenderGlobal::VirtualGeometryManager.GetClusterBatchBuffer());
 
-			pipeline->SetStorageBuffer(bindingBase + BINDING_SELECTED_CLUSTER_BATCH, ST_VERTEX, m_SelectedClusterBuffer);
-			pipeline->SetStorageBuffer(bindingBase + BINDING_INSTANCE_DATA, ST_VERTEX, m_InstanceDataBuffer);
-			pipeline->SetStorageBuffer(bindingBase + BINDING_RESOURCE, ST_VERTEX, KRenderGlobal::VirtualGeometryManager.GetResourceBuffer());
-			pipeline->SetStorageBuffer(bindingBase + BINDING_CLUSTER_BATCH, ST_VERTEX, KRenderGlobal::VirtualGeometryManager.GetClusterBatchBuffer());
+			pipeline->SetStorageBuffer(VG_BASEPASS_BINDING_OFFSET + BINDING_CLUSTER_VERTEX_BUFFER, ST_VERTEX, KRenderGlobal::VirtualGeometryManager.GetClusterVertexStorageBuffer());
+			pipeline->SetStorageBuffer(VG_BASEPASS_BINDING_OFFSET + BINDING_CLUSTER_INDEX_BUFFER, ST_VERTEX, KRenderGlobal::VirtualGeometryManager.GetClusterIndexStorageBuffer());
+			pipeline->SetStorageBuffer(VG_BASEPASS_BINDING_OFFSET + BINDING_CLUSTER_MATERIAL_BUFFER, ST_VERTEX, KRenderGlobal::VirtualGeometryManager.GetClusterMaterialStorageBuffer());
 
-			pipeline->SetStorageBuffer(bindingBase + BINDING_CLUSTER_VERTEX_BUFFER, ST_VERTEX, KRenderGlobal::VirtualGeometryManager.GetClusterVertexStorageBuffer());
-			pipeline->SetStorageBuffer(bindingBase + BINDING_CLUSTER_INDEX_BUFFER, ST_VERTEX, KRenderGlobal::VirtualGeometryManager.GetClusterIndexStorageBuffer());
-			pipeline->SetStorageBuffer(bindingBase + BINDING_CLUSTER_MATERIAL_BUFFER, ST_VERTEX, KRenderGlobal::VirtualGeometryManager.GetClusterMaterialStorageBuffer());
+			pipeline->SetStorageBuffer(VG_BASEPASS_BINDING_OFFSET + BINDING_BINNING_DATA, ST_VERTEX, m_BinningDataBuffer);
+			pipeline->SetStorageBuffer(VG_BASEPASS_BINDING_OFFSET + BINDING_BINNING_HEADER, ST_VERTEX, m_BinningHeaderBuffer);
 
-			pipeline->SetStorageBuffer(bindingBase + BINDING_BINNING_DATA, ST_VERTEX, m_BinningDataBuffer);
-			pipeline->SetStorageBuffer(bindingBase + BINDING_BINNING_HEADER, ST_VERTEX, m_BinningHeaderBuffer);
+			pipeline->SetConstantBuffer(VG_BASEPASS_BINDING_OFFSET + BINDING_GLOBAL_DATA, ST_VERTEX | ST_FRAGMENT, m_GlobalDataBuffer);
 
-			pipeline->SetConstantBuffer(bindingBase + BINDING_GLOBAL_DATA, ST_VERTEX | ST_FRAGMENT, m_GlobalDataBuffer);
-
-			pipeline->SetConstantBuffer(bindingBase + BINDING_STREAMING_DATA, ST_VERTEX, KRenderGlobal::VirtualGeometryManager.GetStreamingDataBuffer());
-			pipeline->SetStorageBuffer(bindingBase + BINDING_PAGE_DATA, ST_VERTEX, KRenderGlobal::VirtualGeometryManager.GetPageDataBuffer());
+			pipeline->SetConstantBuffer(VG_BASEPASS_BINDING_OFFSET + BINDING_STREAMING_DATA, ST_VERTEX, KRenderGlobal::VirtualGeometryManager.GetStreamingDataBuffer());
+			pipeline->SetStorageBuffer(VG_BASEPASS_BINDING_OFFSET + BINDING_PAGE_DATA, ST_VERTEX, KRenderGlobal::VirtualGeometryManager.GetPageDataBuffer());
 
 			for (uint8_t i = 0; i < numSlot; ++i)
 			{
@@ -639,7 +637,7 @@ bool KVirtualGeometryScene::UpdateInstanceData(KRHICommandList& commandList)
 				IKSamplerPtr sampler = textureBinding->GetSampler(i);
 				if (texture && sampler)
 				{
-					pipeline->SetSampler(SHADER_BINDING_TEXTURE0 + i, texture->GetFrameBuffer(), sampler, true);
+					pipeline->SetSampler(VG_BASEPASS_BINDING_OFFSET + BINDING_VIRTUAL_GEOMETRY_TEXTURE0 + i, texture->GetFrameBuffer(), sampler, true);
 				}
 			}
 
@@ -912,7 +910,7 @@ bool KVirtualGeometryScene::BasePass(IKRenderPassPtr renderPass, KRHICommandList
 		material.misc3.x = (uint32_t)i;
 
 		KDynamicConstantBufferUsage objectUsage;
-		objectUsage.binding = BINDING_MATERIAL_DATA + MAX_MATERIAL_TEXTURE_BINDING;
+		objectUsage.binding = VG_BASEPASS_BINDING_OFFSET + BINDING_MATERIAL_DATA;
 		objectUsage.range = sizeof(material);
 
 		KRenderGlobal::DynamicConstantBufferManager.Alloc(&material, objectUsage);
