@@ -98,7 +98,7 @@ void KVoxilzer::UpdateVoxel(KRHICommandListBase& commandList)
 	{
 		if (m_VoxelLastUseOctree != m_VoxelUseOctree)
 		{
-			KRenderGlobal::Renderer.GetRHICommandList().Flush(RHICommandFlush::FlushRHIThreadToDone);
+			FLUSH_INFLIGHT_RENDER_JOB();
 			SetupVoxelReleatedData();
 		}
 

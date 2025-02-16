@@ -45,7 +45,7 @@ public:
 			: m_bQuit(false)
 		{
 			m_Thread = std::thread(&KRenderJobExecuteThread::ThreadFunc, this);
-			KSystem::SetThreadName(m_Thread, "RenderJobExecuteThread_" + std::to_string(threadIndex));
+			KSystem::SetThreadName(m_Thread, "RenderJobExecuteThread" + std::to_string(threadIndex));
 		}
 
 		~KRenderJobExecuteThread()

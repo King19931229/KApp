@@ -193,18 +193,18 @@ bool KRenderCore::InitController()
 		{
 			if (key == INPUT_KEY_ENTER)
 			{
-				KRenderGlobal::Renderer.GetRHICommandList().Flush(RHICommandFlush::FlushRHIThreadToDone);
+				FLUSH_INFLIGHT_RENDER_JOB();
 				KRenderGlobal::VirtualGeometryManager.Reload();
 			}
 			if (key == INPUT_KEY_SPACE)
 			{
-				KRenderGlobal::Renderer.GetRHICommandList().Flush(RHICommandFlush::FlushRHIThreadToDone);
+				FLUSH_INFLIGHT_RENDER_JOB();
 				KRenderGlobal::VirtualTextureManager.Reload();
 				// KRenderGlobal::GPUScene.Reload();
 			}
 			if (key == INPUT_KEY_R)
 			{
-				KRenderGlobal::Renderer.GetRHICommandList().Flush(RHICommandFlush::FlushRHIThreadToDone);
+				FLUSH_INFLIGHT_RENDER_JOB();
 				KRenderGlobal::PipelineManager.Reload();
 			}
 		});
@@ -498,13 +498,14 @@ void KRenderCore::Render()
 		KRenderGlobal::Renderer.SetUIOverlay(uiOverlay);
 
 		KRenderGlobal::Renderer.Update();
-		KRenderGlobal::Renderer.Execute(chainImageIndex);
-
-		KRenderGlobal::Renderer.GetRHICommandList().Present(mainSwapChain, [this](IKSwapChain* swapChain, bool needResize)
+		if (KRenderGlobal::Renderer.Execute(chainImageIndex))
 		{
-			m_bSwapChainResized = needResize;
-			++KRenderGlobal::CurrentFrameNum;
-		});
+			KRenderGlobal::Renderer.GetRHICommandList().Present(mainSwapChain, [this](IKSwapChain* swapChain, bool needResize)
+			{
+				m_bSwapChainResized = needResize;
+				++KRenderGlobal::CurrentFrameNum;
+			});
+		}
 	}
 
 	std::unordered_map<IKRenderWindow*, IKSwapChainPtr> m_SecordaryWindow;
@@ -512,7 +513,7 @@ void KRenderCore::Render()
 	if (!m_SecordaryWindow.empty())
 	{
 		// 等待设备空闲 不再进行FrameInFlight
-		KRenderGlobal::Renderer.GetRHICommandList().Flush(RHICommandFlush::FlushRHIThreadToDone);
+		FLUSH_INFLIGHT_RENDER_JOB();
 	}
 
 	for (auto& pair : m_SecordaryWindow)
@@ -578,7 +579,7 @@ bool KRenderCore::Wait()
 	if (m_bInit)
 	{
 		FLUSH_RENDER_COMMAND();
-		KRenderGlobal::Renderer.GetRHICommandList().Flush(RHICommandFlush::FlushRHIThreadToDone);
+		FLUSH_INFLIGHT_RENDER_JOB();
 		return true;
 	}
 	return false;

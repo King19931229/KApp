@@ -55,8 +55,10 @@ namespace KRenderGlobal
 	bool EnableRayTrace = true;
 	bool SupportAnisotropySample = true;
 	bool EnableMultithreadRender = false;
-	bool EnableRHIImmediate = true;
+	bool EnableRHIImmediate = false;
 	bool EnableAsyncLoad = true;
+	bool EnableGPUScene = false;
+	bool EnableAsyncCompute = false;
 	bool InEditor = false;
 
 	uint32_t CurrentInFlightFrameIndex = 0;

@@ -499,7 +499,7 @@ void KVirtualTextureManager::UpdateBuffer(KRHICommandList& commandList)
 
 		if (descriptionBuffer->GetBufferSize() < m_VirtualIDCounter * sizeof(glm::uvec4))
 		{
-			KRenderGlobal::Renderer.GetRHICommandList().Flush(RHICommandFlush::FlushRHIThreadToDone);
+			FLUSH_INFLIGHT_RENDER_JOB();
 			uint32_t bufferSize = KMath::SmallestPowerOf2GreaterEqualThan(m_VirtualIDCounter) * sizeof(glm::uvec4);
 			descriptionBuffer->UnInit();
 			descriptionBuffer->InitMemory(bufferSize, nullptr);
@@ -513,7 +513,7 @@ void KVirtualTextureManager::UpdateBuffer(KRHICommandList& commandList)
 		IKStorageBufferPtr feedbackResultBuffer = m_FeedbackResultBuffer;
 		if (feedbackResultBuffer->GetBufferSize() < m_FeedbackTileCount * sizeof(uint32_t))
 		{
-			KRenderGlobal::Renderer.GetRHICommandList().Flush(RHICommandFlush::FlushRHIThreadToDone);
+			FLUSH_INFLIGHT_RENDER_JOB();
 			uint32_t bufferSize = 4 * ((m_FeedbackTileCount + 3) / 4) * sizeof(uint32_t);
 			feedbackResultBuffer->UnInit();
 			feedbackResultBuffer->InitMemory(bufferSize, nullptr);
@@ -523,7 +523,7 @@ void KVirtualTextureManager::UpdateBuffer(KRHICommandList& commandList)
 		IKStorageBufferPtr mergedFeedbackResultBuffer = m_MergedFeedbackResultBuffer;
 		if (mergedFeedbackResultBuffer->GetBufferSize() < 2 * (1 + m_FeedbackTileCount) * sizeof(uint32_t))
 		{
-			KRenderGlobal::Renderer.GetRHICommandList().Flush(RHICommandFlush::FlushRHIThreadToDone);
+			FLUSH_INFLIGHT_RENDER_JOB();
 			uint32_t bufferSize = 4 * ((2 * (m_FeedbackTileCount + 1) + 3) / 4) * sizeof(uint32_t);
 			mergedFeedbackResultBuffer->UnInit();
 			mergedFeedbackResultBuffer->InitMemory(bufferSize, nullptr);

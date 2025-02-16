@@ -305,10 +305,6 @@ void KRHICommandList::Flush(RHICommandFlush::Type flushType)
 			m_AsyncTask.Release();
 		}
 	}
-	if (flushType >= RHICommandFlush::FlushRHIThreadToDone)
-	{
-		KRenderGlobal::RenderDevice->Wait();
-	}
 }
 
 void KRHICommandList::Execute(IKRayTracePipelinePtr rayTrace)

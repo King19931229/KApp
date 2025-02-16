@@ -376,7 +376,7 @@ bool KPostProcessManager::PopulateRenderCommand(KRenderCommand& command, IKPipel
 
 bool KPostProcessManager::Construct()
 {
-	KRenderGlobal::Renderer.GetRHICommandList().Flush(RHICommandFlush::FlushRHIThreadToDone);
+	FLUSH_INFLIGHT_RENDER_JOB();
 
 	ClearDeletedPassConnection();
 

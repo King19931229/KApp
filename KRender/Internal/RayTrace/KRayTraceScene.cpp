@@ -429,7 +429,7 @@ bool KRayTraceScene::Execute(KRHICommandList& commandList)
 {
 	if (m_bNeedRecreateAS)
 	{
-		KRenderGlobal::Renderer.GetRHICommandList().Flush(RHICommandFlush::FlushRHIThreadToDone);
+		FLUSH_INFLIGHT_RENDER_JOB();
 		RecreateAS();
 	}
 

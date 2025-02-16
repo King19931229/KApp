@@ -456,7 +456,7 @@ void KDeferredRenderer::BuildRenderCommand(KRHICommandList& commandList, Deferre
 	IKRenderPassPtr renderPass = m_RenderPass[deferredRenderStage];
 	commandList.BeginDebugMarker(debugMarker, glm::vec4(1));
 
-	if (!KRenderGlobal::GPUScene.GetEnable())
+	if (!KRenderGlobal::EnableGPUScene)
 	{
 		for (KMaterialSubMeshInstance& subMeshInstance : subMeshInstances)
 		{

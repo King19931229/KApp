@@ -518,8 +518,7 @@ namespace RHICommandFlush
 	enum Type
 	{
 		DispatchToRHIThread,
-		FlushRHIThread,
-		FlushRHIThreadToDone
+		FlushRHIThread
 	};
 }
 

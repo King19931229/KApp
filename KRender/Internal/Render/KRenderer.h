@@ -107,7 +107,6 @@ protected:
 	int m_MultithreadCount;
 
 	bool m_PrevEnableAsyncCompute;
-	bool m_EnableAsyncCompute;
 
 	bool m_DisplayCameraCube;
 	bool m_CameraOutdate;
@@ -134,7 +133,6 @@ public:
 	bool SetCallback(IKRenderWindow* window, OnWindowRenderCallback* callback) override;
 	bool RemoveCallback(IKRenderWindow* window) override;
 
-	bool& GetEnableAsyncCompute() { return m_EnableAsyncCompute; }
 	int& GetMultithreadCount() { return m_MultithreadCount; }
 
 	KRHICommandList& GetRHICommandList() { return m_RHICommandList; }

@@ -113,6 +113,8 @@ namespace KRenderGlobal
 	extern bool EnableMultithreadRender;
 	extern bool EnableRHIImmediate;
 	extern bool EnableAsyncLoad;
+	extern bool EnableGPUScene;
+	extern bool EnableAsyncCompute;
 	extern bool InEditor;
 
 	extern uint32_t CurrentInFlightFrameIndex;
@@ -130,3 +132,9 @@ namespace KRenderGlobal
 	extern IKRenderWindow* MainWindow;
 	extern IKRenderDevice* RenderDevice;
 };
+
+#define FLUSH_INFLIGHT_RENDER_JOB()\
+{\
+	KRenderGlobal::Renderer.GetRHICommandList().Flush(RHICommandFlush::FlushRHIThread);\
+	KRenderGlobal::RenderDevice->Wait();\
+}

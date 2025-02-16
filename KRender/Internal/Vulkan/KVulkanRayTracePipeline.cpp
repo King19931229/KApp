@@ -450,7 +450,7 @@ bool KVulkanRayTracePipeline::RecreateFromAS()
 {
 	if (m_Inited)
 	{
-		KRenderGlobal::Renderer.GetRHICommandList().Flush(RHICommandFlush::FlushRHIThreadToDone);
+		FLUSH_INFLIGHT_RENDER_JOB();
 
 		DestroyStrogeScene();
 		CreateStrogeScene();
@@ -491,7 +491,7 @@ bool KVulkanRayTracePipeline::ResizeImage(uint32_t width, uint32_t height)
 
 	if (m_Inited)
 	{
-		KRenderGlobal::Renderer.GetRHICommandList().Flush(RHICommandFlush::FlushRHIThreadToDone);
+		FLUSH_INFLIGHT_RENDER_JOB();
 
 		m_StorageRT->UnInit();
 		m_StorageRT->InitFromStorage(m_Width, m_Height, 1, m_Format);

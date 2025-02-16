@@ -449,14 +449,14 @@ void KVulkanSwapChain::PresentQueue(bool& needResize)
 	VkResult vkResult = VK_RESULT_MAX_ENUM;
 
 	// Present等待此信号量
-	VkSemaphore signalSemaphores[] = { ((KVulkanSemaphore*)m_RenderFinishedSemaphore.get())->GetVkSemaphore() };
+	VkSemaphore waitSemaphores[] = { ((KVulkanSemaphore*)m_RenderFinishedSemaphore.get())->GetVkSemaphore() };
 
 	VkPresentInfoKHR presentInfo = {};
 	presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
 
 	presentInfo.waitSemaphoreCount = 1;
 	// 交换链Present前等待命令缓冲提交完成
-	presentInfo.pWaitSemaphores = signalSemaphores;
+	presentInfo.pWaitSemaphores = waitSemaphores;
 
 	VkSwapchainKHR swapChains[] = {m_SwapChain};
 	presentInfo.swapchainCount = 1;

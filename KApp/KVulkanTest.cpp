@@ -30,6 +30,7 @@ void InitQEM(IKEnginePtr engine)
 
 	static const ModelInfo modelInfos[] =
 	{
+		{ "Models/scenes/torusknot.gltf", ".gltf", 1.0f},
 		{ "Models/OBJ/small_bunny.obj", ".obj", 1000.0f },
 		{ "Models/OBJ/small_bunny2.obj", ".obj", 1000.0f },
 		{ "Models/OBJ/dragon.obj", ".obj", 100.0f },
@@ -355,7 +356,7 @@ void InitQEM(IKEnginePtr engine)
 		bool initUserData = false;
 
 		std::vector<IKEntityPtr> entites;
-		for (uint32_t fileIndex = 3; fileIndex < 4; ++fileIndex)
+		for (uint32_t fileIndex = 0; fileIndex < 1; ++fileIndex)
 		{
 			KMeshRawData userData;
 			const char* filePath = modelInfos[fileIndex].path;
@@ -372,12 +373,16 @@ void InitQEM(IKEnginePtr engine)
 			if (loader->Import(filePath, option, userData))
 			{
 				userData.components = option.components;
+				for (auto& part : userData.parts)
+				{
+					part.material.alphaMode = MAM_BLEND;
+				}
 			}
 
-			const uint32_t count = 30;
+			const uint32_t count = 5;
 			for (uint32_t i = 0; i < count; ++i)
 			{
-				for (uint32_t j = 0; j < 3; ++j)
+				for (uint32_t j = 0; j < count; ++j)
 				{
 					for (uint32_t k = 0; k < count; ++k)
 					{
@@ -385,7 +390,8 @@ void InitQEM(IKEnginePtr engine)
 						IKComponentBase* component = nullptr;
 						if (entity->RegisterComponent(CT_RENDER, &component))
 						{
-							((IKRenderComponent*)component)->InitAsVirtualGeometry(userData, "vg" + std::to_string(fileIndex));
+							//((IKRenderComponent*)component)->InitAsVirtualGeometry(userData, "vg" + std::to_string(fileIndex));
+							((IKRenderComponent*)component)->InitAsUserData(userData, "test", false);
 						}
 						if (entity->RegisterComponent(CT_TRANSFORM, &component))
 						{
@@ -395,7 +401,7 @@ void InitQEM(IKEnginePtr engine)
 						entity->GetBound(bound);
 						if (entity->GetComponent(CT_TRANSFORM, &component))
 						{
-							((IKTransformComponent*)component)->SetPosition(glm::vec3(i * bound.GetExtend().x, j * bound.GetExtend().y, (count * (fileIndex - 3) + k) * bound.GetExtend().z));
+							((IKTransformComponent*)component)->SetPosition(glm::vec3(i * bound.GetExtend().x, j * bound.GetExtend().y, k * bound.GetExtend().z));
 						}
 						scene->Add(entity.get());
 						entites.push_back(entity);
@@ -450,8 +456,8 @@ int main()
 	options.window.type = KEngineOptions::WindowInitializeInformation::TYPE_DEFAULT;
 
 	engine->Init(std::move(window), options);
-	//InitQEM(engine);
-
+	InitQEM(engine);
+	/*
 	IKDataStreamPtr stream = GetDataStream(IT_FILEHANDLE);
 	if (stream->Open("D:/KApp/scene.txt", IM_READ))
 	{
@@ -461,7 +467,7 @@ int main()
 	}
 	stream->Close();
 	stream = nullptr;
-
+	*/
 #if 0
 	{
 		KMeshRawData userData;

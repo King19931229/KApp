@@ -194,8 +194,6 @@ protected:
 	};
 	uint32_t m_DataDirtyBits;
 
-	bool m_Enable;
-
 	EntityObserverFunc m_OnSceneChangedFunc;
 	void OnSceneChanged(EntitySceneOp op, IKEntity* entity);
 
@@ -232,8 +230,6 @@ protected:
 
 	void InitializeBuffers();
 	void InitializePipelines();
-
-	bool& IsEnable() { return m_Enable; }
 public:
 	KGPUScene();
 	~KGPUScene();
@@ -247,6 +243,4 @@ public:
 	bool BasePassPost(IKRenderPassPtr renderPass, KRHICommandList& commandList);
 
 	void Reload();
-
-	bool& GetEnable() { return m_Enable; }
 };

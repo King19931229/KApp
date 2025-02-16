@@ -9,7 +9,6 @@ KGPUScene::KGPUScene()
 	: m_Scene(nullptr)
 	, m_Camera(nullptr)
 	, m_DataDirtyBits(0)
-	, m_Enable(false)
 {
 #define GPUSCENE_BINDING_TO_STR(x) #x
 
@@ -1267,7 +1266,7 @@ void KGPUScene::RebuildDirtyBuffer()
 {
 	if (m_DataDirtyBits)
 	{
-		KRenderGlobal::Renderer.GetRHICommandList().Flush(RHICommandFlush::FlushRHIThreadToDone);
+		FLUSH_INFLIGHT_RENDER_JOB();
 		RebuildEntityDataIndex();
 	}
 	if (m_DataDirtyBits & MEGA_BUFFER_DIRTY)
@@ -1313,7 +1312,7 @@ void KGPUScene::UpdateInstanceDataBuffer(KRHICommandList& commandList)
 
 bool KGPUScene::Execute(KRHICommandList& commandList)
 {
-	if (!m_Enable)
+	if (!KRenderGlobal::EnableGPUScene)
 	{
 		return true;
 	}
@@ -1417,7 +1416,7 @@ bool KGPUScene::Execute(KRHICommandList& commandList)
 
 bool KGPUScene::BasePassMain(IKRenderPassPtr renderPass, KRHICommandList& commandList)
 {
-	if (!m_Enable)
+	if (!KRenderGlobal::EnableGPUScene)
 	{
 		return true;
 	}
@@ -1493,7 +1492,7 @@ bool KGPUScene::BasePassMain(IKRenderPassPtr renderPass, KRHICommandList& comman
 
 bool KGPUScene::BasePassPost(IKRenderPassPtr renderPass, KRHICommandList& commandList)
 {
-	if (!m_Enable)
+	if (!KRenderGlobal::EnableGPUScene)
 	{
 		return true;
 	}

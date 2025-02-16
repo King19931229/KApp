@@ -160,9 +160,9 @@ void KRenderImGui::Run()
 		if (m_DebugMenuEnable[ADVANCED_CONTROL])
 		{
 			ImGui::Begin(DebugMenuName[ADVANCED_CONTROL], nullptr, ImGuiWindowFlags_AlwaysAutoResize);
-			ImGui::Checkbox("AsyncCompute", &KRenderGlobal::Renderer.GetEnableAsyncCompute());
+			ImGui::Checkbox("AsyncCompute", &KRenderGlobal::EnableAsyncCompute);
 			ImGui::Checkbox("RHIImmediate", &KRenderGlobal::EnableRHIImmediate);
-			ImGui::Checkbox("UseGPUScene", &KRenderGlobal::GPUScene.GetEnable());
+			ImGui::Checkbox("UseGPUScene", &KRenderGlobal::EnableGPUScene);
 			ImGui::Checkbox("MultithreadRender", &KRenderGlobal::EnableMultithreadRender);
 			ImGui::SliderInt("MultithreadCount", &KRenderGlobal::Renderer.GetMultithreadCount(), 1, 128);
 			ImGui::End();

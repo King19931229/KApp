@@ -60,7 +60,6 @@ KRenderer::KRenderer()
 	m_PrevEnableAsyncCompute(false),
 	m_PrevMultithreadCount(std::thread::hardware_concurrency()),
 	m_MultithreadCount(std::thread::hardware_concurrency()),
-	m_EnableAsyncCompute(false),
 	m_DisplayCameraCube(true),
 	m_CameraOutdate(true)
 {
@@ -147,15 +146,15 @@ bool KRenderer::Render(uint32_t chainImageIndex)
 {
 	UpdateCamera();
 
-	if (m_PrevEnableAsyncCompute != m_EnableAsyncCompute)
+	if (m_PrevEnableAsyncCompute != KRenderGlobal::EnableAsyncCompute)
 	{
-		m_RHICommandList.Flush(RHICommandFlush::FlushRHIThreadToDone);
-		SwitchAsyncCompute(m_EnableAsyncCompute);
+		FLUSH_INFLIGHT_RENDER_JOB();
+		SwitchAsyncCompute(KRenderGlobal::EnableAsyncCompute);
 	}
 
 	if (m_PrevMultithreadCount != m_MultithreadCount)
 	{
-		m_RHICommandList.Flush(RHICommandFlush::FlushRHIThreadToDone);
+		FLUSH_INFLIGHT_RENDER_JOB();
 		ResetThreadNum(m_MultithreadCount);
 	}
 
@@ -244,7 +243,7 @@ bool KRenderer::Render(uint32_t chainImageIndex)
 		// 清空AO结果
 		KRenderGlobal::DeferredRenderer.EmptyAO(m_RHICommandList);
 
-		if (m_EnableAsyncCompute)
+		if (KRenderGlobal::EnableAsyncCompute)
 		{
 			KRenderGlobal::GBuffer.TransitionColor(m_RHICommandList, m_PreGraphics.queue, m_Compute.queue, PIPELINE_STAGE_COMPUTE_SHADER, PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_GENERAL);
 			KRenderGlobal::GBuffer.TransitionDepthStencil(m_RHICommandList, m_PreGraphics.queue, m_Compute.queue, PIPELINE_STAGE_COMPUTE_SHADER, PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_GENERAL);
@@ -284,7 +283,7 @@ bool KRenderer::Render(uint32_t chainImageIndex)
 	{
 		KRenderGlobal::RenderDevice->SetCheckPointMarker(commandBuffer.get(), KRenderGlobal::CurrentFrameNum, "Render");
 
-		if (m_EnableAsyncCompute)
+		if (KRenderGlobal::EnableAsyncCompute)
 		{
 			KRenderGlobal::GBuffer.TransitionAO(m_RHICommandList, m_Compute.queue, m_PostGraphics.queue, PIPELINE_STAGE_COMPUTE_SHADER, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_GENERAL, IMAGE_LAYOUT_SHADER_READ_ONLY);
 			KRenderGlobal::GBuffer.TransitionColor(m_RHICommandList, m_Compute.queue, m_PostGraphics.queue, PIPELINE_STAGE_COMPUTE_SHADER, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_GENERAL, IMAGE_LAYOUT_SHADER_READ_ONLY);
@@ -472,14 +471,14 @@ bool KRenderer::Init(const KRendererInitContext& initContext)
 
 bool KRenderer::SwitchAsyncCompute(bool enableAsyncCompute)
 {
-	m_PrevEnableAsyncCompute = m_EnableAsyncCompute = enableAsyncCompute;
+	m_PrevEnableAsyncCompute = enableAsyncCompute;
 
 	m_Shadow.UnInit();
 	m_PreGraphics.UnInit();
 	m_PostGraphics.UnInit();
 	m_Compute.UnInit();
 
-	if (m_EnableAsyncCompute)
+	if (KRenderGlobal::EnableAsyncCompute)
 	{
 		m_Shadow.Init(QUEUE_GRAPHICS, 0, m_MultithreadCount, "Shadow");
 		m_PreGraphics.Init(QUEUE_GRAPHICS, 0, m_MultithreadCount, "PreGraphics");
@@ -513,7 +512,7 @@ bool KRenderer::ResetThreadNum(uint32_t threadNum)
 
 bool KRenderer::UnInit()
 {
-	KRenderGlobal::Renderer.GetRHICommandList().Flush(RHICommandFlush::FlushRHIThreadToDone);
+	FLUSH_INFLIGHT_RENDER_JOB();
 
 	KRenderGlobal::DeferredRenderer.RemoveCallFunc(DRS_STAGE_MAIN_BASE_PASS, &m_BasePassMainCallFunc);
 	KRenderGlobal::DeferredRenderer.RemoveCallFunc(DRS_STAGE_POST_BASE_PASS, &m_BasePassPostCallFunc);
@@ -734,9 +733,9 @@ bool KRenderer::Execute(uint32_t chainImageIndex)
 			if (m_Scene && m_Camera)
 			{
 				Render(chainImageIndex);
+				return true;
 			}
 		}
 	}
-
-	return true;
+	return false;
 }

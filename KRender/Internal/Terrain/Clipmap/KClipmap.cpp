@@ -1129,7 +1129,7 @@ void KClipmap::Update(const KCamera* camera)
 		clipLevel->UpdateHeightData();
 	}
 
-	KRenderGlobal::Renderer.GetRHICommandList().Flush(RHICommandFlush::FlushRHIThreadToDone);
+	FLUSH_INFLIGHT_RENDER_JOB();
 	for (int32_t level = 0; level < m_LevelCount; ++level)
 	{
 		m_ClipLevels[level]->UpdateTexture();
