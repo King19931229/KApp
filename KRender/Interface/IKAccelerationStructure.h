@@ -12,6 +12,7 @@ struct IKAccelerationStructure
 		IKMaterialTextureBindingPtr tex;
 	};
 
+	virtual ~IKAccelerationStructure() {}
 	virtual bool InitBottomUp(VertexFormat format, IKVertexBufferPtr vertexBuffer, IKIndexBufferPtr indexBuffer) = 0;
 	virtual bool InitTopDown(const std::vector<BottomASTransformTuple>& bottomASs) = 0;
 	virtual bool UpdateTopDown(const std::vector<BottomASTransformTuple>& bottomASs) = 0;

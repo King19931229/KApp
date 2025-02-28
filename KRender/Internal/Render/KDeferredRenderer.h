@@ -34,7 +34,9 @@ protected:
 
 	void BuildMaterialSubMeshInstance(DeferredRenderStage renderStage, const std::vector<IKEntity*>& cullRes, std::vector<KMaterialSubMeshInstance>& instances);
 	void HandleRenderCommandBinding(DeferredRenderStage renderStage, KRenderCommand& command);
-	void BuildRenderCommand(KRHICommandList& commandList, DeferredRenderStage deferredRenderStage, const std::vector<IKEntity*>& cullRes);
+
+	void PopulateRenderCommand(DeferredRenderStage deferredRenderStage, const std::vector<IKEntity*>& cullRes, KRenderStageStatistics& statistics, KRenderCommandList& renderCommands);
+	void ExecuteRenderPass(KRHICommandList& commandList, DeferredRenderStage deferredRenderStage, const std::vector<IKEntity*>& cullRes);
 
 	void RecreateRenderPass(uint32_t width, uint32_t heigh);
 	void RecreatePipeline();
@@ -54,6 +56,7 @@ public:
 	void PostBasePass(KRHICommandList& commandList);
 	void DeferredLighting(KRHICommandList& commandList);
 	void ForwardOpaque(KRHICommandList& commandList, const std::vector<IKEntity*>& cullRes);
+	void CopyOpaqueColor(KRHICommandList& commandList);
 	void ForwardTransprant(KRHICommandList& commandList, const std::vector<IKEntity*>& cullRes);
 	void SkyPass(KRHICommandList& commandList);
 	void CopySceneColorToFinal(KRHICommandList& commandList);

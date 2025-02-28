@@ -38,7 +38,8 @@ class KGBuffer
 protected:
 	IKRenderTargetPtr m_RenderTarget[GBUFFER_TARGET_COUNT];
 	IKRenderTargetPtr m_DepthStencilTarget;
-	IKRenderTargetPtr m_SceneTarget;
+	IKRenderTargetPtr m_OpaqueColorCopyTarget;
+	IKRenderTargetPtr m_SceneColorTarget;
 	IKRenderTargetPtr m_AOTarget;
 	IKSamplerPtr m_GBufferSampler;
 	IKSamplerPtr m_GBufferClosestSampler;
@@ -53,13 +54,15 @@ public:
 	bool UnInit();
 	bool Resize(uint32_t width, uint32_t height);
 
-	bool TransitionColor(KRHICommandList& commandList, IKQueuePtr srcQueue, IKQueuePtr dstQueue, PipelineStages srcStages, PipelineStages dstStages, ImageLayout oldLayout, ImageLayout newLayout);
+	bool TransitionOpaqueColorCopy(KRHICommandList& commandList, IKQueuePtr srcQueue, IKQueuePtr dstQueue, PipelineStages srcStages, PipelineStages dstStages, ImageLayout oldLayout, ImageLayout newLayout);
+	bool TransitionGBuffer(KRHICommandList& commandList, IKQueuePtr srcQueue, IKQueuePtr dstQueue, PipelineStages srcStages, PipelineStages dstStages, ImageLayout oldLayout, ImageLayout newLayout);
 	bool TransitionDepthStencil(KRHICommandList& commandList, IKQueuePtr srcQueue, IKQueuePtr dstQueue, PipelineStages srcStages, PipelineStages dstStages, ImageLayout oldLayout, ImageLayout newLayout);
 	bool TransitionAO(KRHICommandList& commandList, IKQueuePtr srcQueue, IKQueuePtr dstQueue, PipelineStages srcStages, PipelineStages dstStages, ImageLayout oldLayout, ImageLayout newLayout);
 
 	inline IKRenderTargetPtr GetGBufferTarget(GBufferTarget target) { return m_RenderTarget[target]; }
 	inline IKRenderTargetPtr GetDepthStencilTarget() { return m_DepthStencilTarget; }
-	inline IKRenderTargetPtr GetSceneColor() { return m_SceneTarget; }
+	inline IKRenderTargetPtr GetOpaqueColorCopy() { return m_OpaqueColorCopyTarget; }
+	inline IKRenderTargetPtr GetSceneColor() { return m_SceneColorTarget; }
 	inline IKRenderTargetPtr GetAOTarget() { return m_AOTarget; }
 	inline IKSamplerPtr GetSampler() { return m_GBufferSampler; }
 	inline IKSamplerPtr GetClosestSampler() { return m_GBufferSampler; }

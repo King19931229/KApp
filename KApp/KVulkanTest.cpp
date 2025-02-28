@@ -379,7 +379,7 @@ void InitQEM(IKEnginePtr engine)
 				}
 			}
 
-			const uint32_t count = 5;
+			const uint32_t count = 2;
 			for (uint32_t i = 0; i < count; ++i)
 			{
 				for (uint32_t j = 0; j < count; ++j)
@@ -391,6 +391,13 @@ void InitQEM(IKEnginePtr engine)
 						if (entity->RegisterComponent(CT_RENDER, &component))
 						{
 							//((IKRenderComponent*)component)->InitAsVirtualGeometry(userData, "vg" + std::to_string(fileIndex));
+							for (auto& part : userData.parts)
+							{
+								if (i == 0 && j == 0 && k == 0)
+									part.material.alphaMode = MAM_MASK;
+								else
+									part.material.alphaMode = MAM_BLEND;
+							}
 							((IKRenderComponent*)component)->InitAsUserData(userData, "test", false);
 						}
 						if (entity->RegisterComponent(CT_TRANSFORM, &component))

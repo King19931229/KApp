@@ -79,37 +79,44 @@ bool KSubMesh::UnInit()
 bool KSubMesh::CreateAccelerationStructure()
 {
 	if (m_AccelerationStructure)
+	{
 		return true;
+	}
 
 	if (m_IndexDraw)
 	{
 		KRenderGlobal::RenderDevice->CreateAccelerationStructure(m_AccelerationStructure);
-
+		/*
 		if (m_IndexData.indexBuffer->GetIndexType() == IT_16)
 		{
-			IKIndexBufferPtr newIndexBuffer = nullptr;
+			IKIndexBufferPtr indexBuffer = nullptr;
 
-			KRenderGlobal::RenderDevice->CreateIndexBuffer(newIndexBuffer);
+			KRenderGlobal::RenderDevice->CreateIndexBuffer(indexBuffer);
 			size_t count = m_IndexData.indexBuffer->GetIndexCount();
 
-			std::vector<uint16_t> srcData; srcData.resize(count);
+			std::vector<uint16_t> srcData;
+			srcData.resize(count);
 			ASSERT_RESULT(m_IndexData.indexBuffer->Read(srcData.data()));
 
-			std::vector<uint32_t> destData; destData.resize(count);
-			for (size_t i = 0; i < count; ++i) destData[i] = srcData[i];
+			std::vector<uint32_t> destData;
+			destData.resize(count);
+			for (size_t i = 0; i < count; ++i)
+			{
+				destData[i] = srcData[i];
+			}
 
-			ASSERT_RESULT(newIndexBuffer->InitMemory(IT_32, count, destData.data()));
-			ASSERT_RESULT(newIndexBuffer->InitDevice(m_IndexData.indexBuffer->IsHostVisible()));
+			ASSERT_RESULT(indexBuffer->InitMemory(IT_32, count, destData.data()));
+			ASSERT_RESULT(indexBuffer->InitDevice(m_IndexData.indexBuffer->IsHostVisible()));
 			SAFE_UNINIT(m_IndexData.indexBuffer);
-			m_IndexData.indexBuffer = newIndexBuffer;
+			m_IndexData.indexBuffer = indexBuffer;
 		}
-
+		*/
 		m_AccelerationStructure->SetDebugName((m_DebugLabel + "_BLAS").c_str());
 		m_AccelerationStructure->InitBottomUp(m_pVertexData->vertexFormats[0], m_pVertexData->vertexBuffers[0], m_IndexData.indexBuffer);
 	}
 	else
 	{
-		KLog::Logger->Log(LL_ERROR, "No Indexbuffer No AccelerationStructure");
+		KLog::Logger->Log(LL_ERROR, "No IndexBuffer No AccelerationStructure");
 	}
 
 	return true;
@@ -118,7 +125,9 @@ bool KSubMesh::CreateAccelerationStructure()
 bool KSubMesh::DestroyAccelerationStructure()
 {
 	if (!m_AccelerationStructure)
+	{
 		return true;
+	}
 	SAFE_UNINIT(m_AccelerationStructure);
 	return true;
 }

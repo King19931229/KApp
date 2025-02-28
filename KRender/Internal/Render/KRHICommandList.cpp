@@ -210,7 +210,7 @@ void KRHICommandList::InternalCurrentThreadedContext(uint32_t threadNum, IKComma
 {
 	m_CurrentThreadNum = threadNum;
 	m_CurrentCommandBuffer = inCommandBuffer;
-	m_CurrentMultiThreadPool = m_MultiThreadPool;
+	m_CurrentMultiThreadPool = threadPool;
 	m_CurrentThreadCommandPools = threadCommandPools;
 	m_CurrentThreadedRenderPass = renderPass;
 	m_CurrentRenderCmdList = std::move(renderCmdList);

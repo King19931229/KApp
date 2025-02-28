@@ -30,14 +30,15 @@ layout(location = 11) in vec3 color5;
 layout(location = 12) in flat uint darwIndex;
 #endif
 
+/* Shader compiler will replace this into the textcode of the material */
+#include "material_generate_code.h"
+
+#ifdef BASE_PASS
 layout(location = 0) out vec4 RT0;
 layout(location = 1) out vec4 RT1;
 layout(location = 2) out vec4 RT2;
 layout(location = 3) out vec4 RT3;
 layout(location = 4) out vec4 RT4;
-
-/* Shader compiler will replace this into the textcode of the material */
-#include "material_generate_code.h"
 
 void EncodeGBuffer(vec3 pos, vec3 normal, vec2 motion, vec3 baseColor, vec3 emissive, float metal, float roughness, float ao)
 {
@@ -54,6 +55,7 @@ void EncodeGBuffer(vec3 pos, vec3 normal, vec2 motion, vec3 baseColor, vec3 emis
 	RT3.y = roughness;
 	RT4.xyz = emissive;
 }
+#endif
 
 void main()
 {
@@ -68,6 +70,7 @@ void main()
 #endif
 		);
 
+#ifdef BASE_PASS
 	EncodeGBuffer(
 		parameters.position,
 		parameters.normal,
@@ -78,4 +81,5 @@ void main()
 		parameters.roughness,
 		parameters.ao
 		);
+#endif
 }

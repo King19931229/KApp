@@ -13,6 +13,7 @@ typedef std::tuple<IKComponentCreateFunc, IKComponentDestroyFunc> IKComponentCre
 
 struct IKComponentManager
 {
+	virtual ~IKComponentManager() {}
 	virtual bool RegisterFunc(ComponentType type, IKComponentCreateDestroyFuncPair allocfree) = 0;
 	virtual bool UnRegisterFunc(ComponentType type) = 0;
 	virtual bool UnRegisterAllFunc() = 0;

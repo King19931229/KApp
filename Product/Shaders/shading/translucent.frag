@@ -127,7 +127,8 @@ void main()
 
 	vec3 final = ambient + direct + emissive;
 
-	outColor = vec4(final, opacity); 
+	outColor = vec4(final, opacity);
+	outColor += vec4(0.2, 0.5, 0.8, 0.0);
 
 	uint debugOption = debug.debugOption;
 	switch(debugOption)

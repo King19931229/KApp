@@ -137,7 +137,7 @@ bool KVirtualTextureManager::Init(uint32_t tileSize, uint32_t tileDimension, uin
 
 	KRenderGlobal::RenderDevice->CreateStorageBuffer(m_VirtualTextrueDescriptionBuffer);
 	m_VirtualTextrueDescriptionBuffer->SetDebugName("VirtualTextrueDescription");
-	m_VirtualTextrueDescriptionBuffer->InitMemory(1, false);
+	m_VirtualTextrueDescriptionBuffer->InitMemory(sizeof(glm::uvec4), false);
 	m_VirtualTextrueDescriptionBuffer->InitDevice(false, false);
 
 	Resize(1024, 1024);

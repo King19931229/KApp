@@ -574,6 +574,9 @@
     <ClInclude Include="Internal\Render\KRHICommandList.h">
       <Filter>Internal\Render</Filter>
     </ClInclude>
+    <ClInclude Include="Internal\Object\KDepthPeeling.h">
+      <Filter>Internal\Object</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Internal\KRenderDevice.cpp">
@@ -939,6 +942,9 @@
     </ClCompile>
     <ClCompile Include="Internal\Render\KRHIImmediateCommandList.cpp">
       <Filter>Internal\Render</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\Object\KDepthPeeling.cpp">
+      <Filter>Internal\Object</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

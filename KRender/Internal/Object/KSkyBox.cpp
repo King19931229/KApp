@@ -97,6 +97,7 @@ void KSkyBox::PreparePipeline()
 	pipeline->SetConstantBuffer(SHADER_BINDING_CAMERA, ST_VERTEX, cameraBuffer);
 	pipeline->SetSampler(SHADER_BINDING_TEXTURE0, (*m_CubeTexture)->GetFrameBuffer(), m_CubeSampler);
 
+	pipeline->SetDebugName("SkyBoxPipeline");
 	ASSERT_RESULT(pipeline->Init());
 }
 

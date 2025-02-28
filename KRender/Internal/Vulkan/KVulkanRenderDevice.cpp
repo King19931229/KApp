@@ -49,8 +49,10 @@
 const char* DEVICE_DEFAULT_EXTENSIONS[] =
 {
 	VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+#ifndef VK_API_VERSION_1_2
 	VK_EXT_SHADER_SUBGROUP_BALLOT_EXTENSION_NAME,
 	VK_EXT_SHADER_SUBGROUP_VOTE_EXTENSION_NAME
+#endif
 };
 
 const char* DEVICE_ADDRESS_EXTENSIONS[] =
@@ -92,13 +94,17 @@ const char* DEVICE_RAYTRACE_EXTENSIONS[] =
 const char* DEVICE_NV_MESHSHADER_EXTENSIONS[] =
 {
 	VK_NV_MESH_SHADER_EXTENSION_NAME,
+#ifndef VK_API_VERSION_1_2
 	VK_KHR_SHADER_FLOAT16_INT8_EXTENSION_NAME
+#endif
 };
 
 const char* DEVICE_KHR_MESHSHADER_EXTENSIONS[] =
 {
 	VK_EXT_MESH_SHADER_EXTENSION_NAME,
+#ifndef VK_API_VERSION_1_2
 	VK_KHR_SHADER_FLOAT16_INT8_EXTENSION_NAME
+#endif
 };
 
 const char* SHADER_DEBUG_MESHSHADER_EXTENSIONS[] =
@@ -930,7 +936,7 @@ VkBool32 KVulkanRenderDevice::DebugUtilsMessengerCallback(
 	}
 	else if (messageType == VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT)
 	{
-		KG_LOGE_ASSERT(LM_RENDER, "[Vulkan Validation Layer Error] %s\n", pCallbackData->pMessage);
+		KG_LOGE(LM_RENDER, "[Vulkan Validation Layer Error] %s\n", pCallbackData->pMessage);
 	}
 	return VK_FALSE;
 }
@@ -1049,9 +1055,24 @@ bool KVulkanRenderDevice::Init(IKRenderWindow* window)
 
 	VkValidationFeaturesEXT validationFeatures = {};
 	validationFeatures.sType = VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT;
-	validationFeatures.disabledValidationFeatureCount = 1;
-	const VkValidationFeatureDisableEXT disables[] = { VK_VALIDATION_FEATURE_DISABLE_SHADER_VALIDATION_CACHE_EXT };
+	
+	const VkValidationFeatureDisableEXT disables[] =
+	{
+		VK_VALIDATION_FEATURE_DISABLE_SHADER_VALIDATION_CACHE_EXT
+	};
+	validationFeatures.disabledValidationFeatureCount = ARRAY_SIZE(disables);
 	validationFeatures.pDisabledValidationFeatures = disables;
+
+	const VkValidationFeatureEnableEXT enables[] =
+	{
+		VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_EXT,
+		VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_RESERVE_BINDING_SLOT_EXT,
+		// VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT,
+		// VK_VALIDATION_FEATURE_ENABLE_BEST_PRACTICES_EXT,
+		VK_VALIDATION_FEATURE_ENABLE_DEBUG_PRINTF_EXT,
+	};
+	validationFeatures.enabledValidationFeatureCount = ARRAY_SIZE(enables);
+	validationFeatures.pEnabledValidationFeatures = enables;
 
 	VkInstanceCreateInfo createInfo = {};
 	createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;

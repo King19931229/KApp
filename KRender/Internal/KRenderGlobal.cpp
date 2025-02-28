@@ -28,6 +28,7 @@ namespace KRenderGlobal
 	KPrefilerCubeMap CubeMap;
 	KWhiteFurnace WhiteFurnace;
 	KGBuffer GBuffer;
+	KDepthPeeling DepthPeeling;
 	KHiZBuffer HiZBuffer;
 	KHiZOcclusion HiZOcclusion;
 	KOcclusionBox OcclusionBox;
@@ -54,11 +55,12 @@ namespace KRenderGlobal
 
 	bool EnableRayTrace = true;
 	bool SupportAnisotropySample = true;
-	bool EnableMultithreadRender = false;
+	bool EnableMultithreadRender = true;
 	bool EnableRHIImmediate = false;
 	bool EnableAsyncLoad = true;
 	bool EnableGPUScene = false;
 	bool EnableAsyncCompute = false;
+	bool EnablePeeling = false;
 	bool InEditor = false;
 
 	uint32_t CurrentInFlightFrameIndex = 0;

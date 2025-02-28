@@ -27,7 +27,7 @@ struct IKCommandBuffer
 	virtual bool Render(const KRenderCommand& command) = 0;
 
 	virtual bool Execute(IKCommandBufferPtr buffer) = 0;
-	virtual bool ExecuteAll(KCommandBufferList& commandBuffers, bool clearAfterExecute = true) = 0;
+	virtual bool ExecuteAll(KCommandBufferList& commandBuffers) = 0;
 
 	virtual bool BeginPrimary() = 0;
 	virtual bool BeginSecondary(IKRenderPassPtr renderPass) = 0;

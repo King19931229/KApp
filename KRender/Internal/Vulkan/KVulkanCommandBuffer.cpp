@@ -489,7 +489,7 @@ bool KVulkanCommandBuffer::Execute(IKCommandBufferPtr buffer)
 	return false;
 }
 
-bool KVulkanCommandBuffer::ExecuteAll(KCommandBufferList& commandBuffers, bool clearAfterExecute)
+bool KVulkanCommandBuffer::ExecuteAll(KCommandBufferList& commandBuffers)
 {
 	VkCommandBuffer commandBuffer = GetVkHandle();
 	assert(commandBuffer != VK_NULL_HANDLE);
@@ -511,10 +511,6 @@ bool KVulkanCommandBuffer::ExecuteAll(KCommandBufferList& commandBuffers, bool c
 				}
 			}
 			vkCmdExecuteCommands(commandBuffer, (uint32_t)vkCommandBuffers.size(), vkCommandBuffers.data());
-		}
-		if (clearAfterExecute)
-		{
-			commandBuffers.clear();
 		}
 		return true;
 	}

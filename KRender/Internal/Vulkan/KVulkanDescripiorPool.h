@@ -107,6 +107,7 @@ public:
 	bool Trim(size_t frameIndex, size_t currentFrame);
 
 	inline void SetDebugName(const std::string& name) { m_Name = name; }
+	inline const std::string& GetDebugName() { return m_Name; }
 
 	VkDescriptorSet Alloc(size_t frameIndex, size_t currentFrame, IKPipeline* pipeline,
 		const KDynamicConstantBufferUsage** ppConstantUsage, size_t dynamicBufferUsageCount,

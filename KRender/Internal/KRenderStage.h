@@ -63,28 +63,6 @@ enum DeferredRenderStage
 	DRS_STAGE_COUNT
 };
 
-struct KDeferredRenderStageDescription
-{
-	DeferredRenderStage stage;
-	RenderStage renderStage;
-	RenderStage instanceRenderStage;
-	const char* debugMarker;
-};
-
-constexpr KDeferredRenderStageDescription GDeferredRenderStageDescription[DRS_STAGE_COUNT] =
-{
-	{DRS_STAGE_PRE_PASS, RENDER_STAGE_PRE_Z, RENDER_STAGE_PRE_Z_INSTANCE, "PrePass"},
-	{DRS_STAGE_MAIN_BASE_PASS, RENDER_STAGE_BASEPASS, RENDER_STAGE_BASEPASS_INSTANCE, "MainBasePass"},
-	{DRS_STAGE_POST_BASE_PASS, RENDER_STAGE_BASEPASS, RENDER_STAGE_BASEPASS_INSTANCE, "PostBasePass" },
-	{DRS_STAGE_DEFERRED_LIGHTING, RENDER_STAGE_UNKNOWN, RENDER_STAGE_UNKNOWN, "LightingPass"},
-	{DRS_STAGE_FORWARD_OPAQUE, RENDER_STAGE_OPAQUE, RENDER_STAGE_UNKNOWN, "ForwardOpaquePass"},
-	{DRS_STAGE_FORWARD_TRANSPRANT, RENDER_STAGE_TRANSPRANT, RENDER_STAGE_UNKNOWN, "ForwardTransprantPass"},
-	{DRS_STATE_SKY, RENDER_STAGE_UNKNOWN, RENDER_STAGE_UNKNOWN, "SkyPass"},
-	{DRS_STATE_COPY_SCENE_COLOR, RENDER_STAGE_UNKNOWN, RENDER_STAGE_UNKNOWN, "CopySceneColor"},
-	{DRS_STATE_DEBUG_OBJECT, RENDER_STAGE_UNKNOWN, RENDER_STAGE_UNKNOWN, "DebugObjectPass"},
-	{DRS_STATE_FOREGROUND, RENDER_STAGE_UNKNOWN, RENDER_STAGE_UNKNOWN, "ForegroundPass"}
-};
-
 enum DeferredRenderDebug
 {
 	DRD_NONE,
@@ -164,16 +142,3 @@ constexpr DeferredRenderDebugDescription GDeferredRenderDebugDescription[DRD_COU
 	{ DRD_SCATTERING, "Scattering"},
 	{ DRD_MOTION, "Motion"}
 };
-
-static_assert(GDeferredRenderStageDescription[DRS_STAGE_PRE_PASS].stage == DRS_STAGE_PRE_PASS, "check");
-static_assert(GDeferredRenderStageDescription[DRS_STAGE_MAIN_BASE_PASS].stage == DRS_STAGE_MAIN_BASE_PASS, "check");
-static_assert(GDeferredRenderStageDescription[DRS_STAGE_POST_BASE_PASS].stage == DRS_STAGE_POST_BASE_PASS, "check");
-static_assert(GDeferredRenderStageDescription[DRS_STAGE_DEFERRED_LIGHTING].stage == DRS_STAGE_DEFERRED_LIGHTING, "check");
-static_assert(GDeferredRenderStageDescription[DRS_STAGE_FORWARD_TRANSPRANT].stage == DRS_STAGE_FORWARD_TRANSPRANT, "check");
-static_assert(GDeferredRenderStageDescription[DRS_STAGE_FORWARD_OPAQUE].stage == DRS_STAGE_FORWARD_OPAQUE, "check");
-static_assert(GDeferredRenderStageDescription[DRS_STATE_SKY].stage == DRS_STATE_SKY, "check");
-static_assert(GDeferredRenderStageDescription[DRS_STATE_COPY_SCENE_COLOR].stage == DRS_STATE_COPY_SCENE_COLOR, "check");
-static_assert(GDeferredRenderStageDescription[DRS_STATE_DEBUG_OBJECT].stage == DRS_STATE_DEBUG_OBJECT, "check");
-static_assert(GDeferredRenderStageDescription[DRS_STATE_FOREGROUND].stage == DRS_STATE_FOREGROUND, "check");
-
-static_assert(ARRAY_SIZE(GDeferredRenderDebugDescription) == DRD_COUNT, "check");

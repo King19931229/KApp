@@ -29,7 +29,7 @@ layout(std430, binding = BINDING_COLOR5) readonly buffer Color5PackBuffer { floa
 
 layout(std430, binding = BINDING_INDEX) readonly buffer IndexPackBuffer { uint IndexData[]; };
 
-layout(std430, binding = BINDING_MESH_STATE) buffer MeshStateBuffer { MeshStateStruct MeshState[]; };
+layout(std430, binding = BINDING_MESH_STATE) readonly buffer MeshStateBuffer { MeshStateStruct MeshState[]; };
 layout(std430, binding = BINDING_INSTANCE_DATA) readonly buffer InstanceDataPackBuffer { InstanceStruct InstanceData[]; };
 
 layout(std430, binding = BINDING_MATERIAL_PARAMETER) readonly buffer MaterialParameterPackBuffer { float MaterialParameterData[]; };

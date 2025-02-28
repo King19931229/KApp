@@ -18,6 +18,7 @@
 #include "Internal/Object/KPrefiterCubeMap.h"
 #include "Internal/Object/KWhiteFurnace.h"
 #include "Internal/Object/KGBuffer.h"
+#include "Internal/Object/KDepthPeeling.h"
 #include "Internal/Object/KHiZBuffer.h"
 #include "Internal/Object/KHiZOcclusion.h"
 #include "Internal/Shadow/KShadowMap.h"
@@ -84,6 +85,7 @@ namespace KRenderGlobal
 	extern KPrefilerCubeMap CubeMap;
 	extern KWhiteFurnace WhiteFurnace;
 	extern KGBuffer GBuffer;
+	extern KDepthPeeling DepthPeeling;
 	extern KHiZBuffer HiZBuffer;
 	extern KHiZOcclusion HiZOcclusion;
 	extern KOcclusionBox OcclusionBox;
@@ -115,6 +117,7 @@ namespace KRenderGlobal
 	extern bool EnableAsyncLoad;
 	extern bool EnableGPUScene;
 	extern bool EnableAsyncCompute;
+	extern bool EnablePeeling;
 	extern bool InEditor;
 
 	extern uint32_t CurrentInFlightFrameIndex;

@@ -8,6 +8,43 @@
 #include "Internal/ECS/Component/KDebugComponent.h"
 #include "KBase/Interface/IKLog.h"
 
+struct KDeferredRenderStageDescription
+{
+	DeferredRenderStage stage;
+	RenderStage renderStage;
+	RenderStage instanceRenderStage;
+	bool allowGPUScene;
+	bool allowMultithread;
+	const char* debugMarker;
+};
+
+constexpr KDeferredRenderStageDescription GDeferredRenderStageDescription[DRS_STAGE_COUNT] =
+{
+	{DRS_STAGE_PRE_PASS, RENDER_STAGE_PRE_Z, RENDER_STAGE_PRE_Z_INSTANCE, false, false, "PrePass"},
+	{DRS_STAGE_MAIN_BASE_PASS, RENDER_STAGE_BASEPASS, RENDER_STAGE_BASEPASS_INSTANCE, true, false/*true*/, "MainBasePass"},
+	{DRS_STAGE_POST_BASE_PASS, RENDER_STAGE_BASEPASS, RENDER_STAGE_BASEPASS_INSTANCE, true, false/*true*/, "PostBasePass" },
+	{DRS_STAGE_DEFERRED_LIGHTING, RENDER_STAGE_UNKNOWN, RENDER_STAGE_UNKNOWN, false, false, "LightingPass"},
+	{DRS_STAGE_FORWARD_OPAQUE, RENDER_STAGE_OPAQUE, RENDER_STAGE_UNKNOWN, true, false/*true*/, "ForwardOpaquePass"},
+	{DRS_STAGE_FORWARD_TRANSPRANT, RENDER_STAGE_TRANSPRANT, RENDER_STAGE_UNKNOWN, false, true, "ForwardTransprantPass"},
+	{DRS_STATE_SKY, RENDER_STAGE_UNKNOWN, RENDER_STAGE_UNKNOWN, false, false, "SkyPass"},
+	{DRS_STATE_COPY_SCENE_COLOR, RENDER_STAGE_UNKNOWN, RENDER_STAGE_UNKNOWN, false, false, "CopySceneColor"},
+	{DRS_STATE_DEBUG_OBJECT, RENDER_STAGE_UNKNOWN, RENDER_STAGE_UNKNOWN, false, false, "DebugObjectPass"},
+	{DRS_STATE_FOREGROUND, RENDER_STAGE_UNKNOWN, RENDER_STAGE_UNKNOWN, false, false, "ForegroundPass"}
+};
+
+static_assert(GDeferredRenderStageDescription[DRS_STAGE_PRE_PASS].stage == DRS_STAGE_PRE_PASS, "check");
+static_assert(GDeferredRenderStageDescription[DRS_STAGE_MAIN_BASE_PASS].stage == DRS_STAGE_MAIN_BASE_PASS, "check");
+static_assert(GDeferredRenderStageDescription[DRS_STAGE_POST_BASE_PASS].stage == DRS_STAGE_POST_BASE_PASS, "check");
+static_assert(GDeferredRenderStageDescription[DRS_STAGE_DEFERRED_LIGHTING].stage == DRS_STAGE_DEFERRED_LIGHTING, "check");
+static_assert(GDeferredRenderStageDescription[DRS_STAGE_FORWARD_TRANSPRANT].stage == DRS_STAGE_FORWARD_TRANSPRANT, "check");
+static_assert(GDeferredRenderStageDescription[DRS_STAGE_FORWARD_OPAQUE].stage == DRS_STAGE_FORWARD_OPAQUE, "check");
+static_assert(GDeferredRenderStageDescription[DRS_STATE_SKY].stage == DRS_STATE_SKY, "check");
+static_assert(GDeferredRenderStageDescription[DRS_STATE_COPY_SCENE_COLOR].stage == DRS_STATE_COPY_SCENE_COLOR, "check");
+static_assert(GDeferredRenderStageDescription[DRS_STATE_DEBUG_OBJECT].stage == DRS_STATE_DEBUG_OBJECT, "check");
+static_assert(GDeferredRenderStageDescription[DRS_STATE_FOREGROUND].stage == DRS_STATE_FOREGROUND, "check");
+
+static_assert(ARRAY_SIZE(GDeferredRenderDebugDescription) == DRD_COUNT, "check");
+
 KDeferredRenderer::KDeferredRenderer()
 	: m_Camera(nullptr)
 	, m_DebugOption(DRD_NONE)
@@ -38,7 +75,6 @@ void KDeferredRenderer::Init(const KCamera* camera, uint32_t width, uint32_t hei
 	KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "shading/quad.vert", m_QuadVS, false);
 	KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "shading/deferred.frag", m_DeferredLightingFS, false);
 	KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "shading/draw.frag", m_SceneColorDrawFS, false);
-
 	
 	renderDevice->CreateRenderTarget(m_FinalTarget);
 
@@ -91,6 +127,7 @@ void KDeferredRenderer::RecreateRenderPass(uint32_t width, uint32_t height)
 {
 	m_FinalTarget->UnInit();
 	m_FinalTarget->InitFromColor(width, height, 1, 1, EF_R16G16B16A16_FLOAT);
+	m_FinalTarget->GetFrameBuffer()->SetDebugName("FinalTarget");
 
 	auto EnsureRenderPass = [](IKRenderPassPtr& renderPass)
 	{
@@ -297,6 +334,7 @@ void KDeferredRenderer::RecreatePipeline()
 			KRenderGlobal::CubeMap.GetIntegrateBRDFSampler(),
 			true);
 
+		pipeline->SetDebugName("LightingPipeline");
 		pipeline->Init();
 	}
 
@@ -318,6 +356,7 @@ void KDeferredRenderer::RecreatePipeline()
 
 		pipeline->SetSampler(SHADER_BINDING_TEXTURE0, m_FinalTarget->GetFrameBuffer(), KRenderGlobal::GBuffer.GetSampler(), true);
 	
+		pipeline->SetDebugName("DrawFinalPipeline");
 		pipeline->Init();
 	}
 
@@ -339,6 +378,7 @@ void KDeferredRenderer::RecreatePipeline()
 
 		pipeline->SetSampler(SHADER_BINDING_TEXTURE0, KRenderGlobal::GBuffer.GetSceneColor()->GetFrameBuffer(), KRenderGlobal::GBuffer.GetSampler(), true);
 
+		pipeline->SetDebugName("DrawSceneColorPipeline");
 		pipeline->Init();
 	}
 }
@@ -431,7 +471,7 @@ void KDeferredRenderer::HandleRenderCommandBinding(DeferredRenderStage renderSta
 
 		KDynamicConstantBufferUsage debugUsage;
 		debugUsage.binding = SHADER_BINDING_DEBUG;
-		debugUsage.range = sizeof(debugUsage);
+		debugUsage.range = sizeof(debug);
 
 		KRenderGlobal::DynamicConstantBufferManager.Alloc(&debug, debugUsage);
 
@@ -439,69 +479,121 @@ void KDeferredRenderer::HandleRenderCommandBinding(DeferredRenderStage renderSta
 	}
 }
 
-void KDeferredRenderer::BuildRenderCommand(KRHICommandList& commandList, DeferredRenderStage deferredRenderStage, const std::vector<IKEntity*>& cullRes)
+void KDeferredRenderer::PopulateRenderCommand(DeferredRenderStage deferredRenderStage, const std::vector<IKEntity*>& cullRes, KRenderStageStatistics& statistics, KRenderCommandList& renderCommands)
 {
 	RenderStage renderStage = GDeferredRenderStageDescription[deferredRenderStage].renderStage;
 	RenderStage instanceRenderStage = GDeferredRenderStageDescription[deferredRenderStage].instanceRenderStage;
-	const char* debugMarker = GDeferredRenderStageDescription[deferredRenderStage].debugMarker;
 
-	KRenderCommandList commands;
-
-	KRenderStageStatistics& statistics = m_Statistics[deferredRenderStage];
-	statistics.Reset();
+	renderCommands.clear();
 
 	std::vector<KMaterialSubMeshInstance> subMeshInstances;
 	BuildMaterialSubMeshInstance(deferredRenderStage, cullRes, subMeshInstances);
 
-	IKRenderPassPtr renderPass = m_RenderPass[deferredRenderStage];
-	commandList.BeginDebugMarker(debugMarker, glm::vec4(1));
-
-	if (!KRenderGlobal::EnableGPUScene)
+	for (KMaterialSubMeshInstance& subMeshInstance : subMeshInstances)
 	{
-		for (KMaterialSubMeshInstance& subMeshInstance : subMeshInstances)
+		const std::vector<KVertexDefinition::INSTANCE_DATA_MATRIX4F>& instances = subMeshInstance.instanceData;
+
+		ASSERT_RESULT(!instances.empty());
+
+		if (instanceRenderStage != RENDER_STAGE_UNKNOWN && instances.size() > 1)
 		{
-			const std::vector<KVertexDefinition::INSTANCE_DATA_MATRIX4F>& instances = subMeshInstance.instanceData;
-
-			ASSERT_RESULT(!instances.empty());
-
-			if (instanceRenderStage != RENDER_STAGE_UNKNOWN && instances.size() > 1)
+			KRenderCommand command;
+			if (subMeshInstance.materialSubMesh->GetRenderCommand(instanceRenderStage, command))
 			{
-				KRenderCommand command;
-				if (subMeshInstance.materialSubMesh->GetRenderCommand(instanceRenderStage, command))
+				if (!KRenderUtil::AssignShadingParameter(command, subMeshInstance.materialSubMesh->GetMaterial()))
 				{
-					if (!KRenderUtil::AssignShadingParameter(command, subMeshInstance.materialSubMesh->GetMaterial()))
+					continue;
+				}
+
+				if (deferredRenderStage == DRS_STAGE_MAIN_BASE_PASS || deferredRenderStage == DRS_STAGE_POST_BASE_PASS)
+				{
+					KVirtualTexture* virtualTexture = nullptr;
+					if (command.textureBinding->GetIsVirtualTexture(m_CurrentVirtualFeedbackTargetBinding))
+					{
+						virtualTexture = (KVirtualTexture*)command.textureBinding->GetVirtualTextureSoul(m_CurrentVirtualFeedbackTargetBinding);
+					}
+					if (!KRenderUtil::AssignVirtualFeedbackParameter(command, m_CurrentVirtualFeedbackTargetBinding, virtualTexture))
 					{
 						continue;
 					}
+				}
 
-					if (deferredRenderStage == DRS_STAGE_MAIN_BASE_PASS || deferredRenderStage == DRS_STAGE_POST_BASE_PASS)
+				std::vector<KInstanceBufferManager::AllocResultBlock> allocRes;
+				ASSERT_RESULT(KRenderGlobal::InstanceBufferManager.GetVertexSize() == sizeof(instances[0]));
+				ASSERT_RESULT(KRenderGlobal::InstanceBufferManager.Alloc(instances.size(), instances.data(), allocRes));
+
+				command.instanceDraw = true;
+				command.instanceUsages.resize(allocRes.size());
+				for (size_t i = 0; i < allocRes.size(); ++i)
+				{
+					KInstanceBufferUsage& usage = command.instanceUsages[i];
+					KInstanceBufferManager::AllocResultBlock& allocResult = allocRes[i];
+					usage.buffer = allocResult.buffer;
+					usage.start = allocResult.start;
+					usage.count = allocResult.count;
+					usage.offset = allocResult.offset;
+				}
+
+				++statistics.drawcalls;
+
+				if (command.indexDraw)
+				{
+					statistics.primtives += command.indexData->indexCount;
+					statistics.faces += command.indexData->indexCount / 3;
+				}
+				else
+				{
+					statistics.primtives += command.vertexData->vertexCount;
+					statistics.faces += command.vertexData->vertexCount / 3;
+				}
+
+				HandleRenderCommandBinding(deferredRenderStage, command);
+				command.pipeline->GetHandle(m_RenderPass[deferredRenderStage], command.pipelineHandle);
+
+				if (command.Complete())
+				{
+					renderCommands.push_back(std::move(command));
+				}
+			}
+		}
+		else
+		{
+			KRenderCommand command;
+			if (subMeshInstance.materialSubMesh->GetRenderCommand(renderStage, command))
+			{
+				if (!KRenderUtil::AssignShadingParameter(command, subMeshInstance.materialSubMesh->GetMaterial()))
+				{
+					continue;
+				}
+
+				if (deferredRenderStage == DRS_STAGE_MAIN_BASE_PASS || deferredRenderStage == DRS_STAGE_POST_BASE_PASS)
+				{
+					KVirtualTexture* virtualTexture = nullptr;
+					if (command.textureBinding->GetIsVirtualTexture(m_CurrentVirtualFeedbackTargetBinding))
 					{
-						KVirtualTexture* virtualTexture = nullptr;
-						if (command.textureBinding->GetIsVirtualTexture(m_CurrentVirtualFeedbackTargetBinding))
-						{
-							virtualTexture = (KVirtualTexture*)command.textureBinding->GetVirtualTextureSoul(m_CurrentVirtualFeedbackTargetBinding);
-						}
-						if (!KRenderUtil::AssignVirtualFeedbackParameter(command, m_CurrentVirtualFeedbackTargetBinding, virtualTexture))
-						{
-							continue;
-						}
+						virtualTexture = (KVirtualTexture*)command.textureBinding->GetVirtualTextureSoul(m_CurrentVirtualFeedbackTargetBinding);
 					}
-
-					std::vector<KInstanceBufferManager::AllocResultBlock> allocRes;
-					ASSERT_RESULT(KRenderGlobal::InstanceBufferManager.GetVertexSize() == sizeof(instances[0]));
-					ASSERT_RESULT(KRenderGlobal::InstanceBufferManager.Alloc(instances.size(), instances.data(), allocRes));
-
-					command.instanceDraw = true;
-					command.instanceUsages.resize(allocRes.size());
-					for (size_t i = 0; i < allocRes.size(); ++i)
+					if (virtualTexture && !KRenderUtil::AssignVirtualFeedbackParameter(command, m_CurrentVirtualFeedbackTargetBinding, virtualTexture))
 					{
-						KInstanceBufferUsage& usage = command.instanceUsages[i];
-						KInstanceBufferManager::AllocResultBlock& allocResult = allocRes[i];
-						usage.buffer = allocResult.buffer;
-						usage.start = allocResult.start;
-						usage.count = allocResult.count;
-						usage.offset = allocResult.offset;
+						KG_LOGE(LM_RENDER, "Has virtualTexture but can't AssignVirtualFeedbackParameter");
+						continue;
 					}
+				}
+
+				for (size_t idx = 0; idx < instances.size(); ++idx)
+				{
+					const KVertexDefinition::INSTANCE_DATA_MATRIX4F& instance = instances[idx];
+
+					KConstantDefinition::OBJECT objectData;
+					objectData.MODEL = glm::transpose(glm::mat4(instance.ROW0, instance.ROW1, instance.ROW2, glm::vec4(0, 0, 0, 1)));
+					objectData.PRVE_MODEL = glm::transpose(glm::mat4(instance.PREV_ROW0, instance.PREV_ROW1, instance.PREV_ROW2, glm::vec4(0, 0, 0, 1)));
+
+					KDynamicConstantBufferUsage objectUsage;
+					objectUsage.binding = SHADER_BINDING_OBJECT;
+					objectUsage.range = sizeof(objectData);
+					KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, objectUsage);
+
+					command.dynamicConstantUsages.push_back(objectUsage);
 
 					++statistics.drawcalls;
 
@@ -521,79 +613,37 @@ void KDeferredRenderer::BuildRenderCommand(KRHICommandList& commandList, Deferre
 
 					if (command.Complete())
 					{
-						commands.push_back(std::move(command));
-					}
-				}
-			}
-			else
-			{
-				KRenderCommand command;
-				if (subMeshInstance.materialSubMesh->GetRenderCommand(renderStage, command))
-				{
-					if (!KRenderUtil::AssignShadingParameter(command, subMeshInstance.materialSubMesh->GetMaterial()))
-					{
-						continue;
-					}
-
-					if (deferredRenderStage == DRS_STAGE_MAIN_BASE_PASS || deferredRenderStage == DRS_STAGE_POST_BASE_PASS)
-					{
-						KVirtualTexture* virtualTexture = nullptr;
-						if (command.textureBinding->GetIsVirtualTexture(m_CurrentVirtualFeedbackTargetBinding))
-						{
-							virtualTexture = (KVirtualTexture*)command.textureBinding->GetVirtualTextureSoul(m_CurrentVirtualFeedbackTargetBinding);
-						}
-						if (virtualTexture && !KRenderUtil::AssignVirtualFeedbackParameter(command, m_CurrentVirtualFeedbackTargetBinding, virtualTexture))
-						{
-							KG_LOGE(LM_RENDER, "Has virtualTexture but can't AssignVirtualFeedbackParameter");
-							continue;
-						}
-					}
-
-					for (size_t idx = 0; idx < instances.size(); ++idx)
-					{
-						const KVertexDefinition::INSTANCE_DATA_MATRIX4F& instance = instances[idx];
-
-						KConstantDefinition::OBJECT objectData;
-						objectData.MODEL = glm::transpose(glm::mat4(instance.ROW0, instance.ROW1, instance.ROW2, glm::vec4(0, 0, 0, 1)));
-						objectData.PRVE_MODEL = glm::transpose(glm::mat4(instance.PREV_ROW0, instance.PREV_ROW1, instance.PREV_ROW2, glm::vec4(0, 0, 0, 1)));
-
-						KDynamicConstantBufferUsage objectUsage;
-						objectUsage.binding = SHADER_BINDING_OBJECT;
-						objectUsage.range = sizeof(objectData);
-						KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, objectUsage);
-
-						command.dynamicConstantUsages.push_back(objectUsage);
-
-						++statistics.drawcalls;
-
-						if (command.indexDraw)
-						{
-							statistics.primtives += command.indexData->indexCount;
-							statistics.faces += command.indexData->indexCount / 3;
-						}
-						else
-						{
-							statistics.primtives += command.vertexData->vertexCount;
-							statistics.faces += command.vertexData->vertexCount / 3;
-						}
-
-						HandleRenderCommandBinding(deferredRenderStage, command);
-						command.pipeline->GetHandle(m_RenderPass[deferredRenderStage], command.pipelineHandle);
-
-						if (command.Complete())
-						{
-							commands.push_back(std::move(command));
-						}
+						renderCommands.push_back(std::move(command));
 					}
 				}
 			}
 		}
 	}
 
-	if (KRenderGlobal::EnableMultithreadRender)
-	{
-		KRenderCommandList& renderCmdList = commands;
+	KRenderGlobal::Statistics.UpdateRenderStageStatistics(GDeferredRenderStageDescription[renderStage].debugMarker, statistics);
+}
 
+void KDeferredRenderer::ExecuteRenderPass(KRHICommandList& commandList, DeferredRenderStage deferredRenderStage, const std::vector<IKEntity*>& cullRes)
+{
+	IKRenderPassPtr renderPass = m_RenderPass[deferredRenderStage];
+
+	const char* debugMarker = GDeferredRenderStageDescription[deferredRenderStage].debugMarker;
+	commandList.BeginDebugMarker(debugMarker, glm::vec4(1));
+
+	KRenderStageStatistics& statistics = m_Statistics[deferredRenderStage];
+	statistics.Reset();
+
+	bool allowGPUScene = GDeferredRenderStageDescription[deferredRenderStage].allowGPUScene;
+
+	KRenderCommandList renderCmdList;
+	if (!KRenderGlobal::EnableGPUScene || !allowGPUScene)
+	{
+		PopulateRenderCommand(deferredRenderStage, cullRes, statistics, renderCmdList);
+	}
+
+	bool allowMultithread = GDeferredRenderStageDescription[deferredRenderStage].allowMultithread;
+	if (allowMultithread && KRenderGlobal::EnableMultithreadRender)
+	{
 		commandList.BeginRenderPass(renderPass, SUBPASS_CONTENTS_SECONDARY);
 
 		uint32_t threadNum = commandList.GetThreadPoolSize();
@@ -644,7 +694,7 @@ void KDeferredRenderer::BuildRenderCommand(KRHICommandList& commandList, Deferre
 	{
 		commandList.BeginRenderPass(renderPass, SUBPASS_CONTENTS_INLINE);
 		commandList.SetViewport(renderPass->GetViewPort());
-		for (KRenderCommand& command : commands)
+		for (KRenderCommand& command : renderCmdList)
 		{
 			IKPipelineHandlePtr handle = nullptr;
 			if (command.pipeline->GetHandle(renderPass, handle))
@@ -661,8 +711,6 @@ void KDeferredRenderer::BuildRenderCommand(KRHICommandList& commandList, Deferre
 
 	commandList.EndRenderPass();
 	commandList.EndDebugMarker();
-
-	KRenderGlobal::Statistics.UpdateRenderStageStatistics(GDeferredRenderStageDescription[renderStage].debugMarker, statistics);
 }
 
 void KDeferredRenderer::EmptyAO(KRHICommandList& commandList)
@@ -731,22 +779,26 @@ void KDeferredRenderer::PrePass(KRHICommandList& commandList, const std::vector<
 
 void KDeferredRenderer::MainBasePass(KRHICommandList& commandList, const std::vector<IKEntity*>& cullRes)
 {
-	BuildRenderCommand(commandList, DRS_STAGE_MAIN_BASE_PASS, cullRes);
+	ExecuteRenderPass(commandList, DRS_STAGE_MAIN_BASE_PASS, cullRes);
 }
 
 void KDeferredRenderer::PostBasePass(KRHICommandList& commandList)
 {
-	BuildRenderCommand(commandList, DRS_STAGE_POST_BASE_PASS, {});
+	ExecuteRenderPass(commandList, DRS_STAGE_POST_BASE_PASS, {});
 }
 
 void KDeferredRenderer::ForwardOpaque(KRHICommandList& commandList, const std::vector<IKEntity*>& cullRes)
 {
-	BuildRenderCommand(commandList, DRS_STAGE_FORWARD_OPAQUE, cullRes);
+	ExecuteRenderPass(commandList, DRS_STAGE_FORWARD_OPAQUE, cullRes);
+}
+
+void KDeferredRenderer::CopyOpaqueColor(KRHICommandList& commandList)
+{
 }
 
 void KDeferredRenderer::ForwardTransprant(KRHICommandList& commandList, const std::vector<IKEntity*>& cullRes)
 {
-	BuildRenderCommand(commandList, DRS_STAGE_FORWARD_TRANSPRANT, cullRes);
+	ExecuteRenderPass(commandList, DRS_STAGE_FORWARD_TRANSPRANT, cullRes);
 }
 
 void KDeferredRenderer::DebugObject(KRHICommandList& commandList, const std::vector<IKEntity*>& cullRes)
@@ -928,7 +980,7 @@ void KDeferredRenderer::DeferredLighting(KRHICommandList& commandList)
 
 	KDynamicConstantBufferUsage debugUsage;	
 	debugUsage.binding = SHADER_BINDING_DEBUG;
-	debugUsage.range = sizeof(debugUsage);
+	debugUsage.range = sizeof(debug);
 	KRenderGlobal::DynamicConstantBufferManager.Alloc(&debug, debugUsage);
 
 	command.dynamicConstantUsages.push_back(debugUsage);
@@ -941,7 +993,7 @@ void KDeferredRenderer::DeferredLighting(KRHICommandList& commandList)
 
 void KDeferredRenderer::DrawFinalResult(IKRenderPassPtr renderPass, KRHICommandList& commandList)
 {
-	commandList.BeginDebugMarker("DrawFinalResult", glm::vec4(1,0,0,0));
+	commandList.BeginDebugMarker("DrawFinalResult", glm::vec4(1));
 	commandList.BeginRenderPass(renderPass, SUBPASS_CONTENTS_INLINE);
 	commandList.SetViewport(renderPass->GetViewPort());
 

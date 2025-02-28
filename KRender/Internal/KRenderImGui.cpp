@@ -163,6 +163,7 @@ void KRenderImGui::Run()
 			ImGui::Checkbox("AsyncCompute", &KRenderGlobal::EnableAsyncCompute);
 			ImGui::Checkbox("RHIImmediate", &KRenderGlobal::EnableRHIImmediate);
 			ImGui::Checkbox("UseGPUScene", &KRenderGlobal::EnableGPUScene);
+			ImGui::Checkbox("EnablePeeling", &KRenderGlobal::EnablePeeling);
 			ImGui::Checkbox("MultithreadRender", &KRenderGlobal::EnableMultithreadRender);
 			ImGui::SliderInt("MultithreadCount", &KRenderGlobal::Renderer.GetMultithreadCount(), 1, 128);
 			ImGui::End();

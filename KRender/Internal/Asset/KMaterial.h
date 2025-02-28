@@ -21,6 +21,8 @@ protected:
 	bool m_ParameterNeedRebuild;
 
 	KShaderMap m_ShaderMap;
+	KShaderMap m_PrePassShaderMap;
+	KShaderMap m_DepthPeelShaderMap;
 	KShaderMap m_VirtualFeedbackShaderMap;
 	KShaderMap m_StaticCSMShaderMap;
 	KShaderMap m_DynamicCSMShaderMap;
@@ -106,6 +108,12 @@ public:
 
 	virtual IKPipelinePtr CreateCSMPipeline(const VertexFormat* formats, size_t count, bool staticCSM);
 	virtual IKPipelinePtr CreateCSMInstancePipeline(const VertexFormat* formats, size_t count, bool staticCSM);
+
+	virtual IKPipelinePtr CreatePrePassPipeline(const VertexFormat* formats, size_t count);
+	virtual IKPipelinePtr CreatePrePassInstancePipeline(const VertexFormat* formats, size_t count);
+
+	virtual IKPipelinePtr CreateDepthPeelingPipeline(const VertexFormat* formats, size_t count);
+	virtual IKPipelinePtr CreateDepthPeelingInstancePipeline(const VertexFormat* formats, size_t count);
 
 	virtual bool InitFromFile(const std::string& path, bool async);
 	virtual bool InitFromImportAssetMaterial(const KMeshRawData::Material& input, bool async);

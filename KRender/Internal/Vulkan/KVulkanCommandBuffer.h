@@ -56,7 +56,7 @@ public:
 	virtual bool Render(const KRenderCommand& command);
 
 	virtual bool Execute(IKCommandBufferPtr buffer);
-	virtual bool ExecuteAll(KCommandBufferList& commandBuffers, bool clearAfterExecute);
+	virtual bool ExecuteAll(KCommandBufferList& commandBuffers);
 
 	virtual bool BeginPrimary();
 	virtual bool BeginSecondary(IKRenderPassPtr renderPass);

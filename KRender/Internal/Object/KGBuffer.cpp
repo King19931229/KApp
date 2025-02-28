@@ -50,7 +50,8 @@ bool KGBuffer::UnInit()
 	{
 		SAFE_UNINIT(m_RenderTarget[i]);
 	}
-	SAFE_UNINIT(m_SceneTarget);
+	SAFE_UNINIT(m_OpaqueColorCopyTarget);
+	SAFE_UNINIT(m_SceneColorTarget);
 	SAFE_UNINIT(m_DepthStencilTarget);
 	SAFE_UNINIT(m_AOTarget);
 	SAFE_UNINIT(m_GBufferSampler);
@@ -91,9 +92,13 @@ bool KGBuffer::Resize(uint32_t width, uint32_t height)
 		ASSERT_RESULT(m_AOTarget->InitFromColor(width, height, 1, 1, AOFormat));
 		m_AOTarget->GetFrameBuffer()->SetDebugName("AO");
 
-		EnsureRenderTarget(m_SceneTarget);
-		ASSERT_RESULT(m_SceneTarget->InitFromColor(width, height, 1, 1, EF_R16G16B16A16_FLOAT));
-		m_SceneTarget->GetFrameBuffer()->SetDebugName("SceneColor");
+		EnsureRenderTarget(m_OpaqueColorCopyTarget);
+		ASSERT_RESULT(m_OpaqueColorCopyTarget->InitFromColor(width, height, 1, 1, EF_R16G16B16A16_FLOAT));
+		m_OpaqueColorCopyTarget->GetFrameBuffer()->SetDebugName("OpaqueColorCopy");
+
+		EnsureRenderTarget(m_SceneColorTarget);
+		ASSERT_RESULT(m_SceneColorTarget->InitFromColor(width, height, 1, 1, EF_R16G16B16A16_FLOAT));
+		m_SceneColorTarget->GetFrameBuffer()->SetDebugName("SceneColor");
 
 		m_Width = width;
 		m_Height = height;
@@ -103,7 +108,13 @@ bool KGBuffer::Resize(uint32_t width, uint32_t height)
 	return false;
 }
 
-bool KGBuffer::TransitionColor(KRHICommandList& commandList, IKQueuePtr srcQueue, IKQueuePtr dstQueue, PipelineStages srcStages, PipelineStages dstStages, ImageLayout oldLayout, ImageLayout newLayout)
+bool KGBuffer::TransitionOpaqueColorCopy(KRHICommandList& commandList, IKQueuePtr srcQueue, IKQueuePtr dstQueue, PipelineStages srcStages, PipelineStages dstStages, ImageLayout oldLayout, ImageLayout newLayout)
+{
+	commandList.TransitionOwnership(m_OpaqueColorCopyTarget->GetFrameBuffer(), srcQueue, dstQueue, srcStages, dstStages, oldLayout, newLayout);
+	return true;
+}
+
+bool KGBuffer::TransitionGBuffer(KRHICommandList& commandList, IKQueuePtr srcQueue, IKQueuePtr dstQueue, PipelineStages srcStages, PipelineStages dstStages, ImageLayout oldLayout, ImageLayout newLayout)
 {
 	for (uint32_t i = 0; i < GBUFFER_TARGET_COUNT; ++i)
 	{

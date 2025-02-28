@@ -46,11 +46,11 @@ namespace KVulkanInitializer
 				properties,
 				allocInfo.memoryTypeIndex));
 			{
-				if (usage | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT)
+				if (usage & VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT)
 				{
 					memRequirements.alignment = KNumerical::LCM(memRequirements.alignment, KVulkanGlobal::deviceProperties.limits.minUniformBufferOffsetAlignment);
 				}
-				if (usage | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT)
+				if (usage & VK_BUFFER_USAGE_STORAGE_BUFFER_BIT)
 				{
 					memRequirements.alignment = KNumerical::LCM(memRequirements.alignment, KVulkanGlobal::deviceProperties.limits.minStorageBufferOffsetAlignment);
 				}
@@ -703,31 +703,28 @@ namespace KVulkanInitializer
 		{
 			case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
 				// Image will be used as a transfer destination
-				// Make sure any writes to the image have been finished
 				barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
 				break;
 
 			case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
 				// Image will be used as a transfer source
-				// Make sure any reads from the image have been finished
+				// Make sure any reads from the image are available
 				barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
 				break;
 
 			case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:
 				// Image will be used as a color attachment
-				// Make sure any writes to the color buffer have been finished
-				barrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+				barrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 				break;
 
 			case VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
 				// Image layout will be used as a depth/stencil attachment
-				// Make sure any writes to depth/stencil buffer have been finished
-				barrier.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+				barrier.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 				break;
 
 			case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
 				// Image will be read in a shader (sampler, input attachment)
-				// Make sure any writes to the image have been finished
+				// Make sure any reads to the image are available
 				barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 				break;
 
@@ -738,7 +735,7 @@ namespace KVulkanInitializer
 				break;
 
 			case VK_IMAGE_LAYOUT_GENERAL:
-				barrier.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_SHADER_READ_BIT;
+				barrier.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
 				break;
 
 			default:

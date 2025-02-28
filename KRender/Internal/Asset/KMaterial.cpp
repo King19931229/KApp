@@ -416,6 +416,26 @@ IKPipelinePtr KMaterial::CreateInstancePipeline(const VertexFormat* formats, siz
 	return CreateInstancePipelineImpl(m_ShaderMap, {}, formats, count);
 }
 
+IKPipelinePtr KMaterial::CreatePrePassPipeline(const VertexFormat* formats, size_t count)
+{
+	return CreatePipelineImpl(m_PrePassShaderMap, {}, formats, count);
+}
+
+IKPipelinePtr KMaterial::CreatePrePassInstancePipeline(const VertexFormat* formats, size_t count)
+{
+	return CreateInstancePipelineImpl(m_PrePassShaderMap, {}, formats, count);
+}
+
+IKPipelinePtr KMaterial::CreateDepthPeelingPipeline(const VertexFormat* formats, size_t count)
+{
+	return CreatePipelineImpl(m_DepthPeelShaderMap, {}, formats, count);
+}
+
+IKPipelinePtr KMaterial::CreateDepthPeelingInstancePipeline(const VertexFormat* formats, size_t count)
+{
+	return CreatePipelineImpl(m_DepthPeelShaderMap, {}, formats, count);
+}
+
 IKPipelinePtr KMaterial::CreateCSMPipeline(const VertexFormat* formats, size_t count, bool staticCSM)
 {
 	if (m_ShadingMode == MSM_OPAQUE)
@@ -803,11 +823,11 @@ bool KMaterial::InitFromImportAssetMaterial(const KMeshRawData::Material& input,
 		};
 	}
 
+	KShaderMapInitContext initContext;
+	initContext.includeFiles = { {"material_generate_code.h", m_MaterialGeneratedCodeReader} };
+
 	if (input.alphaMode == MAM_OPAQUE || input.alphaMode == MAM_MASK)
 	{
-		KShaderMapInitContext initContext;		
-		initContext.includeFiles = { {"material_generate_code.h", m_MaterialGeneratedCodeReader} };
-
 		initContext.vsFile = "shading/basepass.vert";
 		initContext.fsFile = "shading/basepass.frag";
 		initContext.macros = { {"BASE_PASS", "1"} };
@@ -820,6 +840,7 @@ bool KMaterial::InitFromImportAssetMaterial(const KMeshRawData::Material& input,
 
 		initContext.vsFile = "shadow/cascaded/dynamic_shadow.vert";
 		initContext.fsFile = "shadow/cascaded/shadow.frag";
+		initContext.macros = { {"CASCADED_SHADOW_PASS", "1"} };
 		ASSERT_RESULT(m_DynamicCSMShaderMap.Init(initContext, async));
 
 		initContext.vsFile = "virtualtexture/vt_basepass.vert";
@@ -831,15 +852,24 @@ bool KMaterial::InitFromImportAssetMaterial(const KMeshRawData::Material& input,
 	}
 	else if (input.alphaMode == MAM_BLEND)
 	{
-		KShaderMapInitContext initContext;
 		initContext.vsFile = "shading/basepass.vert";
 		initContext.fsFile = "shading/translucent.frag";
 		initContext.macros = { {"TRANSRPANT_PASS", "1"} };
-		initContext.includeFiles = { {"material_generate_code.h", m_MaterialGeneratedCodeReader} };
+		ASSERT_RESULT(m_ShaderMap.Init(initContext, async));
+
+		initContext.vsFile = "shading/basepass.vert";
+		initContext.fsFile = "shading/translucent.frag";
+		initContext.macros = { {"DEPTH_PEELING_TRANSRPANT_PASS", "1"} };
+		ASSERT_RESULT(m_DepthPeelShaderMap.Init(initContext, async));
 
 		m_ShadingMode = MSM_TRANSRPANT;
+	}
 
-		ASSERT_RESULT(m_ShaderMap.Init(initContext, async));
+	{
+		initContext.vsFile = "shading/basepass.vert";
+		initContext.fsFile = "shading/basepass.frag";
+		initContext.macros = { {"PRE_PASS", "1"} };
+		ASSERT_RESULT(m_PrePassShaderMap.Init(initContext, async));
 	}
 
 	m_DoubleSide = input.doubleSided;
@@ -936,6 +966,8 @@ bool KMaterial::Reload()
 bool KMaterial::UnInit()
 {
 	m_ShaderMap.UnInit();
+	m_PrePassShaderMap.UnInit();
+	m_DepthPeelShaderMap.UnInit();
 	m_StaticCSMShaderMap.UnInit();
 	m_DynamicCSMShaderMap.UnInit();
 	m_VirtualFeedbackShaderMap.UnInit();

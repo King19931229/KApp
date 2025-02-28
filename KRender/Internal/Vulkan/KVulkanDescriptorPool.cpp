@@ -690,7 +690,7 @@ KVulkanDescriptorPoolAllocatedSetPtr KVulkanDescriptorPool::InternalAlloc(size_t
 				if (!m_Name.empty())
 				{
 					KVulkanHelper::DebugUtilsSetObjectName(KVulkanGlobal::device, (uint64_t)newSet, VK_OBJECT_TYPE_DESCRIPTOR_SET,
-						(m_Name + "_DescriptorSet_" + std::to_string(blockIndex) + "_" + std::to_string(block.sets.size())).c_str());
+						(m_Name + "_DescriptorSet(Block" + std::to_string(blockIndex) + " Set" + std::to_string(block.sets.size()) + ")").c_str());
 				}
 
 				KVulkanDescriptorPoolAllocatedSetPtr newAllocation(KNEW KVulkanDescriptorPoolAllocatedSet(newSet));
@@ -715,7 +715,7 @@ KVulkanDescriptorPoolAllocatedSetPtr KVulkanDescriptorPool::InternalAlloc(size_t
 	if (!m_Name.empty())
 	{
 		KVulkanHelper::DebugUtilsSetObjectName(KVulkanGlobal::device, (uint64_t)newSet, VK_OBJECT_TYPE_DESCRIPTOR_SET,
-			(m_Name + "_DescriptorSet_" + std::to_string(blockIndex) + "_" + std::to_string(block.sets.size())).c_str());
+			(m_Name + "_DescriptorSet(Block" + std::to_string(blockIndex) + " Set" + std::to_string(block.sets.size()) + ")").c_str());
 	}
 
 	KVulkanDescriptorPoolAllocatedSetPtr newAllocation(KNEW KVulkanDescriptorPoolAllocatedSet(newSet));
