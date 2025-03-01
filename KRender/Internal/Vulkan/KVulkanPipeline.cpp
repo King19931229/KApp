@@ -230,9 +230,13 @@ bool KVulkanPipelineHandle::InitializeVulkanTerminology(const KPipelineState& st
 	m_ColorWriteMask |= (state.colorWrites[state.B] * VK_COLOR_COMPONENT_B_BIT);
 	m_ColorWriteMask |= (state.colorWrites[state.A] * VK_COLOR_COMPONENT_A_BIT);
 
-	ASSERT_RESULT(KVulkanHelper::BlendFactorToVkBlendFactor(state.blendSrcFactor, m_ColorSrcBlendFactor));
-	ASSERT_RESULT(KVulkanHelper::BlendFactorToVkBlendFactor(state.blendDstFactor, m_ColorDstBlendFactor));
-	ASSERT_RESULT(KVulkanHelper::BlendOperatorToVkBlendOp(state.blendOp, m_ColorBlendOp));
+	ASSERT_RESULT(KVulkanHelper::BlendFactorToVkBlendFactor(state.blendColorSrcFactor, m_ColorSrcBlendFactor));
+	ASSERT_RESULT(KVulkanHelper::BlendFactorToVkBlendFactor(state.blendColorDstFactor, m_ColorDstBlendFactor));
+	ASSERT_RESULT(KVulkanHelper::BlendOperatorToVkBlendOp(state.blendColorOp, m_ColorBlendOp));
+
+	ASSERT_RESULT(KVulkanHelper::BlendFactorToVkBlendFactor(state.blendAlphaSrcFactor, m_AlphaSrcBlendFactor));
+	ASSERT_RESULT(KVulkanHelper::BlendFactorToVkBlendFactor(state.blendAlphaDstFactor, m_AlphaDstBlendFactor));
+	ASSERT_RESULT(KVulkanHelper::BlendOperatorToVkBlendOp(state.blendAlphaOp, m_AlphaBlendOp));
 
 	m_BlendEnable = state.blend;
 
@@ -372,9 +376,9 @@ bool KVulkanPipelineHandle::Init(IKPipelineLayout* layout, IKRenderPass* renderP
 	colorBlendAttachment.dstColorBlendFactor = m_ColorDstBlendFactor;
 	colorBlendAttachment.colorBlendOp = m_ColorBlendOp;
 
-	colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE; // Optional
-	colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO; // Optional
-	colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD; // Optional
+	colorBlendAttachment.srcAlphaBlendFactor = m_AlphaSrcBlendFactor;
+	colorBlendAttachment.dstAlphaBlendFactor = m_AlphaDstBlendFactor;
+	colorBlendAttachment.alphaBlendOp = m_AlphaBlendOp;
 
 	std::vector<VkPipelineColorBlendAttachmentState> colorBlendAttachments;
 	colorBlendAttachments.resize(vulkanRenderPass->GetColorAttachmentCount());

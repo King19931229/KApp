@@ -20,6 +20,7 @@ protected:
 
 	IKPipelinePtr m_LightingPipeline;
 	IKPipelinePtr m_DrawSceneColorPipeline;
+	IKPipelinePtr m_DrawProcessResultPipeline;
 	IKPipelinePtr m_DrawFinalPipeline;
 
 	KShaderRef m_QuadVS;
@@ -59,7 +60,7 @@ public:
 	void CopyOpaqueColor(KRHICommandList& commandList);
 	void ForwardTransprant(KRHICommandList& commandList, const std::vector<IKEntity*>& cullRes);
 	void SkyPass(KRHICommandList& commandList);
-	void CopySceneColorToFinal(KRHICommandList& commandList);
+	void PostProcessResult(KRHICommandList& commandList);
 	void DebugObject(KRHICommandList& commandList, const std::vector<IKEntity*>& cullRes);
 	void Foreground(KRHICommandList& commandList);
 	void EmptyAO(KRHICommandList& commandList);

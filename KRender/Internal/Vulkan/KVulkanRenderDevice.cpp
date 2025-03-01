@@ -195,7 +195,6 @@ static VkResult CreateDebugReportCallbackEXT(
 	const VkAllocationCallbacks* pAllocator,
 	VkDebugReportCallbackEXT* debugReport)
 {
-
 	PFN_vkCreateDebugReportCallbackEXT func = (PFN_vkCreateDebugReportCallbackEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugReportCallbackEXT");
 	if (func != nullptr)
 	{
@@ -970,7 +969,7 @@ VkBool32 KVulkanRenderDevice::DebugReportCallback(
 	}
 	if (flags & VK_DEBUG_REPORT_ERROR_BIT_EXT)
 	{
-		KG_LOGE_ASSERT(LM_RENDER, "[Vulkan Validation Layer Error] %s\n", pMessage);
+		KG_LOGE(LM_RENDER, "[Vulkan Validation Layer Error] %s\n", pMessage);
 	}
 
 	return VK_FALSE;
@@ -1065,8 +1064,8 @@ bool KVulkanRenderDevice::Init(IKRenderWindow* window)
 
 	const VkValidationFeatureEnableEXT enables[] =
 	{
-		VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_EXT,
-		VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_RESERVE_BINDING_SLOT_EXT,
+		// VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_EXT,
+		// VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_RESERVE_BINDING_SLOT_EXT,
 		// VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT,
 		// VK_VALIDATION_FEATURE_ENABLE_BEST_PRACTICES_EXT,
 		VK_VALIDATION_FEATURE_ENABLE_DEBUG_PRINTF_EXT,

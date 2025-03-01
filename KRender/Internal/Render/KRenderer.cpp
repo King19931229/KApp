@@ -215,7 +215,7 @@ bool KRenderer::Render(uint32_t chainImageIndex)
 		KRenderGlobal::GBuffer.TransitionDepthStencil(m_RHICommandList, m_PreGraphics.queue, m_PreGraphics.queue, PIPELINE_STAGE_LATE_FRAGMENT_TESTS, PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 		KRenderGlobal::HiZBuffer.Construct(m_RHICommandList);
 		KRenderGlobal::VirtualGeometryManager.ExecutePost(m_RHICommandList);
-		KRenderGlobal::GBuffer.TransitionDepthStencil(m_RHICommandList, m_PreGraphics.queue, m_PreGraphics.queue, PIPELINE_STAGE_BOTTOM_OF_PIPE, PIPELINE_STAGE_TOP_OF_PIPE, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT);
+		KRenderGlobal::GBuffer.TransitionDepthStencil(m_RHICommandList, m_PreGraphics.queue, m_PreGraphics.queue, PIPELINE_STAGE_COMPUTE_SHADER, PIPELINE_STAGE_EARLY_FRAGMENT_TESTS, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT);
 		KRenderGlobal::DeferredRenderer.PostBasePass(m_RHICommandList);
 
 		KRenderGlobal::GBuffer.TransitionGBuffer(m_RHICommandList, m_PreGraphics.queue, m_PreGraphics.queue, PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
@@ -304,12 +304,12 @@ bool KRenderer::Render(uint32_t chainImageIndex)
 
 		//
 		KRenderGlobal::DepthOfField.Execute(m_RHICommandList);
-		KRenderGlobal::DeferredRenderer.CopySceneColorToFinal(m_RHICommandList);
+		KRenderGlobal::DeferredRenderer.PostProcessResult(m_RHICommandList);
 
 		KRenderGlobal::DeferredRenderer.DebugObject(m_RHICommandList, cullRes);
 		KRenderGlobal::DeferredRenderer.Foreground(m_RHICommandList);
 
-		// 绘制SceneColor
+		// 绘制Final
 		{
 			IKRenderTargetPtr offscreenTarget = ((KPostProcessPass*)KRenderGlobal::PostProcessManager.GetStartPointPass().get())->GetRenderTarget();
 			IKRenderPassPtr renderPass = ((KPostProcessPass*)KRenderGlobal::PostProcessManager.GetStartPointPass().get())->GetRenderPass();
@@ -377,9 +377,9 @@ bool KRenderer::Init(const KRendererInitContext& initContext)
 
 	KRenderGlobal::ScreenSpaceReflection.Init(width, height, 0.5f, false);
 
-	KRenderGlobal::DeferredRenderer.Init(camera, width, height);
-
 	KRenderGlobal::DepthOfField.Init(width, height, 0.5f);
+
+	KRenderGlobal::DeferredRenderer.Init(camera, width, height);
 
 	KRenderGlobal::RTAO.Init(KRenderGlobal::Scene.GetRayTraceScene().get());
 

@@ -20,9 +20,15 @@ protected:
 
 	// Alpha混合信息
 	VkColorComponentFlags m_ColorWriteMask;
+
 	VkBlendFactor m_ColorSrcBlendFactor;
 	VkBlendFactor m_ColorDstBlendFactor;
 	VkBlendOp m_ColorBlendOp;
+
+	VkBlendFactor m_AlphaSrcBlendFactor;
+	VkBlendFactor m_AlphaDstBlendFactor;
+	VkBlendOp m_AlphaBlendOp;
+
 	VkBool32 m_BlendEnable;
 
 	// 光栅化信息

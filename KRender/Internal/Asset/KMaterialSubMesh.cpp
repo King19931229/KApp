@@ -127,56 +127,23 @@ bool KMaterialSubMesh::CreateMaterialPipeline()
 
 		MaterialShadingMode shaingMode = m_Material->GetShadingMode();
 
-		for (RenderStage stage : {RENDER_STAGE_OPAQUE, RENDER_STAGE_OPAQUE_INSTANCE, RENDER_STAGE_TRANSPRANT})
+		for (RenderStage stage : {RENDER_STAGE_OPAQUE, RENDER_STAGE_OPAQUE_INSTANCE, RENDER_STAGE_TRANSPRANT, RENDER_STAGE_TRANSPRANT_DEPTH_PEELING})
 		{
 			SAFE_UNINIT(m_Pipelines[stage]);
 		}
 
-		enum
+		if (shaingMode == MSM_OPAQUE)
 		{
-			DEFAULT_IDX,
-			INSTANCE_IDX,
-			IDX_COUNT
-		};
+			m_Pipelines[RENDER_STAGE_OPAQUE] = m_Material->CreatePipeline(vertexData->vertexFormats.data(), vertexData->vertexFormats.size());
+			m_Pipelines[RENDER_STAGE_OPAQUE_INSTANCE] = m_Material->CreateInstancePipeline(vertexData->vertexFormats.data(), vertexData->vertexFormats.size());
 
-		// 构造所需要的Pipeline
-		IKPipelinePtr* pipelines[IDX_COUNT] = { nullptr };
-
-		switch (shaingMode)
+		}
+		else
 		{
-			case MSM_OPAQUE:
-				pipelines[DEFAULT_IDX] = &m_Pipelines[RENDER_STAGE_OPAQUE];
-				pipelines[INSTANCE_IDX] = &m_Pipelines[RENDER_STAGE_OPAQUE_INSTANCE];
-				break;
-			case MSM_TRANSRPANT:
-				pipelines[DEFAULT_IDX] = &m_Pipelines[RENDER_STAGE_TRANSPRANT];
-				pipelines[INSTANCE_IDX] = nullptr;
-				break;
-			default:
-				break;
+			m_Pipelines[RENDER_STAGE_TRANSPRANT] = m_Material->CreatePipeline(vertexData->vertexFormats.data(), vertexData->vertexFormats.size());
+			m_Pipelines[RENDER_STAGE_TRANSPRANT_DEPTH_PEELING] = m_Material->CreateDepthPeelingPipeline(vertexData->vertexFormats.data(), vertexData->vertexFormats.size());
 		}
 
-		const KShaderInformation& vsInfo = vsShader->GetInformation();
-		const KShaderInformation& fsInfo = fsShader->GetInformation();
-
-		for (size_t i = 0; i < IDX_COUNT; ++i)
-		{
-			if (pipelines[i])
-			{
-				IKPipelinePtr& pipeline = *pipelines[i];
-
-				if (i == DEFAULT_IDX)
-				{
-					pipeline = m_Material->CreatePipeline(vertexData->vertexFormats.data(), vertexData->vertexFormats.size());
-				}
-				else if (i == INSTANCE_IDX)
-				{
-					pipeline = m_Material->CreateInstancePipeline(vertexData->vertexFormats.data(), vertexData->vertexFormats.size());
-				}
-
-				ASSERT_RESULT(pipeline->Init());
-			}
-		}
 		return true;
 	}
 	return false;

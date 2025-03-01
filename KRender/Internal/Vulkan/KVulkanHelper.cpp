@@ -459,23 +459,23 @@ namespace KVulkanHelper
 	{
 		switch (blendFactor)
 		{
-		case BF_ZEOR:
+		case BF_ZERO:
 			vkBlendFactor = VK_BLEND_FACTOR_ZERO;
 			return true;
 		case BF_ONE:
 			vkBlendFactor = VK_BLEND_FACTOR_ONE;
 			return true;
-		case BF_SRC_COLOR:
-			vkBlendFactor = VK_BLEND_FACTOR_SRC_COLOR;
-			return true;
-		case BF_ONE_MINUS_SRC_COLOR:
-			vkBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_COLOR;
-			return true;
 		case BF_SRC_ALPHA:
 			vkBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
 			return true;
+		case BF_DST_ALPHA:
+			vkBlendFactor = VK_BLEND_FACTOR_DST_ALPHA;
+			return true;
 		case BF_ONE_MINUS_SRC_ALPHA:
 			vkBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+			return true;
+		case BF_ONE_MINUS_DST_ALPHA:
+			vkBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_DST_ALPHA;
 			return true;
 		default:
 			assert(false && "blend factor not supported");
@@ -711,6 +711,12 @@ namespace KVulkanHelper
 				return true;
 			case IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT:
 				vkImageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+				return true;
+			case IMAGE_LAYOUT_TRANSFER_SRC:
+				vkImageLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+				return true;
+			case IMAGE_LAYOUT_TRANSFER_DST:
+				vkImageLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
 				return true;
 			case IMAGE_LAYOUT_SHADER_READ_ONLY:
 				vkImageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;

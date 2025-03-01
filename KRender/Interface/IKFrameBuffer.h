@@ -1,6 +1,15 @@
 #pragma once
 #include "KRender/Interface/IKRenderDevice.h"
 
+enum FrameBufferType
+{
+	FT_EXTERNAL_SOURCE,
+	FT_COLOR_ATTACHMENT,
+	FT_DEPTH_ATTACHMENT,
+	FT_STORAGE_IMAGE,
+	FT_READBACK_USAGE
+};
+
 struct IKFrameBuffer
 {
 	virtual ~IKFrameBuffer() {}
@@ -10,6 +19,7 @@ struct IKFrameBuffer
 	virtual uint32_t GetDepth() const = 0;
 	virtual uint32_t GetMipmaps() const = 0;
 	virtual uint32_t GetMSAA() const = 0;
+	virtual FrameBufferType GetType() const = 0;
 	virtual bool IsDepthStencil() const = 0;
 	virtual bool IsStorageImage() const = 0;
 	virtual bool IsReadback() const = 0;

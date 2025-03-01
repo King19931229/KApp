@@ -316,9 +316,17 @@ IKPipelinePtr KMaterial::CreatePipelineInternal(const PipelineCreateContext& con
 		}
 		else
 		{
-			pipeline->SetBlendEnable(true);
-			pipeline->SetColorBlend(BF_SRC_ALPHA, BF_ONE_MINUS_SRC_ALPHA, BO_ADD);
-			pipeline->SetDepthFunc(CF_LESS_OR_EQUAL, false, true);
+			if (context.depthPeeling)
+			{
+				pipeline->SetBlendEnable(false);
+				pipeline->SetDepthFunc(CF_LESS_OR_EQUAL, true, true);
+			}
+			else
+			{
+				pipeline->SetBlendEnable(true);
+				pipeline->SetColorBlend(BF_SRC_ALPHA, BF_ONE_MINUS_SRC_ALPHA, BO_ADD);
+				pipeline->SetDepthFunc(CF_LESS_OR_EQUAL, false, true);
+			}
 		}
 
 		if (m_DoubleSide)
@@ -428,12 +436,16 @@ IKPipelinePtr KMaterial::CreatePrePassInstancePipeline(const VertexFormat* forma
 
 IKPipelinePtr KMaterial::CreateDepthPeelingPipeline(const VertexFormat* formats, size_t count)
 {
-	return CreatePipelineImpl(m_DepthPeelShaderMap, {}, formats, count);
+	PipelineCreateContext context;
+	context.depthPeeling = true;
+	return CreatePipelineImpl(m_DepthPeelShaderMap, context, formats, count);
 }
 
 IKPipelinePtr KMaterial::CreateDepthPeelingInstancePipeline(const VertexFormat* formats, size_t count)
 {
-	return CreatePipelineImpl(m_DepthPeelShaderMap, {}, formats, count);
+	PipelineCreateContext context;
+	context.depthPeeling = true;
+	return CreateInstancePipelineImpl(m_DepthPeelShaderMap, context, formats, count);
 }
 
 IKPipelinePtr KMaterial::CreateCSMPipeline(const VertexFormat* formats, size_t count, bool staticCSM)

@@ -436,7 +436,7 @@ void KVulkanSwapChain::AcquireNextImage(uint32_t& imageIndex)
 	VkSemaphore singalSemaphore = ((KVulkanSemaphore*)m_ImageAvailableSemaphore.get())->GetVkSemaphore();
 	VkResult vkResult = vkAcquireNextImageKHR(KVulkanGlobal::device, m_SwapChain, UINT64_MAX, singalSemaphore, VK_NULL_HANDLE, &imageIndex);
 	m_CurrentImageIndex = imageIndex;
-	VK_ASSERT_RESULT(vkResult);
+	ASSERT_RESULT(vkResult == VK_SUCCESS || vkResult == VK_ERROR_OUT_OF_DATE_KHR || vkResult == VK_SUBOPTIMAL_KHR);
 }
 
 void KVulkanSwapChain::PresentQueue(bool& needResize)

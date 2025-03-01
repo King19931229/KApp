@@ -834,7 +834,7 @@ bool KVulkanCommandBuffer::Blit(IKFrameBufferPtr src, IKFrameBufferPtr dest)
 		blit.srcOffsets[0] = srcOffsets[0];
 		blit.srcOffsets[1] = srcOffsets[1];
 
-		blit.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		blit.srcSubresource.aspectMask = srcBuffer->IsDepthStencil() ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
 		blit.srcSubresource.mipLevel = 0;
 		blit.srcSubresource.baseArrayLayer = 0;
 		blit.srcSubresource.layerCount = 1;
@@ -843,7 +843,7 @@ bool KVulkanCommandBuffer::Blit(IKFrameBufferPtr src, IKFrameBufferPtr dest)
 		blit.dstOffsets[0] = dstOffsets[0];
 		blit.dstOffsets[1] = dstOffsets[1];
 
-		blit.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		blit.dstSubresource.aspectMask = destBuffer->IsDepthStencil() ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
 		blit.dstSubresource.mipLevel = 0;
 		blit.dstSubresource.baseArrayLayer = 0;
 		blit.dstSubresource.layerCount = 1;

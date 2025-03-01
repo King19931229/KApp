@@ -86,7 +86,7 @@ bool KSubMesh::CreateAccelerationStructure()
 	if (m_IndexDraw)
 	{
 		KRenderGlobal::RenderDevice->CreateAccelerationStructure(m_AccelerationStructure);
-		/*
+
 		if (m_IndexData.indexBuffer->GetIndexType() == IT_16)
 		{
 			IKIndexBufferPtr indexBuffer = nullptr;
@@ -110,7 +110,7 @@ bool KSubMesh::CreateAccelerationStructure()
 			SAFE_UNINIT(m_IndexData.indexBuffer);
 			m_IndexData.indexBuffer = indexBuffer;
 		}
-		*/
+
 		m_AccelerationStructure->SetDebugName((m_DebugLabel + "_BLAS").c_str());
 		m_AccelerationStructure->InitBottomUp(m_pVertexData->vertexFormats[0], m_pVertexData->vertexBuffers[0], m_IndexData.indexBuffer);
 	}

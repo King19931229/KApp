@@ -21,13 +21,14 @@ struct KDeferredRenderStageDescription
 constexpr KDeferredRenderStageDescription GDeferredRenderStageDescription[DRS_STAGE_COUNT] =
 {
 	{DRS_STAGE_PRE_PASS, RENDER_STAGE_PRE_Z, RENDER_STAGE_PRE_Z_INSTANCE, false, false, "PrePass"},
-	{DRS_STAGE_MAIN_BASE_PASS, RENDER_STAGE_BASEPASS, RENDER_STAGE_BASEPASS_INSTANCE, true, false/*true*/, "MainBasePass"},
-	{DRS_STAGE_POST_BASE_PASS, RENDER_STAGE_BASEPASS, RENDER_STAGE_BASEPASS_INSTANCE, true, false/*true*/, "PostBasePass" },
+	{DRS_STAGE_MAIN_BASE_PASS, RENDER_STAGE_BASEPASS, RENDER_STAGE_BASEPASS_INSTANCE, true, true, "MainBasePass"},
+	{DRS_STAGE_POST_BASE_PASS, RENDER_STAGE_BASEPASS, RENDER_STAGE_BASEPASS_INSTANCE, true, true, "PostBasePass" },
 	{DRS_STAGE_DEFERRED_LIGHTING, RENDER_STAGE_UNKNOWN, RENDER_STAGE_UNKNOWN, false, false, "LightingPass"},
-	{DRS_STAGE_FORWARD_OPAQUE, RENDER_STAGE_OPAQUE, RENDER_STAGE_UNKNOWN, true, false/*true*/, "ForwardOpaquePass"},
-	{DRS_STAGE_FORWARD_TRANSPRANT, RENDER_STAGE_TRANSPRANT, RENDER_STAGE_UNKNOWN, false, true, "ForwardTransprantPass"},
+	{DRS_STAGE_FORWARD_OPAQUE, RENDER_STAGE_OPAQUE, RENDER_STAGE_UNKNOWN, true, true, "ForwardOpaquePass"},
+	{DRS_STATE_COPY_OPAQUE_COLOR, RENDER_STAGE_UNKNOWN, RENDER_STAGE_UNKNOWN, false, false, "CopyOpaqueColor"},
+	{DRS_STAGE_FORWARD_TRANSPRANT, RENDER_STAGE_TRANSPRANT, RENDER_STAGE_UNKNOWN, false, false, "ForwardTransprantPass"},
 	{DRS_STATE_SKY, RENDER_STAGE_UNKNOWN, RENDER_STAGE_UNKNOWN, false, false, "SkyPass"},
-	{DRS_STATE_COPY_SCENE_COLOR, RENDER_STAGE_UNKNOWN, RENDER_STAGE_UNKNOWN, false, false, "CopySceneColor"},
+	{DRS_STATE_POSTPROCESS_RESULT, RENDER_STAGE_UNKNOWN, RENDER_STAGE_UNKNOWN, false, false, "PostProcessResult"},
 	{DRS_STATE_DEBUG_OBJECT, RENDER_STAGE_UNKNOWN, RENDER_STAGE_UNKNOWN, false, false, "DebugObjectPass"},
 	{DRS_STATE_FOREGROUND, RENDER_STAGE_UNKNOWN, RENDER_STAGE_UNKNOWN, false, false, "ForegroundPass"}
 };
@@ -39,7 +40,7 @@ static_assert(GDeferredRenderStageDescription[DRS_STAGE_DEFERRED_LIGHTING].stage
 static_assert(GDeferredRenderStageDescription[DRS_STAGE_FORWARD_TRANSPRANT].stage == DRS_STAGE_FORWARD_TRANSPRANT, "check");
 static_assert(GDeferredRenderStageDescription[DRS_STAGE_FORWARD_OPAQUE].stage == DRS_STAGE_FORWARD_OPAQUE, "check");
 static_assert(GDeferredRenderStageDescription[DRS_STATE_SKY].stage == DRS_STATE_SKY, "check");
-static_assert(GDeferredRenderStageDescription[DRS_STATE_COPY_SCENE_COLOR].stage == DRS_STATE_COPY_SCENE_COLOR, "check");
+static_assert(GDeferredRenderStageDescription[DRS_STATE_POSTPROCESS_RESULT].stage == DRS_STATE_POSTPROCESS_RESULT, "check");
 static_assert(GDeferredRenderStageDescription[DRS_STATE_DEBUG_OBJECT].stage == DRS_STATE_DEBUG_OBJECT, "check");
 static_assert(GDeferredRenderStageDescription[DRS_STATE_FOREGROUND].stage == DRS_STATE_FOREGROUND, "check");
 
@@ -93,9 +94,11 @@ void KDeferredRenderer::UnInit()
 	SAFE_UNINIT(m_FinalTarget);
 	SAFE_UNINIT(m_LightingPipeline);
 	SAFE_UNINIT(m_DrawSceneColorPipeline);
+	SAFE_UNINIT(m_DrawProcessResultPipeline);
 	SAFE_UNINIT(m_DrawFinalPipeline);
 
 	SAFE_UNINIT(m_EmptyAORenderPass);
+
 	for (uint32_t i = 0; i < DRS_STAGE_COUNT; ++i)
 	{
 		SAFE_UNINIT(m_RenderPass[i]);
@@ -188,6 +191,14 @@ void KDeferredRenderer::RecreateRenderPass(uint32_t width, uint32_t height)
 			ASSERT_RESULT(renderPass->Init());
 		}
 
+		if (idx == DRS_STATE_COPY_OPAQUE_COLOR)
+		{
+			renderPass->SetColorAttachment(0, KRenderGlobal::GBuffer.GetOpaqueColorCopy()->GetFrameBuffer());
+			renderPass->SetOpColor(0, LO_CLEAR, SO_STORE);
+			renderPass->SetClearColor(0, { 0.0f, 0.0f, 0.0f, 0.0f });
+			ASSERT_RESULT(renderPass->Init());
+		}
+
 		if (idx == DRS_STATE_SKY)
 		{
 			renderPass->SetColorAttachment(0, KRenderGlobal::GBuffer.GetSceneColor()->GetFrameBuffer());
@@ -197,10 +208,10 @@ void KDeferredRenderer::RecreateRenderPass(uint32_t width, uint32_t height)
 			ASSERT_RESULT(renderPass->Init());
 		}
 
-		if (idx == DRS_STATE_COPY_SCENE_COLOR)
+		if (idx == DRS_STATE_POSTPROCESS_RESULT)
 		{
 			renderPass->SetColorAttachment(0, m_FinalTarget->GetFrameBuffer());
-			renderPass->SetOpColor(0, LO_LOAD, SO_STORE);
+			renderPass->SetOpColor(0, LO_CLEAR, SO_STORE);
 			renderPass->SetClearColor(0, { 0.0f, 0.0f, 0.0f, 0.0f });
 			ASSERT_RESULT(renderPass->Init());
 		}
@@ -361,6 +372,29 @@ void KDeferredRenderer::RecreatePipeline()
 	}
 
 	{
+		EnsurePipeline(m_DrawProcessResultPipeline);
+		IKPipelinePtr& pipeline = m_DrawProcessResultPipeline;
+
+		pipeline->SetVertexBinding(KRenderGlobal::QuadDataProvider.GetVertexFormat(), KRenderGlobal::QuadDataProvider.GetVertexFormatArraySize());
+		pipeline->SetShader(ST_VERTEX, *m_QuadVS);
+		pipeline->SetShader(ST_FRAGMENT, *m_SceneColorDrawFS);
+
+		pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
+		pipeline->SetBlendEnable(false);
+		pipeline->SetCullMode(CM_NONE);
+		pipeline->SetFrontFace(FF_COUNTER_CLOCKWISE);
+		pipeline->SetPolygonMode(PM_FILL);
+		pipeline->SetColorWrite(true, true, true, true);
+		pipeline->SetDepthFunc(CF_LESS_OR_EQUAL, true, true);
+
+		// TODO PostProcessMgr
+		pipeline->SetSampler(SHADER_BINDING_TEXTURE0, KRenderGlobal::DepthOfField.GetFinal()->GetFrameBuffer(), KRenderGlobal::GBuffer.GetSampler(), true);
+
+		pipeline->SetDebugName("DrawFinalPipeline");
+		pipeline->Init();
+	}
+
+	{
 		EnsurePipeline(m_DrawSceneColorPipeline);
 		IKPipelinePtr& pipeline = m_DrawSceneColorPipeline;
 
@@ -461,6 +495,11 @@ void KDeferredRenderer::HandleRenderCommandBinding(DeferredRenderStage renderSta
 			KRenderGlobal::CubeMap.GetIntegrateBRDF()->GetFrameBuffer(),
 			KRenderGlobal::CubeMap.GetIntegrateBRDFSampler(),
 			true);
+
+		/*pipeline->SetSampler(SHADER_BINDING_TEXTURE16,
+			KRenderGlobal::DepthPeeling.GetPrevPeelingDepthTarget()->GetFrameBuffer(),
+			KRenderGlobal::DepthPeeling.GetPeelingDepthSampler(),
+			true);*/
 
 		struct Debug
 		{
@@ -751,19 +790,19 @@ void KDeferredRenderer::SkyPass(KRHICommandList& commandList)
 	commandList.EndDebugMarker();
 }
 
-void KDeferredRenderer::CopySceneColorToFinal(KRHICommandList& commandList)
+void KDeferredRenderer::PostProcessResult(KRHICommandList& commandList)
 {
 	commandList.Transition(KRenderGlobal::GBuffer.GetSceneColor()->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 
-	commandList.BeginDebugMarker(GDeferredRenderStageDescription[DRS_STATE_COPY_SCENE_COLOR].debugMarker, glm::vec4(1));
-	commandList.BeginRenderPass(m_RenderPass[DRS_STATE_COPY_SCENE_COLOR], SUBPASS_CONTENTS_INLINE);
-	commandList.SetViewport(m_RenderPass[DRS_STATE_COPY_SCENE_COLOR]->GetViewPort());
+	commandList.BeginDebugMarker(GDeferredRenderStageDescription[DRS_STATE_POSTPROCESS_RESULT].debugMarker, glm::vec4(1));
+	commandList.BeginRenderPass(m_RenderPass[DRS_STATE_POSTPROCESS_RESULT], SUBPASS_CONTENTS_INLINE);
+	commandList.SetViewport(m_RenderPass[DRS_STATE_POSTPROCESS_RESULT]->GetViewPort());
 
 	KRenderCommand command;
 	command.vertexData = &KRenderGlobal::QuadDataProvider.GetVertexData();
 	command.indexData = &KRenderGlobal::QuadDataProvider.GetIndexData();
-	command.pipeline = m_DrawSceneColorPipeline;
-	command.pipeline->GetHandle(m_RenderPass[DRS_STATE_COPY_SCENE_COLOR], command.pipelineHandle);
+	command.pipeline = m_DrawProcessResultPipeline;
+	command.pipeline->GetHandle(m_RenderPass[DRS_STATE_POSTPROCESS_RESULT], command.pipelineHandle);
 	command.indexDraw = true;
 	commandList.Render(command);
 
@@ -794,11 +833,37 @@ void KDeferredRenderer::ForwardOpaque(KRHICommandList& commandList, const std::v
 
 void KDeferredRenderer::CopyOpaqueColor(KRHICommandList& commandList)
 {
+	{
+		commandList.BeginDebugMarker(GDeferredRenderStageDescription[DRS_STATE_COPY_OPAQUE_COLOR].debugMarker, glm::vec4(1));
+
+		commandList.Transition(KRenderGlobal::GBuffer.GetSceneColor()->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+		commandList.BeginRenderPass(m_RenderPass[DRS_STATE_COPY_OPAQUE_COLOR], SUBPASS_CONTENTS_INLINE);
+		commandList.SetViewport(m_RenderPass[DRS_STATE_COPY_OPAQUE_COLOR]->GetViewPort());
+
+		KRenderCommand command;
+		command.vertexData = &KRenderGlobal::QuadDataProvider.GetVertexData();
+		command.indexData = &KRenderGlobal::QuadDataProvider.GetIndexData();
+		command.pipeline = m_DrawSceneColorPipeline;
+		command.pipeline->GetHandle(m_RenderPass[DRS_STATE_COPY_OPAQUE_COLOR], command.pipelineHandle);
+		command.indexDraw = true;
+		commandList.Render(command);
+
+		commandList.EndRenderPass();
+		commandList.Transition(KRenderGlobal::GBuffer.GetSceneColor()->GetFrameBuffer(), PIPELINE_STAGE_FRAGMENT_SHADER, PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_COLOR_ATTACHMENT);
+		commandList.EndDebugMarker();
+	}
 }
 
 void KDeferredRenderer::ForwardTransprant(KRHICommandList& commandList, const std::vector<IKEntity*>& cullRes)
 {
-	ExecuteRenderPass(commandList, DRS_STAGE_FORWARD_TRANSPRANT, cullRes);
+	if (KRenderGlobal::EnablePeeling)
+	{
+		KRenderGlobal::DepthPeeling.Execute(commandList, cullRes);
+	}
+	else
+	{
+		ExecuteRenderPass(commandList, DRS_STAGE_FORWARD_TRANSPRANT, cullRes);
+	}
 }
 
 void KDeferredRenderer::DebugObject(KRHICommandList& commandList, const std::vector<IKEntity*>& cullRes)
@@ -1021,6 +1086,8 @@ void KDeferredRenderer::Reload()
 		m_LightingPipeline->Reload(false);
 	if (m_DrawSceneColorPipeline)
 		m_DrawSceneColorPipeline->Reload(false);
+	if (m_DrawProcessResultPipeline)
+		m_DrawProcessResultPipeline->Reload(false);
 	if (m_DrawFinalPipeline)
-		m_DrawSceneColorPipeline->Reload(false);
+		m_DrawFinalPipeline->Reload(false);
 }

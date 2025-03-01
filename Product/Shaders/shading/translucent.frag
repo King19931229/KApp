@@ -31,6 +31,10 @@ layout(binding = BINDING_TEXTURE13) uniform samplerCube diffuseIrradiance;
 layout(binding = BINDING_TEXTURE14) uniform samplerCube specularIrradiance;
 layout(binding = BINDING_TEXTURE15) uniform sampler2D integrateBRDF;
 
+#ifdef DEPTH_PEELING_TRANSRPANT_PASS
+layout(binding = BINDING_TEXTURE16) uniform sampler2D prevPeelingDepth;
+#endif
+
 layout(location = 0) out vec4 outColor;
 
 /* Shader compiler will replace this into the texcode of the material */
@@ -129,6 +133,7 @@ void main()
 
 	outColor = vec4(final, opacity);
 	outColor += vec4(0.2, 0.5, 0.8, 0.0);
+	outColor.a = 0.5;
 
 	uint debugOption = debug.debugOption;
 	switch(debugOption)

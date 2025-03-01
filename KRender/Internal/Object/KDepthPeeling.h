@@ -2,12 +2,25 @@
 #include "Interface/IKRenderDevice.h"
 #include "Interface/IKStatistics.h"
 #include "Internal/Render/KRHICommandList.h"
+#include "KBase/Interface/Entity/IKEntity.h"
 
 class KDepthPeeling
 {
 protected:
+	IKRenderTargetPtr m_PeelingTarget;
 	IKRenderTargetPtr m_PeelingDepthTarget[2];
-	IKRenderPassPtr m_PeelingPass[2];
+
+	IKRenderPassPtr m_CleanSceneColorPass;
+	IKRenderPassPtr m_UnderBlendPass;
+	IKRenderPassPtr m_PeelingPass;
+
+	KShaderRef m_QuadVS;
+	KShaderRef m_UnderBlendFS;
+	
+	IKPipelinePtr m_UnderBlendPeelingPipeline;
+	IKPipelinePtr m_UnderBlendOpaquePipeline;
+
+	IKSamplerPtr m_DeelingDepthSampler;
 
 	uint32_t m_Width;
 	uint32_t m_Height;
@@ -20,5 +33,8 @@ public:
 	bool UnInit();
 	bool Resize(uint32_t width, uint32_t height);
 
-	bool Execute(KRHICommandList& commandList);
+	inline IKRenderTargetPtr GetPrevPeelingDepthTarget() { return m_PeelingDepthTarget[1]; }
+	inline IKSamplerPtr GetPeelingDepthSampler() { return m_DeelingDepthSampler; }
+
+	bool Execute(KRHICommandList& commandList, const std::vector<IKEntity*>& cullRes);
 };

@@ -89,9 +89,17 @@ bool KPipelineBase::SetColorWrite(bool r, bool g, bool b, bool a)
 
 bool KPipelineBase::SetColorBlend(BlendFactor srcFactor, BlendFactor dstFactor, BlendOperator op)
 {
-	m_State.blendOp = op;
-	m_State.blendSrcFactor = srcFactor;
-	m_State.blendDstFactor = dstFactor;
+	m_State.blendColorOp = op;
+	m_State.blendColorSrcFactor = srcFactor;
+	m_State.blendColorDstFactor = dstFactor;
+	return true;
+}
+
+bool KPipelineBase::SetAlphaBlend(BlendFactor srcFactor, BlendFactor dstFactor, BlendOperator op)
+{
+	m_State.blendAlphaOp = op;
+	m_State.blendAlphaSrcFactor = srcFactor;
+	m_State.blendAlphaDstFactor = dstFactor;
 	return true;
 }
 

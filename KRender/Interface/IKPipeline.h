@@ -5,19 +5,29 @@
 struct KPipelineState
 {
 	enum { R,G,B,A };
+
 	PrimitiveTopology topology;
 	bool colorWrites[4];
-	BlendFactor blendSrcFactor;
-	BlendFactor blendDstFactor;
-	BlendOperator blendOp;
+
+	BlendFactor blendColorSrcFactor;
+	BlendFactor blendColorDstFactor;
+	BlendOperator blendColorOp;
+
+	BlendFactor blendAlphaSrcFactor;
+	BlendFactor blendAlphaDstFactor;
+	BlendOperator blendAlphaOp;
+
 	bool blend;
+
 	CullMode cullMode;
 	FrontFace frontFace;
 	PolygonMode polygonMode;
+
 	CompareFunc depthComp;
 	bool depthWrite;
 	bool depthTest;
 	bool depthBias;
+
 	CompareFunc stencilComp;
 	StencilOperator stencilFailOp;
 	StencilOperator stencilDepthFailOp;
@@ -29,9 +39,12 @@ struct KPipelineState
 	{
 		topology = PT_TRIANGLE_LIST;
 		colorWrites[0] = colorWrites[1] = colorWrites[2] = colorWrites[3] = true;
-		blendSrcFactor = BF_SRC_ALPHA;
-		blendDstFactor = BF_ONE_MINUS_SRC_ALPHA;
-		blendOp = BO_ADD;
+		blendColorSrcFactor = BF_SRC_ALPHA;
+		blendColorDstFactor = BF_ONE_MINUS_SRC_ALPHA;
+		blendColorOp = BO_ADD;
+		blendAlphaSrcFactor = BF_ONE;
+		blendAlphaDstFactor = BF_ZERO;
+		blendAlphaOp = BO_ADD;
 		blend = false;
 		cullMode = CM_BACK;
 		frontFace = FF_COUNTER_CLOCKWISE;
@@ -68,6 +81,7 @@ struct IKPipeline
 
 	virtual bool SetColorWrite(bool r, bool g, bool b, bool a) = 0;
 	virtual bool SetColorBlend(BlendFactor srcFactor, BlendFactor dstFactor, BlendOperator op) = 0;
+	virtual bool SetAlphaBlend(BlendFactor srcFactor, BlendFactor dstFactor, BlendOperator op) = 0;
 	virtual bool SetBlendEnable(bool enable) = 0;
 
 	virtual bool SetCullMode(CullMode cullMode) = 0;

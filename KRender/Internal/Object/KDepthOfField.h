@@ -70,4 +70,6 @@ public:
 	bool& GetDebugDrawEnable() { return m_DebugDrawer.GetEnable(); }
 	bool DebugRender(IKRenderPassPtr renderPass, KRHICommandList& commandList);
 	bool Execute(KRHICommandList& commandList);
+
+	inline IKRenderTargetPtr GetFinal() { return m_Final; }
 };

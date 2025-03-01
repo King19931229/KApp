@@ -68,7 +68,8 @@ protected:
 
 	struct PipelineCreateContext
 	{
-		bool depthBiasEnable;
+		bool depthBiasEnable = false;
+		bool depthPeeling = false;
 	};
 
 	IKPipelinePtr CreatePipelineInternal(const PipelineCreateContext& context, const VertexFormat* formats, size_t count, IKShaderPtr vertexShader, IKShaderPtr fragmentShader);

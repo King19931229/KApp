@@ -25,7 +25,7 @@ KVulkanFrameBuffer::KVulkanFrameBuffer()
 	m_Layers(1),
 	m_Tiling(VK_IMAGE_TILING_MAX_ENUM),
 	m_UniqueID(0),
-	m_External(true)
+	m_FrameBufferType(FT_EXTERNAL_SOURCE)
 {
 }
 
@@ -49,7 +49,7 @@ bool KVulkanFrameBuffer::InitExternal(ExternalType type, VkImage image, VkImageV
 	m_Depth = depth;
 	m_Mipmaps = mipmaps;
 	m_MSAA = msaa;
-	m_External = true;
+	m_FrameBufferType = FT_EXTERNAL_SOURCE;
 
 	m_MSAAFlag = VK_SAMPLE_COUNT_1_BIT;
 	if (msaa > 1)
@@ -106,7 +106,7 @@ bool KVulkanFrameBuffer::InitColor(VkFormat format, TextureType textureType, uin
 	m_Depth = 1;
 	m_Mipmaps = mipmaps;
 	m_MSAA = msaa;
-	m_External = false;
+	m_FrameBufferType = FT_COLOR_ATTACHMENT;
 
 	m_MSAAFlag = VK_SAMPLE_COUNT_1_BIT;
 	if (msaa > 1)
@@ -184,7 +184,7 @@ bool KVulkanFrameBuffer::InitDepthStencil(uint32_t width, uint32_t height, uint3
 	m_Depth = 1;
 	m_Mipmaps = 1;
 	m_MSAA = msaa;
-	m_External = false;
+	m_FrameBufferType = FT_DEPTH_ATTACHMENT;
 
 	m_MSAAFlag = VK_SAMPLE_COUNT_1_BIT;
 
@@ -215,7 +215,7 @@ bool KVulkanFrameBuffer::InitDepthStencil(uint32_t width, uint32_t height, uint3
 		m_ImageType,
 		m_Format,
 		m_Tiling,
-		VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+		VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
 		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 		0,
 		m_Image,
@@ -239,7 +239,7 @@ bool KVulkanFrameBuffer::InitStorageInternal(VkFormat format, TextureType type, 
 	m_Depth = depth;
 	m_Mipmaps = mipmaps;
 	m_MSAA = 1;
-	m_External = false;
+	m_FrameBufferType = FT_STORAGE_IMAGE;
 
 	m_MSAAFlag = VK_SAMPLE_COUNT_1_BIT;
 	m_Layers = 1;
@@ -291,7 +291,7 @@ bool KVulkanFrameBuffer::InitReadback(VkFormat format, uint32_t width, uint32_t 
 	m_Depth = depth;
 	m_Mipmaps = mipmaps;
 	m_MSAA = 1;
-	m_External = false;
+	m_FrameBufferType = FT_READBACK_USAGE;
 
 	m_MSAAFlag = VK_SAMPLE_COUNT_1_BIT;
 	m_Layers = 1;
@@ -497,7 +497,7 @@ VkImageView KVulkanFrameBuffer::GetReinterpretImageView(ElementFormat format)
 
 bool KVulkanFrameBuffer::UnInit()
 {
-	if (!m_External)
+	if (m_FrameBufferType != FT_EXTERNAL_SOURCE)
 	{
 		if (m_ImageView != VK_NULL_HANDLE)
 		{

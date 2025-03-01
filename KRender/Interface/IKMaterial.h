@@ -121,6 +121,9 @@ struct IKMaterial
 	virtual IKPipelinePtr CreateCSMPipeline(const VertexFormat* formats, size_t count, bool staticCSM) = 0;
 	virtual IKPipelinePtr CreateCSMInstancePipeline(const VertexFormat* formats, size_t count, bool staticCSM) = 0;
 
+	virtual IKPipelinePtr CreateDepthPeelingPipeline(const VertexFormat* formats, size_t count) = 0;
+	virtual IKPipelinePtr CreateDepthPeelingInstancePipeline(const VertexFormat* formats, size_t count) = 0;
+
 	virtual bool InitFromFile(const std::string& path, bool async) = 0;
 	virtual bool InitFromImportAssetMaterial(const KMeshRawData::Material& input, bool async) = 0;
 	virtual bool UnInit() = 0;

@@ -35,7 +35,7 @@ protected:
 	static std::atomic_uint32_t ms_UniqueIDCounter;
 	uint32_t m_UniqueID;
 
-	bool m_External;
+	FrameBufferType m_FrameBufferType;
 
 	std::unordered_map<uint32_t, VkImageView> m_MipmapImageViews;
 	std::unordered_map<uint64_t, VkImageView> m_ReinterpretImageView;
@@ -78,9 +78,10 @@ public:
 	uint32_t GetMipmaps() const override { return m_Mipmaps; }
 	uint32_t GetMSAA() const override { return m_MSAA; }
 
-	bool IsDepthStencil() const override { return m_ImageLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL; }
-	bool IsStorageImage() const override { return m_ImageLayout == VK_IMAGE_LAYOUT_GENERAL; }
-	bool IsReadback() const override { return m_ImageLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL; }
+	FrameBufferType GetType() const override { return m_FrameBufferType; }
+	bool IsDepthStencil() const override { return m_FrameBufferType == FT_DEPTH_ATTACHMENT; }
+	bool IsStorageImage() const override { return m_FrameBufferType == FT_STORAGE_IMAGE; }
+	bool IsReadback() const override { return m_FrameBufferType == FT_READBACK_USAGE; }
 
 	bool SupportBlit() const override;
 

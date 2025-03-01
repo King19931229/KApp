@@ -142,9 +142,12 @@ size_t KPipelineManager::ComputeStateHash(const KPipelineState& state)
 	KHash::HashCombine(hash, state.colorWrites[2]);
 	KHash::HashCombine(hash, state.colorWrites[3]);
 
-	KHash::HashCombine(hash, state.blendSrcFactor);
-	KHash::HashCombine(hash, state.blendDstFactor);
-	KHash::HashCombine(hash, state.blendOp);
+	KHash::HashCombine(hash, state.blendColorSrcFactor);
+	KHash::HashCombine(hash, state.blendColorDstFactor);
+	KHash::HashCombine(hash, state.blendColorOp);
+	KHash::HashCombine(hash, state.blendAlphaSrcFactor);
+	KHash::HashCombine(hash, state.blendAlphaDstFactor);
+	KHash::HashCombine(hash, state.blendAlphaOp);
 	KHash::HashCombine(hash, state.blend);
 
 	KHash::HashCombine(hash, state.cullMode);

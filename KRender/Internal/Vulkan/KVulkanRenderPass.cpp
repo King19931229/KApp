@@ -393,25 +393,27 @@ bool KVulkanRenderPass::Init(uint32_t mipmap)
 			subpass.pResolveAttachments = massCreated ? &colorResolveRefs[0] : nullptr;
 
 			// subpass依赖
-			/*
-			VkSubpassDependency dependencies[2] = {};
+			VkSubpassDependency dependencies[1] = {};
 
 			dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
 			dependencies[0].dstSubpass = 0;
-			dependencies[0].srcStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-			dependencies[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-			dependencies[0].srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
-			dependencies[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 			dependencies[0].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
 
-			dependencies[1].srcSubpass = 0;
-			dependencies[1].dstSubpass = VK_SUBPASS_EXTERNAL;
-			dependencies[1].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-			dependencies[1].dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-			dependencies[1].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-			dependencies[1].dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
-			dependencies[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
-			*/
+			if (HasColorAttachment())
+			{
+				dependencies[0].srcStageMask |= VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+				dependencies[0].dstStageMask |= VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+				dependencies[0].srcAccessMask |= VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+				dependencies[0].dstAccessMask |= VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+			}
+
+			if (HasDepthStencilAttachment())
+			{
+				dependencies[0].srcStageMask |= VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+				dependencies[0].dstStageMask |= VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+				dependencies[0].srcAccessMask |= VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+				dependencies[0].dstAccessMask |= VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+			}
 
 			VkRenderPassCreateInfo renderPassInfo = {};
 			renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
@@ -419,8 +421,8 @@ bool KVulkanRenderPass::Init(uint32_t mipmap)
 			renderPassInfo.pAttachments = descs.data();
 			renderPassInfo.subpassCount = 1;
 			renderPassInfo.pSubpasses = &subpass;
-			renderPassInfo.dependencyCount = 0;//ARRAY_SIZE(dependencies);
-			renderPassInfo.pDependencies = nullptr;//dependencies;
+			renderPassInfo.dependencyCount = ARRAY_SIZE(dependencies);
+			renderPassInfo.pDependencies = dependencies;
 
 			VK_ASSERT_RESULT(vkCreateRenderPass(KVulkanGlobal::device, &renderPassInfo, nullptr, &m_RenderPass));
 			ASSERT_RESULT(m_RenderPass != VK_NULL_HANDLE);
@@ -445,6 +447,11 @@ bool KVulkanRenderPass::Init(uint32_t mipmap)
 
 			VK_ASSERT_RESULT(vkCreateFramebuffer(KVulkanGlobal::device, &framebufferInfo, nullptr, &m_FrameBuffer));
 			ASSERT_RESULT(m_FrameBuffer != VK_NULL_HANDLE);
+
+			if (!m_Name.empty())
+			{
+				SetDebugName(m_Name.c_str());
+			}
 
 			m_AttachmentHash = currentHash;
 			return true;
@@ -486,7 +493,11 @@ bool KVulkanRenderPass::SetDebugName(const char* name)
 	{
 		KVulkanHelper::DebugUtilsSetObjectName(KVulkanGlobal::device, (uint64_t)m_RenderPass, VK_OBJECT_TYPE_RENDER_PASS, name);
 	}
-	return true;;
+	if (m_FrameBuffer != VK_NULL_HANDEL)
+	{
+		KVulkanHelper::DebugUtilsSetObjectName(KVulkanGlobal::device, (uint64_t)m_FrameBuffer, VK_OBJECT_TYPE_FRAMEBUFFER, (m_Name + "FrameBuffer").c_str());
+	}
+	return true;
 }
 
 const char* KVulkanRenderPass::GetDebugName() const

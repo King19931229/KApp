@@ -485,7 +485,6 @@ void KRenderCore::Render()
 	}
 
 	mainSwapChain->WaitForInFlightFrame(frameIndex);
-
 	KRenderGlobal::CurrentInFlightFrameIndex = frameIndex;
 
 	uint32_t chainImageIndex = 0;

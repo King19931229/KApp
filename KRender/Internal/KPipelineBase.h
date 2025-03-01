@@ -112,6 +112,7 @@ public:
 
 	virtual bool SetColorWrite(bool r, bool g, bool b, bool a);
 	virtual bool SetColorBlend(BlendFactor srcFactor, BlendFactor dstFactor, BlendOperator op);
+	virtual bool SetAlphaBlend(BlendFactor srcFactor, BlendFactor dstFactor, BlendOperator op);
 	virtual bool SetBlendEnable(bool enable);
 
 	virtual bool SetCullMode(CullMode cullMode);
