@@ -96,6 +96,7 @@ bool KDepthPeeling::UnInit()
 	SAFE_UNINIT(m_UnderBlendPass);
 	SAFE_UNINIT(m_CleanSceneColorPass);
 	SAFE_UNINIT(m_PeelingPass);
+	SAFE_UNINIT(m_CleanPeelingDepthPass);
 	for (uint32_t i = 0; i < 2; ++i)
 	{
 		SAFE_UNINIT(m_PeelingDepthTarget[i]);
@@ -165,7 +166,7 @@ bool KDepthPeeling::Resize(uint32_t width, uint32_t height)
 		{
 			m_PeelingDepthTarget[i]->UnInit();
 		}
-		m_PeelingDepthTarget[i]->InitFromDepthStencil(m_Width, m_Height, 1, false);
+		m_PeelingDepthTarget[i]->InitFromDepthStencil(m_Width, m_Height, 1, true);
 		m_PeelingDepthTarget[i]->GetFrameBuffer()->SetDebugName(("PeelingDepth" + std::to_string(i)).c_str());
 	}
 
@@ -183,15 +184,82 @@ bool KDepthPeeling::Resize(uint32_t width, uint32_t height)
 		m_PeelingPass->SetColorAttachment(0, m_PeelingTarget->GetFrameBuffer());
 		m_PeelingPass->SetOpColor(0, LO_CLEAR, SO_STORE);
 		m_PeelingPass->SetClearDepthStencil({ 1.0f, 0 });
-		m_PeelingPass->SetOpDepthStencil(LO_CLEAR, SO_STORE, LO_CLEAR, SO_STORE);
+		m_PeelingPass->SetOpDepthStencil(LO_LOAD, SO_STORE, LO_LOAD, SO_STORE);
 		m_PeelingPass->SetDepthStencilAttachment(m_PeelingDepthTarget[0]->GetFrameBuffer());
 		m_PeelingPass->Init();
 		m_PeelingPass->SetDebugName("PeelingPingPass");
 	}
 
+	{
+		if (!m_CleanPeelingDepthPass)
+		{
+			KRenderGlobal::RenderDevice->CreateRenderPass(m_CleanPeelingDepthPass);
+		}
+		else
+		{
+			m_CleanPeelingDepthPass->UnInit();
+		}
+		m_CleanPeelingDepthPass->SetClearDepthStencil({ 0.0f, 0 });
+		m_CleanPeelingDepthPass->SetOpDepthStencil(LO_CLEAR, SO_STORE, LO_CLEAR, SO_STORE);
+		m_CleanPeelingDepthPass->SetDepthStencilAttachment(m_PeelingDepthTarget[1]->GetFrameBuffer());
+		ASSERT_RESULT(m_CleanPeelingDepthPass->Init());
+	}
+
 	KRenderGlobal::ImmediateCommandList.BeginRecord();
 	KRenderGlobal::ImmediateCommandList.Transition(m_PeelingDepthTarget[1]->GetFrameBuffer(), PIPELINE_STAGE_LATE_FRAGMENT_TESTS, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 	KRenderGlobal::ImmediateCommandList.EndRecord();
+
+	return true;
+}
+
+bool KDepthPeeling::PopulateRenderCommandList(const std::vector<IKEntity*>& cullRes, KRenderCommandList& renderCommands)
+{
+	std::vector<KMaterialSubMeshInstance> subMeshInstances;
+	KRenderUtil::CalculateInstancesByMaterial(cullRes, subMeshInstances);
+
+	renderCommands.clear();
+
+	for (KMaterialSubMeshInstance& subMeshInstance : subMeshInstances)
+	{
+		KRenderCommand baseCommand;
+		const std::vector<KVertexDefinition::INSTANCE_DATA_MATRIX4F>& instances = subMeshInstance.instanceData;
+
+		if (!subMeshInstance.materialSubMesh->GetRenderCommand(RENDER_STAGE_TRANSPRANT_DEPTH_PEELING, baseCommand))
+		{
+			continue;
+		}
+
+		if (!KRenderUtil::AssignShadingParameter(baseCommand, subMeshInstance.materialSubMesh->GetMaterial()))
+		{
+			continue;
+		}
+
+		for (size_t idx = 0; idx < instances.size(); ++idx)
+		{
+			KRenderCommand command = baseCommand;
+
+			const KVertexDefinition::INSTANCE_DATA_MATRIX4F& instance = instances[idx];
+
+			KConstantDefinition::OBJECT objectData;
+			objectData.MODEL = glm::transpose(glm::mat4(instance.ROW0, instance.ROW1, instance.ROW2, glm::vec4(0, 0, 0, 1)));
+			objectData.PRVE_MODEL = glm::transpose(glm::mat4(instance.PREV_ROW0, instance.PREV_ROW1, instance.PREV_ROW2, glm::vec4(0, 0, 0, 1)));
+
+			KDynamicConstantBufferUsage objectUsage;
+			objectUsage.binding = SHADER_BINDING_OBJECT;
+			objectUsage.range = sizeof(objectData);
+			KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, objectUsage);
+
+			command.dynamicConstantUsages.push_back(objectUsage);
+
+			KRenderUtil::AssignRenderStageBinding(command, RENDER_STAGE_TRANSPRANT_DEPTH_PEELING, 0);
+			command.pipeline->GetHandle(m_PeelingPass, command.pipelineHandle);
+
+			if (command.Complete())
+			{
+				renderCommands.push_back(std::move(command));
+			}
+		}
+	}
 
 	return true;
 }
@@ -208,13 +276,39 @@ bool KDepthPeeling::Execute(KRHICommandList& commandList, const std::vector<IKEn
 			commandList.EndDebugMarker();
 		}
 
+		{
+			commandList.BeginDebugMarker("CleanPeelingDepth", glm::vec4(1));
+			commandList.Transition(m_PeelingDepthTarget[1]->GetFrameBuffer(), PIPELINE_STAGE_FRAGMENT_SHADER, PIPELINE_STAGE_EARLY_FRAGMENT_TESTS, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT);
+			commandList.BeginRenderPass(m_CleanPeelingDepthPass, SUBPASS_CONTENTS_INLINE);
+			commandList.SetViewport(m_CleanPeelingDepthPass->GetViewPort());
+			commandList.EndRenderPass();
+			commandList.Transition(m_PeelingDepthTarget[1]->GetFrameBuffer(), PIPELINE_STAGE_EARLY_FRAGMENT_TESTS, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+			commandList.EndDebugMarker();
+		}
+
+		KRenderCommandList renderCommands;
+		PopulateRenderCommandList(cullRes, renderCommands);
+
 		for (uint32_t i = 0; i < m_PeelingLayers; ++i)
 		{
 			{
 				commandList.BeginDebugMarker(("Peeling" + std::to_string(i)).c_str(), glm::vec4(1));
 
+				{
+					commandList.Transition(KRenderGlobal::GBuffer.GetDepthStencilTarget()->GetFrameBuffer(), PIPELINE_STAGE_LATE_FRAGMENT_TESTS, PIPELINE_STAGE_TRANSFER, IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT, IMAGE_LAYOUT_TRANSFER_SRC);
+					commandList.Transition(m_PeelingDepthTarget[0]->GetFrameBuffer(), PIPELINE_STAGE_LATE_FRAGMENT_TESTS, PIPELINE_STAGE_TRANSFER, IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT, IMAGE_LAYOUT_TRANSFER_DST);
+					commandList.Blit(KRenderGlobal::GBuffer.GetDepthStencilTarget()->GetFrameBuffer(), m_PeelingDepthTarget[0]->GetFrameBuffer());
+					commandList.Transition(m_PeelingDepthTarget[0]->GetFrameBuffer(), PIPELINE_STAGE_TRANSFER, PIPELINE_STAGE_EARLY_FRAGMENT_TESTS, IMAGE_LAYOUT_TRANSFER_DST, IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT);
+					commandList.Transition(KRenderGlobal::GBuffer.GetDepthStencilTarget()->GetFrameBuffer(), PIPELINE_STAGE_TRANSFER, PIPELINE_STAGE_EARLY_FRAGMENT_TESTS, IMAGE_LAYOUT_TRANSFER_SRC, IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT);
+				}
+
 				commandList.BeginRenderPass(m_PeelingPass, SUBPASS_CONTENTS_INLINE);
 				commandList.SetViewport(m_PeelingPass->GetViewPort());
+
+				for (KRenderCommand& renderCommand : renderCommands)
+				{
+					commandList.Render(renderCommand);
+				}
 
 				commandList.EndRenderPass();
 

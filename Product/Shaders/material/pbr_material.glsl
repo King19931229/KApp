@@ -389,6 +389,7 @@ vec4 SRGBtoLINEAR(vec4 srgbIn)
 #endif //MANUAL_SRGB
 }
 
+in vec4 gl_FragCoord;
 MaterialPixelParameters ComputeMaterialPixelParameters(
 	  vec3 worldPos
 	, vec3 prevWorldPos
@@ -400,6 +401,14 @@ MaterialPixelParameters ComputeMaterialPixelParameters(
 #endif
 	)
 {
+#ifdef DEPTH_PEELING_TRANSRPANT_PASS
+	ivec2 screenCoord = ivec2(gl_FragCoord.xy);
+	if (gl_FragCoord.z <= texelFetch(prevPeelingDepth, screenCoord, 0).r)
+	{
+		discard;
+	}
+#endif
+
 #ifdef GPU_SCENE
 	uint materialParameterReadOffset = 0;
 #if PBR_MATERIAL_SPECULAR_GLOSINESS

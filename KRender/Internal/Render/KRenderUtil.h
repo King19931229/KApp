@@ -21,6 +21,7 @@ namespace KRenderUtil
 
 	void GetInstances(const std::vector<IKEntity*>& entities, std::vector<KMaterialSubMeshInstance>& instances, KMaterialSubMeshInstanceCompareFunction comp);
 
+	bool AssignRenderStageBinding(KRenderCommand& command, RenderStage renderStage, uint32_t debugOption);
 	bool AssignShadingParameter(KRenderCommand& command, KMaterialRef material);
 	bool AssignVirtualFeedbackParameter(KRenderCommand& command, uint32_t targetBinding, KVirtualTexture* virtualTexture);
 };

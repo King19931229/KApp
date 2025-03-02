@@ -34,7 +34,6 @@ protected:
 	const class KCamera* m_Camera;
 
 	void BuildMaterialSubMeshInstance(DeferredRenderStage renderStage, const std::vector<IKEntity*>& cullRes, std::vector<KMaterialSubMeshInstance>& instances);
-	void HandleRenderCommandBinding(DeferredRenderStage renderStage, KRenderCommand& command);
 
 	void PopulateRenderCommand(DeferredRenderStage deferredRenderStage, const std::vector<IKEntity*>& cullRes, KRenderStageStatistics& statistics, KRenderCommandList& renderCommands);
 	void ExecuteRenderPass(KRHICommandList& commandList, DeferredRenderStage deferredRenderStage, const std::vector<IKEntity*>& cullRes);

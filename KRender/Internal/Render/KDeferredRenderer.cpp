@@ -444,80 +444,6 @@ void KDeferredRenderer::BuildMaterialSubMeshInstance(DeferredRenderStage renderS
 	}
 }
 
-void KDeferredRenderer::HandleRenderCommandBinding(DeferredRenderStage renderStage, KRenderCommand& command)
-{
-	if (renderStage == DRS_STAGE_FORWARD_TRANSPRANT)
-	{
-		IKPipelinePtr& pipeline = command.pipeline;
-
-		IKUniformBufferPtr voxelSVOBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_VOXEL);
-		pipeline->SetConstantBuffer(CBT_VOXEL, ST_VERTEX | ST_FRAGMENT, voxelSVOBuffer);
-
-		IKUniformBufferPtr voxelClipmapBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_VOXEL_CLIPMAP);
-		pipeline->SetConstantBuffer(CBT_VOXEL_CLIPMAP, ST_VERTEX | ST_FRAGMENT, voxelClipmapBuffer);
-
-		IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_CAMERA);
-		pipeline->SetConstantBuffer(CBT_CAMERA, ST_VERTEX | ST_FRAGMENT, cameraBuffer);
-
-		IKUniformBufferPtr globalBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_GLOBAL);
-		pipeline->SetConstantBuffer(CBT_GLOBAL, ST_VERTEX | ST_FRAGMENT, globalBuffer);
-
-		for (uint32_t cascadedIndex = 0; cascadedIndex <= 3; ++cascadedIndex)
-		{
-			IKRenderTargetPtr shadowRT = KRenderGlobal::CascadedShadowMap.GetShadowMapTarget(cascadedIndex, true);
-			if (!shadowRT) shadowRT = KRenderGlobal::CascadedShadowMap.GetShadowMapTarget(0, true);
-			pipeline->SetSampler(SHADER_BINDING_TEXTURE5 + cascadedIndex,
-				shadowRT->GetFrameBuffer(),
-				KRenderGlobal::CascadedShadowMap.GetSampler(),
-				false);
-		}
-		for (uint32_t cascadedIndex = 0; cascadedIndex <= 3; ++cascadedIndex)
-		{
-			IKRenderTargetPtr shadowRT = KRenderGlobal::CascadedShadowMap.GetShadowMapTarget(cascadedIndex, false);
-			if (!shadowRT) shadowRT = KRenderGlobal::CascadedShadowMap.GetShadowMapTarget(0, false);
-			pipeline->SetSampler(SHADER_BINDING_TEXTURE9 + cascadedIndex,
-				shadowRT->GetFrameBuffer(),
-				KRenderGlobal::CascadedShadowMap.GetSampler(),
-				false);
-		}
-
-		pipeline->SetSampler(SHADER_BINDING_TEXTURE13,
-			KRenderGlobal::CubeMap.GetDiffuseIrradiance()->GetFrameBuffer(),
-			KRenderGlobal::CubeMap.GetDiffuseIrradianceSampler(),
-			true);
-
-		pipeline->SetSampler(SHADER_BINDING_TEXTURE14,
-			KRenderGlobal::CubeMap.GetSpecularIrradiance()->GetFrameBuffer(),
-			KRenderGlobal::CubeMap.GetSpecularIrradianceSampler(),
-			true);
-
-		pipeline->SetSampler(SHADER_BINDING_TEXTURE15,
-			KRenderGlobal::CubeMap.GetIntegrateBRDF()->GetFrameBuffer(),
-			KRenderGlobal::CubeMap.GetIntegrateBRDFSampler(),
-			true);
-
-		/*pipeline->SetSampler(SHADER_BINDING_TEXTURE16,
-			KRenderGlobal::DepthPeeling.GetPrevPeelingDepthTarget()->GetFrameBuffer(),
-			KRenderGlobal::DepthPeeling.GetPeelingDepthSampler(),
-			true);*/
-
-		struct Debug
-		{
-			uint32_t debugOption;
-		} debug;
-
-		debug.debugOption = m_DebugOption;
-
-		KDynamicConstantBufferUsage debugUsage;
-		debugUsage.binding = SHADER_BINDING_DEBUG;
-		debugUsage.range = sizeof(debug);
-
-		KRenderGlobal::DynamicConstantBufferManager.Alloc(&debug, debugUsage);
-
-		command.dynamicConstantUsages.push_back(debugUsage);
-	}
-}
-
 void KDeferredRenderer::PopulateRenderCommand(DeferredRenderStage deferredRenderStage, const std::vector<IKEntity*>& cullRes, KRenderStageStatistics& statistics, KRenderCommandList& renderCommands)
 {
 	RenderStage renderStage = GDeferredRenderStageDescription[deferredRenderStage].renderStage;
@@ -537,41 +463,109 @@ void KDeferredRenderer::PopulateRenderCommand(DeferredRenderStage deferredRender
 		if (instanceRenderStage != RENDER_STAGE_UNKNOWN && instances.size() > 1)
 		{
 			KRenderCommand command;
-			if (subMeshInstance.materialSubMesh->GetRenderCommand(instanceRenderStage, command))
+			if (!subMeshInstance.materialSubMesh->GetRenderCommand(instanceRenderStage, command))
 			{
-				if (!KRenderUtil::AssignShadingParameter(command, subMeshInstance.materialSubMesh->GetMaterial()))
+				continue;
+			}
+
+			if (!KRenderUtil::AssignShadingParameter(command, subMeshInstance.materialSubMesh->GetMaterial()))
+			{
+				continue;
+			}
+
+			if (deferredRenderStage == DRS_STAGE_MAIN_BASE_PASS || deferredRenderStage == DRS_STAGE_POST_BASE_PASS)
+			{
+				KVirtualTexture* virtualTexture = nullptr;
+				if (command.textureBinding->GetIsVirtualTexture(m_CurrentVirtualFeedbackTargetBinding))
+				{
+					virtualTexture = (KVirtualTexture*)command.textureBinding->GetVirtualTextureSoul(m_CurrentVirtualFeedbackTargetBinding);
+				}
+				if (!KRenderUtil::AssignVirtualFeedbackParameter(command, m_CurrentVirtualFeedbackTargetBinding, virtualTexture))
 				{
 					continue;
 				}
+			}
 
-				if (deferredRenderStage == DRS_STAGE_MAIN_BASE_PASS || deferredRenderStage == DRS_STAGE_POST_BASE_PASS)
+			std::vector<KInstanceBufferManager::AllocResultBlock> allocRes;
+			ASSERT_RESULT(KRenderGlobal::InstanceBufferManager.GetVertexSize() == sizeof(instances[0]));
+			ASSERT_RESULT(KRenderGlobal::InstanceBufferManager.Alloc(instances.size(), instances.data(), allocRes));
+
+			command.instanceDraw = true;
+			command.instanceUsages.resize(allocRes.size());
+			for (size_t i = 0; i < allocRes.size(); ++i)
+			{
+				KInstanceBufferUsage& usage = command.instanceUsages[i];
+				KInstanceBufferManager::AllocResultBlock& allocResult = allocRes[i];
+				usage.buffer = allocResult.buffer;
+				usage.start = allocResult.start;
+				usage.count = allocResult.count;
+				usage.offset = allocResult.offset;
+			}
+
+			++statistics.drawcalls;
+
+			if (command.indexDraw)
+			{
+				statistics.primtives += command.indexData->indexCount;
+				statistics.faces += command.indexData->indexCount / 3;
+			}
+			else
+			{
+				statistics.primtives += command.vertexData->vertexCount;
+				statistics.faces += command.vertexData->vertexCount / 3;
+			}
+
+			KRenderUtil::AssignRenderStageBinding(command, instanceRenderStage, m_DebugOption);
+			command.pipeline->GetHandle(m_RenderPass[deferredRenderStage], command.pipelineHandle);
+
+			if (command.Complete())
+			{
+				renderCommands.push_back(std::move(command));
+			}
+		}
+		else
+		{
+			KRenderCommand baseCommand;
+			if (!subMeshInstance.materialSubMesh->GetRenderCommand(renderStage, baseCommand))
+			{
+				continue;
+			}
+
+			if (!KRenderUtil::AssignShadingParameter(baseCommand, subMeshInstance.materialSubMesh->GetMaterial()))
+			{
+				continue;
+			}
+
+			if (deferredRenderStage == DRS_STAGE_MAIN_BASE_PASS || deferredRenderStage == DRS_STAGE_POST_BASE_PASS)
+			{
+				KVirtualTexture* virtualTexture = nullptr;
+				if (baseCommand.textureBinding->GetIsVirtualTexture(m_CurrentVirtualFeedbackTargetBinding))
 				{
-					KVirtualTexture* virtualTexture = nullptr;
-					if (command.textureBinding->GetIsVirtualTexture(m_CurrentVirtualFeedbackTargetBinding))
-					{
-						virtualTexture = (KVirtualTexture*)command.textureBinding->GetVirtualTextureSoul(m_CurrentVirtualFeedbackTargetBinding);
-					}
-					if (!KRenderUtil::AssignVirtualFeedbackParameter(command, m_CurrentVirtualFeedbackTargetBinding, virtualTexture))
-					{
-						continue;
-					}
+					virtualTexture = (KVirtualTexture*)baseCommand.textureBinding->GetVirtualTextureSoul(m_CurrentVirtualFeedbackTargetBinding);
 				}
-
-				std::vector<KInstanceBufferManager::AllocResultBlock> allocRes;
-				ASSERT_RESULT(KRenderGlobal::InstanceBufferManager.GetVertexSize() == sizeof(instances[0]));
-				ASSERT_RESULT(KRenderGlobal::InstanceBufferManager.Alloc(instances.size(), instances.data(), allocRes));
-
-				command.instanceDraw = true;
-				command.instanceUsages.resize(allocRes.size());
-				for (size_t i = 0; i < allocRes.size(); ++i)
+				if (virtualTexture && !KRenderUtil::AssignVirtualFeedbackParameter(baseCommand, m_CurrentVirtualFeedbackTargetBinding, virtualTexture))
 				{
-					KInstanceBufferUsage& usage = command.instanceUsages[i];
-					KInstanceBufferManager::AllocResultBlock& allocResult = allocRes[i];
-					usage.buffer = allocResult.buffer;
-					usage.start = allocResult.start;
-					usage.count = allocResult.count;
-					usage.offset = allocResult.offset;
+					KG_LOGE(LM_RENDER, "Has virtualTexture but can't AssignVirtualFeedbackParameter");
+					continue;
 				}
+			}
+
+			for (size_t idx = 0; idx < instances.size(); ++idx)
+			{
+				KRenderCommand command = baseCommand;
+
+				const KVertexDefinition::INSTANCE_DATA_MATRIX4F& instance = instances[idx];
+
+				KConstantDefinition::OBJECT objectData;
+				objectData.MODEL = glm::transpose(glm::mat4(instance.ROW0, instance.ROW1, instance.ROW2, glm::vec4(0, 0, 0, 1)));
+				objectData.PRVE_MODEL = glm::transpose(glm::mat4(instance.PREV_ROW0, instance.PREV_ROW1, instance.PREV_ROW2, glm::vec4(0, 0, 0, 1)));
+
+				KDynamicConstantBufferUsage objectUsage;
+				objectUsage.binding = SHADER_BINDING_OBJECT;
+				objectUsage.range = sizeof(objectData);
+				KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, objectUsage);
+
+				command.dynamicConstantUsages.push_back(objectUsage);
 
 				++statistics.drawcalls;
 
@@ -586,74 +580,12 @@ void KDeferredRenderer::PopulateRenderCommand(DeferredRenderStage deferredRender
 					statistics.faces += command.vertexData->vertexCount / 3;
 				}
 
-				HandleRenderCommandBinding(deferredRenderStage, command);
+				KRenderUtil::AssignRenderStageBinding(command, renderStage, m_DebugOption);
 				command.pipeline->GetHandle(m_RenderPass[deferredRenderStage], command.pipelineHandle);
 
 				if (command.Complete())
 				{
 					renderCommands.push_back(std::move(command));
-				}
-			}
-		}
-		else
-		{
-			KRenderCommand command;
-			if (subMeshInstance.materialSubMesh->GetRenderCommand(renderStage, command))
-			{
-				if (!KRenderUtil::AssignShadingParameter(command, subMeshInstance.materialSubMesh->GetMaterial()))
-				{
-					continue;
-				}
-
-				if (deferredRenderStage == DRS_STAGE_MAIN_BASE_PASS || deferredRenderStage == DRS_STAGE_POST_BASE_PASS)
-				{
-					KVirtualTexture* virtualTexture = nullptr;
-					if (command.textureBinding->GetIsVirtualTexture(m_CurrentVirtualFeedbackTargetBinding))
-					{
-						virtualTexture = (KVirtualTexture*)command.textureBinding->GetVirtualTextureSoul(m_CurrentVirtualFeedbackTargetBinding);
-					}
-					if (virtualTexture && !KRenderUtil::AssignVirtualFeedbackParameter(command, m_CurrentVirtualFeedbackTargetBinding, virtualTexture))
-					{
-						KG_LOGE(LM_RENDER, "Has virtualTexture but can't AssignVirtualFeedbackParameter");
-						continue;
-					}
-				}
-
-				for (size_t idx = 0; idx < instances.size(); ++idx)
-				{
-					const KVertexDefinition::INSTANCE_DATA_MATRIX4F& instance = instances[idx];
-
-					KConstantDefinition::OBJECT objectData;
-					objectData.MODEL = glm::transpose(glm::mat4(instance.ROW0, instance.ROW1, instance.ROW2, glm::vec4(0, 0, 0, 1)));
-					objectData.PRVE_MODEL = glm::transpose(glm::mat4(instance.PREV_ROW0, instance.PREV_ROW1, instance.PREV_ROW2, glm::vec4(0, 0, 0, 1)));
-
-					KDynamicConstantBufferUsage objectUsage;
-					objectUsage.binding = SHADER_BINDING_OBJECT;
-					objectUsage.range = sizeof(objectData);
-					KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, objectUsage);
-
-					command.dynamicConstantUsages.push_back(objectUsage);
-
-					++statistics.drawcalls;
-
-					if (command.indexDraw)
-					{
-						statistics.primtives += command.indexData->indexCount;
-						statistics.faces += command.indexData->indexCount / 3;
-					}
-					else
-					{
-						statistics.primtives += command.vertexData->vertexCount;
-						statistics.faces += command.vertexData->vertexCount / 3;
-					}
-
-					HandleRenderCommandBinding(deferredRenderStage, command);
-					command.pipeline->GetHandle(m_RenderPass[deferredRenderStage], command.pipelineHandle);
-
-					if (command.Complete())
-					{
-						renderCommands.push_back(std::move(command));
-					}
 				}
 			}
 		}

@@ -379,7 +379,7 @@ void InitQEM(IKEnginePtr engine)
 				}
 			}
 
-			const uint32_t count = 2;
+			const uint32_t count = 5;
 			for (uint32_t i = 0; i < count; ++i)
 			{
 				for (uint32_t j = 0; j < count; ++j)

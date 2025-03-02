@@ -11,6 +11,7 @@ protected:
 	IKRenderTargetPtr m_PeelingDepthTarget[2];
 
 	IKRenderPassPtr m_CleanSceneColorPass;
+	IKRenderPassPtr m_CleanPeelingDepthPass;
 	IKRenderPassPtr m_UnderBlendPass;
 	IKRenderPassPtr m_PeelingPass;
 
@@ -25,6 +26,8 @@ protected:
 	uint32_t m_Width;
 	uint32_t m_Height;
 	uint32_t m_PeelingLayers;
+
+	bool PopulateRenderCommandList(const std::vector<IKEntity*>& cullRes, KRenderCommandList& renderCommands);
 public:
 	KDepthPeeling();
 	~KDepthPeeling();

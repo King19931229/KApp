@@ -133,7 +133,7 @@ void main()
 
 	outColor = vec4(final, opacity);
 	outColor += vec4(0.2, 0.5, 0.8, 0.0);
-	outColor.a = 0.5;
+	outColor.a = 0.3;
 
 	uint debugOption = debug.debugOption;
 	switch(debugOption)

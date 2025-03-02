@@ -147,6 +147,86 @@ namespace KRenderUtil
 		std::sort(instances.begin(), instances.end(), comp);
 	}
 
+	bool AssignRenderStageBinding(KRenderCommand& command, RenderStage renderStage, uint32_t debugOption)
+	{
+		if (renderStage == RENDER_STAGE_TRANSPRANT || renderStage == RENDER_STAGE_TRANSPRANT_DEPTH_PEELING)
+		{
+			IKPipelinePtr& pipeline = command.pipeline;
+
+			IKUniformBufferPtr voxelSVOBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_VOXEL);
+			pipeline->SetConstantBuffer(CBT_VOXEL, ST_VERTEX | ST_FRAGMENT, voxelSVOBuffer);
+
+			IKUniformBufferPtr voxelClipmapBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_VOXEL_CLIPMAP);
+			pipeline->SetConstantBuffer(CBT_VOXEL_CLIPMAP, ST_VERTEX | ST_FRAGMENT, voxelClipmapBuffer);
+
+			IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_CAMERA);
+			pipeline->SetConstantBuffer(CBT_CAMERA, ST_VERTEX | ST_FRAGMENT, cameraBuffer);
+
+			IKUniformBufferPtr globalBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_GLOBAL);
+			pipeline->SetConstantBuffer(CBT_GLOBAL, ST_VERTEX | ST_FRAGMENT, globalBuffer);
+
+			for (uint32_t cascadedIndex = 0; cascadedIndex <= 3; ++cascadedIndex)
+			{
+				IKRenderTargetPtr shadowRT = KRenderGlobal::CascadedShadowMap.GetShadowMapTarget(cascadedIndex, true);
+				if (!shadowRT) shadowRT = KRenderGlobal::CascadedShadowMap.GetShadowMapTarget(0, true);
+				pipeline->SetSampler(SHADER_BINDING_TEXTURE5 + cascadedIndex,
+					shadowRT->GetFrameBuffer(),
+					KRenderGlobal::CascadedShadowMap.GetSampler(),
+					false);
+			}
+			for (uint32_t cascadedIndex = 0; cascadedIndex <= 3; ++cascadedIndex)
+			{
+				IKRenderTargetPtr shadowRT = KRenderGlobal::CascadedShadowMap.GetShadowMapTarget(cascadedIndex, false);
+				if (!shadowRT) shadowRT = KRenderGlobal::CascadedShadowMap.GetShadowMapTarget(0, false);
+				pipeline->SetSampler(SHADER_BINDING_TEXTURE9 + cascadedIndex,
+					shadowRT->GetFrameBuffer(),
+					KRenderGlobal::CascadedShadowMap.GetSampler(),
+					false);
+			}
+
+			pipeline->SetSampler(SHADER_BINDING_TEXTURE13,
+				KRenderGlobal::CubeMap.GetDiffuseIrradiance()->GetFrameBuffer(),
+				KRenderGlobal::CubeMap.GetDiffuseIrradianceSampler(),
+				true);
+
+			pipeline->SetSampler(SHADER_BINDING_TEXTURE14,
+				KRenderGlobal::CubeMap.GetSpecularIrradiance()->GetFrameBuffer(),
+				KRenderGlobal::CubeMap.GetSpecularIrradianceSampler(),
+				true);
+
+			pipeline->SetSampler(SHADER_BINDING_TEXTURE15,
+				KRenderGlobal::CubeMap.GetIntegrateBRDF()->GetFrameBuffer(),
+				KRenderGlobal::CubeMap.GetIntegrateBRDFSampler(),
+				true);
+
+			if (renderStage == RENDER_STAGE_TRANSPRANT_DEPTH_PEELING)
+			{
+				pipeline->SetSampler(SHADER_BINDING_TEXTURE16,
+					KRenderGlobal::DepthPeeling.GetPrevPeelingDepthTarget()->GetFrameBuffer(),
+					KRenderGlobal::DepthPeeling.GetPeelingDepthSampler(),
+					true);
+			}
+
+			struct Debug
+			{
+				uint32_t debugOption;
+			} debug;
+
+			debug.debugOption = debugOption;
+
+			KDynamicConstantBufferUsage debugUsage;
+			debugUsage.binding = SHADER_BINDING_DEBUG;
+			debugUsage.range = sizeof(debug);
+
+			KRenderGlobal::DynamicConstantBufferManager.Alloc(&debug, debugUsage);
+
+			command.dynamicConstantUsages.push_back(debugUsage);
+
+			return true;
+		}
+		return false;
+	}
+
 	bool AssignShadingParameter(KRenderCommand& command, KMaterialRef material)
 	{
 		if (material)
