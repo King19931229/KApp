@@ -1,0 +1,20 @@
+#include "abuffer_public.h"
+
+layout(local_size_x = GROUP_SIZE) in;
+layout(std430, binding = ABUFFER_BINDING_LINK_NEXT) buffer LinkNextBuffer { uint LinkNext[]; };
+
+layout(binding = ABUFFER_BINDING_OBJECT)
+uniform Object_DYN_UNIFORM
+{
+	// width height maxElements
+	uvec4 miscs;
+} object;
+
+void main()
+{
+	uint idx = gl_GlobalInvocationID.x;
+	if (idx <= object.miscs[2])
+	{
+		LinkNext[idx] = 0;
+	}
+}

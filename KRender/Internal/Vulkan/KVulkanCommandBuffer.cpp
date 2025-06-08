@@ -8,6 +8,7 @@
 #include "KVulkanGlobal.h"
 #include "KVulkanInitializer.h"
 #include "KVulkanHelper.h"
+#include "KVulkanDebug.h"
 #include "Internal/KConstantDefinition.h"
 
 KVulkanCommandPool::KVulkanCommandPool()
@@ -325,6 +326,8 @@ bool KVulkanCommandBuffer::Render(const KRenderCommand& command)
 		KVulkanPipeline* vulkanPipeline = (KVulkanPipeline*)command.pipeline.get();
 		KVulkanPipelineHandle* pipelineHandle = (KVulkanPipelineHandle*)command.pipelineHandle.get();
 
+		KVULKAN_GRAPHICS_SCOPE(vulkanPipeline);
+
 		VkPipeline pipeline = pipelineHandle->GetVkPipeline();
 		VkPipelineLayout pipelineLayout = vulkanPipeline->GetVkPipelineLayout();
 
@@ -401,12 +404,10 @@ bool KVulkanCommandBuffer::Render(const KRenderCommand& command)
 			if (command.indirectArgsBuffer)
 			{
 				KVulkanGlobal::vkCmdDrawMeshTasksIndirectEXT(commandBuffer, indirectBuffer, command.indirectOffset * sizeof(VkDrawMeshTasksIndirectCommandEXT), command.indirectCount, sizeof(VkDrawMeshTasksIndirectCommandEXT));
-				// KVulkanGlobal::vkCmdDrawMeshTasksIndirectNV(commandBuffer, indirectBuffer, command.indirectOffset * sizeof(VkDrawMeshTasksIndirectCommandNV), command.indirectCount, sizeof(VkDrawMeshTasksIndirectCommandNV));
 			}
 			else
 			{
 				KVulkanGlobal::vkCmdDrawMeshTasksEXT(commandBuffer, command.meshData->groupCountX, command.meshData->groupCountY, command.meshData->groupCountZ);
-				// KVulkanGlobal::vkCmdDrawMeshTasksNV(commandBuffer, command.meshData->count, command.meshData->offset);
 			}
 		}
 		else

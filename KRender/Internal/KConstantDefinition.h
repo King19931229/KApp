@@ -95,6 +95,7 @@ namespace KConstantDefinition
 	struct GLOBAL
 	{
 		glm::vec4 SUN_LIGHT_DIRECTION_AND_PBR_MAX_REFLECTION_LOD = glm::vec4(0.0f);
+		glm::uvec4 MISCS = glm::uvec4(0);
 	};
 
 	struct VIRTUAL_TEXTURE

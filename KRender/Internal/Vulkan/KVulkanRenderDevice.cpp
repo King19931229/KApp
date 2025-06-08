@@ -14,6 +14,7 @@
 #include "KVulkanRenderPass.h"
 #include "KVulkanComputePipeline.h"
 #include "KVulkanQueue.h"
+#include "KVulkanDebug.h"
 
 #include "KVulkanUIOverlay.h"
 #include "KVulkanGlobal.h"
@@ -936,6 +937,14 @@ VkBool32 KVulkanRenderDevice::DebugUtilsMessengerCallback(
 	else if (messageType == VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT)
 	{
 		KG_LOGE(LM_RENDER, "[Vulkan Validation Layer Error] %s\n", pCallbackData->pMessage);
+		if (KVulkanDebug::RunningGraphics.pipeline)
+		{
+			KVulkanDebug::RunningGraphics.pipeline->DebugDump();
+		}
+		if (KVulkanDebug::RunningCompute.pipeline)
+		{
+			//
+		}
 	}
 	return VK_FALSE;
 }

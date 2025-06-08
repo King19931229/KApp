@@ -299,7 +299,7 @@ void KDeferredRenderer::RecreatePipeline()
 			KRenderGlobal::GBuffer.GetSampler(),
 			true);
 
-		if (KRenderGlobal::UsingGIMethod == KRenderGlobal::SVO_GI)
+		if (KRenderGlobal::GIMethod == KRenderGlobal::SVO_GI)
 		{
 			pipeline->SetSampler(SHADER_BINDING_TEXTURE6,
 				KRenderGlobal::Voxilzer.GetFinalMask()->GetFrameBuffer(),
@@ -307,7 +307,7 @@ void KDeferredRenderer::RecreatePipeline()
 				true);
 		}
 
-		if (KRenderGlobal::UsingGIMethod == KRenderGlobal::CLIPMAP_GI)
+		if (KRenderGlobal::GIMethod == KRenderGlobal::CLIPMAP_GI)
 		{
 			pipeline->SetSampler(SHADER_BINDING_TEXTURE6,
 				KRenderGlobal::ClipmapVoxilzer.GetFinalMask()->GetFrameBuffer(),
@@ -480,7 +480,7 @@ void KDeferredRenderer::PopulateRenderCommand(DeferredRenderStage deferredRender
 				{
 					virtualTexture = (KVirtualTexture*)command.textureBinding->GetVirtualTextureSoul(m_CurrentVirtualFeedbackTargetBinding);
 				}
-				if (!KRenderUtil::AssignVirtualFeedbackParameter(command, m_CurrentVirtualFeedbackTargetBinding, virtualTexture))
+				if (virtualTexture && !KRenderUtil::AssignVirtualFeedbackParameter(command, m_CurrentVirtualFeedbackTargetBinding, virtualTexture))
 				{
 					continue;
 				}
@@ -790,7 +790,15 @@ void KDeferredRenderer::ForwardTransprant(KRHICommandList& commandList, const st
 {
 	if (KRenderGlobal::EnablePeeling)
 	{
-		KRenderGlobal::DepthPeeling.Execute(commandList, cullRes);
+		if (KRenderGlobal::DepthPeelingMethod == KRenderGlobal::NORMAL_DEPTH_PEELING)
+		{
+			KRenderGlobal::DepthPeeling.Execute(commandList, cullRes);
+		}
+		else if (KRenderGlobal::DepthPeelingMethod == KRenderGlobal::ABUFFER_DEPTH_PEELING)
+		{
+			IKRenderPassPtr renderPass = m_RenderPass[DRS_STAGE_FORWARD_TRANSPRANT];
+			KRenderGlobal::ABufferDepthPeeling.Execute(commandList, renderPass, cullRes);
+		}
 	}
 	else
 	{

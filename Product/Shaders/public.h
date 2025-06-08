@@ -95,6 +95,7 @@ layout(binding = BINDING_GLOBAL)
 uniform GlobalInfo
 {
 	vec4 sunLightDirAndMaxPBRLod;
+	uvec4 miscs;
 } global;
 
 layout(binding = BINDING_VIRTUAL_TEXTURE_CONSTANT)

@@ -26,8 +26,6 @@ protected:
 	uint32_t m_Width;
 	uint32_t m_Height;
 	uint32_t m_PeelingLayers;
-
-	bool PopulateRenderCommandList(const std::vector<IKEntity*>& cullRes, KRenderCommandList& renderCommands);
 public:
 	KDepthPeeling();
 	~KDepthPeeling();

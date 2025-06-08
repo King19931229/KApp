@@ -28,7 +28,6 @@ protected:
 
 	ResourceState m_ResourceState;
 	std::mutex m_LoadTaskLock;
-	KTaskUnitProcessorPtr m_LoadTask;
 
 	bool m_EnableSourceDebug;
 

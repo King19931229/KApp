@@ -23,6 +23,7 @@ protected:
 	KShaderMap m_ShaderMap;
 	KShaderMap m_PrePassShaderMap;
 	KShaderMap m_DepthPeelShaderMap;
+	KShaderMap m_ABufferDepthPeelShaderMap;
 	KShaderMap m_VirtualFeedbackShaderMap;
 	KShaderMap m_StaticCSMShaderMap;
 	KShaderMap m_DynamicCSMShaderMap;
@@ -66,10 +67,17 @@ protected:
 
 	bool ReadXMLContent(std::vector<char>& content);
 
+	enum DepthPeelingMode
+	{
+		NONE,
+		ABUFFER,
+		DEFAULT
+	};
+
 	struct PipelineCreateContext
 	{
 		bool depthBiasEnable = false;
-		bool depthPeeling = false;
+		DepthPeelingMode depthPeeling = DepthPeelingMode::NONE;
 	};
 
 	IKPipelinePtr CreatePipelineInternal(const PipelineCreateContext& context, const VertexFormat* formats, size_t count, IKShaderPtr vertexShader, IKShaderPtr fragmentShader);
@@ -115,6 +123,9 @@ public:
 
 	virtual IKPipelinePtr CreateDepthPeelingPipeline(const VertexFormat* formats, size_t count);
 	virtual IKPipelinePtr CreateDepthPeelingInstancePipeline(const VertexFormat* formats, size_t count);
+
+	virtual IKPipelinePtr CreateABufferDepthPeelingPipeline(const VertexFormat* formats, size_t count);
+	virtual IKPipelinePtr CreateABufferDepthPeelingInstancePipeline(const VertexFormat* formats, size_t count);
 
 	virtual bool InitFromFile(const std::string& path, bool async);
 	virtual bool InitFromImportAssetMaterial(const KMeshRawData::Material& input, bool async);

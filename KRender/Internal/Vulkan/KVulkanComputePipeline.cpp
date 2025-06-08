@@ -9,6 +9,7 @@
 #include "KVulkanInitializer.h"
 #include "KVulkanGlobal.h"
 #include "KVulkanHelper.h"
+#include "KVulkanDebug.h"
 #include "Internal/KRenderGlobal.h"
 
 KVulkanComputePipeline::KVulkanComputePipeline()
@@ -643,7 +644,10 @@ bool KVulkanComputePipeline::Execute(IKCommandBufferPtr primaryBuffer, uint32_t 
 		// Dispatching the shader
 		KVulkanCommandBuffer* commandBuffer = static_cast<KVulkanCommandBuffer*>(primaryBuffer.get());
 		VkCommandBuffer cmdBuf = commandBuffer->GetVkHandle();
-		vkCmdDispatch(cmdBuf, groupX, groupY, groupZ);
+		{
+			KVULKAN_COMPUTE_SCOPE(this);
+			vkCmdDispatch(cmdBuf, groupX, groupY, groupZ);
+		}
 
 		PostDispatch(primaryBuffer);
 
@@ -674,7 +678,10 @@ bool KVulkanComputePipeline::ExecuteIndirect(IKCommandBufferPtr primaryBuffer, I
 			VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT,
 			VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_INDIRECT_COMMAND_READ_BIT, cmdBuf);
 
-		vkCmdDispatchIndirect(cmdBuf, indirectBuf, 0);
+		{
+			KVULKAN_COMPUTE_SCOPE(this);
+			vkCmdDispatchIndirect(cmdBuf, indirectBuf, 0);
+		}
 
 		PostDispatch(primaryBuffer);
 

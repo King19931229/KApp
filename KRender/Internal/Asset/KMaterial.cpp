@@ -316,10 +316,16 @@ IKPipelinePtr KMaterial::CreatePipelineInternal(const PipelineCreateContext& con
 		}
 		else
 		{
-			if (context.depthPeeling)
+			if (context.depthPeeling == DepthPeelingMode::DEFAULT)
 			{
 				pipeline->SetBlendEnable(false);
 				pipeline->SetDepthFunc(CF_LESS_OR_EQUAL, true, true);
+			}
+			else if (context.depthPeeling == DepthPeelingMode::ABUFFER)
+			{
+				pipeline->SetBlendEnable(false);
+				pipeline->SetColorWrite(false, false, false, false);
+				pipeline->SetDepthFunc(CF_LESS_OR_EQUAL, false, true);
 			}
 			else
 			{
@@ -437,15 +443,29 @@ IKPipelinePtr KMaterial::CreatePrePassInstancePipeline(const VertexFormat* forma
 IKPipelinePtr KMaterial::CreateDepthPeelingPipeline(const VertexFormat* formats, size_t count)
 {
 	PipelineCreateContext context;
-	context.depthPeeling = true;
+	context.depthPeeling = DepthPeelingMode::DEFAULT;
 	return CreatePipelineImpl(m_DepthPeelShaderMap, context, formats, count);
 }
 
 IKPipelinePtr KMaterial::CreateDepthPeelingInstancePipeline(const VertexFormat* formats, size_t count)
 {
 	PipelineCreateContext context;
-	context.depthPeeling = true;
+	context.depthPeeling = DepthPeelingMode::DEFAULT;
 	return CreateInstancePipelineImpl(m_DepthPeelShaderMap, context, formats, count);
+}
+
+IKPipelinePtr KMaterial::CreateABufferDepthPeelingPipeline(const VertexFormat* formats, size_t count)
+{
+	PipelineCreateContext context;
+	context.depthPeeling = DepthPeelingMode::ABUFFER;
+	return CreatePipelineImpl(m_ABufferDepthPeelShaderMap, context, formats, count);
+}
+
+IKPipelinePtr KMaterial::CreateABufferDepthPeelingInstancePipeline(const VertexFormat* formats, size_t count)
+{
+	PipelineCreateContext context;
+	context.depthPeeling = DepthPeelingMode::ABUFFER;
+	return CreateInstancePipelineImpl(m_ABufferDepthPeelShaderMap, context, formats, count);
 }
 
 IKPipelinePtr KMaterial::CreateCSMPipeline(const VertexFormat* formats, size_t count, bool staticCSM)
@@ -874,6 +894,11 @@ bool KMaterial::InitFromImportAssetMaterial(const KMeshRawData::Material& input,
 		initContext.macros = { {"DEPTH_PEELING_TRANSRPANT_PASS", "1"} };
 		ASSERT_RESULT(m_DepthPeelShaderMap.Init(initContext, async));
 
+		initContext.vsFile = "shading/basepass.vert";
+		initContext.fsFile = "shading/translucent.frag";
+		initContext.macros = { {"DEPTH_PEELING_OUTPUT_TO_ABUFFER", "1"} };
+		ASSERT_RESULT(m_ABufferDepthPeelShaderMap.Init(initContext, async));
+
 		m_ShadingMode = MSM_TRANSRPANT;
 	}
 
@@ -980,6 +1005,7 @@ bool KMaterial::UnInit()
 	m_ShaderMap.UnInit();
 	m_PrePassShaderMap.UnInit();
 	m_DepthPeelShaderMap.UnInit();
+	m_ABufferDepthPeelShaderMap.UnInit();
 	m_StaticCSMShaderMap.UnInit();
 	m_DynamicCSMShaderMap.UnInit();
 	m_VirtualFeedbackShaderMap.UnInit();

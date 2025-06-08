@@ -149,7 +149,7 @@ namespace KRenderUtil
 
 	bool AssignRenderStageBinding(KRenderCommand& command, RenderStage renderStage, uint32_t debugOption)
 	{
-		if (renderStage == RENDER_STAGE_TRANSPRANT || renderStage == RENDER_STAGE_TRANSPRANT_DEPTH_PEELING)
+		if (renderStage >= RENDER_STAGE_TRANSPRANT_BEGIN && renderStage <= RENDER_STAGE_TRANSPRANT_END)
 		{
 			IKPipelinePtr& pipeline = command.pipeline;
 
@@ -199,12 +199,20 @@ namespace KRenderUtil
 				KRenderGlobal::CubeMap.GetIntegrateBRDFSampler(),
 				true);
 
-			if (renderStage == RENDER_STAGE_TRANSPRANT_DEPTH_PEELING)
+			if (renderStage == RENDER_STAGE_TRANSPRANT_DEPTH_PEELING || renderStage == RENDER_STAGE_TRANSPRANT_DEPTH_PEELING_INSTANCE)
 			{
 				pipeline->SetSampler(SHADER_BINDING_TEXTURE16,
 					KRenderGlobal::DepthPeeling.GetPrevPeelingDepthTarget()->GetFrameBuffer(),
 					KRenderGlobal::DepthPeeling.GetPeelingDepthSampler(),
 					true);
+			}
+
+			if (renderStage == RENDER_STAGE_TRANSPRANT_ABUFFER_DEPTH_PEELING || renderStage == RENDER_STAGE_TRANSPRANT_ABUFFER_DEPTH_PEELING_INSTANCE)
+			{
+				pipeline->SetStorageImage(SHADER_BINDING_TEXTURE16, KRenderGlobal::ABufferDepthPeeling.GetLinkHeaderTarget()->GetFrameBuffer(), EF_R32_UINT);
+				pipeline->SetStorageBuffer(SHADER_BINDING_TEXTURE17, ST_FRAGMENT,KRenderGlobal::ABufferDepthPeeling.GetLinkNextBuffer());
+				pipeline->SetStorageBuffer(SHADER_BINDING_TEXTURE18, ST_FRAGMENT, KRenderGlobal::ABufferDepthPeeling.GetLinkResultBuffer());
+				pipeline->SetStorageBuffer(SHADER_BINDING_TEXTURE19, ST_FRAGMENT, KRenderGlobal::ABufferDepthPeeling.GetLinkDepthBuffer());
 			}
 
 			struct Debug
@@ -329,6 +337,100 @@ namespace KRenderUtil
 		KRenderGlobal::DynamicConstantBufferManager.Alloc(&feedbackData, virtualUsage);
 
 		command.dynamicConstantUsages.push_back(virtualUsage);
+
+		return true;
+	}
+
+	bool PopulateRenderCommandList(IKRenderPassPtr renderPass, const std::vector<IKEntity*>& entities, KRenderCommandList& renderCommands, RenderStage renderStage, RenderStage instanceRenderStage)
+	{
+		std::vector<KMaterialSubMeshInstance> subMeshInstances;
+		KRenderUtil::CalculateInstancesByMaterial(entities, subMeshInstances);
+
+		renderCommands.clear();
+
+		for (const KMaterialSubMeshInstance& subMeshInstance : subMeshInstances)
+		{
+			const std::vector<KVertexDefinition::INSTANCE_DATA_MATRIX4F>& instances = subMeshInstance.instanceData;
+
+			KRenderCommand baseCommand;
+			if (instances.size() > 1 && instanceRenderStage != RENDER_STAGE_UNKNOWN)
+			{
+				if (!subMeshInstance.materialSubMesh->GetRenderCommand(instanceRenderStage, baseCommand))
+				{
+					continue;
+				}
+
+				if (!KRenderUtil::AssignShadingParameter(baseCommand, subMeshInstance.materialSubMesh->GetMaterial()))
+				{
+					continue;
+				}
+
+				std::vector<KInstanceBufferManager::AllocResultBlock> allocRes;
+				ASSERT_RESULT(KRenderGlobal::InstanceBufferManager.GetVertexSize() == sizeof(instances[0]));
+				ASSERT_RESULT(KRenderGlobal::InstanceBufferManager.Alloc(instances.size(), instances.data(), allocRes));
+
+				KRenderCommand command = baseCommand;
+
+				command.instanceDraw = true;
+				command.instanceUsages.resize(allocRes.size());
+				for (size_t i = 0; i < allocRes.size(); ++i)
+				{
+					// TODO 合并这个类
+					KInstanceBufferUsage& usage = command.instanceUsages[i];
+					KInstanceBufferManager::AllocResultBlock& allocResult = allocRes[i];
+					usage.buffer = allocResult.buffer;
+					usage.start = allocResult.start;
+					usage.count = allocResult.count;
+					usage.offset = allocResult.offset;
+				}
+
+				KRenderUtil::AssignRenderStageBinding(command, instanceRenderStage, 0);
+				command.pipeline->GetHandle(renderPass, command.pipelineHandle);
+
+				if (command.Complete())
+				{
+					renderCommands.push_back(std::move(command));
+				}
+			}
+			else
+			{
+				if (!subMeshInstance.materialSubMesh->GetRenderCommand(renderStage, baseCommand))
+				{
+					continue;
+				}
+
+				if (!KRenderUtil::AssignShadingParameter(baseCommand, subMeshInstance.materialSubMesh->GetMaterial()))
+				{
+					continue;
+				}
+
+				for (size_t idx = 0; idx < instances.size(); ++idx)
+				{
+					KRenderCommand command = baseCommand;
+
+					const KVertexDefinition::INSTANCE_DATA_MATRIX4F& instance = instances[idx];
+
+					KConstantDefinition::OBJECT objectData;
+					objectData.MODEL = glm::transpose(glm::mat4(instance.ROW0, instance.ROW1, instance.ROW2, glm::vec4(0, 0, 0, 1)));
+					objectData.PRVE_MODEL = glm::transpose(glm::mat4(instance.PREV_ROW0, instance.PREV_ROW1, instance.PREV_ROW2, glm::vec4(0, 0, 0, 1)));
+
+					KDynamicConstantBufferUsage objectUsage;
+					objectUsage.binding = SHADER_BINDING_OBJECT;
+					objectUsage.range = sizeof(objectData);
+					KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, objectUsage);
+
+					command.dynamicConstantUsages.push_back(objectUsage);
+
+					KRenderUtil::AssignRenderStageBinding(command, renderStage, 0);
+					command.pipeline->GetHandle(renderPass, command.pipelineHandle);
+
+					if (command.Complete())
+					{
+						renderCommands.push_back(std::move(command));
+					}
+				}
+			}
+		}
 
 		return true;
 	}

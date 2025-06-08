@@ -19,6 +19,7 @@
 #include "Internal/Object/KWhiteFurnace.h"
 #include "Internal/Object/KGBuffer.h"
 #include "Internal/Object/KDepthPeeling.h"
+#include "Internal/Object/KABufferDepthPeeling.h"
 #include "Internal/Object/KHiZBuffer.h"
 #include "Internal/Object/KHiZOcclusion.h"
 #include "Internal/Shadow/KShadowMap.h"
@@ -54,12 +55,19 @@
 
 namespace KRenderGlobal
 {
-	enum GIMethod
+	enum EGIMethod
 	{
 		SVO_GI,
 		CLIPMAP_GI
 	};
-	extern GIMethod UsingGIMethod;
+	extern EGIMethod GIMethod;
+
+	enum EDepthPeelingMethod
+	{
+		NORMAL_DEPTH_PEELING,
+		ABUFFER_DEPTH_PEELING
+	};
+	extern EDepthPeelingMethod DepthPeelingMethod;
 
 	extern KFrameResourceManager FrameResourceManager;
 	extern KShaderManager ShaderManager;
@@ -86,6 +94,7 @@ namespace KRenderGlobal
 	extern KWhiteFurnace WhiteFurnace;
 	extern KGBuffer GBuffer;
 	extern KDepthPeeling DepthPeeling;
+	extern KABufferDepthPeeling ABufferDepthPeeling;
 	extern KHiZBuffer HiZBuffer;
 	extern KHiZOcclusion HiZOcclusion;
 	extern KOcclusionBox OcclusionBox;
@@ -119,6 +128,7 @@ namespace KRenderGlobal
 	extern bool EnableAsyncCompute;
 	extern bool EnablePeeling;
 	extern bool InEditor;
+	extern bool ShaderDevelopmentMode;
 
 	extern uint32_t CurrentInFlightFrameIndex;
 	extern uint32_t CurrentFrameNum;

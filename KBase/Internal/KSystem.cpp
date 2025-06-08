@@ -262,3 +262,12 @@ bool KSystem::WaitProcess(const std::string& path, const std::string& args, cons
 #endif
 	 return bSuccess;
  }
+
+ bool KSystem::MessageBoxWithYesNo(const std::string& message, const std::string& title)
+ {
+#ifdef _WIN32
+	 return MessageBoxA(NULL, message.c_str(), title.c_str(), MB_YESNO) == IDYES;
+#else
+	 return false;
+#endif
+ }

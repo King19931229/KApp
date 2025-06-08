@@ -2,7 +2,8 @@
 
 namespace KRenderGlobal
 {
-	GIMethod UsingGIMethod = CLIPMAP_GI;
+	EGIMethod GIMethod = CLIPMAP_GI;
+	EDepthPeelingMethod DepthPeelingMethod = ABUFFER_DEPTH_PEELING;
 
 	KFrameResourceManager FrameResourceManager;
 	KShaderManager ShaderManager;
@@ -29,6 +30,7 @@ namespace KRenderGlobal
 	KWhiteFurnace WhiteFurnace;
 	KGBuffer GBuffer;
 	KDepthPeeling DepthPeeling;
+	KABufferDepthPeeling ABufferDepthPeeling;
 	KHiZBuffer HiZBuffer;
 	KHiZOcclusion HiZOcclusion;
 	KOcclusionBox OcclusionBox;
@@ -62,6 +64,7 @@ namespace KRenderGlobal
 	bool EnableAsyncCompute = false;
 	bool EnablePeeling = false;
 	bool InEditor = false;
+	bool ShaderDevelopmentMode = true;
 
 	uint32_t CurrentInFlightFrameIndex = 0;
 	uint32_t CurrentFrameNum = 0;

@@ -24,4 +24,6 @@ namespace KRenderUtil
 	bool AssignRenderStageBinding(KRenderCommand& command, RenderStage renderStage, uint32_t debugOption);
 	bool AssignShadingParameter(KRenderCommand& command, KMaterialRef material);
 	bool AssignVirtualFeedbackParameter(KRenderCommand& command, uint32_t targetBinding, KVirtualTexture* virtualTexture);
+
+	bool PopulateRenderCommandList(IKRenderPassPtr renderPass, const std::vector<IKEntity*>& entities, KRenderCommandList& renderCommands, RenderStage renderStage, RenderStage instanceRenderStage = RENDER_STAGE_UNKNOWN);
 };

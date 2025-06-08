@@ -141,7 +141,12 @@ bool KMaterialSubMesh::CreateMaterialPipeline()
 		else
 		{
 			m_Pipelines[RENDER_STAGE_TRANSPRANT] = m_Material->CreatePipeline(vertexData->vertexFormats.data(), vertexData->vertexFormats.size());
+
 			m_Pipelines[RENDER_STAGE_TRANSPRANT_DEPTH_PEELING] = m_Material->CreateDepthPeelingPipeline(vertexData->vertexFormats.data(), vertexData->vertexFormats.size());
+			m_Pipelines[RENDER_STAGE_TRANSPRANT_DEPTH_PEELING_INSTANCE] = m_Material->CreateDepthPeelingInstancePipeline(vertexData->vertexFormats.data(), vertexData->vertexFormats.size());
+
+			m_Pipelines[RENDER_STAGE_TRANSPRANT_ABUFFER_DEPTH_PEELING] = m_Material->CreateABufferDepthPeelingPipeline(vertexData->vertexFormats.data(), vertexData->vertexFormats.size());
+			m_Pipelines[RENDER_STAGE_TRANSPRANT_ABUFFER_DEPTH_PEELING_INSTANCE] = m_Material->CreateABufferDepthPeelingInstancePipeline(vertexData->vertexFormats.data(), vertexData->vertexFormats.size());
 		}
 
 		return true;

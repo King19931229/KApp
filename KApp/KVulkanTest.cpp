@@ -390,15 +390,20 @@ void InitQEM(IKEnginePtr engine)
 						IKComponentBase* component = nullptr;
 						if (entity->RegisterComponent(CT_RENDER, &component))
 						{
+							bool opaque = i == 0 && j == 0 && k == 0;
 							//((IKRenderComponent*)component)->InitAsVirtualGeometry(userData, "vg" + std::to_string(fileIndex));
 							for (auto& part : userData.parts)
 							{
-								if (i == 0 && j == 0 && k == 0)
+								if (opaque)
+								{
 									part.material.alphaMode = MAM_MASK;
+								}
 								else
+								{
 									part.material.alphaMode = MAM_BLEND;
+								}
 							}
-							((IKRenderComponent*)component)->InitAsUserData(userData, "test", false);
+							((IKRenderComponent*)component)->InitAsUserData(userData, "test" + std::to_string(opaque), false);
 						}
 						if (entity->RegisterComponent(CT_TRANSFORM, &component))
 						{

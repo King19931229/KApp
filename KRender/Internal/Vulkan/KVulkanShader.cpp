@@ -24,7 +24,6 @@ KVulkanShader::KVulkanShader()
 	m_Type(ST_ENDENUM),
 	m_SourceFile(GetSourceFile()),
 	m_ResourceState(RS_UNLOADED),
-	m_LoadTask(nullptr),
 	m_EnableSourceDebug(true)
 {
 	ZERO_MEMORY(m_SpecializationInfo);
@@ -53,33 +52,11 @@ void KVulkanShader::WaitForDevice()
 
 bool KVulkanShader::CancelDeviceTask()
 {
-	KTaskUnitProcessorPtr loadTask = nullptr;
-	{
-		std::unique_lock<decltype(m_LoadTaskLock)> guard(m_LoadTaskLock);
-		loadTask = m_LoadTask;
-	}
-
-	if (loadTask)
-	{
-		loadTask->Cancel();
-	}
-
 	return true;
 }
 
 bool KVulkanShader::WaitDeviceTask()
 {
-	KTaskUnitProcessorPtr loadTask = nullptr;
-	{
-		std::unique_lock<decltype(m_LoadTaskLock)> guard(m_LoadTaskLock);
-		loadTask = m_LoadTask;
-	}
-
-	if (loadTask)
-	{
-		loadTask->Wait();
-	}
-
 	return true;
 }
 
@@ -541,9 +518,13 @@ bool KVulkanShader::InitFromFile(ShaderType type, const std::string& path, bool 
 		{
 			m_ShaderModule = VK_NULL_HANDLE;
 			if (result == SHADER_INIT_COMPILE_FAILURE)
-				assert(false && "shader compile failure");
+			{
+				KG_LOGE(LM_RENDER, "Shader compile failure");
+			}
 			else if (result == SHADER_INIT_FILE_NOT_FOUNT)
-				assert(false && "shader file not found");
+			{
+				KG_LOGE(LM_RENDER, "Shader file not found");
+			}
 			m_ResourceState = RS_UNLOADED;
 			return false;
 		}
@@ -553,11 +534,28 @@ bool KVulkanShader::InitFromFile(ShaderType type, const std::string& path, bool 
 	{
 		m_ResourceState = RS_MEMORY_LOADING;
 		std::unique_lock<decltype(m_LoadTaskLock)> guard(m_LoadTaskLock);
-		// m_LoadTask = KRenderGlobal::TaskExecutor.Submit(KTaskUnitPtr(KNEW KSampleAsyncTaskUnit(loadImpl)));
-		return true;
+		return false;
 	}
 	else
 	{
+		if (KRenderGlobal::ShaderDevelopmentMode)
+		{
+#ifdef _WIN32
+			while (!loadImpl())
+			{
+				if (KSystem::MessageBoxWithYesNo("Shader compile failure. Press Yes to recompile, No to exit.", "Shader Error"))
+				{
+					KRenderGlobal::ShaderManager.ClearSourceCache();
+					continue;
+				}
+				else
+				{
+					exit(0);
+				}
+			}
+			return true;
+#endif
+		}
 		return loadImpl();
 	}
 }
@@ -597,8 +595,7 @@ bool KVulkanShader::InitFromString(ShaderType type, const std::vector<char>& cod
 	{
 		m_ResourceState = RS_MEMORY_LOADING;
 		std::unique_lock<decltype(m_LoadTaskLock)> guard(m_LoadTaskLock);
-		// m_LoadTask = KRenderGlobal::TaskExecutor.Submit(KTaskUnitPtr(KNEW KSampleAsyncTaskUnit(loadImpl)));
-		return true;
+		return false;
 	}
 	else
 	{

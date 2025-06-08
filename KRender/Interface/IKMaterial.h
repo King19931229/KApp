@@ -124,6 +124,9 @@ struct IKMaterial
 	virtual IKPipelinePtr CreateDepthPeelingPipeline(const VertexFormat* formats, size_t count) = 0;
 	virtual IKPipelinePtr CreateDepthPeelingInstancePipeline(const VertexFormat* formats, size_t count) = 0;
 
+	virtual IKPipelinePtr CreateABufferDepthPeelingPipeline(const VertexFormat* formats, size_t count) = 0;
+	virtual IKPipelinePtr CreateABufferDepthPeelingInstancePipeline(const VertexFormat* formats, size_t count) = 0;
+
 	virtual bool InitFromFile(const std::string& path, bool async) = 0;
 	virtual bool InitFromImportAssetMaterial(const KMeshRawData::Material& input, bool async) = 0;
 	virtual bool UnInit() = 0;

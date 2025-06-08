@@ -193,11 +193,11 @@ bool KRenderer::Render(uint32_t chainImageIndex)
 	{
 		KRenderGlobal::RayTraceManager.Execute(m_RHICommandList);
 
-		if (KRenderGlobal::UsingGIMethod == KRenderGlobal::SVO_GI)
+		if (KRenderGlobal::GIMethod == KRenderGlobal::SVO_GI)
 		{
 			KRenderGlobal::Voxilzer.UpdateVoxel(m_RHICommandList);
 		}
-		if (KRenderGlobal::UsingGIMethod == KRenderGlobal::CLIPMAP_GI)
+		if (KRenderGlobal::GIMethod == KRenderGlobal::CLIPMAP_GI)
 		{
 			KRenderGlobal::ClipmapVoxilzer.UpdateVoxel(m_RHICommandList);
 		}
@@ -221,11 +221,11 @@ bool KRenderer::Render(uint32_t chainImageIndex)
 		KRenderGlobal::GBuffer.TransitionGBuffer(m_RHICommandList, m_PreGraphics.queue, m_PreGraphics.queue, PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 		KRenderGlobal::GBuffer.TransitionDepthStencil(m_RHICommandList, m_PreGraphics.queue, m_PreGraphics.queue, PIPELINE_STAGE_LATE_FRAGMENT_TESTS, PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 
-		if (KRenderGlobal::UsingGIMethod == KRenderGlobal::SVO_GI)
+		if (KRenderGlobal::GIMethod == KRenderGlobal::SVO_GI)
 		{
 			KRenderGlobal::Voxilzer.UpdateFrame(m_RHICommandList);
 		}
-		if (KRenderGlobal::UsingGIMethod == KRenderGlobal::CLIPMAP_GI)
+		if (KRenderGlobal::GIMethod == KRenderGlobal::CLIPMAP_GI)
 		{
 			KRenderGlobal::ClipmapVoxilzer.UpdateFrame(m_RHICommandList);
 		}
@@ -352,6 +352,7 @@ bool KRenderer::Init(const KRendererInitContext& initContext)
 	KRenderGlobal::FrameGraph.Init(device);
 	KRenderGlobal::GBuffer.Init(width, height);
 	KRenderGlobal::DepthPeeling.Init(width, height, 4);
+	KRenderGlobal::ABufferDepthPeeling.Init(width, height, 4);
 	KRenderGlobal::HiZBuffer.Init(width, height);
 	KRenderGlobal::HiZOcclusion.Init();
 	KRenderGlobal::RayTraceManager.Init();
@@ -364,11 +365,11 @@ bool KRenderer::Init(const KRendererInitContext& initContext)
 	KRenderGlobal::ShadowMap.Init(device, 2048);
 	KRenderGlobal::CascadedShadowMap.Init(camera, 3, 2048, width, height);
 
-	if (KRenderGlobal::UsingGIMethod == KRenderGlobal::SVO_GI)
+	if (KRenderGlobal::GIMethod == KRenderGlobal::SVO_GI)
 	{
 		KRenderGlobal::Voxilzer.Init(&KRenderGlobal::Scene, camera, 128, width, height);
 	}
-	if (KRenderGlobal::UsingGIMethod == KRenderGlobal::CLIPMAP_GI)
+	if (KRenderGlobal::GIMethod == KRenderGlobal::CLIPMAP_GI)
 	{
 		KRenderGlobal::ClipmapVoxilzer.Init(&KRenderGlobal::Scene, camera, 64, 7, 32, width, height, 1.0f);
 	}
@@ -408,14 +409,14 @@ bool KRenderer::Init(const KRendererInitContext& initContext)
 	{
 		KRenderGlobal::Scene.GetVirtualGeometryScene()->DebugRender(renderPass, commandList);
 
-		if (KRenderGlobal::UsingGIMethod == KRenderGlobal::SVO_GI)
+		if (KRenderGlobal::GIMethod == KRenderGlobal::SVO_GI)
 		{
 			if (KRenderGlobal::Voxilzer.IsVoxelDrawEnable())
 			{
 				KRenderGlobal::Voxilzer.RenderVoxel(renderPass, commandList);
 			}
 		}
-		if (KRenderGlobal::UsingGIMethod == KRenderGlobal::CLIPMAP_GI)
+		if (KRenderGlobal::GIMethod == KRenderGlobal::CLIPMAP_GI)
 		{
 			if (KRenderGlobal::ClipmapVoxilzer.IsVoxelDrawEnable())
 			{
@@ -431,12 +432,12 @@ bool KRenderer::Init(const KRendererInitContext& initContext)
 		{
 			cameraCube->Render(renderPass, commandList);
 		}
-		if (KRenderGlobal::UsingGIMethod == KRenderGlobal::SVO_GI)
+		if (KRenderGlobal::GIMethod == KRenderGlobal::SVO_GI)
 		{
 			KRenderGlobal::Voxilzer.DebugRender(renderPass, commandList);
 			KRenderGlobal::Voxilzer.OctreeRayTestRender(renderPass, commandList);
 		}
-		if (KRenderGlobal::UsingGIMethod == KRenderGlobal::CLIPMAP_GI)
+		if (KRenderGlobal::GIMethod == KRenderGlobal::CLIPMAP_GI)
 		{
 			KRenderGlobal::ClipmapVoxilzer.DebugRender(renderPass, commandList);
 		}
@@ -533,6 +534,7 @@ bool KRenderer::UnInit()
 	KRenderGlobal::RayTraceManager.UnInit();
 	KRenderGlobal::HiZOcclusion.UnInit();
 	KRenderGlobal::HiZBuffer.UnInit();
+	KRenderGlobal::ABufferDepthPeeling.UnInit();
 	KRenderGlobal::DepthPeeling.UnInit();
 	KRenderGlobal::GBuffer.UnInit();
 	KRenderGlobal::FrameGraph.UnInit();
@@ -667,6 +669,7 @@ bool KRenderer::UpdateGlobal()
 
 		KConstantDefinition::GLOBAL GLOBAL;
 		GLOBAL.SUN_LIGHT_DIRECTION_AND_PBR_MAX_REFLECTION_LOD = sunLightDirAndMaxReflectionLod;
+		GLOBAL.MISCS[0] = KRenderGlobal::ABufferDepthPeeling.GetMaxElementCount();
 
 		m_RHICommandList.UpdateUniformBuffer(globalBuffer, &GLOBAL, 0, (uint32_t)sizeof(GLOBAL));
 		return true;
@@ -680,15 +683,16 @@ void KRenderer::OnSwapChainRecreate(uint32_t width, uint32_t height)
 	KRenderGlobal::PostProcessManager.Resize(width, height);
 	KRenderGlobal::CascadedShadowMap.Resize(width, height);
 	KRenderGlobal::GBuffer.Resize(width, height);
+	KRenderGlobal::ABufferDepthPeeling.Resize(width, height);
 	KRenderGlobal::DepthPeeling.Resize(width, height);
 	KRenderGlobal::HiZBuffer.Resize(width, height);
 	KRenderGlobal::HiZOcclusion.Resize();
 	KRenderGlobal::DeferredRenderer.Resize(width, height);
-	if (KRenderGlobal::UsingGIMethod == KRenderGlobal::SVO_GI)
+	if (KRenderGlobal::GIMethod == KRenderGlobal::SVO_GI)
 	{
 		KRenderGlobal::Voxilzer.Resize(width, height);
 	}
-	if (KRenderGlobal::UsingGIMethod == KRenderGlobal::CLIPMAP_GI)
+	if (KRenderGlobal::GIMethod == KRenderGlobal::CLIPMAP_GI)
 	{
 		KRenderGlobal::ClipmapVoxilzer.Resize(width, height);
 	}

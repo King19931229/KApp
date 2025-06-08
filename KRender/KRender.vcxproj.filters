@@ -577,6 +577,12 @@
     <ClInclude Include="Internal\Object\KDepthPeeling.h">
       <Filter>Internal\Object</Filter>
     </ClInclude>
+    <ClInclude Include="Internal\Object\KABufferDepthPeeling.h">
+      <Filter>Internal\Object</Filter>
+    </ClInclude>
+    <ClInclude Include="Internal\Vulkan\KVulkanDebug.h">
+      <Filter>Internal\Vulkan</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Internal\KRenderDevice.cpp">
@@ -945,6 +951,12 @@
     </ClCompile>
     <ClCompile Include="Internal\Object\KDepthPeeling.cpp">
       <Filter>Internal\Object</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\Object\KABufferDepthPeeling.cpp">
+      <Filter>Internal\Object</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\Vulkan\KVulkanDebug.cpp">
+      <Filter>Internal\Vulkan</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

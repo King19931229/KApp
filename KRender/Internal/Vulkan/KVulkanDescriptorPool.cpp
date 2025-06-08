@@ -146,7 +146,7 @@ bool KVulkanDescriptorPool::Init(VkDescriptorSetLayout layout,
 		m_DescriptorStaticWriteInfo.push_back(copy);
 	}
 
-	m_DescriptorDynamicWriteInfo.resize(m_ImageCount + m_StorageBufferCount + m_UniformBufferCount + m_DynamicUniformBufferCount + m_DynamicStorageBufferCount);
+	m_DescriptorDynamicWriteInfo.resize(m_ImageCount + m_StorageImageCount + m_StorageBufferCount + m_UniformBufferCount + m_DynamicUniformBufferCount + m_DynamicStorageBufferCount);
 
 	return true;
 }

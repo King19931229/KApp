@@ -110,6 +110,7 @@
     <ClInclude Include="Internal\Manager\KSamplerManager.h" />
     <ClInclude Include="Internal\Manager\KShaderManager.h" />
     <ClInclude Include="Internal\Manager\KTextureManager.h" />
+    <ClInclude Include="Internal\Object\KABufferDepthPeeling.h" />
     <ClInclude Include="Internal\Object\KDepthOfField.h" />
     <ClInclude Include="Internal\Object\KDepthPeeling.h" />
     <ClInclude Include="Internal\Object\KGBuffer.h" />
@@ -157,6 +158,7 @@
     <ClInclude Include="Internal\Vulkan\KVulkanCommandBuffer.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanComputePipeline.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanConfig.h" />
+    <ClInclude Include="Internal\Vulkan\KVulkanDebug.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanDescripiorPool.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanFrameBuffer.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanInitializer.h" />
@@ -239,6 +241,7 @@
     <ClCompile Include="Internal\Manager\KSamplerManager.cpp" />
     <ClCompile Include="Internal\Manager\KShaderManager.cpp" />
     <ClCompile Include="Internal\Manager\KTextureManager.cpp" />
+    <ClCompile Include="Internal\Object\KABufferDepthPeeling.cpp" />
     <ClCompile Include="Internal\Object\KDepthOfField.cpp" />
     <ClCompile Include="Internal\Object\KDepthPeeling.cpp" />
     <ClCompile Include="Internal\Object\KGBuffer.cpp" />
@@ -285,6 +288,7 @@
     <ClCompile Include="Internal\Vulkan\KVulkanBuffer.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanCommandBuffer.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanComputePipeline.cpp" />
+    <ClCompile Include="Internal\Vulkan\KVulkanDebug.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanDescriptorPool.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanFrameBuffer.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanInitializer.cpp" />

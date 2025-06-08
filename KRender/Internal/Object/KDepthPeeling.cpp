@@ -170,7 +170,6 @@ bool KDepthPeeling::Resize(uint32_t width, uint32_t height)
 		m_PeelingDepthTarget[i]->GetFrameBuffer()->SetDebugName(("PeelingDepth" + std::to_string(i)).c_str());
 	}
 
-	
 	{
 		if (!m_PeelingPass)
 		{
@@ -212,58 +211,6 @@ bool KDepthPeeling::Resize(uint32_t width, uint32_t height)
 	return true;
 }
 
-bool KDepthPeeling::PopulateRenderCommandList(const std::vector<IKEntity*>& cullRes, KRenderCommandList& renderCommands)
-{
-	std::vector<KMaterialSubMeshInstance> subMeshInstances;
-	KRenderUtil::CalculateInstancesByMaterial(cullRes, subMeshInstances);
-
-	renderCommands.clear();
-
-	for (KMaterialSubMeshInstance& subMeshInstance : subMeshInstances)
-	{
-		KRenderCommand baseCommand;
-		const std::vector<KVertexDefinition::INSTANCE_DATA_MATRIX4F>& instances = subMeshInstance.instanceData;
-
-		if (!subMeshInstance.materialSubMesh->GetRenderCommand(RENDER_STAGE_TRANSPRANT_DEPTH_PEELING, baseCommand))
-		{
-			continue;
-		}
-
-		if (!KRenderUtil::AssignShadingParameter(baseCommand, subMeshInstance.materialSubMesh->GetMaterial()))
-		{
-			continue;
-		}
-
-		for (size_t idx = 0; idx < instances.size(); ++idx)
-		{
-			KRenderCommand command = baseCommand;
-
-			const KVertexDefinition::INSTANCE_DATA_MATRIX4F& instance = instances[idx];
-
-			KConstantDefinition::OBJECT objectData;
-			objectData.MODEL = glm::transpose(glm::mat4(instance.ROW0, instance.ROW1, instance.ROW2, glm::vec4(0, 0, 0, 1)));
-			objectData.PRVE_MODEL = glm::transpose(glm::mat4(instance.PREV_ROW0, instance.PREV_ROW1, instance.PREV_ROW2, glm::vec4(0, 0, 0, 1)));
-
-			KDynamicConstantBufferUsage objectUsage;
-			objectUsage.binding = SHADER_BINDING_OBJECT;
-			objectUsage.range = sizeof(objectData);
-			KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, objectUsage);
-
-			command.dynamicConstantUsages.push_back(objectUsage);
-
-			KRenderUtil::AssignRenderStageBinding(command, RENDER_STAGE_TRANSPRANT_DEPTH_PEELING, 0);
-			command.pipeline->GetHandle(m_PeelingPass, command.pipelineHandle);
-
-			if (command.Complete())
-			{
-				renderCommands.push_back(std::move(command));
-			}
-		}
-	}
-
-	return true;
-}
-
 bool KDepthPeeling::Execute(KRHICommandList& commandList, const std::vector<IKEntity*>& cullRes)
 {
 	commandList.BeginDebugMarker("DepthPeeling", glm::vec4(1));
@@ -287,7 +234,7 @@ bool KDepthPeeling::Execute(KRHICommandList& commandList, const std::vector<IKEn
 		}
 
 		KRenderCommandList renderCommands;
-		PopulateRenderCommandList(cullRes, renderCommands);
+		KRenderUtil::PopulateRenderCommandList(m_PeelingPass, cullRes, renderCommands, RENDER_STAGE_TRANSPRANT_DEPTH_PEELING, RENDER_STAGE_TRANSPRANT_DEPTH_PEELING_INSTANCE);
 
 		for (uint32_t i = 0; i < m_PeelingLayers; ++i)
 		{

@@ -85,6 +85,15 @@ bool KMeshManager::New(KMeshRef& ref)
 
 bool KMeshManager::AcquireFromUserData(const KMeshRawData& userData, const std::string& label, KMeshRef& ref)
 {
+	MeshInfo info = { label };
+
+	auto it = m_Meshes.find(info);
+	if (it != m_Meshes.end())
+	{
+		ref = it->second;
+		return true;
+	}
+
 	KMeshPtr ptr = KMeshPtr(KNEW KMesh());
 	if (ptr->InitFromUserData(userData, label))
 	{
@@ -92,8 +101,10 @@ bool KMeshManager::AcquireFromUserData(const KMeshRawData& userData, const std::
 		{
 			ptr->UnInit();
 		});
+		m_Meshes[info] = ref;
 		return true;
 	}
+
 	ptr = nullptr;
 	return false;
 }
