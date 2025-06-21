@@ -113,6 +113,15 @@ bool KRenderScene::Add(IKEntity* entity)
 {
 	if (m_SceneMgr)
 	{
+		if (entity)
+		{
+			KTransformComponent* transform = nullptr;
+			if (entity->GetComponent<KTransformComponent>(CT_TRANSFORM, &transform))
+			{
+				transform->SetRenderScene(this);
+			}
+		}
+
 		ENQUEUE_RENDER_COMMAND(KRenderScene_Add)([this, entity]()
 		{
 			if (m_SceneMgr->Add(entity))
@@ -129,6 +138,15 @@ bool KRenderScene::Remove(IKEntity* entity)
 {
 	if (m_SceneMgr)
 	{
+		if (entity)
+		{
+			KTransformComponent* transform = nullptr;
+			if (entity->GetComponent<KTransformComponent>(CT_TRANSFORM, &transform))
+			{
+				transform->SetRenderScene(nullptr);
+			}
+		}
+
 		ENQUEUE_RENDER_COMMAND(KRenderScene_Remove)([this, entity]()
 		{
 			if (m_SceneMgr->Remove(entity))

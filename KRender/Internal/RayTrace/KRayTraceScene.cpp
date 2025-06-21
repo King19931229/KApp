@@ -140,7 +140,7 @@ void KRayTraceScene::OnSceneChanged(EntitySceneOp op, IKEntity* entity)
 		renderComponent->GetAllAccelerationStructure(subAS);
 		renderComponent->GetAllTextrueBinding(mtlTex);
 
-		const glm::mat4& transform = transformComponent->GetFinal();
+		const glm::mat4& transform = transformComponent->GetFinal_RenderThread();
 
 		if (op == ESO_ADD)
 		{
@@ -210,7 +210,7 @@ void KRayTraceScene::OnRenderComponentChanged(IKRenderComponent* renderComponent
 		renderComponent->GetAllAccelerationStructure(subAS);
 		renderComponent->GetAllTextrueBinding(mtlTex);
 
-		const glm::mat4& transform = transformComponent->GetFinal();
+		const glm::mat4& transform = transformComponent->GetFinal_RenderThread();
 
 		if (subAS.size() == mtlTex.size())
 		{

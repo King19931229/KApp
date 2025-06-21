@@ -52,8 +52,7 @@ public:
 	bool Save(IKXMLElementPtr element) override;
 	bool Load(IKXMLElementPtr element) override;
 
-	bool PreTick() override;
-	bool PostTick() override;
+	bool Tick(float dt) override;
 
 	size_t GetID() const override { return m_Id; }
 

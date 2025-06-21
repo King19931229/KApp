@@ -38,9 +38,7 @@ public:
 	virtual bool Load(IKXMLElementPtr element) = 0;
 
 	// Tick function
-	virtual bool PreTick() = 0;
-	virtual bool PostTick() = 0;
-
+	virtual bool Tick(float dt) = 0;
 	// Template function
 	template<typename T>
 	bool GetComponent(ComponentType type, T** pptr)

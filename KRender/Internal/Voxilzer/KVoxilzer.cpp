@@ -791,7 +791,7 @@ void KVoxilzer::VoxelizeStaticScene(KRHICommandListBase& commandList)
 				KRenderCommand command;
 				if (materialSubMesh->GetRenderCommand(RENDER_STAGE_VOXEL, command))
 				{
-					const glm::mat4& finalTran = transform->GetFinal();
+					const glm::mat4& finalTran = transform->GetFinal_RenderThread();
 
 					struct ObjectData
 					{
@@ -877,8 +877,8 @@ void KVoxilzer::VoxelizeStaticSceneCounter(KRHICommandListBase& commandList, boo
 				KRenderCommand command;
 				if (materialSubMesh->GetRenderCommand(RENDER_STAGE_SPARSE_VOXEL, command))
 				{
-					const glm::mat4& finalTran = transform->GetFinal();
-					const glm::mat4& prevFinalTran = transform->GetPrevFinal();
+					const glm::mat4& finalTran = transform->GetFinal_RenderThread();
+					const glm::mat4& prevFinalTran = transform->GetPrevFinal_RenderThread();
 
 					KConstantDefinition::OBJECT objectData;
 					objectData.MODEL = finalTran;

@@ -24,7 +24,7 @@ void KVirtualGeometryScene::OnSceneChanged(EntitySceneOp op, IKEntity* entity)
 		KTransformComponent* transformComponent = nullptr;
 		ASSERT_RESULT(entity->GetComponent(CT_RENDER, &renderComponent));
 		ASSERT_RESULT(entity->GetComponent(CT_TRANSFORM, &transformComponent));
-		const glm::mat4& transform = transformComponent->GetFinal();
+		const glm::mat4& transform = transformComponent->GetFinal_RenderThread();
 		if (renderComponent->IsVirtualGeometry())
 		{
 			KVirtualGeometryResourceRef vg = renderComponent->GetVirtualGeometry();
@@ -40,7 +40,7 @@ void KVirtualGeometryScene::OnSceneChanged(EntitySceneOp op, IKEntity* entity)
 	{
 		KTransformComponent* transformComponent = nullptr;
 		ASSERT_RESULT(entity->GetComponent(CT_TRANSFORM, &transformComponent));
-		const glm::mat4& transform = transformComponent->GetFinal();
+		const glm::mat4& transform = transformComponent->GetFinal_RenderThread();
 		TransformInstance(entity, transform);
 	}
 }
@@ -59,7 +59,7 @@ void KVirtualGeometryScene::OnRenderComponentChanged(IKRenderComponent* renderCo
 		{
 			KTransformComponent* transformComponent = nullptr;
 			ASSERT_RESULT(entity->GetComponent(CT_TRANSFORM, &transformComponent));
-			const glm::mat4& transform = transformComponent->GetFinal();
+			const glm::mat4& transform = transformComponent->GetFinal_RenderThread();
 
 			KVirtualGeometryResourceRef vg = ((KRenderComponent*)renderComponent)->GetVirtualGeometry();
 			AddInstance(entity, transform, vg);

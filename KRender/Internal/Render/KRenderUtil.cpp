@@ -39,7 +39,7 @@ namespace KRenderUtil
 
 					KMaterialSubMeshInstance& subMeshInstance = instances[index];
 
-					const KConstantDefinition::OBJECT& finalTransform = transform->FinalTransform();
+					const KConstantDefinition::OBJECT& finalTransform = transform->FinalTransform_RenderThread();
 					glm::mat4 curTransform = glm::transpose(finalTransform.MODEL);
 					glm::mat4 prevTransform = glm::transpose(finalTransform.PRVE_MODEL);
 					subMeshInstance.instanceData.push_back(KVertexDefinition::INSTANCE_DATA_MATRIX4F(curTransform[0], curTransform[1], curTransform[2], prevTransform[0], prevTransform[1], prevTransform[2]));
@@ -82,7 +82,7 @@ namespace KRenderUtil
 
 					KMaterialSubMeshInstance& subMeshInstance = instances[index];
 
-					const KConstantDefinition::OBJECT& finalTransform = transform->FinalTransform();
+					const KConstantDefinition::OBJECT& finalTransform = transform->FinalTransform_RenderThread();
 					glm::mat4 curTransform = glm::transpose(finalTransform.MODEL);
 					glm::mat4 prevTransform = glm::transpose(finalTransform.PRVE_MODEL);
 					subMeshInstance.instanceData.push_back(KVertexDefinition::INSTANCE_DATA_MATRIX4F(curTransform[0], curTransform[1], curTransform[2], prevTransform[0], prevTransform[1], prevTransform[2]));
@@ -107,7 +107,7 @@ namespace KRenderUtil
 
 					if (textureBinding->GetIsVirtualTexture(targetBinding) && textureBinding->GetTexture(targetBinding) == virtualTexture)
 					{
-						const KConstantDefinition::OBJECT& finalTransform = transform->FinalTransform();
+						const KConstantDefinition::OBJECT& finalTransform = transform->FinalTransform_RenderThread();
 						glm::mat4 curTransform = glm::transpose(finalTransform.MODEL);
 						glm::mat4 prevTransform = glm::transpose(finalTransform.PRVE_MODEL);
 						instances.push_back({ materialSubMeshes[i], {KVertexDefinition::INSTANCE_DATA_MATRIX4F(curTransform[0], curTransform[1], curTransform[2], prevTransform[0], prevTransform[1], prevTransform[2])} });
@@ -131,7 +131,7 @@ namespace KRenderUtil
 
 				for (size_t i = 0; i < materialSubMeshes.size(); ++i)
 				{
-					const KConstantDefinition::OBJECT& finalTransform = transform->FinalTransform();
+					const KConstantDefinition::OBJECT& finalTransform = transform->FinalTransform_RenderThread();
 					glm::mat4 curTransform = glm::transpose(finalTransform.MODEL);
 					glm::mat4 prevTransform = glm::transpose(finalTransform.PRVE_MODEL);
 

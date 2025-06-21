@@ -7,12 +7,10 @@ class KUserComponent : public IKUserComponent, public KReflectionObjectBase
 	RTTR_ENABLE(IKUserComponent, KReflectionObjectBase)
 	RTTR_REGISTRATION_FRIEND
 protected:
-	TickFunction* m_PreTick;
-	TickFunction* m_PostTick;
+	TickFunction m_Tick;
 public:
 	KUserComponent()
-		: m_PreTick(nullptr)
-		, m_PostTick(nullptr)
+		: m_Tick(nullptr)
 	{}
 
 	virtual ~KUserComponent() {}
@@ -27,30 +25,16 @@ public:
 		return true;
 	}
 
-	void SetPreTick(TickFunction* preTick) override
+	void SetTick(TickFunction tick) override
 	{
-		m_PreTick = preTick;
+		m_Tick = tick;
 	}
 
-	void SetPostTick(TickFunction* postTick) override
+	bool Tick(float dt) override
 	{
-		m_PostTick = postTick;
-	}
-
-	bool PreTick() override
-	{
-		if (m_PreTick)
+		if (m_Tick)
 		{
-			(*m_PreTick)();
-		}
-		return true;
-	}
-
-	bool PostTick() override
-	{
-		if (m_PostTick)
-		{
-			(*m_PostTick)();
+			m_Tick(dt);
 		}
 		return true;
 	}

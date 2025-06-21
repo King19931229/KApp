@@ -134,7 +134,7 @@ bool KEntity::GetTransform(glm::mat4& transform)
 	IKTransformComponent* transformComponent = nullptr;
 	if (GetComponent(CT_TRANSFORM, &transformComponent))
 	{
-		transform = transformComponent->GetFinal();
+		transform = transformComponent->GetFinal_GameThread();
 	}
 	else
 	{
@@ -285,27 +285,14 @@ bool KEntity::Intersect(const glm::vec3& origin, const glm::vec3& dir, glm::vec3
 	return false;
 }
 
-bool KEntity::PreTick()
+bool KEntity::Tick(float dt)
 {
 	for (uint32_t i = 0; i < CT_COUNT; ++i)
 	{
 		IKComponentBase* component = m_Components[i];
 		if (component)
 		{
-			component->PreTick();
-		}
-	}
-	return true;
-}
-
-bool KEntity::PostTick()
-{
-	for (uint32_t i = 0; i < CT_COUNT; ++i)
-	{
-		IKComponentBase* component = m_Components[i];
-		if (component)
-		{
-			component->PostTick();
+			component->Tick(dt);
 		}
 	}
 	return true;

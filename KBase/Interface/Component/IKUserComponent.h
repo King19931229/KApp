@@ -13,8 +13,7 @@ public:
 	}
 	virtual ~IKUserComponent() {}
 
-	typedef std::function<void()> TickFunction;
+	typedef std::function<void(float dt)> TickFunction;
 
-	virtual void SetPreTick(TickFunction* preTick) = 0;
-	virtual void SetPostTick(TickFunction* postTick) = 0;
+	virtual void SetTick(TickFunction tick) = 0;
 };

@@ -215,7 +215,7 @@ void main()
 			outColor = scattering;
 			break;
 		case DRD_MOTION:
-			outColor = vec4(motion, 0, 0);
+			outColor = vec4(motion * 100.0, 0, 0);
 			break;
 	}
 }

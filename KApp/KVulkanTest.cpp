@@ -415,6 +415,21 @@ void InitQEM(IKEnginePtr engine)
 						{
 							((IKTransformComponent*)component)->SetPosition(glm::vec3(i * bound.GetExtend().x, j * bound.GetExtend().y, k * bound.GetExtend().z));
 						}
+						if (entity->RegisterComponent(CT_USER, &component))
+						{
+							((IKUserComponent*)component)->SetTick([scene, entity](float dt)
+							{
+								IKTransformComponent* transform = nullptr;
+								entity->GetComponent<IKTransformComponent>(CT_TRANSFORM, &transform);
+								if (transform)
+								{
+									glm::quat detRotQuat = glm::angleAxis(dt * 3.0f / glm::pi<float>(), glm::vec3(0, 1, 0));
+									glm::quat newRot = detRotQuat * transform->GetRotateQuat();
+									transform->SetRotateQuat(newRot);
+									// scene->Transform(transform->GetEntityHandle());
+								}
+							});
+						}
 						scene->Add(entity.get());
 						entites.push_back(entity);
 					}

@@ -362,6 +362,8 @@ bool KRenderCore::Init(IKRenderDevicePtr& device, IKRenderWindowPtr& window, KRe
 			m_bInit = true;
 			m_bTickShouldEnd = false;
 
+			m_LastTickTime = STD_TIME_POINT_UNDEFINED();
+
 			return true;
 		}
 		return false;
@@ -537,11 +539,20 @@ bool KRenderCore::Tick()
 {
 	if (m_bInit && !m_bTickShouldEnd)
 	{
+		float dt = 0;
+
+		STD_TIME_POINT_TYPE currentTickTime = STD_TIME_POINT_NOW();
+		if (m_LastTickTime != STD_TIME_POINT_UNDEFINED())
+		{
+			dt = STD_TIME_POINT_SPAN(float, currentTickTime - m_LastTickTime);
+		}
+		m_LastTickTime = currentTickTime;
+
 		if (m_MainWindow->Tick())
 		{
 			if (KECS::EntityManager)
 			{
-				KECS::EntityManager->ViewAllEntity([](IKEntityPtr entity) { entity->PreTick(); });
+				KECS::EntityManager->ViewAllEntity([dt](IKEntityPtr entity) { entity->Tick(dt); });
 			}
 
 			for (IKRenderWindow* window : m_SecordaryWindows)
@@ -554,12 +565,6 @@ bool KRenderCore::Tick()
 				KRenderGlobal::MaterialManager.Tick();
 				Render();
 			});
-
-			if (KECS::EntityManager)
-			{
-				KECS::EntityManager->ViewAllEntity([](IKEntityPtr entity) { entity->PostTick(); });
-			}
-
 			m_FrameSync.Sync();
 
 			return true;

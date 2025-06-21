@@ -14,6 +14,12 @@
 #include "KRenderThread.h"
 
 #include <unordered_set>
+#include <chrono>
+
+#define STD_TIME_POINT_NOW() std::chrono::high_resolution_clock::now()
+#define STD_TIME_POINT_UNDEFINED() std::chrono::high_resolution_clock::time_point()
+#define STD_TIME_POINT_SPAN(type, span) std::chrono::duration_cast<std::chrono::duration<type>>(span).count()
+#define STD_TIME_POINT_TYPE std::chrono::high_resolution_clock::time_point
 
 class KRenderCore : public IKRenderCore
 {
@@ -47,6 +53,8 @@ protected:
 
 	typedef std::unordered_set<KRenderCoreUIRenderCallback*> UICallbackSet;
 	UICallbackSet m_UICallbacks;
+
+	STD_TIME_POINT_TYPE m_LastTickTime;
 
 	bool m_bInit;
 	bool m_bTickShouldEnd;

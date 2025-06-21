@@ -469,7 +469,7 @@ void KEEntityManipulator::UpdateGizmoTransform()
 		IKTransformComponent* transformComponent = nullptr;
 		if (entity->soul->GetComponent(CT_TRANSFORM, &transformComponent))
 		{
-			m_Gizmo->SetMatrix(transformComponent->GetFinal());
+			m_Gizmo->SetMatrix(transformComponent->GetFinal_RenderThread());
 		}
 	}
 

@@ -1016,7 +1016,7 @@ void KGPUScene::OnSceneChanged(EntitySceneOp op, IKEntity* entity)
 		KTransformComponent* transformComponent = nullptr;
 		ASSERT_RESULT(entity->GetComponent(CT_RENDER, &renderComponent));
 		ASSERT_RESULT(entity->GetComponent(CT_TRANSFORM, &transformComponent));
-		const glm::mat4& transform = transformComponent->GetFinal();
+		const glm::mat4& transform = transformComponent->GetFinal_RenderThread();
 		KAABBBox localBound;
 		entity->GetLocalBound(localBound);
 		renderComponent->RegisterCallback(&m_OnRenderComponentChangedFunc);
@@ -1034,7 +1034,7 @@ void KGPUScene::OnSceneChanged(EntitySceneOp op, IKEntity* entity)
 	{
 		KTransformComponent* transformComponent = nullptr;
 		ASSERT_RESULT(entity->GetComponent(CT_TRANSFORM, &transformComponent));
-		const glm::mat4& transform = transformComponent->GetFinal();
+		const glm::mat4& transform = transformComponent->GetFinal_RenderThread();
 		TransformEntity(entity, transform);
 	}
 }

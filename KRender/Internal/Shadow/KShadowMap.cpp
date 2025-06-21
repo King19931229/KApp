@@ -93,7 +93,7 @@ bool KShadowMap::UpdateShadowMap(KRHICommandList& commandList)
 						KRenderCommand command;
 						if (materialSubMesh->GetRenderCommand(RENDER_STAGE_SHADOW_GEN, command))
 						{
-							const KConstantDefinition::OBJECT & final = transform->FinalTransform();
+							const KConstantDefinition::OBJECT & final = transform->FinalTransform_RenderThread();
 
 							KDynamicConstantBufferUsage objectUsage;
 							objectUsage.binding = SHADER_BINDING_OBJECT;

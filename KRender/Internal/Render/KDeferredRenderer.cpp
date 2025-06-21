@@ -900,7 +900,7 @@ void KDeferredRenderer::DebugObject(KRHICommandList& commandList, const std::vec
 			const std::vector<KMaterialSubMeshPtr>& materialSubMeshes = render->GetMaterialSubMeshs();
 
 			KConstantDefinition::DEBUG objectData;
-			objectData.MODEL = transform->FinalTransform();
+			objectData.MODEL = transform->FinalTransform_RenderThread();
 			objectData.COLOR = render->GetUtilityColor();
 
 			BuildCommand(materialSubMeshes, objectData);

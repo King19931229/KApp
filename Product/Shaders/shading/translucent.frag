@@ -1,5 +1,7 @@
 #include "public.h"
 
+layout(early_fragment_tests) in;
+
 layout(location = 0) in vec2 texCoord;
 layout(location = 1) in vec3 worldPos;
 layout(location = 2) in vec3 prevWorldPos;
@@ -219,7 +221,7 @@ void main()
 			finalColor = vec4(vec3(0), 1.0);
 			break;
 		case DRD_MOTION:
-			finalColor = vec4(motion, 0, 0);
+			finalColor = vec4(motion * 100.0, 0, 0);
 			break;
 	}
 

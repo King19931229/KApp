@@ -625,7 +625,7 @@ void KClipmapVoxilzer::VoxelizeStaticScene(KRHICommandList& commandList)
 					KRenderCommand command;
 					if (materialSubMesh->GetRenderCommand(RENDER_STAGE_CLIPMAP_VOXEL, command))
 					{
-						const glm::mat4& finalTran = transform->GetFinal();
+						const glm::mat4& finalTran = transform->GetFinal_RenderThread();
 
 						struct ObjectData
 						{
