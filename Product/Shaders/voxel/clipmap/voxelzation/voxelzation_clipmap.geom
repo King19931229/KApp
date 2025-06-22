@@ -6,7 +6,7 @@ uniform Object_DYN_UNIFORM
 {
 	mat4 model;
 	uint level;
-}object;
+} object;
 
 layout(location = 0) in Vertex
 {
@@ -37,7 +37,7 @@ void main()
 
 	vec2 texCoord[3];
 	vec3 normal[3];
-	for (int i = 0; i < gl_in.length(); i++)
+	for (int i = 0; i < 3; i++)
 	{
 		texCoord[i] = In[i].texCoord; 
 		normal[i] = In[i].normal;
@@ -73,12 +73,12 @@ void main()
 		vec2 texCoordTemp = texCoord[2];
 		vec3 normalTemp = normal[2];
 		vec3 posWTemp = trianglePosW[2];
-		
+
 		pos[2] = pos[1];
 		texCoord[2] = texCoord[1];
 		normal[2] = normal[1];
 		trianglePosW[2] = trianglePosW[1];
-	
+
 		pos[1] = vertexTemp;
 		texCoord[1] = texCoordTemp;
 		normal[1] = normalTemp;
@@ -138,7 +138,7 @@ void main()
 	for(int i = 0; i < 3; ++i)
 	{
 		vec4 voxelPos = viewProjectionI * pos[i];
-		voxelPos.xyz /= voxelPos.w;
+		voxelPos /= voxelPos.w;
 
 		gl_Position = pos[i];
 		Out.position = pos[i].xyz;

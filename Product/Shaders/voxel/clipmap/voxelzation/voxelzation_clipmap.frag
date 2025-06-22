@@ -61,7 +61,6 @@ void imageAtomicRGBA8Avg__##grid(ivec3 coords, vec4 value)\
 		vec4 curValF = rval + value;\
 		curValF.rgb /= curValF.a;\
 		newVal = convVec4ToRGBA8(curValF);\
-\
 		++numIterations;\
 	}\
 }

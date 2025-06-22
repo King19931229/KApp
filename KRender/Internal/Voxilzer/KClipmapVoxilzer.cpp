@@ -451,19 +451,25 @@ void KClipmapVoxilzer::UpdateVoxelBuffer(KRHICommandList& commandList)
 
 void KClipmapVoxilzer::UpdateInternal(KRHICommandList& commandList)
 {
-	ClearUpdateRegion(commandList);
-	VoxelizeStaticScene(commandList);
-	DownSampleVisibility(commandList);
+	{
+		commandList.BeginDebugMarker("InitializeRadiance", glm::vec4(1));
+		ClearUpdateRegion(commandList);
+		VoxelizeStaticScene(commandList);
+		DownSampleVisibility(commandList);
 
-	UpdateRadiance(commandList);
-	DownSampleRadiance(commandList);
-	WrapBorder(commandList);
+		UpdateRadiance(commandList);
+		DownSampleRadiance(commandList);
+		WrapBorder(commandList);
+		commandList.EndDebugMarker();
+	}
 
 	if (m_InjectFirstBounce)
 	{
+		commandList.BeginDebugMarker("InjectFirstBounce", glm::vec4(1));
 		InjectPropagation(commandList);
 		DownSampleRadiance(commandList);
 		WrapBorder(commandList);
+		commandList.EndDebugMarker();
 	}
 }
 
@@ -540,6 +546,8 @@ std::vector<KClipmapVoxelizationRegion> KClipmapVoxilzer::ComputeRevoxelizationR
 
 void KClipmapVoxilzer::ClearUpdateRegion(KRHICommandList& commandList)
 {
+	commandList.BeginDebugMarker("ClearUpdateRegion", glm::vec4(1));
+
 	for (uint32_t level = 0; level < m_ClipLevelCount; ++level)
 	{
 		const KClipmapVoxilzerLevel& clipLevel = m_ClipLevels[level];
@@ -571,6 +579,8 @@ void KClipmapVoxilzer::ClearUpdateRegion(KRHICommandList& commandList)
 			commandList.Execute(m_ClearRegionPipeline, group.x, group.y, group.z, &usage);
 		}
 	}
+
+	commandList.EndDebugMarker();
 }
 
 void KClipmapVoxilzer::ApplyUpdateMovement()
@@ -588,7 +598,8 @@ void KClipmapVoxilzer::ApplyUpdateMovement()
 
 void KClipmapVoxilzer::VoxelizeStaticScene(KRHICommandList& commandList)
 {
-	commandList.BeginDebugMarker("VoxelizeClipmapStaticScene", glm::vec4(0, 1, 1, 0));
+	commandList.BeginDebugMarker("VoxelizeClipmapStaticScene", glm::vec4(1));
+
 	commandList.BeginRenderPass(m_VoxelRenderPass, SUBPASS_CONTENTS_INLINE);
 	commandList.SetViewport(m_VoxelRenderPass->GetViewPort());
 
@@ -658,6 +669,7 @@ void KClipmapVoxilzer::VoxelizeStaticScene(KRHICommandList& commandList)
 	}
 
 	commandList.EndRenderPass();
+
 	commandList.EndDebugMarker();
 }
 
@@ -669,6 +681,8 @@ void KClipmapVoxilzer::UpdateRadiance(KRHICommandList& commandList)
 
 void KClipmapVoxilzer::ClearRadiance(KRHICommandList& commandList)
 {
+	commandList.BeginDebugMarker("ClearRadiance", glm::vec4(1));
+
 	uint32_t group = (m_VolumeDimension + (VOXEL_CLIPMAP_GROUP_SIZE - 1)) / VOXEL_CLIPMAP_GROUP_SIZE;
 
 	for (uint32_t level = 0; level < m_ClipLevelCount; ++level)
@@ -694,10 +708,14 @@ void KClipmapVoxilzer::ClearRadiance(KRHICommandList& commandList)
 
 		commandList.Execute(m_ClearRadiancePipeline, group, group, group, &usage);
 	}
+
+	commandList.EndDebugMarker();
 }
 
 void KClipmapVoxilzer::InjectRadiance(KRHICommandList& commandList)
 {
+	commandList.BeginDebugMarker("InjectRadiance", glm::vec4(1));
+
 	uint32_t group = (m_VolumeDimension + (VOXEL_CLIPMAP_GROUP_SIZE - 1)) / VOXEL_CLIPMAP_GROUP_SIZE;
 
 	for (uint32_t level = 0; level < m_ClipLevelCount; ++level)
@@ -724,10 +742,14 @@ void KClipmapVoxilzer::InjectRadiance(KRHICommandList& commandList)
 
 		commandList.Execute(m_InjectRadiancePipeline, group, group, group, &usage);
 	}
+
+	commandList.EndDebugMarker();
 }
 
 void KClipmapVoxilzer::InjectPropagation(KRHICommandList& commandList)
 {
+	commandList.BeginDebugMarker("InjectPropagation", glm::vec4(1));
+
 	uint32_t group = (m_VolumeDimension + (VOXEL_CLIPMAP_GROUP_SIZE - 1)) / VOXEL_CLIPMAP_GROUP_SIZE;
 
 	for (uint32_t level = 0; level < m_ClipLevelCount; ++level)
@@ -754,6 +776,8 @@ void KClipmapVoxilzer::InjectPropagation(KRHICommandList& commandList)
 
 		commandList.Execute(m_InjectPropagationPipeline, group, group, group, &usage);
 	}
+
+	commandList.EndDebugMarker();
 }
 
 void KClipmapVoxilzer::UpdateVoxel(KRHICommandList& commandList)
@@ -813,6 +837,8 @@ void KClipmapVoxilzer::UpdateVoxel(KRHICommandList& commandList)
 
 void KClipmapVoxilzer::DownSampleVisibility(KRHICommandList& commandList)
 {
+	commandList.BeginDebugMarker("DownSampleVisibility", glm::vec4(1));
+
 	uint32_t group = (m_VolumeDimension / 2 + (VOXEL_CLIPMAP_GROUP_SIZE - 1)) / VOXEL_CLIPMAP_GROUP_SIZE;
 
 	for (uint32_t level = 1; level < m_ClipLevelCount; ++level)
@@ -838,10 +864,14 @@ void KClipmapVoxilzer::DownSampleVisibility(KRHICommandList& commandList)
 
 		commandList.Execute(m_DownSampleVisibilityPipeline, group, group, group, &usage);
 	}
+
+	commandList.EndDebugMarker();
 }
 
 void KClipmapVoxilzer::DownSampleRadiance(KRHICommandList& commandList)
 {
+	commandList.BeginDebugMarker("DownSampleRadiance", glm::vec4(1));
+
 	uint32_t group = (m_VolumeDimension / 2 + (VOXEL_CLIPMAP_GROUP_SIZE - 1)) / VOXEL_CLIPMAP_GROUP_SIZE;
 
 	for (uint32_t level = 1; level < m_ClipLevelCount; ++level)
@@ -867,10 +897,14 @@ void KClipmapVoxilzer::DownSampleRadiance(KRHICommandList& commandList)
 
 		commandList.Execute(m_DownSampleRadiancePipeline, group, group, group, &usage);
 	}
+
+	commandList.EndDebugMarker();
 }
 
 void KClipmapVoxilzer::WrapBorder(KRHICommandList& commandList)
 {
+	commandList.BeginDebugMarker("WrapBorder", glm::vec4(1));
+
 	uint32_t volumeDimensionWithBorder = m_VolumeDimension + 2 * m_BorderSize;
 	uint32_t group = (volumeDimensionWithBorder + (VOXEL_CLIPMAP_GROUP_SIZE - 1)) / VOXEL_CLIPMAP_GROUP_SIZE;
 
@@ -897,6 +931,8 @@ void KClipmapVoxilzer::WrapBorder(KRHICommandList& commandList)
 
 		commandList.Execute(m_WrapRadianceBorderPipeline, group, group, group, &usage);
 	}
+
+	commandList.EndDebugMarker();
 }
 
 void KClipmapVoxilzer::Reload()
