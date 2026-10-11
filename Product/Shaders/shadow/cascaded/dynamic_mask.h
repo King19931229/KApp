@@ -88,7 +88,7 @@ vec4 CalcDynamicCSM(vec3 worldPos)
 	vec4 outColor;
 	uint cascaded = CalcDynamicCSMIndex(worldPos);
 	float shadow = CalcDyanmicCSMShadow(cascaded, worldPos);
-	if (debug_layer)
+	if (EnableCSMDebugLayer)
 	{
 		outColor = shadow * BlendCSMColor(cascaded, vec4(1.0f));
 	}
@@ -138,7 +138,7 @@ vec4 CalcDynamicCSMHard(vec3 worldPos)
 	vec4 outColor;
 	uint cascaded = CalcDynamicCSMIndex(worldPos);
 	float shadow = CalcDynamicCSMHardShadow(cascaded, worldPos);
-	if (debug_layer)
+	if (EnableCSMDebugLayer)
 	{
 		outColor = shadow * BlendCSMColor(cascaded, vec4(1.0f));
 	}

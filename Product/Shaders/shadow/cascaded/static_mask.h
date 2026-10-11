@@ -88,7 +88,7 @@ vec4 CalcStaticCSM(vec3 worldPos)
 	vec4 outColor;
 	uint cascaded = CalcStaticCSMIndex(worldPos);
 	float shadow = CalcStaticCSMShadow(cascaded, worldPos);
-	if (debug_layer)
+	if (EnableCSMDebugLayer)
 	{
 		outColor = shadow * BlendCSMColor(cascaded, vec4(1.0f));
 	}
@@ -138,7 +138,7 @@ vec4 CalcStaticCSMHard(vec3 worldPos)
 	vec4 outColor;
 	uint cascaded = CalcStaticCSMIndex(worldPos);
 	float shadow = CalcStaticCSMHardShadow(cascaded, worldPos);
-	if (debug_layer)
+	if (EnableCSMDebugLayer)
 	{
 		outColor = shadow * BlendCSMColor(cascaded, vec4(1.0f));
 	}
