@@ -30,11 +30,35 @@
 
 class KVulkanRenderDevice : public IKRenderDevice
 {
+	struct SupportedFeatures
+	{
+		VkPhysicalDeviceTimelineSemaphoreFeatures timelineSemaphore = {};
+		VkPhysicalDevice8BitStorageFeatures storage8Bit = {};
+		VkPhysicalDeviceBufferDeviceAddressFeatures bufferDeviceAddress = {};
+		VkPhysicalDeviceDescriptorIndexingFeatures descriptorIndexing = {};
+		VkPhysicalDeviceRayTracingPipelineFeaturesKHR rayTracingPipeline = {};
+		VkPhysicalDeviceAccelerationStructureFeaturesKHR accelerationStructure = {};
+		VkPhysicalDeviceRayQueryFeaturesKHR rayQuery = {};
+		VkPhysicalDeviceMeshShaderFeaturesNV nvMeshShader = {};
+		VkPhysicalDeviceMeshShaderFeaturesEXT extMeshShader = {};
+		VkPhysicalDeviceShaderFloat16Int8Features shaderFloat16Int8 = {};
+		VkPhysicalDeviceDiagnosticsConfigFeaturesNV diagnosticsConfig = {};
+	};
+
+	struct SupportedProperties
+	{
+		VkPhysicalDeviceRayTracingPipelinePropertiesKHR rayTracingPipeline = {};
+		VkPhysicalDeviceMeshShaderPropertiesNV nvMeshShader = {};
+		VkPhysicalDeviceMeshShaderPropertiesEXT extMeshShader = {};
+	};
+
 	struct PhysicalDevice
 	{
 		VkPhysicalDevice device;
 		VkPhysicalDeviceProperties deviceProperties;
 		VkPhysicalDeviceFeatures deviceFeatures;
+		SupportedFeatures supportedFeatures;
+		SupportedProperties supportedProperties;
 
 		std::vector<VkQueueFamilyProperties> allFamilyProperties;
 		std::vector<std::tuple<uint32_t, VkQueueFamilyProperties>> graphicsFamilyProperties;
@@ -57,6 +81,8 @@ class KVulkanRenderDevice : public IKRenderDevice
 			device = VK_NULL_HANDEL;
 			deviceProperties = {};
 			deviceFeatures = {};
+			supportedFeatures = {};
+			supportedProperties = {};
 			allFamilyProperties = {};
 			graphicsFamilyProperties = {};
 			computeFamilyProperties = {};
@@ -109,6 +135,8 @@ protected:
 	bool CheckExtentionsSupported(PhysicalDevice& device);
 	PhysicalDevice GetPhysicalDeviceProperty(VkPhysicalDevice device);
 
+	void QuerySupportedProperties(PhysicalDevice& device);
+	void QuerySupportedFeatures(PhysicalDevice& device);
 	void* GetEnabledFeatures();
 
 	bool PickPhysicsDevice();

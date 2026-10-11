@@ -800,9 +800,7 @@ namespace KVulkanHeapAllocator
 			DEVICE = KVulkanGlobal::device;
 			PHYSICAL_DEVICE = KVulkanGlobal::physicalDevice;
 
-			VkPhysicalDeviceProperties deviceProperties = {};
-
-			vkGetPhysicalDeviceProperties(PHYSICAL_DEVICE, &deviceProperties);
+			const VkPhysicalDeviceProperties& deviceProperties = KVulkanGlobal::deviceProperties;
 
 			MAX_ALLOC_COUNT = deviceProperties.limits.maxMemoryAllocationCount;
 			/*

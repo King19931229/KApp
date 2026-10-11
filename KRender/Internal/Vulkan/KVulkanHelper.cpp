@@ -846,8 +846,7 @@ namespace KVulkanHelper
 	{
 		using namespace KVulkanGlobal;
 
-		VkPhysicalDeviceProperties physicalDeviceProperties;
-		vkGetPhysicalDeviceProperties(physicalDevice, &physicalDeviceProperties);
+		const VkPhysicalDeviceProperties& physicalDeviceProperties = KVulkanGlobal::deviceProperties;
 
 		VkSampleCountFlags counts = 0;
 		

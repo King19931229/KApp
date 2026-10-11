@@ -21,8 +21,8 @@ namespace KVulkanGlobal
 
 	VkPhysicalDeviceRayTracingPipelinePropertiesKHR  rayTracingPipelineProperties = {};
 	VkPhysicalDeviceAccelerationStructureFeaturesKHR accelerationStructureFeatures = {};
-	VkPhysicalDeviceMeshShaderPropertiesNV nvMeshShaderFeatures = {};
-	VkPhysicalDeviceMeshShaderPropertiesEXT extMeshShaderFeatures = {};
+	VkPhysicalDeviceMeshShaderPropertiesNV nvMeshShaderProperties = {};
+	VkPhysicalDeviceMeshShaderPropertiesEXT extMeshShaderProperties = {};
 
 	PFN_vkGetBufferDeviceAddressKHR vkGetBufferDeviceAddressKHR = VK_NULL_HANDLE;
 	PFN_vkCreateAccelerationStructureKHR vkCreateAccelerationStructureKHR = VK_NULL_HANDLE;

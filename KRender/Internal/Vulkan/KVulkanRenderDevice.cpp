@@ -303,9 +303,6 @@ KVulkanRenderDevice::PhysicalDevice KVulkanRenderDevice::GetPhysicalDeviceProper
 
 	device.device = vkDevice;
 
-	vkGetPhysicalDeviceProperties(vkDevice, &device.deviceProperties);
-	vkGetPhysicalDeviceFeatures(vkDevice, &device.deviceFeatures);
-
 	uint32_t queueFamilyCount = 0;
 	vkGetPhysicalDeviceQueueFamilyProperties(vkDevice, &queueFamilyCount, nullptr);
 
@@ -367,6 +364,8 @@ KVulkanRenderDevice::PhysicalDevice KVulkanRenderDevice::GetPhysicalDeviceProper
 		}
 	}
 
+	QuerySupportedProperties(device);
+	QuerySupportedFeatures(device);
 	device.suitable = CheckDeviceSuitable(device);
 
 	if (device.suitable)
@@ -454,23 +453,102 @@ bool KVulkanRenderDevice::PickPhysicsDevice()
 	return false;
 }
 
+void KVulkanRenderDevice::QuerySupportedProperties(PhysicalDevice& device)
+{
+	device.supportedProperties = {};
+	SupportedProperties& properties = device.supportedProperties;
+
+	VkPhysicalDeviceProperties2 properties2 = {};
+	properties2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
+
+	auto supportsExtension = [&device](const char* extensionName)
+	{
+		return std::find(device.supportedExtensions.begin(), device.supportedExtensions.end(), extensionName) != device.supportedExtensions.end();
+	};
+
+	auto appendProperty = [&properties2](auto& property, VkStructureType type, bool available)
+	{
+		property.sType = type;
+		if (available)
+		{
+			property.pNext = properties2.pNext;
+			properties2.pNext = &property;
+		}
+	};
+
+	appendProperty(properties.rayTracingPipeline, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_PROPERTIES_KHR, supportsExtension(VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME));
+	appendProperty(properties.nvMeshShader, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_PROPERTIES_NV, supportsExtension(VK_NV_MESH_SHADER_EXTENSION_NAME));
+	appendProperty(properties.extMeshShader, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_PROPERTIES_EXT, supportsExtension(VK_EXT_MESH_SHADER_EXTENSION_NAME));
+
+	vkGetPhysicalDeviceProperties2(device.device, &properties2);
+	device.deviceProperties = properties2.properties;
+
+	// Unlink the query chain after retrieving the property values.
+	properties.rayTracingPipeline.pNext = nullptr;
+	properties.nvMeshShader.pNext = nullptr;
+	properties.extMeshShader.pNext = nullptr;
+}
+
+void KVulkanRenderDevice::QuerySupportedFeatures(PhysicalDevice& device)
+{
+	device.supportedFeatures = {};
+	SupportedFeatures& features = device.supportedFeatures;
+
+	VkPhysicalDeviceFeatures2 features2 = {};
+	features2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+
+	const bool supportsVulkan12 = device.deviceProperties.apiVersion >= VK_API_VERSION_1_2;
+
+	auto supportsExtension = [&device](const char* extensionName)
+	{
+		return std::find(device.supportedExtensions.begin(), device.supportedExtensions.end(), extensionName) != device.supportedExtensions.end();
+	};
+
+	auto appendFeature = [&features2](auto& feature, VkStructureType type, bool available)
+	{
+		feature.sType = type;
+		if (available)
+		{
+			feature.pNext = features2.pNext;
+			features2.pNext = &feature;
+		}
+	};
+
+	appendFeature(features.timelineSemaphore, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TIMELINE_SEMAPHORE_FEATURES, supportsVulkan12 || supportsExtension(VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME));
+	appendFeature(features.storage8Bit, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_8BIT_STORAGE_FEATURES, supportsVulkan12 || supportsExtension(VK_KHR_8BIT_STORAGE_EXTENSION_NAME));
+	appendFeature(features.bufferDeviceAddress, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES, supportsVulkan12 || supportsExtension(VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME));
+	appendFeature(features.descriptorIndexing, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES, supportsVulkan12 || supportsExtension(VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME));
+	appendFeature(features.rayTracingPipeline, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR, supportsExtension(VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME));
+	appendFeature(features.accelerationStructure, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR, supportsExtension(VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME));
+	appendFeature(features.rayQuery, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_QUERY_FEATURES_KHR, supportsExtension(VK_KHR_RAY_QUERY_EXTENSION_NAME));
+	appendFeature(features.nvMeshShader, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_NV, supportsExtension(VK_NV_MESH_SHADER_EXTENSION_NAME));
+	appendFeature(features.extMeshShader, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_EXT, supportsExtension(VK_EXT_MESH_SHADER_EXTENSION_NAME));
+	appendFeature(features.shaderFloat16Int8, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_FLOAT16_INT8_FEATURES, supportsVulkan12 || supportsExtension(VK_KHR_SHADER_FLOAT16_INT8_EXTENSION_NAME));
+	appendFeature(features.diagnosticsConfig, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DIAGNOSTICS_CONFIG_FEATURES_NV, supportsExtension(VK_NV_DEVICE_DIAGNOSTICS_CONFIG_EXTENSION_NAME));
+
+	vkGetPhysicalDeviceFeatures2(device.device, &features2);
+	device.deviceFeatures = features2.features;
+
+	// Unlink the query chain after retrieving the feature values.
+	features.timelineSemaphore.pNext = nullptr;
+	features.storage8Bit.pNext = nullptr;
+	features.bufferDeviceAddress.pNext = nullptr;
+	features.descriptorIndexing.pNext = nullptr;
+	features.rayTracingPipeline.pNext = nullptr;
+	features.accelerationStructure.pNext = nullptr;
+	features.rayQuery.pNext = nullptr;
+	features.nvMeshShader.pNext = nullptr;
+	features.extMeshShader.pNext = nullptr;
+	features.shaderFloat16Int8.pNext = nullptr;
+	features.diagnosticsConfig.pNext = nullptr;
+}
+
 void* KVulkanRenderDevice::GetEnabledFeatures()
 {
+	const SupportedFeatures& supportedFeatures = m_PhysicalDevice.supportedFeatures;
 	void* pNext = nullptr;
 
-	VkPhysicalDeviceTimelineSemaphoreFeatures supportedTimelineSemaphoreFeatures = {};
-	supportedTimelineSemaphoreFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TIMELINE_SEMAPHORE_FEATURES;
-
-	VkPhysicalDevice8BitStorageFeatures supported8BitStorageFeatures = {};
-	supported8BitStorageFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_8BIT_STORAGE_FEATURES;
-	supported8BitStorageFeatures.pNext = &supportedTimelineSemaphoreFeatures;
-
-	VkPhysicalDeviceFeatures2 supportedDeviceFeatures = {};
-	supportedDeviceFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
-	supportedDeviceFeatures.pNext = &supported8BitStorageFeatures;
-	vkGetPhysicalDeviceFeatures2(m_PhysicalDevice.device, &supportedDeviceFeatures);
-
-	if (supportedTimelineSemaphoreFeatures.timelineSemaphore)
+	if (supportedFeatures.timelineSemaphore.timelineSemaphore)
 	{
 		static VkPhysicalDeviceTimelineSemaphoreFeatures enabledTimelineSemaphoreFeatures = {};
 		enabledTimelineSemaphoreFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TIMELINE_SEMAPHORE_FEATURES;
@@ -483,7 +561,7 @@ void* KVulkanRenderDevice::GetEnabledFeatures()
 		KG_LOGW(LM_RENDER, "Physical device does not support timeline semaphore");
 	}
 
-	if (supported8BitStorageFeatures.uniformAndStorageBuffer8BitAccess)
+	if (supportedFeatures.storage8Bit.uniformAndStorageBuffer8BitAccess)
 	{
 		static VkPhysicalDevice8BitStorageFeatures enabled8BitStorageFeatures = {};
 		enabled8BitStorageFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_8BIT_STORAGE_FEATURES;
@@ -1412,27 +1490,10 @@ bool KVulkanRenderDevice::InitDeviceGlobal()
 
 	KRenderGlobal::SupportAnisotropySample = m_Properties.anisotropySupport;
 
-	// Get properties and features
-	VkPhysicalDeviceProperties2 deviceProperties2 = {};
-	deviceProperties2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
-	VkPhysicalDeviceFeatures2 deviceFeatures2 = {};
-	deviceFeatures2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
-
-	KVulkanGlobal::rayTracingPipelineProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_PROPERTIES_KHR;
-	deviceProperties2.pNext = &KVulkanGlobal::rayTracingPipelineProperties;
-	vkGetPhysicalDeviceProperties2(m_PhysicalDevice.device, &deviceProperties2);
-
-	KVulkanGlobal::accelerationStructureFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR;
-	deviceFeatures2.pNext = &KVulkanGlobal::accelerationStructureFeatures;
-	vkGetPhysicalDeviceFeatures2(m_PhysicalDevice.device, &deviceFeatures2);
-
-	KVulkanGlobal::nvMeshShaderFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_PROPERTIES_NV;
-	deviceProperties2.pNext = &KVulkanGlobal::nvMeshShaderFeatures;
-	vkGetPhysicalDeviceProperties2(m_PhysicalDevice.device, &deviceProperties2);
-
-	KVulkanGlobal::extMeshShaderFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_PROPERTIES_EXT;
-	deviceProperties2.pNext = &KVulkanGlobal::extMeshShaderFeatures;
-	vkGetPhysicalDeviceProperties2(m_PhysicalDevice.device, &deviceProperties2);
+	KVulkanGlobal::rayTracingPipelineProperties = m_PhysicalDevice.supportedProperties.rayTracingPipeline;
+	KVulkanGlobal::accelerationStructureFeatures = m_PhysicalDevice.supportedFeatures.accelerationStructure;
+	KVulkanGlobal::nvMeshShaderProperties = m_PhysicalDevice.supportedProperties.nvMeshShader;
+	KVulkanGlobal::extMeshShaderProperties = m_PhysicalDevice.supportedProperties.extMeshShader;
 
 	// Function pointers for ray tracing
 	KVulkanGlobal::vkGetBufferDeviceAddressKHR = reinterpret_cast<PFN_vkGetBufferDeviceAddressKHR>(vkGetDeviceProcAddr(m_Device, "vkGetBufferDeviceAddressKHR"));
