@@ -307,6 +307,7 @@ bool KRenderer::Render(uint32_t chainImageIndex)
 		KRenderGlobal::DeferredRenderer.PostProcessResult(m_RHICommandList);
 
 		KRenderGlobal::DeferredRenderer.DebugObject(m_RHICommandList, cullRes);
+		KRenderGlobal::GBuffer.TransitionDepthStencil(m_RHICommandList, m_PostGraphics.queue, m_PostGraphics.queue, PIPELINE_STAGE_LATE_FRAGMENT_TESTS, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 		KRenderGlobal::DeferredRenderer.Foreground(m_RHICommandList);
 
 		// 绘制Final

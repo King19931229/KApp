@@ -458,6 +458,44 @@ void* KVulkanRenderDevice::GetEnabledFeatures()
 {
 	void* pNext = nullptr;
 
+	VkPhysicalDeviceTimelineSemaphoreFeatures supportedTimelineSemaphoreFeatures = {};
+	supportedTimelineSemaphoreFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TIMELINE_SEMAPHORE_FEATURES;
+
+	VkPhysicalDevice8BitStorageFeatures supported8BitStorageFeatures = {};
+	supported8BitStorageFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_8BIT_STORAGE_FEATURES;
+	supported8BitStorageFeatures.pNext = &supportedTimelineSemaphoreFeatures;
+
+	VkPhysicalDeviceFeatures2 supportedDeviceFeatures = {};
+	supportedDeviceFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+	supportedDeviceFeatures.pNext = &supported8BitStorageFeatures;
+	vkGetPhysicalDeviceFeatures2(m_PhysicalDevice.device, &supportedDeviceFeatures);
+
+	if (supportedTimelineSemaphoreFeatures.timelineSemaphore)
+	{
+		static VkPhysicalDeviceTimelineSemaphoreFeatures enabledTimelineSemaphoreFeatures = {};
+		enabledTimelineSemaphoreFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TIMELINE_SEMAPHORE_FEATURES;
+		enabledTimelineSemaphoreFeatures.timelineSemaphore = VK_TRUE;
+		enabledTimelineSemaphoreFeatures.pNext = pNext;
+		pNext = &enabledTimelineSemaphoreFeatures;
+	}
+	else
+	{
+		KG_LOGW(LM_RENDER, "Physical device does not support timeline semaphore");
+	}
+
+	if (supported8BitStorageFeatures.uniformAndStorageBuffer8BitAccess)
+	{
+		static VkPhysicalDevice8BitStorageFeatures enabled8BitStorageFeatures = {};
+		enabled8BitStorageFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_8BIT_STORAGE_FEATURES;
+		enabled8BitStorageFeatures.uniformAndStorageBuffer8BitAccess = VK_TRUE;
+		enabled8BitStorageFeatures.pNext = pNext;
+		pNext = &enabled8BitStorageFeatures;
+	}
+	else
+	{
+		KG_LOGW(LM_RENDER, "Physical device does not support uniform and storage buffer 8-bit access");
+	}
+
 	// Enable features required for ray tracing using feature chaining via pNext
 	static VkPhysicalDeviceBufferDeviceAddressFeatures enabledBufferDeviceAddresFeatures = {};
 	enabledBufferDeviceAddresFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES;
@@ -926,17 +964,49 @@ VkBool32 KVulkanRenderDevice::DebugUtilsMessengerCallback(
 	void* pUserData
 )
 {
-	if (messageType == VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT)
+	static const char* const MESSAGE_TYPE_NAMES[] =
 	{
-		KG_LOG(LM_RENDER, "[Vulkan Validation Layer Debug] %s\n", pCallbackData->pMessage);
+		"Unknown",
+		"General",
+		"Validation",
+		"General|Validation",
+		"Performance",
+		"General|Performance",
+		"Validation|Performance",
+		"General|Validation|Performance"
+	};
+	const uint32_t messageTypeIndex =
+		((messageType & VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT) ? 1u : 0u) |
+		((messageType & VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT) ? 2u : 0u) |
+		((messageType & VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT) ? 4u : 0u);
+	const char* messageTypeName = MESSAGE_TYPE_NAMES[messageTypeIndex];
+
+	const char* messageIdName = pCallbackData && pCallbackData->pMessageIdName && pCallbackData->pMessageIdName[0] ? pCallbackData->pMessageIdName : "Unknown";
+	const char* message = pCallbackData && pCallbackData->pMessage ? pCallbackData->pMessage : "Unknown";
+
+	if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
+	{
+		KG_LOGE(LM_RENDER, "[Vulkan][%s][Error][%s] %s\n", messageTypeName, messageIdName, message);
 	}
-	if (messageType == VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT)
+	else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
 	{
-		KG_LOGW(LM_RENDER, "[Vulkan Validation Layer Performance] %s\n", pCallbackData->pMessage);
+		KG_LOGW(LM_RENDER, "[Vulkan][%s][Warning][%s] %s\n", messageTypeName, messageIdName, message);
 	}
-	else if (messageType == VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT)
+	else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT)
 	{
-		KG_LOGE(LM_RENDER, "[Vulkan Validation Layer Error] %s\n", pCallbackData->pMessage);
+		KG_LOG(LM_RENDER, "[Vulkan][%s][Info][%s] %s\n", messageTypeName, messageIdName, message);
+	}
+	else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT)
+	{
+		KG_LOGD(LM_RENDER, "[Vulkan][%s][Verbose][%s] %s\n", messageTypeName, messageIdName, message);
+	}
+	else
+	{
+		KG_LOGD(LM_RENDER, "[Vulkan][%s][Unknown][%s] %s\n", messageTypeName, messageIdName, message);
+	}
+
+	if (messageType == VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT)
+	{
 		if (KVulkanDebug::RunningGraphics.pipeline)
 		{
 			KVulkanDebug::RunningGraphics.pipeline->DebugDump();
@@ -946,6 +1016,7 @@ VkBool32 KVulkanRenderDevice::DebugUtilsMessengerCallback(
 			//
 		}
 	}
+
 	return VK_FALSE;
 }
 
@@ -960,25 +1031,29 @@ VkBool32 KVulkanRenderDevice::DebugReportCallback(
 	void* pUserData
 )
 {
-	if (flags & VK_DEBUG_REPORT_INFORMATION_BIT_EXT)
-	{
-		KG_LOG(LM_RENDER, "[Vulkan Validation Layer Info] %s\n", pMessage);
-	}
-	if (flags & VK_DEBUG_REPORT_DEBUG_BIT_EXT)
-	{
-		KG_LOGD(LM_RENDER, "[Vulkan Validation Layer Debug] %s\n", pMessage);
-	}
-	if (flags & VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT)
-	{
-		KG_LOGW(LM_RENDER, "[Vulkan Validation Layer Performance] %s\n", pMessage);
-	}
-	if (flags & VK_DEBUG_REPORT_WARNING_BIT_EXT)
-	{
-		KG_LOGW(LM_RENDER, "[Vulkan Validation Layer Warning] %s\n", pMessage);
-	}
+	const char* messageType = (flags & VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT) ? "Performance" : "Validation";
+	const char* messageIdName = pLayerPrefix && pLayerPrefix[0] ? pLayerPrefix : "Unknown";
+	const char* message = pMessage ? pMessage : "Unknown";
+
 	if (flags & VK_DEBUG_REPORT_ERROR_BIT_EXT)
 	{
-		KG_LOGE(LM_RENDER, "[Vulkan Validation Layer Error] %s\n", pMessage);
+		KG_LOGE(LM_RENDER, "[Vulkan][%s][Error][%s] %s\n", messageType, messageIdName, message);
+	}
+	else if (flags & (VK_DEBUG_REPORT_WARNING_BIT_EXT | VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT))
+	{
+		KG_LOGW(LM_RENDER, "[Vulkan][%s][Warning][%s] %s\n", messageType, messageIdName, message);
+	}
+	else if (flags & VK_DEBUG_REPORT_INFORMATION_BIT_EXT)
+	{
+		KG_LOG(LM_RENDER, "[Vulkan][%s][Info][%s] %s\n", messageType, messageIdName, message);
+	}
+	else if (flags & VK_DEBUG_REPORT_DEBUG_BIT_EXT)
+	{
+		KG_LOGD(LM_RENDER, "[Vulkan][%s][Verbose][%s] %s\n", messageType, messageIdName, message);
+	}
+	else
+	{
+		KG_LOGD(LM_RENDER, "[Vulkan][%s][Unknown][%s] %s\n", messageType, messageIdName, message);
 	}
 
 	return VK_FALSE;
@@ -1073,11 +1148,11 @@ bool KVulkanRenderDevice::Init(IKRenderWindow* window)
 
 	const VkValidationFeatureEnableEXT enables[] =
 	{
-		// VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_EXT,
-		// VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_RESERVE_BINDING_SLOT_EXT,
-		// VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT,
+		VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_EXT,
+		VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_RESERVE_BINDING_SLOT_EXT,
+		VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT,
 		// VK_VALIDATION_FEATURE_ENABLE_BEST_PRACTICES_EXT,
-		VK_VALIDATION_FEATURE_ENABLE_DEBUG_PRINTF_EXT,
+		// VK_VALIDATION_FEATURE_ENABLE_DEBUG_PRINTF_EXT,
 	};
 	validationFeatures.enabledValidationFeatureCount = ARRAY_SIZE(enables);
 	validationFeatures.pEnabledValidationFeatures = enables;
