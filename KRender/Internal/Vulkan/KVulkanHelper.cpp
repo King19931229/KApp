@@ -653,6 +653,9 @@ namespace KVulkanHelper
 			case PIPELINE_STAGE_HOST:
 				bits = VK_PIPELINE_STAGE_HOST_BIT;
 				return true;
+			case PIPELINE_STAGE_ALL_COMMANDS:
+				bits = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
+				return true;
 			default:
 				assert(false && "Unknown pipeline stage");
 				return false;
@@ -678,7 +681,8 @@ namespace KVulkanHelper
 			PIPELINE_STAGE_COMPUTE_SHADER,
 			PIPELINE_STAGE_TRANSFER,
 			PIPELINE_STAGE_BOTTOM_OF_PIPE,
-			PIPELINE_STAGE_HOST
+			PIPELINE_STAGE_HOST,
+			PIPELINE_STAGE_ALL_COMMANDS
 		};
 		static_assert((1 << (ARRAY_SIZE(candidate) - 1)) + 1 == PIPELINE_STAGE_ENDENUM, "Array size should match");
 		for (PipelineStage c : candidate)

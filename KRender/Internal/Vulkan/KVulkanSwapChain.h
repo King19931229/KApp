@@ -32,7 +32,6 @@ protected:
 	VkSurfaceFormatKHR m_SurfaceFormat;
 
 	uint32_t m_MaxFramesInFight;
-	uint32_t m_CurrentFlightIndex;
 	uint32_t m_CurrentImageIndex;
 
 	std::vector<VkImage> m_SwapChainImages;
@@ -95,7 +94,7 @@ public:
 	virtual bool RegisterSwapChainRecreateCallback(KSwapChainRecreateCallback* callback);
 	virtual bool UnRegisterSwapChainRecreateCallback(KSwapChainRecreateCallback* callback);
 
-	virtual void WaitForInFlightFrame(uint32_t& frameIndex);
+	virtual void WaitForInFlightFrame();
 	virtual void AcquireNextImage(uint32_t& imageIndex);
 	virtual void PresentQueue(bool& needResize);
 

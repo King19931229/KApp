@@ -49,7 +49,7 @@ public:
 	virtual bool UnInit();
 	virtual QueueCategory GetCategory() const;
 	virtual uint32_t GetIndex() const;
-	virtual bool Submit(IKCommandBufferPtr commandBuffer, std::vector<IKSemaphorePtr> waits, std::vector<IKSemaphorePtr> singals, IKFencePtr fence);
+	virtual bool Submit(IKCommandBufferPtr commandBuffer, std::vector<KSemaphoreWaitInfo> waits, std::vector<IKSemaphorePtr> singals, IKFencePtr fence);
 
 	inline uint32_t GetQueueFamilyIndex() { return m_QueueFamilyIndex; }
 	inline VkQueue GetVkQueue() { return m_vkQueue; }

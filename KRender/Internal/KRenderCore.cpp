@@ -299,6 +299,7 @@ bool KRenderCore::Init(IKRenderDevicePtr& device, IKRenderWindowPtr& window, KRe
 	{
 		if (!m_bInit)
 		{
+			KRenderGlobal::CurrentInFlightFrameIndex = 0;
 			KShaderMap::InitializePermuationMap();
 
 			m_Device = device.get();
@@ -466,8 +467,6 @@ void KRenderCore::Render()
 {
 	KRenderGlobal::Renderer.GetRHICommandList().Flush(RHICommandFlush::FlushRHIThread);
 
-	uint32_t frameIndex = 0;
-
 	IKSwapChain* mainSwapChain = m_MainWindow->GetSwapChain();
 	IKUIOverlay* uiOverlay = m_MainWindow->GetUIOverlay();
 
@@ -486,8 +485,7 @@ void KRenderCore::Render()
 		m_bSwapChainResized = false;
 	}
 
-	mainSwapChain->WaitForInFlightFrame(frameIndex);
-	KRenderGlobal::CurrentInFlightFrameIndex = frameIndex;
+	mainSwapChain->WaitForInFlightFrame();
 
 	uint32_t chainImageIndex = 0;
 	mainSwapChain->AcquireNextImage(chainImageIndex);
@@ -505,6 +503,8 @@ void KRenderCore::Render()
 			{
 				m_bSwapChainResized = needResize;
 				++KRenderGlobal::CurrentFrameNum;
+				// Advance only after this frame's RHI commands have executed.
+				KRenderGlobal::CurrentInFlightFrameIndex = (KRenderGlobal::CurrentInFlightFrameIndex + 1) % KRenderGlobal::NumFramesInFlight;
 			});
 		}
 	}
@@ -521,8 +521,7 @@ void KRenderCore::Render()
 	{
 		IKSwapChain* secordarySwapChain = pair.second.get();
 		// 处理次交换链的FrameInFlight 但是FrameIndex依然使用主交换链的结果
-		uint32_t secordaryFrameIndex = 0;
-		secordarySwapChain->WaitForInFlightFrame(secordaryFrameIndex);
+		secordarySwapChain->WaitForInFlightFrame();
 		secordarySwapChain->AcquireNextImage(chainImageIndex);
 
 		{

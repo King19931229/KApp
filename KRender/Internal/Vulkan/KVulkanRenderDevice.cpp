@@ -1083,18 +1083,6 @@ VkBool32 KVulkanRenderDevice::DebugUtilsMessengerCallback(
 		KG_LOGD(LM_RENDER, "[Vulkan][%s][Unknown][%s] %s\n", messageTypeName, messageIdName, message);
 	}
 
-	if (messageType == VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT)
-	{
-		if (KVulkanDebug::RunningGraphics.pipeline)
-		{
-			KVulkanDebug::RunningGraphics.pipeline->DebugDump();
-		}
-		if (KVulkanDebug::RunningCompute.pipeline)
-		{
-			//
-		}
-	}
-
 	return VK_FALSE;
 }
 

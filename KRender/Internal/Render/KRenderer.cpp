@@ -241,9 +241,9 @@ bool KRenderer::Render(uint32_t chainImageIndex)
 
 		if (KRenderGlobal::EnableAsyncCompute)
 		{
-			KRenderGlobal::GBuffer.TransitionGBuffer(m_RHICommandList, m_PreGraphics.queue, m_Compute.queue, PIPELINE_STAGE_COMPUTE_SHADER, PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_GENERAL);
-			KRenderGlobal::GBuffer.TransitionDepthStencil(m_RHICommandList, m_PreGraphics.queue, m_Compute.queue, PIPELINE_STAGE_COMPUTE_SHADER, PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_GENERAL);
-			KRenderGlobal::GBuffer.TransitionAO(m_RHICommandList, m_PreGraphics.queue, m_Compute.queue, PIPELINE_STAGE_FRAGMENT_SHADER, PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_GENERAL);
+			KRenderGlobal::GBuffer.TransitionGBuffer(m_RHICommandList, m_PreGraphics.queue, m_Compute.queue, PIPELINE_STAGE_ALL_COMMANDS, PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_GENERAL);
+			KRenderGlobal::GBuffer.TransitionDepthStencil(m_RHICommandList, m_PreGraphics.queue, m_Compute.queue, PIPELINE_STAGE_ALL_COMMANDS, PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_GENERAL);
+			KRenderGlobal::GBuffer.TransitionAO(m_RHICommandList, m_PreGraphics.queue, m_Compute.queue, PIPELINE_STAGE_ALL_COMMANDS, PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_GENERAL);
 		}
 	}
 	m_RHICommandList.EndRecord();
@@ -267,7 +267,7 @@ bool KRenderer::Render(uint32_t chainImageIndex)
 	}
 
 	m_RHICommandList.EndRecord();
-	m_RHICommandList.QueueSubmit(m_Compute.queue, { m_PreGraphics.finish }, { m_Compute.finish }, nullptr);
+	m_RHICommandList.QueueSubmit(m_Compute.queue, { { m_PreGraphics.finish, PIPELINE_STAGE_ALL_COMMANDS } }, { m_Compute.finish }, nullptr);
 	m_RHICommandList.Flush(RHICommandFlush::DispatchToRHIThread);
 
 	m_PostGraphics.Reset();
@@ -329,7 +329,7 @@ bool KRenderer::Render(uint32_t chainImageIndex)
 	m_RHICommandList.EndRecord();
 
 	m_SwapChain->GetInFlightFence()->Reset();
-	m_RHICommandList.QueueSubmit(m_PostGraphics.queue, { m_Compute.finish, m_SwapChain->GetImageAvailableSemaphore() }, { m_SwapChain->GetRenderFinishSemaphore() }, m_SwapChain->GetInFlightFence());
+	m_RHICommandList.QueueSubmit(m_PostGraphics.queue, { { m_Compute.finish, PIPELINE_STAGE_ALL_COMMANDS }, { m_SwapChain->GetImageAvailableSemaphore(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT } }, { m_SwapChain->GetRenderFinishSemaphore() }, m_SwapChain->GetInFlightFence());
 	KRenderGlobal::Renderer.GetRHICommandList().Flush(RHICommandFlush::DispatchToRHIThread);
 
 	return true;

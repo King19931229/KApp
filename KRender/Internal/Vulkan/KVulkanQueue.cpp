@@ -154,7 +154,10 @@ bool KVulkanQueue::Init(QueueCategory category, uint32_t queueIndex)
 	if (category == QUEUE_PRESENT)
 	{
 		assert(queueIndex == 0);
+		m_QueueFamilyIndex = KVulkanGlobal::graphicsFamilyIndices[0];
 		m_vkQueue = KVulkanGlobal::presentQueue;
+		m_Category = category;
+		m_QueueIndex = queueIndex;
 		return m_vkQueue != VK_NULL_HANDEL;
 	}
 
@@ -210,7 +213,7 @@ uint32_t KVulkanQueue::GetIndex() const
 	return m_QueueIndex;
 }
 
-bool KVulkanQueue::Submit(IKCommandBufferPtr buffer, std::vector<IKSemaphorePtr> waits, std::vector<IKSemaphorePtr> singals, IKFencePtr fence)
+bool KVulkanQueue::Submit(IKCommandBufferPtr buffer, std::vector<KSemaphoreWaitInfo> waits, std::vector<IKSemaphorePtr> singals, IKFencePtr fence)
 {
 	if (m_vkQueue)
 	{
@@ -235,8 +238,8 @@ bool KVulkanQueue::Submit(IKCommandBufferPtr buffer, std::vector<IKSemaphorePtr>
 
 		for (size_t i = 0; i < waits.size(); ++i)
 		{
-			waitSemaphores[i] = ((KVulkanSemaphore*)waits[i].get())->GetVkSemaphore();
-			waitStages[i] = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+			waitSemaphores[i] = ((KVulkanSemaphore*)waits[i].semaphore.get())->GetVkSemaphore();
+			ASSERT_RESULT(KVulkanHelper::PipelineStagesToVkPipelineStageFlags(waits[i].stages, waitStages[i]));
 		}
 
 		submitInfo.waitSemaphoreCount = (uint32_t)waits.size();

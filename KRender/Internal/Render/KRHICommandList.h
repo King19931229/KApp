@@ -4,6 +4,7 @@
 #include "Interface/IKRenderPass.h"
 #include "Interface/IKCommandBuffer.h"
 #include "Interface/IKQuery.h"
+#include "Interface/IKQueue.h"
 #include "KBase/Interface/Task/IKTaskGraph.h"
 #include "KBase/Interface/IKRunable.h"
 
@@ -477,13 +478,13 @@ RHICOMMAND_DEFINE(KQueueSubmitCmd)
 {
 	IKCommandBufferPtr commandBuffer;
 	IKQueuePtr queue;
-	std::vector<IKSemaphorePtr> waits;
+	std::vector<KSemaphoreWaitInfo> waits;
 	std::vector<IKSemaphorePtr> singals;
 	IKFencePtr fence;
 
 	KQueueSubmitCmd(IKCommandBufferPtr inCommandBuffer,
 		IKQueuePtr inQueue,
-		std::vector<IKSemaphorePtr> inWaits,
+		std::vector<KSemaphoreWaitInfo> inWaits,
 		std::vector<IKSemaphorePtr> inSingals,
 		IKFencePtr inFence)
 		: commandBuffer(inCommandBuffer)
@@ -724,7 +725,7 @@ public:
 
 	void AddLowLevelRenderJob(LowLevelRenderJobType job);
 
-	void QueueSubmit(IKQueuePtr queue, std::vector<IKSemaphorePtr> waits, std::vector<IKSemaphorePtr> singals, IKFencePtr fence);
+	void QueueSubmit(IKQueuePtr queue, std::vector<KSemaphoreWaitInfo> waits, std::vector<IKSemaphorePtr> singals, IKFencePtr fence);
 
 	void TickRenderDevice();
 

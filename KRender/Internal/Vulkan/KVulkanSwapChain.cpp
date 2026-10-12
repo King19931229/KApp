@@ -12,7 +12,6 @@
 
 KVulkanSwapChain::KVulkanSwapChain()
 	: m_MaxFramesInFight(0)
-	, m_CurrentFlightIndex(0)
 	, m_CurrentImageIndex(0)
 {
 	m_SwapChain = VK_NULL_HANDLE;
@@ -240,8 +239,6 @@ bool KVulkanSwapChain::CreateSwapChain()
 
 bool KVulkanSwapChain::CreateSyncObjects()
 {
-	m_CurrentFlightIndex = 0;
-
 	KRenderGlobal::RenderDevice->CreateSemaphore(m_ImageAvailableSemaphore);
 	KRenderGlobal::RenderDevice->CreateSemaphore(m_RenderFinishedSemaphore);
 	KRenderGlobal::RenderDevice->CreateFence(m_InFlightFence);
@@ -421,13 +418,12 @@ IKFrameBufferPtr KVulkanSwapChain::GetDepthStencilFrameBuffer(uint32_t chainInde
 	return nullptr;
 }
 
-void KVulkanSwapChain::WaitForInFlightFrame(uint32_t& frameIndex)
+void KVulkanSwapChain::WaitForInFlightFrame()
 {
 	// 这个Wait保证Queue已经被执行完
 	VkFence fence = ((KVulkanFence*)(m_InFlightFence.get()))->GetVkFence();
 	VkResult vkResult = vkWaitForFences(KVulkanGlobal::device, 1, &fence, VK_TRUE, UINT64_MAX);
 	VK_ASSERT_RESULT(vkResult);
-	frameIndex = m_CurrentFlightIndex;
 }
 
 void KVulkanSwapChain::AcquireNextImage(uint32_t& imageIndex)
@@ -443,7 +439,7 @@ void KVulkanSwapChain::PresentQueue(bool& needResize)
 {
 	for (KDevicePresentCallback* callback : m_PrePresentCallback)
 	{
-		(*callback)(m_CurrentImageIndex, m_CurrentFlightIndex);
+		(*callback)(m_CurrentImageIndex, KRenderGlobal::CurrentInFlightFrameIndex);
 	}
 
 	VkResult vkResult = VK_RESULT_MAX_ENUM;
@@ -480,10 +476,8 @@ void KVulkanSwapChain::PresentQueue(bool& needResize)
 
 	for (KDevicePresentCallback* callback : m_PostPresentCallback)
 	{
-		(*callback)(m_CurrentImageIndex, m_CurrentFlightIndex);
+		(*callback)(m_CurrentImageIndex, KRenderGlobal::CurrentInFlightFrameIndex);
 	}
-
-	m_CurrentFlightIndex = (m_CurrentFlightIndex + 1) %  m_MaxFramesInFight;
 
 	assert(vkResult == VK_SUCCESS || vkResult == VK_ERROR_OUT_OF_DATE_KHR || vkResult == VK_SUBOPTIMAL_KHR);
 

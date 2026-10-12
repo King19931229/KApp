@@ -481,7 +481,7 @@ void KRHICommandList::AddLowLevelRenderJob(LowLevelRenderJobType job)
 	ExecuteOrInsertNextCommand(command);
 }
 
-void KRHICommandList::QueueSubmit(IKQueuePtr queue, std::vector<IKSemaphorePtr> waits, std::vector<IKSemaphorePtr> singals, IKFencePtr fence)
+void KRHICommandList::QueueSubmit(IKQueuePtr queue, std::vector<KSemaphoreWaitInfo> waits, std::vector<IKSemaphorePtr> singals, IKFencePtr fence)
 {
 	KRHICommandBasePtr command = KRHICommandBasePtr(KNEW KQueueSubmitCmd(m_CommandBuffer, queue, waits, singals, fence));
 	ExecuteOrInsertNextCommand(command);

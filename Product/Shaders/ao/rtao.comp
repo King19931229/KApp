@@ -107,6 +107,14 @@ void ComputeValues(vec2 p, in out vec4 normalDepth, in out vec3 origin)
 		depth += sampleNormalDepth[i].a * weights[i];
 	}
 
+	float normalLengthSq = dot(normal, normal);
+	if(normalLengthSq <= 1e-8 || isnan(normalLengthSq) || isinf(normalLengthSq))
+	{
+		normalDepth = vec4(0.0);
+		origin = vec3(0.0);
+		return;
+	}
+
 	normalDepth = vec4(normalize(normal), depth);
 
 	vec2 uv = (vec2(closest) + vec2(0.5)) / vec2(size);
