@@ -297,6 +297,7 @@ bool KVolumetricFog::Execute(KRHICommandList& commandList)
 	if (m_Enable)
 	{
 		UpdateVoxel(commandList);
+		commandList.Transition(m_RayMatchResultTarget->GetFrameBuffer(), PIPELINE_STAGE_COMPUTE_SHADER, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_GENERAL, IMAGE_LAYOUT_GENERAL);
 		UpdateScattering(commandList);
 	}
 	else

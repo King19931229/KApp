@@ -250,7 +250,7 @@ bool KHiZBuffer::Construct(KRHICommandList& commandList)
 
 			commandList.EndRenderPass();
 			commandList.EndDebugMarker();
-			commandList.TransitionMipmap(m_HiZMinBuffer->GetFrameBuffer(), i, PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+			commandList.TransitionMipmap(m_HiZMinBuffer->GetFrameBuffer(), i, PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER | PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 		}
 		else
 		{
@@ -286,7 +286,7 @@ bool KHiZBuffer::Construct(KRHICommandList& commandList)
 
 			commandList.EndRenderPass();
 			commandList.EndDebugMarker();
-			commandList.TransitionMipmap(m_HiZMinBuffer->GetFrameBuffer(), i, PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+			commandList.TransitionMipmap(m_HiZMinBuffer->GetFrameBuffer(), i, PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER | PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 		}
 	}
 	commandList.EndDebugMarker();
@@ -338,7 +338,7 @@ bool KHiZBuffer::Construct(KRHICommandList& commandList)
 
 			commandList.EndRenderPass();
 			commandList.EndDebugMarker();
-			commandList.TransitionMipmap(m_HiZMaxBuffer->GetFrameBuffer(), i, PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+			commandList.TransitionMipmap(m_HiZMaxBuffer->GetFrameBuffer(), i, PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER | PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 		}
 		else
 		{
@@ -374,7 +374,7 @@ bool KHiZBuffer::Construct(KRHICommandList& commandList)
 
 			commandList.EndRenderPass();
 			commandList.EndDebugMarker();
-			commandList.TransitionMipmap(m_HiZMaxBuffer->GetFrameBuffer(), i, PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+			commandList.TransitionMipmap(m_HiZMaxBuffer->GetFrameBuffer(), i, PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER | PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 		}
 	}
 	commandList.EndDebugMarker();

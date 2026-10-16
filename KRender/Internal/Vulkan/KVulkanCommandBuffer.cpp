@@ -365,10 +365,10 @@ bool KVulkanCommandBuffer::Render(const KRenderCommand& command)
 
 		VkDescriptorSet descriptorSet = vulkanPipeline->AllocDescriptorSet(command.threadIndex, dynamicUsages.data(), dynamicBufferCount, storageUsages, storageBufferCount);
 
+		// 先绑定描述符，避免 GPUAV 覆盖上一笔绘制的检查记录
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, dynamicBufferCount, dynamicOffsets.data());
 		// 绑定管线
 		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
-		// 绑定管线布局
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, dynamicBufferCount, dynamicOffsets.data());
 
 		// 绑定顶点缓冲
 		VkBuffer vertexBuffers[32] = {0};

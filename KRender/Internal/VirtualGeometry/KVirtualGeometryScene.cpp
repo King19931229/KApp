@@ -213,7 +213,7 @@ bool KVirtualGeometryScene::Init(IKRenderScene* scene, const KCamera* camera)
 				m_InstanceCullPipeline[i]->BindUniformBuffer(BINDING_GLOBAL_DATA, m_GlobalDataBuffer);
 				m_InstanceCullPipeline[i]->BindUniformBuffer(BINDING_STREAMING_DATA, KRenderGlobal::VirtualGeometryManager.GetStreamingDataBuffer());
 				m_InstanceCullPipeline[i]->BindStorageBuffer(BINDING_RESOURCE, KRenderGlobal::VirtualGeometryManager.GetResourceBuffer(), COMPUTE_RESOURCE_IN, true);
-				m_InstanceCullPipeline[i]->BindStorageBuffer(BINDING_QUEUE_STATE, m_QueueStateBuffer, COMPUTE_RESOURCE_IN, true);
+				m_InstanceCullPipeline[i]->BindStorageBuffer(BINDING_QUEUE_STATE, m_QueueStateBuffer, COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, true);
 				m_InstanceCullPipeline[i]->BindStorageBuffer(BINDING_VIRTUAL_GEOMETRY_INSTANCE_DATA, m_InstanceDataBuffer, COMPUTE_RESOURCE_IN, true);
 				m_InstanceCullPipeline[i]->BindStorageBuffer(BINDING_CLUSTER_BATCH, KRenderGlobal::VirtualGeometryManager.GetClusterBatchBuffer(), COMPUTE_RESOURCE_IN, true);
 				m_InstanceCullPipeline[i]->BindStorageBuffer(BINDING_CANDIDATE_NODE_BATCH, m_CandidateNodeBuffer, COMPUTE_RESOURCE_OUT, true);
@@ -327,15 +327,15 @@ bool KVirtualGeometryScene::Init(IKRenderScene* scene, const KCamera* camera)
 				m_BinningClassifyPipline[i]->BindStorageBuffer(BINDING_RESOURCE, KRenderGlobal::VirtualGeometryManager.GetResourceBuffer(), COMPUTE_RESOURCE_IN, true);;
 				m_BinningClassifyPipline[i]->BindStorageBuffer(BINDING_CLUSTER_BATCH, KRenderGlobal::VirtualGeometryManager.GetClusterBatchBuffer(), COMPUTE_RESOURCE_IN, true);
 				m_BinningClassifyPipline[i]->BindStorageBuffer(BINDING_CLUSTER_MATERIAL_BUFFER, KRenderGlobal::VirtualGeometryManager.GetClusterMaterialStorageBuffer(), COMPUTE_RESOURCE_IN, true);
-				m_BinningClassifyPipline[i]->BindStorageBuffer(BINDING_BINNING_HEADER, m_BinningHeaderBuffer, COMPUTE_RESOURCE_OUT, true);
+				m_BinningClassifyPipline[i]->BindStorageBuffer(BINDING_BINNING_HEADER, m_BinningHeaderBuffer, COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, true);
 				m_BinningClassifyPipline[i]->Init("virtualgeometry/binning_classify.comp", cullEnv);
 
 				KRenderGlobal::RenderDevice->CreateComputePipeline(m_BinningAllocatePipline[i]);
 				m_BinningAllocatePipline[i]->BindUniformBuffer(BINDING_STREAMING_DATA, KRenderGlobal::VirtualGeometryManager.GetStreamingDataBuffer());
 				m_BinningAllocatePipline[i]->BindStorageBuffer(BINDING_PAGE_DATA, KRenderGlobal::VirtualGeometryManager.GetPageDataBuffer(), COMPUTE_RESOURCE_IN, true);
 				m_BinningAllocatePipline[i]->BindUniformBuffer(BINDING_GLOBAL_DATA, m_GlobalDataBuffer);
-				m_BinningAllocatePipline[i]->BindStorageBuffer(BINDING_QUEUE_STATE, m_QueueStateBuffer, COMPUTE_RESOURCE_IN, true);
-				m_BinningAllocatePipline[i]->BindStorageBuffer(BINDING_BINNING_HEADER, m_BinningHeaderBuffer, COMPUTE_RESOURCE_OUT, true);
+				m_BinningAllocatePipline[i]->BindStorageBuffer(BINDING_QUEUE_STATE, m_QueueStateBuffer, COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, true);
+				m_BinningAllocatePipline[i]->BindStorageBuffer(BINDING_BINNING_HEADER, m_BinningHeaderBuffer, COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, true);
 				m_BinningAllocatePipline[i]->BindStorageBuffer(BINDING_INDIRECT_DRAW_ARGS, m_IndirectDrawBuffer, COMPUTE_RESOURCE_OUT, true);
 				m_BinningAllocatePipline[i]->BindStorageBuffer(BINDING_INDIRECT_MESH_ARGS, m_IndirectMeshBuffer, COMPUTE_RESOURCE_OUT, true);
 				m_BinningAllocatePipline[i]->Init("virtualgeometry/binning_allocate.comp", cullEnv);
@@ -349,7 +349,7 @@ bool KVirtualGeometryScene::Init(IKRenderScene* scene, const KCamera* camera)
 				m_BinningScatterPipline[i]->BindStorageBuffer(BINDING_RESOURCE, KRenderGlobal::VirtualGeometryManager.GetResourceBuffer(), COMPUTE_RESOURCE_IN, true);;
 				m_BinningScatterPipline[i]->BindStorageBuffer(BINDING_CLUSTER_BATCH, KRenderGlobal::VirtualGeometryManager.GetClusterBatchBuffer(), COMPUTE_RESOURCE_IN, true);
 				m_BinningScatterPipline[i]->BindStorageBuffer(BINDING_CLUSTER_MATERIAL_BUFFER, KRenderGlobal::VirtualGeometryManager.GetClusterMaterialStorageBuffer(), COMPUTE_RESOURCE_IN, true);
-				m_BinningScatterPipline[i]->BindStorageBuffer(BINDING_BINNING_HEADER, m_BinningHeaderBuffer, COMPUTE_RESOURCE_OUT, true);
+				m_BinningScatterPipline[i]->BindStorageBuffer(BINDING_BINNING_HEADER, m_BinningHeaderBuffer, COMPUTE_RESOURCE_IN, true);
 				m_BinningScatterPipline[i]->BindStorageBuffer(BINDING_BINNING_DATA, m_BinningDataBuffer, COMPUTE_RESOURCE_OUT, true);
 				m_BinningScatterPipline[i]->BindStorageBuffer(BINDING_INDIRECT_DRAW_ARGS, m_IndirectDrawBuffer, COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, true);
 				m_BinningScatterPipline[i]->BindStorageBuffer(BINDING_INDIRECT_MESH_ARGS, m_IndirectMeshBuffer, COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, true);

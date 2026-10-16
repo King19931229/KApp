@@ -537,7 +537,13 @@ bool KVulkanComputePipeline::SetupBarrier(IKCommandBufferPtr buffer, bool input)
 				}
 			}
 
-			VkImageSubresourceRange range = { flags, 0, 1, 0, 1 };
+			VkImageSubresourceRange range = { flags, 0, vulkanFrameBuffer->GetMipmaps(), 0, VK_REMAINING_ARRAY_LAYERS };
+			if (binding.type == BindingInfo::IMAGE)
+			{
+				range.baseMipLevel = binding.image.mipmap;
+				range.levelCount = 1;
+				range.layerCount = 1;
+			}
 
 			VkImageMemoryBarrier imgMemBarrier = { VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
 
@@ -550,8 +556,8 @@ bool KVulkanComputePipeline::SetupBarrier(IKCommandBufferPtr buffer, bool input)
 				}
 				else
 				{
-					imgMemBarrier.srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
-					imgMemBarrier.dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+					imgMemBarrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+					imgMemBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
 				}
 			}
 			else if(binding.type == BindingInfo::SAMPLER)
@@ -559,6 +565,9 @@ bool KVulkanComputePipeline::SetupBarrier(IKCommandBufferPtr buffer, bool input)
 				imgMemBarrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
 				imgMemBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 			}
+
+			imgMemBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+			imgMemBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 
 			imgMemBarrier.image = vulkanFrameBuffer->GetImage();
 			imgMemBarrier.oldLayout = vulkanFrameBuffer->GetImageLayout();
@@ -584,8 +593,8 @@ bool KVulkanComputePipeline::SetupBarrier(IKCommandBufferPtr buffer, bool input)
 			}
 			else
 			{
-				bufMemBarrier.srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
-				bufMemBarrier.dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+				bufMemBarrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+				bufMemBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
 			}
 
 			bufMemBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
@@ -618,7 +627,7 @@ void KVulkanComputePipeline::PreDispatch(IKCommandBufferPtr primaryBuffer, VkDes
 	// Update the descriptor
 	UpdateDynamicWrite(dstSet, usage);
 
-	// Adding a barrier to be sure the fragment has finished writing
+	// Synchronize resources read or written by this dispatch.
 	SetupBarrier(primaryBuffer, true);
 
 	// Preparing for the compute shader
@@ -628,7 +637,7 @@ void KVulkanComputePipeline::PreDispatch(IKCommandBufferPtr primaryBuffer, VkDes
 
 void KVulkanComputePipeline::PostDispatch(IKCommandBufferPtr primaryBuffer)
 {
-	// Adding a barrier to be sure the compute shader has finished
+	// Make compute writes visible to subsequent compute reads and writes.
 	SetupBarrier(primaryBuffer, false);
 }
 
