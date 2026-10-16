@@ -49,6 +49,35 @@ bool KTextureManager::UnInit()
 	return true;
 }
 
+bool KTextureManager::RemoveUnreferenced()
+{
+	for (auto it = m_Textures.begin(); it != m_Textures.end();)
+	{
+		const KTextureRef& ref = it->second;
+		if (ref.GetRefCount() == 1 && ref.Get().use_count() == 1)
+		{
+			it = m_Textures.erase(it);
+		}
+		else
+		{
+			++it;
+		}
+	}
+	for (auto it = m_AnonymousTextures.begin(); it != m_AnonymousTextures.end();)
+	{
+		const KTextureRef& ref = it->second;
+		if (ref.GetRefCount() == 1 && ref.Get().use_count() == 1)
+		{
+			it = m_AnonymousTextures.erase(it);
+		}
+		else
+		{
+			++it;
+		}
+	}
+	return true;
+}
+
 bool KTextureManager::Acquire(const char* path, uint32_t tileNum, KVirtualTextureResourceRef& ref, bool async)
 {
 	auto it = m_VirtualTextures.find(path);

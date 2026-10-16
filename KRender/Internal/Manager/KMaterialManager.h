@@ -14,6 +14,7 @@ public:
 
 	bool Init();
 	bool UnInit();
+	bool RemoveUnreferenced();
 
 	bool Tick();
 

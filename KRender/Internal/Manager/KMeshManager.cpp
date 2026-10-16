@@ -28,6 +28,23 @@ bool KMeshManager::UnInit()
 	return true;
 }
 
+bool KMeshManager::RemoveUnreferenced()
+{
+	for (auto it = m_Meshes.begin(); it != m_Meshes.end();)
+	{
+		const KMeshRef& ref = it->second;
+		if (ref.GetRefCount() == 1 && ref.Get().use_count() == 1)
+		{
+			it = m_Meshes.erase(it);
+		}
+		else
+		{
+			++it;
+		}
+	}
+	return true;
+}
+
 bool KMeshManager::AcquireImpl(const char* path, bool fromAsset, KMeshRef& ref)
 {
 	MeshInfo info = { std::string(path) };

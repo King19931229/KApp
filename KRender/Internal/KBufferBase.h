@@ -20,10 +20,12 @@ public:
 	virtual bool InitDevice(bool hostVisible) = 0;
 	virtual bool UnInit();
 
-	virtual bool Map(void** ppData) = 0;
+	virtual bool Map(void** ppData, MapAccess access = MA_READ_WRITE) = 0;
 	virtual bool UnMap() = 0;
 	virtual bool Write(const void* pData) = 0;
+	virtual bool Write(const void* pData, size_t offset, size_t size) = 0;
 	virtual bool Read(void* pData) = 0;
+	virtual bool Read(void* pData, size_t offset, size_t size) = 0;
 
 	virtual bool CopyFrom(IKVertexBufferPtr pSource) = 0;
 	virtual bool CopyTo(IKVertexBufferPtr pDest) = 0;
@@ -48,10 +50,12 @@ public:
 	virtual bool InitDevice(bool hostVisible) = 0;
 	virtual bool UnInit() = 0;
 
-	virtual bool Map(void** ppData) = 0;
+	virtual bool Map(void** ppData, MapAccess access = MA_READ_WRITE) = 0;
 	virtual bool UnMap() = 0;
 	virtual bool Write(const void* pData) = 0;
+	virtual bool Write(const void* pData, size_t offset, size_t size) = 0;
 	virtual bool Read(void* pData) = 0;
+	virtual bool Read(void* pData, size_t offset, size_t size) = 0;
 
 	virtual bool CopyFrom(IKIndexBufferPtr pSource) = 0;
 	virtual bool CopyTo(IKIndexBufferPtr pDest) = 0;
@@ -76,10 +80,12 @@ public:
 
 	virtual bool IsIndirect() { return m_bIndirect; }
 
-	virtual bool Map(void** ppData) = 0;
+	virtual bool Map(void** ppData, MapAccess access = MA_READ_WRITE) = 0;
 	virtual bool UnMap() = 0;
 	virtual bool Write(const void* pData) = 0;
+	virtual bool Write(const void* pData, size_t offset, size_t size) = 0;
 	virtual bool Read(void* pData) = 0;
+	virtual bool Read(void* pData, size_t offset, size_t size) = 0;
 
 	virtual bool CopyFrom(IKStorageBufferPtr pSource) = 0;
 	virtual bool CopyTo(IKStorageBufferPtr pDest) = 0;
@@ -101,10 +107,12 @@ public:
 	virtual bool InitDevice() = 0;
 	virtual bool UnInit() = 0;
 
-	virtual bool Map(void** ppData) = 0;
+	virtual bool Map(void** ppData, MapAccess access = MA_READ_WRITE) = 0;
 	virtual bool UnMap() = 0;
 	virtual bool Write(const void* pData) = 0;
+	virtual bool Write(const void* pData, size_t offset, size_t size) = 0;
 	virtual bool Read(void* pData) = 0;
+	virtual bool Read(void* pData, size_t offset, size_t size) = 0;
 
 	virtual bool Reference(void **ppData) = 0;
 

@@ -16,10 +16,12 @@ struct IKVertexBuffer
 
 	virtual bool DiscardMemory() = 0;
 
-	virtual bool Map(void** ppData) = 0;
+	virtual bool Map(void** ppData, MapAccess access = MA_READ_WRITE) = 0;
 	virtual bool UnMap() = 0;
 	virtual bool Write(const void* pData) = 0;
+	virtual bool Write(const void* pData, size_t offset, size_t size) = 0;
 	virtual bool Read(void* pData) = 0;
+	virtual bool Read(void* pData, size_t offset, size_t size) = 0;
 
 	virtual bool CopyFrom(IKVertexBufferPtr pSource) = 0;
 	virtual bool CopyTo(IKVertexBufferPtr pDest) = 0;
@@ -42,10 +44,12 @@ struct IKIndexBuffer
 
 	virtual bool DiscardMemory() = 0;
 
-	virtual bool Map(void** ppData) = 0;
+	virtual bool Map(void** ppData, MapAccess access = MA_READ_WRITE) = 0;
 	virtual bool UnMap() = 0;
 	virtual bool Write(const void* pData) = 0;
+	virtual bool Write(const void* pData, size_t offset, size_t size) = 0;
 	virtual bool Read(void* pData) = 0;
+	virtual bool Read(void* pData, size_t offset, size_t size) = 0;
 
 	virtual bool CopyFrom(IKIndexBufferPtr pSource) = 0;
 	virtual bool CopyTo(IKIndexBufferPtr pDest) = 0;
@@ -67,11 +71,13 @@ struct IKStorageBuffer
 
 	virtual bool IsIndirect() = 0;
 
-	virtual bool Map(void** ppData) = 0;
+	virtual bool Map(void** ppData, MapAccess access = MA_READ_WRITE) = 0;
 	virtual bool UnMap() = 0;
 
 	virtual bool Write(const void* pData) = 0;
+	virtual bool Write(const void* pData, size_t offset, size_t size) = 0;
 	virtual bool Read(void* pData) = 0;
+	virtual bool Read(void* pData, size_t offset, size_t size) = 0;
 
 	virtual bool CopyFrom(IKStorageBufferPtr pSource) = 0;
 	virtual bool CopyTo(IKStorageBufferPtr pDest) = 0;
@@ -90,11 +96,13 @@ struct IKUniformBuffer
 
 	virtual bool SetDebugName(const char* pName) = 0;
 
-	virtual bool Map(void** ppData) = 0;
+	virtual bool Map(void** ppData, MapAccess access = MA_READ_WRITE) = 0;
 	virtual bool UnMap() = 0;
 
 	virtual bool Write(const void* pData) = 0;
+	virtual bool Write(const void* pData, size_t offset, size_t size) = 0;
 	virtual bool Read(void* pData) = 0;
+	virtual bool Read(void* pData, size_t offset, size_t size) = 0;
 
 	// 如果是PushConstantBuffer 直接拿出内存数据引用
 	virtual bool Reference(void **ppData) = 0;

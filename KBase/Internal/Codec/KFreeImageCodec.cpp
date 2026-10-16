@@ -40,6 +40,8 @@ bool KFreeImageCodec::CodecImpl(IKDataStreamPtr stream, bool forceAlpha, KCodecR
 			if (!FreeImage_FlipVertical(fiBitmap))
 			{
 				KG_LOGE(LM_RENDER, "FreeImage can't flip the image");
+				FreeImage_Unload(fiBitmap);
+				FreeImage_CloseMemory(fiMem);
 				return false;
 			}
 
@@ -238,6 +240,8 @@ bool KFreeImageCodec::Save(const KCodecResult& source, const char* pszFile)
 		if (!FreeImage_FlipVertical(foBitmap))
 		{
 			KG_LOGE(LM_RENDER, "FreeImage can't flip the image");
+			FreeImage_Unload(foBitmap);
+			FreeImage_CloseMemory(foMem);
 			return false;
 		}
 

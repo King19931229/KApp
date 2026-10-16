@@ -549,7 +549,9 @@ bool KVirtualGeometryScene::UpdateInstanceData(KRHICommandList& commandList)
 		m_Instances[i]->prevTransform = m_Instances[i]->transform;
 	}
 
-	if (instanceData.size() == m_LastInstanceData.size())
+	const bool materialsChanged = binningMaterials != m_BinningMaterials;
+
+	if (!materialsChanged && instanceData.size() == m_LastInstanceData.size())
 	{
 		if (memcmp(instanceData.data(), m_LastInstanceData.data(), m_LastInstanceData.size() * sizeof(KVirtualGeometryInstance)) == 0)
 		{
@@ -557,91 +559,94 @@ bool KVirtualGeometryScene::UpdateInstanceData(KRHICommandList& commandList)
 		}
 	}
 
-	m_BinningMaterials = std::move(binningMaterials);
-
-	// TODO
-	for (uint32_t i = 0; i < BINNIING_PIPELINE_COUNT; ++i)
+	if (materialsChanged)
 	{
-		SAFE_UNINIT_CONTAINER(m_BinningPipelines[i]);		
-		m_BinningPipelines[i].resize(m_BinningMaterials.size());
-		m_BasePassFragmentShaders[i].clear();
-		m_BasePassFragmentShaders[i].resize(m_BinningMaterials.size());
-	}
+		m_BinningMaterials = std::move(binningMaterials);
 
-	for (uint32_t k = 0; k < BINNIING_PIPELINE_COUNT; ++k)
-	{
-		for (size_t i = 0; i < m_BinningMaterials.size(); ++i)
+		// TODO
+		for (uint32_t i = 0; i < BINNIING_PIPELINE_COUNT; ++i)
 		{
-			IKPipelinePtr& pipeline = m_BinningPipelines[k][i];
-			KRenderGlobal::RenderDevice->CreatePipeline(pipeline);
+			SAFE_UNINIT_CONTAINER(m_BinningPipelines[i]);
+			m_BinningPipelines[i].resize(m_BinningMaterials.size());
+			m_BasePassFragmentShaders[i].clear();
+			m_BasePassFragmentShaders[i].resize(m_BinningMaterials.size());
+		}
 
-			KShaderCompileEnvironment env;
-			env.parentEnv = &KRenderGlobal::VirtualGeometryManager.GetBasepassBindingEnv();
-			env.includeFiles.push_back({ "material_generate_code.h", m_BinningMaterials[i]->GetMaterialGeneratedCodeReader() });
-
-			const IKMaterialTextureBindingPtr materialTextureBinding = m_BinningMaterials[i]->GetTextureBinding();
-			const IKMaterialTextureBinding* textureBinding = materialTextureBinding.get();
-
-			uint8_t numSlot = textureBinding->GetNumSlot();
-			for (uint32_t i = 0; i < MAX_MATERIAL_TEXTURE_BINDING; ++i)
+		for (uint32_t k = 0; k < BINNIING_PIPELINE_COUNT; ++k)
+		{
+			for (size_t i = 0; i < m_BinningMaterials.size(); ++i)
 			{
-				env.macros.push_back({ PERMUTATING_MACRO[MATERIAL_TEXTURE_BINDING_MACRO_INDEX[i]].macro, textureBinding->GetTexture(i) ? "1" : "0" });
-			}
+				IKPipelinePtr& pipeline = m_BinningPipelines[k][i];
+				KRenderGlobal::RenderDevice->CreatePipeline(pipeline);
 
-			if (k == BINNIING_PIPELINE_VERTEX)
-			{
-				IKShaderPtr vsShader = m_BasePassVertexShader.Get();
-				pipeline->SetShader(ST_VERTEX, vsShader);
-				KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "virtualgeometry/vg_basepass.frag", env, m_BasePassFragmentShaders[k][i], false);
-			}
-			else
-			{
-				IKShaderPtr msShader = m_BasePassMeshShader.Get();
-				pipeline->SetShader(ST_MESH, msShader);
-				KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "virtualgeometry/vg_basepass_mesh.frag", env, m_BasePassFragmentShaders[k][i], false);
-			}
+				KShaderCompileEnvironment env;
+				env.parentEnv = &KRenderGlobal::VirtualGeometryManager.GetBasepassBindingEnv();
+				env.includeFiles.push_back({ "material_generate_code.h", m_BinningMaterials[i]->GetMaterialGeneratedCodeReader() });
 
-			pipeline->SetVertexBinding(nullptr, 0);
+				const IKMaterialTextureBindingPtr materialTextureBinding = m_BinningMaterials[i]->GetTextureBinding();
+				const IKMaterialTextureBinding* textureBinding = materialTextureBinding.get();
 
-			IKShaderPtr fsShader = m_BasePassFragmentShaders[k][i].Get();
-			pipeline->SetShader(ST_FRAGMENT, fsShader);
-
-			pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
-			pipeline->SetBlendEnable(false);
-			pipeline->SetCullMode(CM_BACK);
-			pipeline->SetFrontFace(FF_COUNTER_CLOCKWISE);
-			pipeline->SetPolygonMode(PM_FILL);
-			pipeline->SetColorWrite(true, true, true, true);
-			pipeline->SetDepthFunc(CF_LESS_OR_EQUAL, true, true);
-
-			pipeline->SetStorageBuffer(VG_BASEPASS_BINDING_OFFSET + BINDING_SELECTED_CLUSTER_BATCH, ST_VERTEX, m_SelectedClusterBuffer);
-			pipeline->SetStorageBuffer(VG_BASEPASS_BINDING_OFFSET + BINDING_VIRTUAL_GEOMETRY_INSTANCE_DATA, ST_VERTEX, m_InstanceDataBuffer);
-			pipeline->SetStorageBuffer(VG_BASEPASS_BINDING_OFFSET + BINDING_RESOURCE, ST_VERTEX, KRenderGlobal::VirtualGeometryManager.GetResourceBuffer());
-			pipeline->SetStorageBuffer(VG_BASEPASS_BINDING_OFFSET + BINDING_CLUSTER_BATCH, ST_VERTEX, KRenderGlobal::VirtualGeometryManager.GetClusterBatchBuffer());
-
-			pipeline->SetStorageBuffer(VG_BASEPASS_BINDING_OFFSET + BINDING_CLUSTER_VERTEX_BUFFER, ST_VERTEX, KRenderGlobal::VirtualGeometryManager.GetClusterVertexStorageBuffer());
-			pipeline->SetStorageBuffer(VG_BASEPASS_BINDING_OFFSET + BINDING_CLUSTER_INDEX_BUFFER, ST_VERTEX, KRenderGlobal::VirtualGeometryManager.GetClusterIndexStorageBuffer());
-			pipeline->SetStorageBuffer(VG_BASEPASS_BINDING_OFFSET + BINDING_CLUSTER_MATERIAL_BUFFER, ST_VERTEX, KRenderGlobal::VirtualGeometryManager.GetClusterMaterialStorageBuffer());
-
-			pipeline->SetStorageBuffer(VG_BASEPASS_BINDING_OFFSET + BINDING_BINNING_DATA, ST_VERTEX, m_BinningDataBuffer);
-			pipeline->SetStorageBuffer(VG_BASEPASS_BINDING_OFFSET + BINDING_BINNING_HEADER, ST_VERTEX, m_BinningHeaderBuffer);
-
-			pipeline->SetConstantBuffer(VG_BASEPASS_BINDING_OFFSET + BINDING_GLOBAL_DATA, ST_VERTEX | ST_FRAGMENT, m_GlobalDataBuffer);
-
-			pipeline->SetConstantBuffer(VG_BASEPASS_BINDING_OFFSET + BINDING_STREAMING_DATA, ST_VERTEX, KRenderGlobal::VirtualGeometryManager.GetStreamingDataBuffer());
-			pipeline->SetStorageBuffer(VG_BASEPASS_BINDING_OFFSET + BINDING_PAGE_DATA, ST_VERTEX, KRenderGlobal::VirtualGeometryManager.GetPageDataBuffer());
-
-			for (uint8_t i = 0; i < numSlot; ++i)
-			{
-				IKTexturePtr texture = textureBinding->GetTexture(i);
-				IKSamplerPtr sampler = textureBinding->GetSampler(i);
-				if (texture && sampler)
+				uint8_t numSlot = textureBinding->GetNumSlot();
+				for (uint32_t i = 0; i < MAX_MATERIAL_TEXTURE_BINDING; ++i)
 				{
-					pipeline->SetSampler(VG_BASEPASS_BINDING_OFFSET + BINDING_VIRTUAL_GEOMETRY_TEXTURE0 + i, texture->GetFrameBuffer(), sampler, true);
+					env.macros.push_back({ PERMUTATING_MACRO[MATERIAL_TEXTURE_BINDING_MACRO_INDEX[i]].macro, textureBinding->GetTexture(i) ? "1" : "0" });
 				}
-			}
 
-			pipeline->Init();
+				if (k == BINNIING_PIPELINE_VERTEX)
+				{
+					IKShaderPtr vsShader = m_BasePassVertexShader.Get();
+					pipeline->SetShader(ST_VERTEX, vsShader);
+					KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "virtualgeometry/vg_basepass.frag", env, m_BasePassFragmentShaders[k][i], false);
+				}
+				else
+				{
+					IKShaderPtr msShader = m_BasePassMeshShader.Get();
+					pipeline->SetShader(ST_MESH, msShader);
+					KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "virtualgeometry/vg_basepass_mesh.frag", env, m_BasePassFragmentShaders[k][i], false);
+				}
+
+				pipeline->SetVertexBinding(nullptr, 0);
+
+				IKShaderPtr fsShader = m_BasePassFragmentShaders[k][i].Get();
+				pipeline->SetShader(ST_FRAGMENT, fsShader);
+
+				pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
+				pipeline->SetBlendEnable(false);
+				pipeline->SetCullMode(CM_BACK);
+				pipeline->SetFrontFace(FF_COUNTER_CLOCKWISE);
+				pipeline->SetPolygonMode(PM_FILL);
+				pipeline->SetColorWrite(true, true, true, true);
+				pipeline->SetDepthFunc(CF_LESS_OR_EQUAL, true, true);
+
+				pipeline->SetStorageBuffer(VG_BASEPASS_BINDING_OFFSET + BINDING_SELECTED_CLUSTER_BATCH, ST_VERTEX, m_SelectedClusterBuffer);
+				pipeline->SetStorageBuffer(VG_BASEPASS_BINDING_OFFSET + BINDING_VIRTUAL_GEOMETRY_INSTANCE_DATA, ST_VERTEX, m_InstanceDataBuffer);
+				pipeline->SetStorageBuffer(VG_BASEPASS_BINDING_OFFSET + BINDING_RESOURCE, ST_VERTEX, KRenderGlobal::VirtualGeometryManager.GetResourceBuffer());
+				pipeline->SetStorageBuffer(VG_BASEPASS_BINDING_OFFSET + BINDING_CLUSTER_BATCH, ST_VERTEX, KRenderGlobal::VirtualGeometryManager.GetClusterBatchBuffer());
+
+				pipeline->SetStorageBuffer(VG_BASEPASS_BINDING_OFFSET + BINDING_CLUSTER_VERTEX_BUFFER, ST_VERTEX, KRenderGlobal::VirtualGeometryManager.GetClusterVertexStorageBuffer());
+				pipeline->SetStorageBuffer(VG_BASEPASS_BINDING_OFFSET + BINDING_CLUSTER_INDEX_BUFFER, ST_VERTEX, KRenderGlobal::VirtualGeometryManager.GetClusterIndexStorageBuffer());
+				pipeline->SetStorageBuffer(VG_BASEPASS_BINDING_OFFSET + BINDING_CLUSTER_MATERIAL_BUFFER, ST_VERTEX, KRenderGlobal::VirtualGeometryManager.GetClusterMaterialStorageBuffer());
+
+				pipeline->SetStorageBuffer(VG_BASEPASS_BINDING_OFFSET + BINDING_BINNING_DATA, ST_VERTEX, m_BinningDataBuffer);
+				pipeline->SetStorageBuffer(VG_BASEPASS_BINDING_OFFSET + BINDING_BINNING_HEADER, ST_VERTEX, m_BinningHeaderBuffer);
+
+				pipeline->SetConstantBuffer(VG_BASEPASS_BINDING_OFFSET + BINDING_GLOBAL_DATA, ST_VERTEX | ST_FRAGMENT, m_GlobalDataBuffer);
+
+				pipeline->SetConstantBuffer(VG_BASEPASS_BINDING_OFFSET + BINDING_STREAMING_DATA, ST_VERTEX, KRenderGlobal::VirtualGeometryManager.GetStreamingDataBuffer());
+				pipeline->SetStorageBuffer(VG_BASEPASS_BINDING_OFFSET + BINDING_PAGE_DATA, ST_VERTEX, KRenderGlobal::VirtualGeometryManager.GetPageDataBuffer());
+
+				for (uint8_t i = 0; i < numSlot; ++i)
+				{
+					IKTexturePtr texture = textureBinding->GetTexture(i);
+					IKSamplerPtr sampler = textureBinding->GetSampler(i);
+					if (texture && sampler)
+					{
+						pipeline->SetSampler(VG_BASEPASS_BINDING_OFFSET + BINDING_VIRTUAL_GEOMETRY_TEXTURE0 + i, texture->GetFrameBuffer(), sampler, true);
+					}
+				}
+
+				pipeline->Init();
+			}
 		}
 	}
 
@@ -700,7 +705,7 @@ bool KVirtualGeometryScene::UpdateInstanceData(KRHICommandList& commandList)
 
 		if (dataSize)
 		{
-			m_BinningHeaderBuffer->Map(&pWrite);
+			m_BinningHeaderBuffer->Map(&pWrite, MA_WRITE_DISCARD);
 			for (size_t i = 0; i < m_BinningMaterials.size(); ++i)
 			{
 				memcpy(pWrite, binningHeader, sizeof(binningHeader));
@@ -727,10 +732,7 @@ bool KVirtualGeometryScene::UpdateInstanceData(KRHICommandList& commandList)
 
 		if (dataSize)
 		{
-			m_InstanceDataBuffer->Map(&pWrite);
-			memcpy(pWrite, instanceData.data(), dataSize);
-			m_InstanceDataBuffer->UnMap();
-			pWrite = nullptr;
+			m_InstanceDataBuffer->Write(instanceData.data(), 0, dataSize);
 		}
 	}
 

@@ -142,6 +142,14 @@ void KRenderer::GPUQueueMiscs::SetThreadNum(uint32_t threadNum)
 	}
 }
 
+void KRenderer::RemoveUnreferenced()
+{
+	KRenderGlobal::VirtualGeometryManager.RemoveUnreferenced();
+	KRenderGlobal::MeshManager.RemoveUnreferenced();
+	KRenderGlobal::MaterialManager.RemoveUnreferenced();
+	KRenderGlobal::TextureManager.RemoveUnreferenced();
+}
+
 bool KRenderer::Render(uint32_t chainImageIndex)
 {
 	UpdateCamera();
@@ -161,7 +169,7 @@ bool KRenderer::Render(uint32_t chainImageIndex)
 	m_RHICommandList.SetImmediate(KRenderGlobal::EnableRHIImmediate);
 	m_RHICommandList.TickRenderDevice();
 
-	KRenderGlobal::VirtualGeometryManager.RemoveUnreferenced();
+	RemoveUnreferenced();
 
 	std::vector<IKEntity*> cullRes;
 	KRenderGlobal::Scene.GetVisibleEntities(*m_Camera, cullRes);

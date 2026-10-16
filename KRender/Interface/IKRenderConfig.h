@@ -277,6 +277,13 @@ enum IndexType
 	IT_32
 };
 
+enum MapAccess
+{
+	MA_READ_ONLY,
+	MA_READ_WRITE,
+	MA_WRITE_DISCARD // Discards old contents; unwritten data is undefined.
+};
+
 enum TextureType
 {
 	TT_TEXTURE_2D,

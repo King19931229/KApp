@@ -46,9 +46,7 @@ bool KVirtualGeometryStorageBuffer::Remove(size_t offset, size_t size)
 		std::vector<unsigned char> bufferData;
 
 		bufferData.resize(m_Size);
-		m_Buffer->Map(&pMapped);
-		memcpy(bufferData.data(), pMapped, m_Size);
-		m_Buffer->UnMap();
+		m_Buffer->Read(bufferData.data(), 0, m_Size);
 
 		size_t newBufferSize = std::max((size_t)1, KMath::SmallestPowerOf2GreaterEqualThan(m_Size - size));
 
@@ -60,7 +58,7 @@ bool KVirtualGeometryStorageBuffer::Remove(size_t offset, size_t size)
 			m_Buffer->SetDebugName(m_Name.c_str());
 		}
 
-		m_Buffer->Map(&pMapped);
+		m_Buffer->Map(&pMapped, MA_WRITE_DISCARD);
 		memcpy(POINTER_OFFSET(pMapped, 0), bufferData.data(), offset);
 		memcpy(POINTER_OFFSET(pMapped, offset), bufferData.data() + offset + size, m_Size - size - offset);
 		m_Buffer->UnMap();
@@ -84,11 +82,7 @@ bool KVirtualGeometryStorageBuffer::Modify(size_t offset, size_t size, void* pDa
 
 	if (offset + size <= m_Size)
 	{
-		void* pMapped = nullptr;
-		m_Buffer->Map(&pMapped);
-		memcpy(POINTER_OFFSET(pMapped, offset), pData, size);
-		m_Buffer->UnMap();
-		return true;
+		return m_Buffer->Write(pData, offset, size);
 	}
 	else
 	{
@@ -105,8 +99,6 @@ bool KVirtualGeometryStorageBuffer::Append(size_t size, void* pData)
 
 	size_t newBufferSize = std::max((size_t)1, KMath::SmallestPowerOf2GreaterEqualThan(m_Size + size));
 
-	void* pMapped = nullptr;
-
 	if (newBufferSize > m_Buffer->GetBufferSize())
 	{
 		FLUSH_INFLIGHT_RENDER_JOB();
@@ -115,9 +107,7 @@ bool KVirtualGeometryStorageBuffer::Append(size_t size, void* pData)
 		if (m_Size > 0)
 		{
 			bufferData.resize(m_Size);
-			m_Buffer->Map(&pMapped);
-			memcpy(bufferData.data(), pMapped, m_Size);
-			m_Buffer->UnMap();
+			m_Buffer->Read(bufferData.data(), 0, m_Size);
 		}
 
 		m_Buffer->UnInit();
@@ -127,15 +117,11 @@ bool KVirtualGeometryStorageBuffer::Append(size_t size, void* pData)
 
 		if (m_Size > 0)
 		{
-			m_Buffer->Map(&pMapped);
-			memcpy(POINTER_OFFSET(pMapped, 0), bufferData.data(), m_Size);
-			m_Buffer->UnMap();
+			m_Buffer->Write(bufferData.data(), 0, m_Size);
 		}
 	}
 
-	m_Buffer->Map(&pMapped);
-	memcpy(POINTER_OFFSET(pMapped, m_Size), pData, size);
-	m_Buffer->UnMap();
+	m_Buffer->Write(pData, m_Size, size);
 
 	m_Size += size;
 

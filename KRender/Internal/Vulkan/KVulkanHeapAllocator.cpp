@@ -260,8 +260,9 @@ namespace KVulkanHeapAllocator
 
 		void Tick()
 		{
-			if (pHead && pHead->isFree)
+			if (pHead && pHead->isFree && pHead->pNext == nullptr)
 			{
+				assert(pHead->offset == 0 && pHead->size == size);
 				++releaseMemoryCounter;
 				if (releaseMemoryCounter >= RELEASE_MEMORY_TICK)
 				{
@@ -509,11 +510,13 @@ namespace KVulkanHeapAllocator
 
 		void Tick()
 		{
+			std::lock_guard<decltype(ALLOC_FREE_LOCK)> guard(ALLOC_FREE_LOCK);
+
 			for (uint32_t i = 0; i < MAT_COUNT; ++i)
 			{
-				if (pHead[i])
+				for (PageInfo* page = pHead[i]; page; page = page->pNext)
 				{
-					pHead[i]->Tick();
+					page->Tick();
 				}
 			}
 		}

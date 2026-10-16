@@ -151,8 +151,5 @@ void KRHIImmediateCommandList::UpdateUniformBuffer(IKUniformBufferPtr uniformBuf
 
 void KRHIImmediateCommandList::UpdateStorageBuffer(IKStorageBufferPtr storageBuffer, void* data, uint32_t offset, uint32_t size)
 {
-	void* pData = nullptr;
-	storageBuffer->Map(&pData);
-	memcpy(POINTER_OFFSET(pData, offset), data, size);
-	storageBuffer->UnMap();
+	storageBuffer->Write(data, offset, size);
 }

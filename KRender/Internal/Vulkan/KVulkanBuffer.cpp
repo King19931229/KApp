@@ -108,6 +108,7 @@ KVulkanBuffer::KVulkanBuffer()
 	, m_UniqueID(0)
 	, m_bHostVisible(false)
 	, m_Mapping(false)
+	, m_MapAccess(MA_READ_WRITE)
 {
 	m_vkBuffer = VK_NULL_HANDLE;
 	ZERO_MEMORY(m_AllocInfo);
@@ -188,6 +189,7 @@ bool KVulkanBuffer::UnInit()
 	m_StageBuffer.UnInit();
 	m_bHostVisible = false;
 	m_Mapping = false;
+	m_MapAccess = MA_READ_WRITE;
 	return true;
 }
 
@@ -201,10 +203,14 @@ bool KVulkanBuffer::SetDebugName(const char* pName)
 	return true;
 }
 
-bool KVulkanBuffer::Map(void** ppData)
+bool KVulkanBuffer::Map(void** ppData, MapAccess access)
 {
 	assert(!m_Mapping);
 	ASSERT_RESULT(ppData != nullptr);
+	if (access != MA_READ_ONLY && access != MA_READ_WRITE && access != MA_WRITE_DISCARD)
+	{
+		return false;
+	}
 	if (m_vkBuffer != VK_NULL_HANDLE)
 	{
 		if (m_bHostVisible)
@@ -217,18 +223,25 @@ bool KVulkanBuffer::Map(void** ppData)
 			{
 				VK_ASSERT_RESULT(vkMapMemory(KVulkanGlobal::device, m_AllocInfo.vkMemroy, m_AllocInfo.vkOffset, m_BufferSize, 0, ppData));
 			}
+			m_MapAccess = access;
 			m_Mapping = true;
 			return true;
 		}
 		else
 		{
 			m_StageBuffer.Init(m_BufferSize);
-			KVulkanInitializer::CopyVkBuffer(m_vkBuffer, m_StageBuffer.GetVulkanHandle(), (VkDeviceSize)m_BufferSize);
-			m_Mapping = true;
+			if (access != MA_WRITE_DISCARD)
+			{
+				KVulkanInitializer::CopyVkBuffer(m_vkBuffer, m_StageBuffer.GetVulkanHandle(), (VkDeviceSize)m_BufferSize);
+			}
 			if (m_StageBuffer.Map(ppData))
 			{
+				m_MapAccess = access;
+				m_Mapping = true;
 				return true;
 			}
+			m_StageBuffer.UnInit();
+			return false;
 		}
 	}
 	assert(false && "should not reach");
@@ -247,6 +260,7 @@ bool KVulkanBuffer::UnMap()
 				vkUnmapMemory(KVulkanGlobal::device, m_AllocInfo.vkMemroy);
 			}
 			m_Mapping = false;
+			m_MapAccess = MA_READ_WRITE;
 			return true;
 		}
 	}
@@ -254,9 +268,13 @@ bool KVulkanBuffer::UnMap()
 	{
 		if (m_StageBuffer.UnMap())
 		{
-			KVulkanInitializer::CopyVkBuffer(m_StageBuffer.GetVulkanHandle(), m_vkBuffer, (VkDeviceSize)m_BufferSize);
+			if (m_MapAccess != MA_READ_ONLY)
+			{
+				KVulkanInitializer::CopyVkBuffer(m_StageBuffer.GetVulkanHandle(), m_vkBuffer, (VkDeviceSize)m_BufferSize);
+			}
 			m_StageBuffer.UnInit();
 			m_Mapping = false;
+			m_MapAccess = MA_READ_WRITE;
 			return true;
 		}
 	}
@@ -266,23 +284,39 @@ bool KVulkanBuffer::UnMap()
 
 bool KVulkanBuffer::Write(const void* pData)
 {
+	return Write(pData, 0, m_BufferSize);
+}
+
+bool KVulkanBuffer::Write(const void* pData, size_t offset, size_t size)
+{
+	if (m_vkBuffer == VK_NULL_HANDLE || m_Mapping || offset > m_BufferSize || size > m_BufferSize - offset || (size && !pData))
+	{
+		return false;
+	}
+	if (size == 0)
+	{
+		return true;
+	}
 	if (m_bHostVisible)
 	{
 		void* pMapData = nullptr;
 		if (Map(&pMapData))
 		{
-			memcpy(pMapData, pData, m_BufferSize);
+			memcpy(POINTER_OFFSET(pMapData, offset), pData, size);
 			UnMap();
 			return true;
 		}
 	}
 	else
 	{
-		m_StageBuffer.Init(m_BufferSize);
-		m_StageBuffer.Write(pData);
-		KVulkanInitializer::CopyVkBuffer(m_StageBuffer.GetVulkanHandle(), m_vkBuffer, (VkDeviceSize)m_BufferSize);
+		m_StageBuffer.Init((uint32_t)size);
+		const bool success = m_StageBuffer.Write(pData);
+		if (success)
+		{
+			KVulkanInitializer::CopyVkBuffer(m_StageBuffer.GetVulkanHandle(), m_vkBuffer, (VkDeviceSize)size, 0, (VkDeviceSize)offset);
+		}
 		m_StageBuffer.UnInit();
-		return true;
+		return success;
 	}
 	assert(false && "should not reach");
 	return false;
@@ -290,23 +324,36 @@ bool KVulkanBuffer::Write(const void* pData)
 
 bool KVulkanBuffer::Read(void* pData)
 {
+	return Read(pData, 0, m_BufferSize);
+}
+
+bool KVulkanBuffer::Read(void* pData, size_t offset, size_t size)
+{
+	if (m_vkBuffer == VK_NULL_HANDLE || m_Mapping || offset > m_BufferSize || size > m_BufferSize - offset || (size && !pData))
+	{
+		return false;
+	}
+	if (size == 0)
+	{
+		return true;
+	}
 	if (m_bHostVisible)
 	{
 		void* pMapData = nullptr;
-		if (Map(&pMapData))
+		if (Map(&pMapData, MA_READ_ONLY))
 		{
-			memcpy(pData, pMapData, m_BufferSize);
+			memcpy(pData, POINTER_OFFSET(pMapData, offset), size);
 			UnMap();
 			return true;
 		}
 	}
 	else
 	{
-		m_StageBuffer.Init(m_BufferSize);
-		KVulkanInitializer::CopyVkBuffer(m_vkBuffer, m_StageBuffer.GetVulkanHandle(), (VkDeviceSize)m_BufferSize);
-		m_StageBuffer.Read(pData);
+		m_StageBuffer.Init((uint32_t)size);
+		KVulkanInitializer::CopyVkBuffer(m_vkBuffer, m_StageBuffer.GetVulkanHandle(), (VkDeviceSize)size, (VkDeviceSize)offset, 0);
+		const bool success = m_StageBuffer.Read(pData);
 		m_StageBuffer.UnInit();
-		return true;
+		return success;
 	}
 	assert(false && "should not reach");
 	return false;
@@ -369,9 +416,9 @@ bool KVulkanVertexBuffer::DiscardMemory()
 	return true;
 }
 
-bool KVulkanVertexBuffer::Map(void** ppData)
+bool KVulkanVertexBuffer::Map(void** ppData, MapAccess access)
 {
-	return m_Buffer.Map(ppData);
+	return m_Buffer.Map(ppData, access);
 }
 
 bool KVulkanVertexBuffer::UnMap()
@@ -384,9 +431,19 @@ bool KVulkanVertexBuffer::Write(const void* pData)
 	return m_Buffer.Write(pData);
 }
 
+bool KVulkanVertexBuffer::Write(const void* pData, size_t offset, size_t size)
+{
+	return m_Buffer.Write(pData, offset, size);
+}
+
 bool KVulkanVertexBuffer::Read(void* pData)
 {
 	return m_Buffer.Read(pData);
+}
+
+bool KVulkanVertexBuffer::Read(void* pData, size_t offset, size_t size)
+{
+	return m_Buffer.Read(pData, offset, size);
 }
 
 bool KVulkanVertexBuffer::CopyFrom(IKVertexBufferPtr pSource)
@@ -453,9 +510,9 @@ bool KVulkanIndexBuffer::DiscardMemory()
 	return true;
 }
 
-bool KVulkanIndexBuffer::Map(void** ppData)
+bool KVulkanIndexBuffer::Map(void** ppData, MapAccess access)
 {
-	return m_Buffer.Map(ppData);
+	return m_Buffer.Map(ppData, access);
 }
 
 bool KVulkanIndexBuffer::UnMap()
@@ -468,9 +525,19 @@ bool KVulkanIndexBuffer::Write(const void* pData)
 	return m_Buffer.Write(pData);
 }
 
+bool KVulkanIndexBuffer::Write(const void* pData, size_t offset, size_t size)
+{
+	return m_Buffer.Write(pData, offset, size);
+}
+
 bool KVulkanIndexBuffer::Read(void* pData)
 {
 	return m_Buffer.Read(pData);
+}
+
+bool KVulkanIndexBuffer::Read(void* pData, size_t offset, size_t size)
+{
+	return m_Buffer.Read(pData, offset, size);
 }
 
 bool KVulkanIndexBuffer::IsHostVisible() const
@@ -535,9 +602,9 @@ bool KVulkanStorageBuffer::IsIndirect()
 	return m_bIndirect;
 }
 
-bool KVulkanStorageBuffer::Map(void** ppData)
+bool KVulkanStorageBuffer::Map(void** ppData, MapAccess access)
 {
-	return m_Buffer.Map(ppData);
+	return m_Buffer.Map(ppData, access);
 }
 
 bool KVulkanStorageBuffer::UnMap()
@@ -550,9 +617,19 @@ bool KVulkanStorageBuffer::Write(const void* pData)
 	return m_Buffer.Write(pData);
 }
 
+bool KVulkanStorageBuffer::Write(const void* pData, size_t offset, size_t size)
+{
+	return m_Buffer.Write(pData, offset, size);
+}
+
 bool KVulkanStorageBuffer::Read(void* pData)
 {
 	return m_Buffer.Read(pData);
+}
+
+bool KVulkanStorageBuffer::Read(void* pData, size_t offset, size_t size)
+{
+	return m_Buffer.Read(pData, offset, size);
 }
 
 bool KVulkanStorageBuffer::CopyFrom(IKStorageBufferPtr pSource)
@@ -620,10 +697,10 @@ KVulkanBuffer& KVulkanUniformBuffer::GetVulkanBuffer()
 	return m_Buffers[KRenderGlobal::CurrentInFlightFrameIndex];
 }
 
-bool KVulkanUniformBuffer::Map(void** ppData)
+bool KVulkanUniformBuffer::Map(void** ppData, MapAccess access)
 {
 	KVulkanBuffer& buffer = GetVulkanBuffer();
-	return buffer.Map(ppData);
+	return buffer.Map(ppData, access);
 }
 
 bool KVulkanUniformBuffer::UnMap()
@@ -638,10 +715,22 @@ bool KVulkanUniformBuffer::Write(const void* pData)
 	return buffer.Write(pData);
 }
 
+bool KVulkanUniformBuffer::Write(const void* pData, size_t offset, size_t size)
+{
+	KVulkanBuffer& buffer = GetVulkanBuffer();
+	return buffer.Write(pData, offset, size);
+}
+
 bool KVulkanUniformBuffer::Read(void* pData)
 {
 	KVulkanBuffer& buffer = GetVulkanBuffer();
 	return buffer.Read(pData);
+}
+
+bool KVulkanUniformBuffer::Read(void* pData, size_t offset, size_t size)
+{
+	KVulkanBuffer& buffer = GetVulkanBuffer();
+	return buffer.Read(pData, offset, size);
 }
 
 bool KVulkanUniformBuffer::Reference(void **ppData)

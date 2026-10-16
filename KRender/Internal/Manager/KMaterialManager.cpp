@@ -31,6 +31,23 @@ bool KMaterialManager::UnInit()
 	return true;
 }
 
+bool KMaterialManager::RemoveUnreferenced()
+{
+	for (auto it = m_Materials.begin(); it != m_Materials.end();)
+	{
+		const KMaterialRef& ref = it->second;
+		if (ref.GetRefCount() == 1 && ref.Get().use_count() == 1)
+		{
+			it = m_Materials.erase(it);
+		}
+		else
+		{
+			++it;
+		}
+	}
+	return true;
+}
+
 bool KMaterialManager::Tick()
 {
 	return true;

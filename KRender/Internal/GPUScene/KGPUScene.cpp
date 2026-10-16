@@ -491,7 +491,7 @@ void KGPUScene::RebuildMegaBuffer()
 			uint64_t hash = 0;
 #if COMPUTE_HASH_CONSTRUCT_MEGA_BUFFER
 			void* pData = nullptr;
-			vertexBuffer->Map(&pData);
+			vertexBuffer->Map(&pData, MA_READ_ONLY);
 			pData = POINTER_OFFSET(pData, vertexData->vertexStart * detail.vertexSize);
 			hash = KHash::BKDR((const char*)pData, vertexData->vertexCount * detail.vertexSize);
 			vertexBuffer->UnMap();
@@ -519,7 +519,7 @@ void KGPUScene::RebuildMegaBuffer()
 			{
 #if COMPUTE_HASH_CONSTRUCT_MEGA_BUFFER
 				void* pData = nullptr;
-				indexData.indexBuffer->Map(&pData);
+				indexData.indexBuffer->Map(&pData, MA_READ_ONLY);
 				pData = POINTER_OFFSET(pData, indexData.indexStart * ((indexData.indexBuffer->GetIndexType() == IT_16) ? sizeof(uint16_t) : sizeof(uint32_t)));
 				hash = KHash::BKDR((const char*)pData, indexData.indexCount * ((indexData.indexBuffer->GetIndexType() == IT_16) ? sizeof(uint16_t) : sizeof(uint32_t)));
 				indexData.indexBuffer->UnMap();
@@ -589,7 +589,7 @@ void KGPUScene::RebuildMegaBuffer()
 		IKStorageBufferPtr destVertexBuffer = m_MegaBuffer.vertexBuffers[vertexFormat];
 
 		void* pMegaVertexData = nullptr;
-		destVertexBuffer->Map(&pMegaVertexData);
+		destVertexBuffer->Map(&pMegaVertexData, MA_WRITE_DISCARD);
 
 		const KVertexDefinition::VertexDetail& detail = KVertexDefinition::GetVertexDetail((VertexFormat)vertexFormat);
 
@@ -616,7 +616,7 @@ void KGPUScene::RebuildMegaBuffer()
 				uint32_t destWriteOffset = 0;
 
 				void* pSrcVertexData = nullptr;
-				srcVertexBuffer->Map(&pSrcVertexData);
+				srcVertexBuffer->Map(&pSrcVertexData, MA_READ_ONLY);
 #if COMPUTE_HASH_CONSTRUCT_MEGA_BUFFER
 				pSrcVertexData = POINTER_OFFSET(pSrcVertexData, srcVertexOffset);
 				hash = KHash::BKDR((const char*)pSrcVertexData, srcVertexSize);
@@ -657,7 +657,7 @@ void KGPUScene::RebuildMegaBuffer()
 
 	{
 		void* pMegaIndexData = nullptr;
-		m_MegaBuffer.indexBuffer->Map(&pMegaIndexData);
+		m_MegaBuffer.indexBuffer->Map(&pMegaIndexData, MA_WRITE_DISCARD);
 
 		for (SubMeshItem& item : m_SubMeshes)
 		{
@@ -672,7 +672,7 @@ void KGPUScene::RebuildMegaBuffer()
 				uint32_t indexCount = indexData.indexCount;
 
 				void* pSrcIndexData = nullptr;
-				indexData.indexBuffer->Map(&pSrcIndexData);
+				indexData.indexBuffer->Map(&pSrcIndexData, MA_READ_ONLY);
 
 				if (indexData.indexBuffer->GetIndexType() == IT_16)
 				{
@@ -987,10 +987,7 @@ void KGPUScene::RebuildMegaShaderBuffer()
 
 		for (size_t i = 0; i < shaderItem.materialIndicesBuffers.size(); ++i)
 		{
-			void* pData = nullptr;
-			shaderItem.materialIndicesBuffers[i]->Map(&pData);
-			memcpy(pData, shaderItem.materialIndices.data(), shaderItem.materialIndices.size() * sizeof(uint32_t));
-			shaderItem.materialIndicesBuffers[i]->UnMap();
+			shaderItem.materialIndicesBuffers[i]->Write(shaderItem.materialIndices.data(), 0, shaderItem.materialIndices.size() * sizeof(uint32_t));
 		}
 
 		for (size_t i = 0; i < shaderItem.parametersBuffers.size(); ++i)
@@ -1326,10 +1323,7 @@ bool KGPUScene::Execute(KRHICommandList& commandList)
 	commandList.BeginDebugMarker("GPUScene", glm::vec4(1));
 
 	{
-		KGPUSceneState sceneState;
-		m_SceneStateBuffers[currentFrameIndex]->Read(&sceneState);
-		sceneState.megaShaderNum = megaShaderNum;
-		m_SceneStateBuffers[currentFrameIndex]->Write(&sceneState);
+		m_SceneStateBuffers[currentFrameIndex]->Write(&megaShaderNum, MEMBER_OFFSET(KGPUSceneState, megaShaderNum), sizeof(megaShaderNum));
 
 		uint32_t numDispatch = ((uint32_t)megaShaderNum + GPUSCENE_GROUP_SIZE - 1) / GPUSCENE_GROUP_SIZE;
 

@@ -383,6 +383,7 @@ static bool EnsureDecodeData(KCodecResult& result)
 						if (status != ASTCENC_SUCCESS)
 						{
 							KG_LOGE(LM_RENDER, "ASTCENC decompress failed: %s\n", astcenc_get_error_string(status));
+							astcenc_context_free(context);
 							return false;
 						}
 					}

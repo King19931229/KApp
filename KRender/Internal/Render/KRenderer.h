@@ -113,6 +113,7 @@ protected:
 
 	bool UpdateCamera();
 	bool UpdateGlobal();
+	void RemoveUnreferenced();
 
 	bool SwitchAsyncCompute(bool enableAsyncCompute);
 	bool ResetThreadNum(uint32_t threadNum);

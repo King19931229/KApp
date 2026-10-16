@@ -24,6 +24,7 @@ public:
 
 	bool Init();
 	bool UnInit();
+	bool RemoveUnreferenced();
 
 	bool Acquire(const char* path, KMeshRef& ref);
 	bool AcquireFromAsset(const char* path, KMeshRef& ref);

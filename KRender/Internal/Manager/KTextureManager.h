@@ -20,6 +20,7 @@ public:
 
 	bool Init();
 	bool UnInit();
+	bool RemoveUnreferenced();
 
 	bool Acquire(const char* path, uint32_t tileNum, KVirtualTextureResourceRef& ref, bool async);
 	bool Acquire(const char* path, KTextureRef& ref, bool async);

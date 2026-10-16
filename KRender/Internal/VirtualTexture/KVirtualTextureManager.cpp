@@ -214,9 +214,15 @@ bool KVirtualTextureManager::Init(uint32_t tileSize, uint32_t tileDimension, uin
 
 bool KVirtualTextureManager::UnInit()
 {
+	// Return physical tiles while their pool is still alive, including textures
+	// that are also retained by KTextureManager.
+	for (auto& pair : m_TextureMap)
+	{
+		pair.second->UnInit();
+	}
+	m_TextureMap.clear();
 	m_UsedTiles.clear();
 	m_PhysicalTiles.clear();
-	m_TextureMap.clear();
 	m_PendingMipContentUpdates.clear();
 	m_PendingSourceTextures.clear();
 
@@ -355,7 +361,7 @@ void KVirtualTextureManager::HandleFeedbackResult()
 	if (m_GPUProcessFeedback)
 	{
 		uint32_t* feedbackResultData = nullptr;
-		m_MergedFeedbackResultBuffer->Map((void**)&feedbackResultData);
+		m_MergedFeedbackResultBuffer->Map((void**)&feedbackResultData, MA_READ_ONLY);
 
 		uint32_t dataCount = feedbackResultData[0];
 		if (dataCount > 0)
@@ -837,7 +843,11 @@ bool KVirtualTextureManager::Acqiure(const std::string& path, uint32_t tileNum, 
 		KVirtualTexture* virutalTexture = KNEW KVirtualTexture();
 		if (virutalTexture->Init(path, tileNum, AcquireVirtualID()))
 		{
-			ref = KVirtualTextureResourceRef(virutalTexture, [](KVirtualTexture* texture) { texture->UnInit(); });
+			ref = KVirtualTextureResourceRef(virutalTexture, [](KVirtualTexture* texture)
+			{
+				texture->UnInit();
+				KDELETE texture;
+			});
 			m_TextureMap.insert({ textureInfo, ref });
 		}
 		else

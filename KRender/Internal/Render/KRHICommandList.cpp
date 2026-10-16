@@ -190,10 +190,7 @@ void KUpdateUniformBufferCmd::Execute(KRHICommandList& commandList)
 
 void KUpdateStorageBufferCmd::Execute(KRHICommandList& commandList)
 {
-	void* pData = nullptr;
-	storageBuffer->Map(&pData);
-	memcpy(POINTER_OFFSET(pData, offset), data.data(), size);
-	storageBuffer->UnMap();
+	storageBuffer->Write(data.data(), offset, size);
 }
 
 void KRenderCmd::Execute(KRHICommandList& commandList)

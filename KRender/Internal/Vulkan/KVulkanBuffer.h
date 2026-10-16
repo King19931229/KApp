@@ -38,6 +38,7 @@ protected:
 	uint32_t m_UniqueID;
 	bool m_bHostVisible;
 	bool m_Mapping;
+	MapAccess m_MapAccess;
 
 	static std::atomic_uint32_t ms_UniqueIDCounter;
 public:
@@ -49,10 +50,12 @@ public:
 
 	bool SetDebugName(const char* pName);
 
-	bool Map(void** ppData);
+	bool Map(void** ppData, MapAccess access = MA_READ_WRITE);
 	bool UnMap();
 	bool Write(const void* pData);
+	bool Write(const void* pData, size_t offset, size_t size);
 	bool Read(void* pData);
+	bool Read(void* pData, size_t offset, size_t size);
 
 	inline bool IsHostVisible() const { return m_bHostVisible; }
 	inline VkBuffer GetVulkanHandle() { return m_vkBuffer; }
@@ -76,10 +79,12 @@ public:
 
 	virtual bool DiscardMemory();
 
-	virtual bool Map(void** ppData);
+	virtual bool Map(void** ppData, MapAccess access = MA_READ_WRITE);
 	virtual bool UnMap();
 	virtual bool Write(const void* pData);
+	virtual bool Write(const void* pData, size_t offset, size_t size);
 	virtual bool Read(void* pData);
+	virtual bool Read(void* pData, size_t offset, size_t size);
 
 	virtual bool CopyFrom(IKVertexBufferPtr pSource);
 	virtual bool CopyTo(IKVertexBufferPtr pDest);
@@ -103,10 +108,12 @@ public:
 
 	virtual bool DiscardMemory();
 
-	virtual bool Map(void** ppData);
+	virtual bool Map(void** ppData, MapAccess access = MA_READ_WRITE);
 	virtual bool UnMap();
 	virtual bool Write(const void* pData);
+	virtual bool Write(const void* pData, size_t offset, size_t size);
 	virtual bool Read(void* pData);
+	virtual bool Read(void* pData, size_t offset, size_t size);
 
 	virtual bool IsHostVisible() const;
 
@@ -134,10 +141,12 @@ public:
 
 	virtual bool IsIndirect();
 
-	virtual bool Map(void** ppData);
+	virtual bool Map(void** ppData, MapAccess access = MA_READ_WRITE);
 	virtual bool UnMap();
 	virtual bool Write(const void* pData);
+	virtual bool Write(const void* pData, size_t offset, size_t size);
 	virtual bool Read(void* pData);
+	virtual bool Read(void* pData, size_t offset, size_t size);
 
 	virtual bool CopyFrom(IKStorageBufferPtr pSource);
 	virtual bool CopyTo(IKStorageBufferPtr pDest);
@@ -160,10 +169,12 @@ public:
 
 	virtual bool SetDebugName(const char* pName);
 
-	virtual bool Map(void** ppData);
+	virtual bool Map(void** ppData, MapAccess access = MA_READ_WRITE);
 	virtual bool UnMap();
 	virtual bool Write(const void* pData);
+	virtual bool Write(const void* pData, size_t offset, size_t size);
 	virtual bool Read(void* pData);
+	virtual bool Read(void* pData, size_t offset, size_t size);
 
 	virtual bool Reference(void **ppData);
 
