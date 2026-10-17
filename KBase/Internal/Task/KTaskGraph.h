@@ -28,7 +28,7 @@ protected:
 
 	std::mutex m_TaskProcessLock;
 	std::shared_ptr<KEvent> m_DoneEvent;
-	std::shared_ptr<bool> m_Done;
+	std::shared_ptr<std::atomic_bool> m_Done;
 	bool m_Queued;
 
 	NamedThread::Type m_ThreadToExecuteOn;

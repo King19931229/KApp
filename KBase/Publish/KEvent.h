@@ -33,7 +33,6 @@ public:
 	{
 		std::unique_lock<std::mutex> lock(m_Mutex);	
 		m_CondVar.wait(lock, [&]() { return m_Signaled; });
-		m_Signaled = false;
 		return true;
 	}
 
@@ -44,7 +43,6 @@ public:
 		{
 			return false;
 		}
-		m_Signaled = false;
 		return true;
 	}
 
@@ -52,5 +50,6 @@ public:
 	{
 		std::unique_lock<std::mutex> lock(m_Mutex);
 		m_Signaled = false;
+		return true;
 	}
 };

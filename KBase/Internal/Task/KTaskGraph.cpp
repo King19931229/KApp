@@ -80,7 +80,7 @@ const char* KGraphTask::GetDebugInfo()
 KGraphTaskEvent::KGraphTaskEvent(NamedThread::Type thread)
 	: m_ThreadToExecuteOn(thread)
 	, m_DoneEvent(std::make_shared<KEvent>())
-	, m_Done(std::make_shared<bool>(false))
+	, m_Done(std::make_shared<std::atomic_bool>(false))
 	, m_Queued(false)
 {
 }
@@ -148,7 +148,7 @@ bool KGraphTaskEvent::AddEventToWaitFor(IKGraphTaskEventRef eventToWait)
 {
 	std::unique_lock<decltype(m_TaskProcessLock)> lock(m_TaskProcessLock);
 
-	if (!*m_Done && !m_Queued)
+	if (!m_Done->load() && !m_Queued)
 	{
 		if (std::find(m_EventToWaitFor.begin(), m_EventToWaitFor.end(), eventToWait) == m_EventToWaitFor.end())
 		{
@@ -163,7 +163,7 @@ bool KGraphTaskEvent::AddSubsequent(IKGraphTaskEventRef subsequent)
 {
 	std::unique_lock<decltype(m_TaskProcessLock)> lock(m_TaskProcessLock);
 
-	if (!*m_Done)
+	if (!m_Done->load())
 	{
 		if (std::find(m_Subsequents.begin(), m_Subsequents.end(), subsequent) == m_Subsequents.end())
 		{
@@ -186,12 +186,12 @@ bool KGraphTaskEvent::SetThreadToExetuceOn(NamedThread::Type thread)
 
 bool KGraphTaskEvent::IsCompleted() const
 {
-	return *m_Done;
+	return m_Done->load();
 }
 
 void KGraphTaskEvent::WaitForCompletion()
 {
-	if (!*m_Done)
+	if (!m_Done->load())
 	{
 		m_DoneEvent->Wait();
 	}
@@ -207,7 +207,7 @@ void KGraphTaskEvent::OnTaskDone()
 	std::unique_lock<decltype(m_TaskProcessLock)> lock(m_TaskProcessLock);
 	if (m_Task)
 	{
-		*m_Done = true;
+		m_Done->store(true);
 		m_DoneEvent->Notify();
 		DispatchSubsequents(false);
 	}

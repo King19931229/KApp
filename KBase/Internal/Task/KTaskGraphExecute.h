@@ -96,6 +96,7 @@ public:
 			m_HangUp = true;
 			std::atomic_thread_fence(std::memory_order_acq_rel);
 			m_Trigger.Wait();
+			m_Trigger.Reset();
 			std::atomic_thread_fence(std::memory_order_acq_rel);
 			m_HangUp = false;
 		}
@@ -130,6 +131,7 @@ public:
 			m_HangUp = true;
 			std::atomic_thread_fence(std::memory_order_acq_rel);
 			m_Trigger.Wait();
+			m_Trigger.Reset();
 			std::atomic_thread_fence(std::memory_order_acq_rel);
 			m_HangUp = false;
 		}

@@ -168,8 +168,6 @@ bool KVulkanShader::GenerateSpirV(ShaderType type, const char* code, bool enable
 		| EShMsgSpvRules
 		| EShMsgDebugInfo);
 
-	static std::mutex sSpirVLock;
-	std::lock_guard<decltype(sSpirVLock)> lockGuard(sSpirVLock);
 	{
 		if (!shader->parse(KRenderGlobal::ShaderManager.GetSpirVBuildInResource(), 460, false, messages))
 		{
