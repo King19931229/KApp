@@ -110,8 +110,9 @@ protected:
 
 	std::string m_Name;
 
-	void CreateLayout();
-	void CreatePipeline();
+	bool CreateLayout();
+	bool CreatePipeline();
+	bool EnsurePipeline();
 
 	void DestroyDescriptorSet();
 	void DestroyPipeline();
@@ -148,7 +149,7 @@ public:
 
 	virtual void BindDynamicUniformBuffer(uint32_t location);
 
-	virtual bool Init(const char* szShader, const KShaderCompileEnvironment& env);
+	virtual bool Init(const char* szShader, const KShaderCompileEnvironment& env, bool async = false);
 	virtual bool UnInit();
 	virtual bool Execute(IKCommandBufferPtr primaryBuffer, uint32_t groupX, uint32_t groupY, uint32_t groupZ, const KDynamicConstantBufferUsage* usage);
 	virtual bool ExecuteIndirect(IKCommandBufferPtr primaryBuffer, IKStorageBufferPtr indirectBuffer, const KDynamicConstantBufferUsage* usage);

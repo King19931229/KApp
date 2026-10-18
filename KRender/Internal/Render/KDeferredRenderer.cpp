@@ -73,9 +73,9 @@ void KDeferredRenderer::Init(const KCamera* camera, uint32_t width, uint32_t hei
 		KRenderGlobal::Statistics.RegisterRenderStage(GDeferredRenderStageDescription[i].debugMarker);
 	}
 
-	KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "shading/quad.vert", m_QuadVS, false);
-	KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "shading/deferred.frag", m_DeferredLightingFS, false);
-	KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "shading/draw.frag", m_SceneColorDrawFS, false);
+	KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "shading/quad.vert", m_QuadVS, KRenderGlobal::EnableAsyncShaderCompile);
+	KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "shading/deferred.frag", m_DeferredLightingFS, KRenderGlobal::EnableAsyncShaderCompile);
+	KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "shading/draw.frag", m_SceneColorDrawFS, KRenderGlobal::EnableAsyncShaderCompile);
 	
 	renderDevice->CreateRenderTarget(m_FinalTarget);
 

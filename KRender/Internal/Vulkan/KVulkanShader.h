@@ -2,7 +2,9 @@
 #include "Interface/IKShader.h"
 #include "KBase/Interface/IKSourceFile.h"
 #include "KBase/Interface/IKFileSystem.h"
-#include "KBase/Publish/KTaskExecutor.h"
+#include "KBase/Interface/Task/IKTaskGraph.h"
+#include <atomic>
+#include <mutex>
 #include "KVulkanConfig.h"
 #include <map>
 
@@ -26,8 +28,9 @@ protected:
 
 	std::string m_Path;
 
-	ResourceState m_ResourceState;
+	std::atomic<ResourceState> m_ResourceState;
 	std::mutex m_LoadTaskLock;
+	IKGraphTaskEventRef m_LoadTask;
 
 	bool m_EnableSourceDebug;
 
@@ -42,11 +45,13 @@ protected:
 		SHADER_INIT_FILE_NOT_FOUNT,
 		SHADER_INIT_SUCCESS
 	};
-	ShaderInitResult InitFromFileImpl(const std::string& path, VkShaderModule* pModule);
+	ShaderInitResult InitFromFileImpl(const std::string& path, VkShaderModule* pModule, KShaderInformation& information);
 	ShaderInitResult InitFromStringImpl(const char* code, size_t len, VkShaderModule* pModule);
 
-	bool CancelDeviceTask();
-	bool WaitDeviceTask();
+	void WaitDeviceTask();
+	bool WaitForResult();
+	bool LoadFromFile();
+	void LoadFromString(const std::vector<char>& code);
 
 	static bool GenerateSpirV(ShaderType type, const char* code, bool enableDebug, std::vector<unsigned int>& spirv, std::vector<unsigned int>& spirvOpt);
 	static bool GenerateReflection(const std::vector<unsigned int>& spirv, KShaderInformation& information);

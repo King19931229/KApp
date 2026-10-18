@@ -26,15 +26,15 @@ bool KABufferDepthPeeling::Init(uint32_t width, uint32_t height, uint32_t depth)
 	KRenderGlobal::RenderDevice->CreateComputePipeline(m_ResetLinkNextPipeline);
 	m_ResetLinkNextPipeline->BindStorageBuffer(ABUFFER_BINDING_LINK_NEXT, m_LinkNextBuffer, COMPUTE_RESOURCE_OUT, true);
 	m_ResetLinkNextPipeline->BindDynamicUniformBuffer(ABUFFER_BINDING_OBJECT);
-	m_ResetLinkNextPipeline->Init("depthpeeling/reset_link_next.comp", KShaderCompileEnvironment());
+	m_ResetLinkNextPipeline->Init("depthpeeling/reset_link_next.comp", KShaderCompileEnvironment(), KRenderGlobal::EnableAsyncShaderCompile);
 
 	KRenderGlobal::RenderDevice->CreateComputePipeline(m_ResetLinkHeaderPipeline);
 	m_ResetLinkHeaderPipeline->BindStorageImage(ABUFFER_BINDING_LINK_HEADER, m_LinkHeaderTarget->GetFrameBuffer(), EF_R32_UINT, COMPUTE_RESOURCE_OUT, 0, true);
 	m_ResetLinkHeaderPipeline->BindDynamicUniformBuffer(ABUFFER_BINDING_OBJECT);
-	m_ResetLinkHeaderPipeline->Init("depthpeeling/reset_link_header.comp", KShaderCompileEnvironment());
+	m_ResetLinkHeaderPipeline->Init("depthpeeling/reset_link_header.comp", KShaderCompileEnvironment(), KRenderGlobal::EnableAsyncShaderCompile);
 
-	KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "shading/quad.vert", m_QuadVS, false);
-	KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "depthpeeling/abuffer_blend.frag", m_BlendFS, false);
+	KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "shading/quad.vert", m_QuadVS, KRenderGlobal::EnableAsyncShaderCompile);
+	KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "depthpeeling/abuffer_blend.frag", m_BlendFS, KRenderGlobal::EnableAsyncShaderCompile);
 
 	{
 		KRenderGlobal::RenderDevice->CreatePipeline(m_BlendPipeline);

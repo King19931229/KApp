@@ -374,7 +374,7 @@ void KClipmapLevel::InitializePipeline()
 		comp->BindStorageImage(BINDING_IMAGE_IN, updateTexture->GetFrameBuffer(), EF_R32G32_FLOAT, COMPUTE_RESOURCE_IN, 0, true);
 		comp->BindStorageImage(BINDING_IMAGE_OUT, m_TextureTarget->GetFrameBuffer(), EF_R32G32_FLOAT, COMPUTE_RESOURCE_OUT, 0, true);
 		comp->BindDynamicUniformBuffer(SHADER_BINDING_OBJECT);
-		comp->Init("terrain/clip_update.comp", KShaderCompileEnvironment());
+		comp->Init("terrain/clip_update.comp", KShaderCompileEnvironment(), KRenderGlobal::EnableAsyncShaderCompile);
 	}
 }
 
@@ -527,8 +527,8 @@ void KClipmapLevel::InitShared()
 	ms_Sampler->SetFilterMode(FM_NEAREST, FM_NEAREST);
 	ms_Sampler->Init(0, 0);
 
-	KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "terrain/clip_update.vert", ms_UpdateVS, false);
-	KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "terrain/clip_update.frag", ms_UpdateFS, false);
+	KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "terrain/clip_update.vert", ms_UpdateVS, KRenderGlobal::EnableAsyncShaderCompile);
+	KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "terrain/clip_update.frag", ms_UpdateFS, KRenderGlobal::EnableAsyncShaderCompile);
 }
 
 void KClipmapLevel::UnInitShared()
@@ -906,8 +906,8 @@ void KClipmap::InitializeClipmapLevel()
 
 void KClipmap::InitializePipeline()
 {
-	KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "terrain/clipmap.vert", m_VSShader, false);
-	KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "terrain/clipmap.frag", m_FSShader, false);
+	KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "terrain/clipmap.vert", m_VSShader, KRenderGlobal::EnableAsyncShaderCompile);
+	KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "terrain/clipmap.frag", m_FSShader, KRenderGlobal::EnableAsyncShaderCompile);
 
 	KRenderGlobal::RenderDevice->CreateSampler(m_Sampler);
 

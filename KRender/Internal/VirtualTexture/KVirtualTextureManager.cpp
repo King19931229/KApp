@@ -94,8 +94,8 @@ bool KVirtualTextureManager::Init(uint32_t tileSize, uint32_t tileDimension, uin
 	m_PhysicalContentTarget->InitFromColor(m_SizeWithPadding, m_SizeWithPadding, 1, m_NumMips, EF_R8G8B8A8_UNORM);
 	m_PhysicalContentTarget->GetFrameBuffer()->SetDebugName("VirtualTexturePhysicalContent");
 
-	KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "shading/quad.vert", m_QuadVS, false);
-	KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "virtualtexture/physical_upload.frag", m_UploadFS, false);
+	KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "shading/quad.vert", m_QuadVS, KRenderGlobal::EnableAsyncShaderCompile);
+	KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "virtualtexture/physical_upload.frag", m_UploadFS, KRenderGlobal::EnableAsyncShaderCompile);
 
 	KSamplerDescription desc;
 	desc.minFilter = FM_NEAREST;
@@ -161,7 +161,7 @@ bool KVirtualTextureManager::Init(uint32_t tileSize, uint32_t tileDimension, uin
 	m_InitFeedbackResultPipeline->BindStorageBuffer(VIRTUAL_TEXTURE_BINDING_FEEDBACK_RESULT, m_FeedbackResultBuffer, COMPUTE_RESOURCE_OUT, true);
 	m_InitFeedbackResultPipeline->BindStorageBuffer(VIRTUAL_TEXTURE_BINDING_MERGED_FEEDBACK_RESULT, m_MergedFeedbackResultBuffer, COMPUTE_RESOURCE_OUT, true);
 	m_InitFeedbackResultPipeline->BindDynamicUniformBuffer(VIRTUAL_TEXTURE_BINDING_OBJECT);
-	m_InitFeedbackResultPipeline->Init("virtualtexture/init_feedback_result.comp", m_CompileEnv);
+	m_InitFeedbackResultPipeline->Init("virtualtexture/init_feedback_result.comp", m_CompileEnv, KRenderGlobal::EnableAsyncShaderCompile);
 
 	KShaderCompileEnvironment standaloneCountFeedbackEnv;
 	standaloneCountFeedbackEnv.macros.push_back({ "READ_FEEDBACK_FROM_FRAMEBUFFER","1" });
@@ -171,7 +171,7 @@ bool KVirtualTextureManager::Init(uint32_t tileSize, uint32_t tileDimension, uin
 	m_StandaloneCountFeedbackResultPipeline->BindStorageImage(VIRTUAL_TEXTURE_BINDING_FEEDBACK_INPUT, m_FeedbackTarget->GetFrameBuffer(), EF_R8G8B8A8_UNORM, COMPUTE_RESOURCE_IN, 0, true);
 	m_StandaloneCountFeedbackResultPipeline->BindStorageBuffer(VIRTUAL_TEXTURE_BINDING_TEXTURE_DESCRIPTION, m_VirtualTextrueDescriptionBuffer, COMPUTE_RESOURCE_IN, true);
 	m_StandaloneCountFeedbackResultPipeline->BindUniformBuffer(VIRTUAL_TEXTURE_BINDING_CONSTANT, KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_VIRTUAL_TEXTURE_CONSTANT));
-	m_StandaloneCountFeedbackResultPipeline->Init("virtualtexture/count_feedback.comp", standaloneCountFeedbackEnv);
+	m_StandaloneCountFeedbackResultPipeline->Init("virtualtexture/count_feedback.comp", standaloneCountFeedbackEnv, KRenderGlobal::EnableAsyncShaderCompile);
 
 	KShaderCompileEnvironment gbufferCountFeedbackEnv;
 	gbufferCountFeedbackEnv.parentEnv = &m_CompileEnv;
@@ -180,16 +180,16 @@ bool KVirtualTextureManager::Init(uint32_t tileSize, uint32_t tileDimension, uin
 	m_GBufferCountFeedbackResultPipeline->BindStorageBuffer(VIRTUAL_TEXTURE_BINDING_FEEDBACK_INPUT, m_VirtualTextureFeedbackBuffer, COMPUTE_RESOURCE_IN, true);
 	m_GBufferCountFeedbackResultPipeline->BindStorageBuffer(VIRTUAL_TEXTURE_BINDING_TEXTURE_DESCRIPTION, m_VirtualTextrueDescriptionBuffer, COMPUTE_RESOURCE_IN, true);
 	m_GBufferCountFeedbackResultPipeline->BindUniformBuffer(VIRTUAL_TEXTURE_BINDING_CONSTANT, KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_VIRTUAL_TEXTURE_CONSTANT));
-	m_GBufferCountFeedbackResultPipeline->Init("virtualtexture/count_feedback.comp", gbufferCountFeedbackEnv);
+	m_GBufferCountFeedbackResultPipeline->Init("virtualtexture/count_feedback.comp", gbufferCountFeedbackEnv, KRenderGlobal::EnableAsyncShaderCompile);
 
 	m_MergeFeedbackResultPipeline->BindStorageBuffer(VIRTUAL_TEXTURE_BINDING_FEEDBACK_RESULT, m_FeedbackResultBuffer, COMPUTE_RESOURCE_IN, true);
 	m_MergeFeedbackResultPipeline->BindStorageBuffer(VIRTUAL_TEXTURE_BINDING_MERGED_FEEDBACK_RESULT, m_MergedFeedbackResultBuffer, COMPUTE_RESOURCE_OUT, true);
 	m_MergeFeedbackResultPipeline->BindDynamicUniformBuffer(VIRTUAL_TEXTURE_BINDING_OBJECT);
-	m_MergeFeedbackResultPipeline->Init("virtualtexture/merge_feedback.comp", m_CompileEnv);
+	m_MergeFeedbackResultPipeline->Init("virtualtexture/merge_feedback.comp", m_CompileEnv, KRenderGlobal::EnableAsyncShaderCompile);
 
 	m_InitFeedbackTargetPipeline->BindStorageBuffer(VIRTUAL_TEXTURE_BINDING_FEEDBACK_INPUT, m_VirtualTextureFeedbackBuffer, COMPUTE_RESOURCE_OUT, true);
 	m_InitFeedbackTargetPipeline->BindUniformBuffer(VIRTUAL_TEXTURE_BINDING_CONSTANT, KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_VIRTUAL_TEXTURE_CONSTANT));
-	m_InitFeedbackTargetPipeline->Init("virtualtexture/init_feedback_target.comp", m_CompileEnv);
+	m_InitFeedbackTargetPipeline->Init("virtualtexture/init_feedback_target.comp", m_CompileEnv, KRenderGlobal::EnableAsyncShaderCompile);
 
 	{
 		KRenderGlobal::ImmediateCommandList.BeginRecord();

@@ -189,7 +189,7 @@ bool KVirtualTexture::Init(const std::string& path, uint32_t tileNum, uint32_t v
 		m_MipUpdateComputePipelines[i]->BindDynamicUniformBuffer(VIRTUAL_TEXTURE_BINDING_OBJECT);
 		m_MipUpdateComputePipelines[i]->BindStorageImage(VIRTUAL_TEXTURE_BINDING_TABLE_IMAGE, m_TableTexture->GetFrameBuffer(), m_TableTexture->GetTextureFormat(), COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, 0, true);
 
-		m_MipUpdateComputePipelines[i]->Init("virtualtexture/mip_update.comp", KRenderGlobal::VirtualTextureManager.GetCompileEnv());
+		m_MipUpdateComputePipelines[i]->Init("virtualtexture/mip_update.comp", KRenderGlobal::VirtualTextureManager.GetCompileEnv(), KRenderGlobal::EnableAsyncShaderCompile);
 	}
 
 	m_TableUpdateStorages.resize(KRenderGlobal::NumFramesInFlight);
@@ -212,7 +212,7 @@ bool KVirtualTexture::Init(const std::string& path, uint32_t tileNum, uint32_t v
 			m_TableUpdateComputePipelines[i][mip]->BindDynamicUniformBuffer(VIRTUAL_TEXTURE_BINDING_OBJECT);
 			m_TableUpdateComputePipelines[i][mip]->BindStorageImage(VIRTUAL_TEXTURE_BINDING_TABLE_IMAGE, m_TableTexture->GetFrameBuffer(), m_TableTexture->GetTextureFormat(), COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, mip, true);
 
-			m_TableUpdateComputePipelines[i][mip]->Init("virtualtexture/table_update.comp", KRenderGlobal::VirtualTextureManager.GetCompileEnv());
+			m_TableUpdateComputePipelines[i][mip]->Init("virtualtexture/table_update.comp", KRenderGlobal::VirtualTextureManager.GetCompileEnv(), KRenderGlobal::EnableAsyncShaderCompile);
 		}
 	}
 	m_TableDebugDrawer.Init(m_TableTexture->GetFrameBuffer(), 0.5f, 0.5f, 0.5f, 0.5f, false);

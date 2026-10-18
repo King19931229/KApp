@@ -847,8 +847,8 @@ bool KCascadedShadowMap::Init(const KCamera* camera, uint32_t numCascaded, uint3
 		m_ShadowSampler->SetFilterMode(FM_LINEAR, FM_LINEAR);
 		m_ShadowSampler->Init(0, 0);
 
-		KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "others/debugquad.vert", m_DebugVertexShader, false);
-		KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "others/debugquad.frag", m_DebugFragmentShader, false);
+		KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "others/debugquad.vert", m_DebugVertexShader, KRenderGlobal::EnableAsyncShaderCompile);
+		KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "others/debugquad.frag", m_DebugFragmentShader, KRenderGlobal::EnableAsyncShaderCompile);
 
 		uint32_t cascadedShadowSize = shadowMapSize;
 
@@ -888,10 +888,10 @@ bool KCascadedShadowMap::Init(const KCamera* camera, uint32_t numCascaded, uint3
 			Resize((uint32_t)w, (uint32_t)h);
 		}
 
-		ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "shadow/quad.vert", m_QuadVS, false));
-		ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "shadow/cascaded/static_mask.frag", m_StaticReceiverFS, false));
-		ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "shadow/cascaded/dynamic_mask.frag", m_DynamicReceiverFS, false));
-		ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "shadow/cascaded/combine_mask.frag", m_CombineReceiverFS, false));
+		ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "shadow/quad.vert", m_QuadVS, KRenderGlobal::EnableAsyncShaderCompile));
+		ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "shadow/cascaded/static_mask.frag", m_StaticReceiverFS, KRenderGlobal::EnableAsyncShaderCompile));
+		ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "shadow/cascaded/dynamic_mask.frag", m_DynamicReceiverFS, KRenderGlobal::EnableAsyncShaderCompile));
+		ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "shadow/cascaded/combine_mask.frag", m_CombineReceiverFS, KRenderGlobal::EnableAsyncShaderCompile));
 
 		KRenderGlobal::RenderDevice->CreatePipeline(m_StaticReceiverPipeline);
 		KRenderGlobal::RenderDevice->CreatePipeline(m_DynamicReceiverPipeline);

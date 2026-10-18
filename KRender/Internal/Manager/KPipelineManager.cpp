@@ -36,16 +36,16 @@ bool KPipelineManager::UnInit()
 
 bool KPipelineManager::Reload()
 {
-	KRenderGlobal::ShaderManager.Reload();
+	bool success = KRenderGlobal::ShaderManager.Reload();
 	for (IKPipeline* pipeline : m_GraphicsPipelines)
 	{
-		pipeline->Reload(false);
+		success = pipeline->Reload(false) && success;
 	}
 	for (IKComputePipeline* pipeline : m_ComputePipelines)
 	{
-		pipeline->Reload(false);
+		success = pipeline->Reload(false) && success;
 	}
-	return true;
+	return success;
 }
 
 bool KPipelineManager::AddGraphicsPipeline(IKPipeline* pipeline)
@@ -171,6 +171,14 @@ size_t KPipelineManager::ComputeStateHash(const KPipelineState& state)
 
 bool KPipelineManager::AcquireLayout(const KPipelineBinding& binding, KPipelineLayoutRef& ref)
 {
+	for (IKShaderPtr shader : binding.shaders)
+	{
+		if (shader)
+		{
+			shader->WaitForDevice();
+			if (shader->GetResourceState() != RS_DEVICE_LOADED) return false;
+		}
+	}
 	size_t hash = ComputeBindingLayoutHash(binding);
 
 	auto it = m_LayoutMap.find(hash);
@@ -178,7 +186,11 @@ bool KPipelineManager::AcquireLayout(const KPipelineBinding& binding, KPipelineL
 	{
 		IKPipelineLayoutPtr pipelineLayout = nullptr;
 		KRenderGlobal::RenderDevice->CreatePipelineLayout(pipelineLayout);
-		pipelineLayout->Init(binding);
+		if (!pipelineLayout->Init(binding))
+		{
+			pipelineLayout->UnInit();
+			return false;
+		}
 
 		ref = KPipelineLayoutRef(pipelineLayout, [this](IKPipelineLayoutPtr& pipelineLayout)
 		{
@@ -211,7 +223,11 @@ bool KPipelineManager::AcquireHandle(IKPipelineLayout* layout, IKRenderPass* ren
 		{
 			IKPipelineHandlePtr pipelineHandle = nullptr;
 			KRenderGlobal::RenderDevice->CreatePipelineHandle(pipelineHandle);
-			pipelineHandle->Init(layout, renderPass, state, binding);
+			if (!pipelineHandle->Init(layout, renderPass, state, binding))
+			{
+				pipelineHandle->UnInit();
+				return false;
+			}
 
 			std::string debugName;
 

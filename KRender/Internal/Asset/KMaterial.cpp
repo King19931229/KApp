@@ -235,19 +235,17 @@ const IKMaterialTextureBindingPtr KMaterial::GetTextureBinding()
 
 const IKMaterialParameterPtr KMaterial::GetParameter()
 {
-	if (m_ShaderMap.IsFSTemplateLoaded())
+	if (const KShaderInformation* fsInfo = m_ShaderMap.GetFSInformation())
 	{
-		const KShaderInformation& fsInfo = *m_ShaderMap.GetFSInformation();
-
 		if (!m_Parameter || m_ParameterNeedRebuild)
 		{
-			CreateParameter(fsInfo, m_Parameter);
+			CreateParameter(*fsInfo, m_Parameter);
 			m_ParameterNeedRebuild = false;
 		}
 
 		if (!m_ParameterVerified)
 		{
-			VerifyParameter(m_Parameter, fsInfo);
+			VerifyParameter(m_Parameter, *fsInfo);
 			m_ParameterVerified = true;
 		}
 
@@ -264,15 +262,14 @@ const KShaderInformation::Constant* KMaterial::GetShadingInfo()
 	}
 	else
 	{
-		if (m_ShaderMap.IsFSTemplateLoaded())
+		if (const KShaderInformation* fsInfo = m_ShaderMap.GetFSInformation())
 		{
 			m_ConstantInfo.bindingIndex = SHADER_BINDING_SHADING;
 			m_ConstantInfo.members.clear();
 			m_ConstantInfo.size = 0;
 			m_ConstantInfo.descriptorSetIndex = 0;
 
-			const KShaderInformation& fsInfo = *m_ShaderMap.GetFSInformation();
-			for (const KShaderInformation::Constant& constant : fsInfo.dynamicConstants)
+			for (const KShaderInformation::Constant& constant : fsInfo->dynamicConstants)
 			{
 				if (constant.bindingIndex == SHADER_BINDING_SHADING)
 				{					
@@ -300,6 +297,11 @@ const KShaderInformation* KMaterial::GetFSInformation()
 
 IKPipelinePtr KMaterial::CreatePipelineInternal(const PipelineCreateContext& context, const VertexFormat* formats, size_t count, IKShaderPtr vertexShader, IKShaderPtr fragmentShader)
 {
+	if (!vertexShader || !fragmentShader) return nullptr;
+	vertexShader->WaitForDevice();
+	fragmentShader->WaitForDevice();
+	if (vertexShader->GetResourceState() != RS_DEVICE_LOADED || fragmentShader->GetResourceState() != RS_DEVICE_LOADED) return nullptr;
+
 	if (GetParameter())
 	{
 		IKPipelinePtr pipeline = nullptr;
@@ -761,8 +763,30 @@ bool KMaterial::InitFromFile(const std::string& path, bool async)
 					}
 				};
 
-				if (m_ShaderMap.Init(initContext, async))
+				if (m_ShaderMap.Init(initContext, KRenderGlobal::EnableAsyncShaderCompile))
 				{
+					initContext.vsFile = "shadow/cascaded/static_shadow.vert";
+					initContext.fsFile = "shadow/cascaded/shadow.frag";
+					if (!m_StaticCSMShaderMap.Init(initContext, KRenderGlobal::EnableAsyncShaderCompile))
+					{
+						UnInit();
+						return false;
+					}
+
+					initContext.vsFile = "shadow/cascaded/dynamic_shadow.vert";
+					initContext.fsFile = "shadow/cascaded/shadow.frag";
+					if (!m_DynamicCSMShaderMap.Init(initContext, KRenderGlobal::EnableAsyncShaderCompile))
+					{
+						UnInit();
+						return false;
+					}
+
+					if (!GetParameter())
+					{
+						UnInit();
+						return false;
+					}
+
 					IKXMLElementPtr fsParameterEle = root->FirstChildElement(msFSParameterKey);
 
 					if (fsParameterEle && !fsParameterEle->IsEmpty())
@@ -778,20 +802,13 @@ bool KMaterial::InitFromFile(const std::string& path, bool async)
 						}
 					}
 
-					initContext.vsFile = "shadow/cascaded/static_shadow.vert";
-					initContext.fsFile = "shadow/cascaded/shadow.frag";
-					m_StaticCSMShaderMap.Init(initContext, async);
-
-					initContext.vsFile = "shadow/cascaded/dynamic_shadow.vert";
-					initContext.fsFile = "shadow/cascaded/shadow.frag";
-					m_DynamicCSMShaderMap.Init(initContext, async);
-
 					return true;
 				}
 			}
 		}
 	}
 
+	UnInit();
 	return false;
 }
 
@@ -863,22 +880,38 @@ bool KMaterial::InitFromImportAssetMaterial(const KMeshRawData::Material& input,
 		initContext.vsFile = "shading/basepass.vert";
 		initContext.fsFile = "shading/basepass.frag";
 		initContext.macros = { {"BASE_PASS", "1"} };
-		ASSERT_RESULT(m_ShaderMap.Init(initContext, async));
+		if (!m_ShaderMap.Init(initContext, KRenderGlobal::EnableAsyncShaderCompile))
+		{
+			UnInit();
+			return false;
+		}
 
 		initContext.vsFile = "shadow/cascaded/static_shadow.vert";
 		initContext.fsFile = "shadow/cascaded/shadow.frag";
 		initContext.macros = { {"SHADOW_PASS", "1"} };
-		ASSERT_RESULT(m_StaticCSMShaderMap.Init(initContext, async));
+		if (!m_StaticCSMShaderMap.Init(initContext, KRenderGlobal::EnableAsyncShaderCompile))
+		{
+			UnInit();
+			return false;
+		}
 
 		initContext.vsFile = "shadow/cascaded/dynamic_shadow.vert";
 		initContext.fsFile = "shadow/cascaded/shadow.frag";
 		initContext.macros = { {"CASCADED_SHADOW_PASS", "1"} };
-		ASSERT_RESULT(m_DynamicCSMShaderMap.Init(initContext, async));
+		if (!m_DynamicCSMShaderMap.Init(initContext, KRenderGlobal::EnableAsyncShaderCompile))
+		{
+			UnInit();
+			return false;
+		}
 
 		initContext.vsFile = "virtualtexture/vt_basepass.vert";
 		initContext.fsFile = "virtualtexture/vt_basepass.frag";
 		initContext.macros = { {"VIRTUAL_TEXTURE_FEEDBACK_PASS", "1"} };
-		ASSERT_RESULT(m_VirtualFeedbackShaderMap.Init(initContext, async));
+		if (!m_VirtualFeedbackShaderMap.Init(initContext, KRenderGlobal::EnableAsyncShaderCompile))
+		{
+			UnInit();
+			return false;
+		}
 
 		m_ShadingMode = MSM_OPAQUE;
 	}
@@ -887,17 +920,29 @@ bool KMaterial::InitFromImportAssetMaterial(const KMeshRawData::Material& input,
 		initContext.vsFile = "shading/basepass.vert";
 		initContext.fsFile = "shading/translucent.frag";
 		initContext.macros = { {"TRANSRPANT_PASS", "1"} };
-		ASSERT_RESULT(m_ShaderMap.Init(initContext, async));
+		if (!m_ShaderMap.Init(initContext, KRenderGlobal::EnableAsyncShaderCompile))
+		{
+			UnInit();
+			return false;
+		}
 
 		initContext.vsFile = "shading/basepass.vert";
 		initContext.fsFile = "shading/translucent.frag";
 		initContext.macros = { {"DEPTH_PEELING_TRANSRPANT_PASS", "1"} };
-		ASSERT_RESULT(m_DepthPeelShaderMap.Init(initContext, async));
+		if (!m_DepthPeelShaderMap.Init(initContext, KRenderGlobal::EnableAsyncShaderCompile))
+		{
+			UnInit();
+			return false;
+		}
 
 		initContext.vsFile = "shading/basepass.vert";
 		initContext.fsFile = "shading/translucent.frag";
 		initContext.macros = { {"DEPTH_PEELING_OUTPUT_TO_ABUFFER", "1"} };
-		ASSERT_RESULT(m_ABufferDepthPeelShaderMap.Init(initContext, async));
+		if (!m_ABufferDepthPeelShaderMap.Init(initContext, KRenderGlobal::EnableAsyncShaderCompile))
+		{
+			UnInit();
+			return false;
+		}
 
 		m_ShadingMode = MSM_TRANSRPANT;
 	}
@@ -906,12 +951,19 @@ bool KMaterial::InitFromImportAssetMaterial(const KMeshRawData::Material& input,
 		initContext.vsFile = "shading/basepass.vert";
 		initContext.fsFile = "shading/basepass.frag";
 		initContext.macros = { {"PRE_PASS", "1"} };
-		ASSERT_RESULT(m_PrePassShaderMap.Init(initContext, async));
+		if (!m_PrePassShaderMap.Init(initContext, KRenderGlobal::EnableAsyncShaderCompile))
+		{
+			UnInit();
+			return false;
+		}
 	}
 
+	if (!GetParameter())
+	{
+		UnInit();
+		return false;
+	}
 	m_DoubleSide = input.doubleSided;
-
-	GetParameter();
 
 	m_Parameter->SetValue("baseColorFactor", MaterialValueType::FLOAT, 4, &input.baseColorFactor);
 	m_Parameter->SetValue("emissiveFactor", MaterialValueType::FLOAT, 4, &input.emissiveFactor);

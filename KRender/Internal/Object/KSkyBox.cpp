@@ -68,8 +68,8 @@ void KSkyBox::LoadResource(const char* cubeTexPath)
 	m_CubeSampler->SetFilterMode(FM_LINEAR, FM_LINEAR);
 	m_CubeSampler->Init(0, m_CubeTexture->GetMipmaps() - 1);
 
-	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "others/skybox.vert", m_VertexShader, false));
-	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "others/skybox.frag", m_FragmentShader, false));
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "others/skybox.vert", m_VertexShader, KRenderGlobal::EnableAsyncShaderCompile));
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "others/skybox.frag", m_FragmentShader, KRenderGlobal::EnableAsyncShaderCompile));
 
 	m_VertexBuffer->InitMemory(ARRAY_SIZE(ms_Positions), sizeof(ms_Positions[0]), ms_Positions);
 	m_VertexBuffer->InitDevice(false);

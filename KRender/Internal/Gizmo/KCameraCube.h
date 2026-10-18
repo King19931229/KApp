@@ -70,8 +70,8 @@ protected:
 	KIndexData m_CornerIndexData;
 
 	// Shader
-	IKShaderPtr m_VertexShader;
-	IKShaderPtr m_FragmentShader;
+	KShaderRef m_VertexShader;
+	KShaderRef m_FragmentShader;
 
 	static const glm::vec3 CubeFaceColor[6];
 

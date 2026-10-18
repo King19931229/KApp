@@ -102,27 +102,27 @@ void KVirtualGeometryStreamingManager::Init(uint32_t maxStreamingPages, uint32_t
 
 		KRenderGlobal::RenderDevice->CreateComputePipeline(m_StreamingRequestClearPipelines[frameIndex]);
 		m_StreamingRequestClearPipelines[frameIndex]->BindStorageBuffer(BINDING_STREAMING_REQUEST, m_StreamingRequestBuffers[frameIndex], COMPUTE_RESOURCE_OUT, true);
-		m_StreamingRequestClearPipelines[frameIndex]->Init("virtualgeometry/streaming_request_clear.comp", KRenderGlobal::VirtualGeometryManager.GetDefaultBindingEnv());
+		m_StreamingRequestClearPipelines[frameIndex]->Init("virtualgeometry/streaming_request_clear.comp", KRenderGlobal::VirtualGeometryManager.GetDefaultBindingEnv(), KRenderGlobal::EnableAsyncShaderCompile);
 
 		KRenderGlobal::RenderDevice->CreateComputePipeline(m_PageUploadPipelines[frameIndex]);
 		m_PageUploadPipelines[frameIndex]->BindStorageBuffer(BINDING_PAGE_DATA, m_PageDataBuffer, COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, true);
 		m_PageUploadPipelines[frameIndex]->BindStorageBuffer(BINDING_PAGE_UPLOAD, m_PageUploadBuffers[frameIndex], COMPUTE_RESOURCE_IN, true);
 		m_PageUploadPipelines[frameIndex]->BindUniformBuffer(BINDING_STREAMING_DATA, m_StreamingDataBuffer);
-		m_PageUploadPipelines[frameIndex]->Init("virtualgeometry/page_upload.comp", KRenderGlobal::VirtualGeometryManager.GetDefaultBindingEnv());
+		m_PageUploadPipelines[frameIndex]->Init("virtualgeometry/page_upload.comp", KRenderGlobal::VirtualGeometryManager.GetDefaultBindingEnv(), KRenderGlobal::EnableAsyncShaderCompile);
 
 		KRenderGlobal::RenderDevice->CreateComputePipeline(m_ClusterFixupUploadPipelines[frameIndex]);
 		m_ClusterFixupUploadPipelines[frameIndex]->BindStorageBuffer(BINDING_HIERARCHY_DATA, KRenderGlobal::VirtualGeometryManager.GetPackedHierarchyBuffer(), COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, true);
 		m_ClusterFixupUploadPipelines[frameIndex]->BindStorageBuffer(BINDING_PAGE_DATA, m_PageDataBuffer, COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, true);
 		m_ClusterFixupUploadPipelines[frameIndex]->BindStorageBuffer(BINDING_CLUSTER_FIXUP_UPLOAD, m_ClusterFixupUploadBuffers[frameIndex], COMPUTE_RESOURCE_IN, true);
 		m_ClusterFixupUploadPipelines[frameIndex]->BindUniformBuffer(BINDING_STREAMING_DATA, m_StreamingDataBuffer);
-		m_ClusterFixupUploadPipelines[frameIndex]->Init("virtualgeometry/cluster_fixup_upload.comp", KRenderGlobal::VirtualGeometryManager.GetDefaultBindingEnv());
+		m_ClusterFixupUploadPipelines[frameIndex]->Init("virtualgeometry/cluster_fixup_upload.comp", KRenderGlobal::VirtualGeometryManager.GetDefaultBindingEnv(), KRenderGlobal::EnableAsyncShaderCompile);
 
 		KRenderGlobal::RenderDevice->CreateComputePipeline(m_HierarchyFixupUploadPipelines[frameIndex]);
 		m_HierarchyFixupUploadPipelines[frameIndex]->BindStorageBuffer(BINDING_HIERARCHY_DATA, KRenderGlobal::VirtualGeometryManager.GetPackedHierarchyBuffer(), COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, true);
 		m_HierarchyFixupUploadPipelines[frameIndex]->BindStorageBuffer(BINDING_PAGE_DATA, m_PageDataBuffer, COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, true);
 		m_HierarchyFixupUploadPipelines[frameIndex]->BindStorageBuffer(BINDING_HIERARCHY_FIXUP_UPLOAD, m_HierarchyFixupUploadBuffers[frameIndex], COMPUTE_RESOURCE_IN, true);
 		m_HierarchyFixupUploadPipelines[frameIndex]->BindUniformBuffer(BINDING_STREAMING_DATA, m_StreamingDataBuffer);
-		m_HierarchyFixupUploadPipelines[frameIndex]->Init("virtualgeometry/hierarchy_fixup_upload.comp", KRenderGlobal::VirtualGeometryManager.GetDefaultBindingEnv());
+		m_HierarchyFixupUploadPipelines[frameIndex]->Init("virtualgeometry/hierarchy_fixup_upload.comp", KRenderGlobal::VirtualGeometryManager.GetDefaultBindingEnv(), KRenderGlobal::EnableAsyncShaderCompile);
 	}
 }
 

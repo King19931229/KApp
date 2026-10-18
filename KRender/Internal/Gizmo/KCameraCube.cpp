@@ -322,8 +322,8 @@ KCameraCube::~KCameraCube()
 
 void KCameraCube::LoadResource()
 {
-	ASSERT_RESULT(m_VertexShader->InitFromFile(ST_VERTEX, "others/cameracube.vert", false));
-	ASSERT_RESULT(m_FragmentShader->InitFromFile(ST_FRAGMENT, "others/cameracube.frag", false));
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "others/cameracube.vert", m_VertexShader, KRenderGlobal::EnableAsyncShaderCompile));
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "others/cameracube.frag", m_FragmentShader, KRenderGlobal::EnableAsyncShaderCompile));
 
 	m_BackGroundVertexBuffer->InitMemory(ARRAY_SIZE(ms_BackGroundVertices), sizeof(ms_BackGroundVertices[0]), ms_BackGroundVertices);
 	m_BackGroundVertexBuffer->InitDevice(false);
@@ -374,8 +374,8 @@ void KCameraCube::PreparePipeline()
 		pipeline->SetFrontFace(FF_CLOCKWISE);
 
 		pipeline->SetDepthFunc(CF_ALWAYS, false, false);
-		pipeline->SetShader(ST_VERTEX, m_VertexShader);
-		pipeline->SetShader(ST_FRAGMENT, m_FragmentShader);
+		pipeline->SetShader(ST_VERTEX, m_VertexShader.Get());
+		pipeline->SetShader(ST_FRAGMENT, m_FragmentShader.Get());
 
 		ASSERT_RESULT(pipeline->Init());
 	}
@@ -390,8 +390,8 @@ void KCameraCube::PreparePipeline()
 		pipeline->SetFrontFace(FF_CLOCKWISE);
 
 		pipeline->SetDepthFunc(CF_LESS, true, true);
-		pipeline->SetShader(ST_VERTEX, m_VertexShader);
-		pipeline->SetShader(ST_FRAGMENT, m_FragmentShader);
+		pipeline->SetShader(ST_VERTEX, m_VertexShader.Get());
+		pipeline->SetShader(ST_FRAGMENT, m_FragmentShader.Get());
 
 
 		ASSERT_RESULT(pipeline->Init());
@@ -407,8 +407,8 @@ void KCameraCube::PreparePipeline()
 		pipeline->SetFrontFace(FF_CLOCKWISE);
 
 		pipeline->SetDepthFunc(CF_ALWAYS, false, false);
-		pipeline->SetShader(ST_VERTEX, m_VertexShader);
-		pipeline->SetShader(ST_FRAGMENT, m_FragmentShader);
+		pipeline->SetShader(ST_VERTEX, m_VertexShader.Get());
+		pipeline->SetShader(ST_FRAGMENT, m_FragmentShader.Get());
 
 		ASSERT_RESULT(pipeline->Init());
 	}
@@ -471,9 +471,6 @@ bool KCameraCube::Init(IKRenderDevice* renderDevice, KCamera* camera)
 
 	m_Camera = camera;
 
-	renderDevice->CreateShader(m_VertexShader);
-	renderDevice->CreateShader(m_FragmentShader);
-
 	renderDevice->CreateVertexBuffer(m_BackGroundVertexBuffer);
 	renderDevice->CreateIndexBuffer(m_BackGroundIndexBuffer);
 
@@ -522,8 +519,8 @@ bool KCameraCube::UnInit()
 	SAFE_UNINIT_CONTAINER(m_CornerVertexBuffer);
 	SAFE_UNINIT(m_CornerIndexBuffer);
 
-	SAFE_UNINIT(m_VertexShader);
-	SAFE_UNINIT(m_FragmentShader);
+	m_VertexShader.Release();
+	m_FragmentShader.Release();
 
 	return true;
 }

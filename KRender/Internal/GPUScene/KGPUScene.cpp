@@ -254,7 +254,7 @@ uint32_t KGPUScene::CreateOrGetMegaShaderIndex(KSubMeshPtr subMesh, IKMaterialPt
 				pipeline->BindStorageBuffer(GPUSCENE_BINDING_GROUP_DATA, m_GroupDataBuffers[frameIndex], COMPUTE_RESOURCE_IN, true);
 				pipeline->BindStorageBuffer(GPUSCENE_BINDING_INDIRECT_DRAW_ARGS, newItem.indirectDrawArgsBuffers[frameIndex], COMPUTE_RESOURCE_OUT, true);
 				pipeline->BindDynamicUniformBuffer(GPUSCENE_BINDING_OBJECT);
-				pipeline->Init("gpuscene/calc_draw_args.comp", m_ComputeBindingEnv);
+				pipeline->Init("gpuscene/calc_draw_args.comp", m_ComputeBindingEnv, KRenderGlobal::EnableAsyncShaderCompile);
 				newItem.calcDrawArgsPipelines[frameIndex] = pipeline;
 			}
 		}
@@ -1126,7 +1126,7 @@ void KGPUScene::InitializePipelines()
 		m_InitStatePipelines[i]->BindStorageBuffer(GPUSCENE_BINDING_SCENE_STATE, m_SceneStateBuffers[i], COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, true);
 		m_InitStatePipelines[i]->BindStorageBuffer(GPUSCENE_BINDING_MEGA_SHADER_STATE, m_MegaShaderStateBuffers[i], COMPUTE_RESOURCE_OUT, true);
 		m_InitStatePipelines[i]->BindStorageBuffer(GPUSCENE_BINDING_INDIRECT_DISPATCH_ARGS, m_DispatchArgsBuffers[i], COMPUTE_RESOURCE_OUT, true);
-		m_InitStatePipelines[i]->Init("gpuscene/init_state.comp", m_ComputeBindingEnv);
+		m_InitStatePipelines[i]->Init("gpuscene/init_state.comp", m_ComputeBindingEnv, KRenderGlobal::EnableAsyncShaderCompile);
 
 		KRenderGlobal::RenderDevice->CreateComputePipeline(m_InstanceCullPipelines[i]);
 		m_InstanceCullPipelines[i]->BindDynamicUniformBuffer(GPUSCENE_BINDING_OBJECT);
@@ -1136,17 +1136,17 @@ void KGPUScene::InitializePipelines()
 		m_InstanceCullPipelines[i]->BindStorageBuffer(GPUSCENE_BINDING_INSTANCE_CULL_RESULT, m_InstanceCullResultBuffers[i], COMPUTE_RESOURCE_OUT, true);
 		m_InstanceCullPipelines[i]->BindStorageBuffer(GPUSCENE_BINDING_INDIRECT_DISPATCH_ARGS, m_DispatchArgsBuffers[i], COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, true);
 		m_InstanceCullPipelines[i]->BindStorageBuffer(GPUSCENE_BINDING_MEGA_SHADER_STATE, m_MegaShaderStateBuffers[i], COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, true);
-		m_InstanceCullPipelines[i]->Init("gpuscene/instance_cull.comp", m_ComputeBindingEnv);
+		m_InstanceCullPipelines[i]->Init("gpuscene/instance_cull.comp", m_ComputeBindingEnv, KRenderGlobal::EnableAsyncShaderCompile);
 
 		KRenderGlobal::RenderDevice->CreateComputePipeline(m_CalcDispatchArgsPipelines[i]);
 		m_CalcDispatchArgsPipelines[i]->BindStorageBuffer(GPUSCENE_BINDING_SCENE_STATE, m_SceneStateBuffers[i], COMPUTE_RESOURCE_IN, true);
 		m_CalcDispatchArgsPipelines[i]->BindStorageBuffer(GPUSCENE_BINDING_INDIRECT_DISPATCH_ARGS, m_DispatchArgsBuffers[i], COMPUTE_RESOURCE_OUT, true);
-		m_CalcDispatchArgsPipelines[i]->Init("gpuscene/calc_dispatch_args.comp", m_ComputeBindingEnv);
+		m_CalcDispatchArgsPipelines[i]->Init("gpuscene/calc_dispatch_args.comp", m_ComputeBindingEnv, KRenderGlobal::EnableAsyncShaderCompile);
 
 		KRenderGlobal::RenderDevice->CreateComputePipeline(m_GroupAllocatePipelines[i]);
 		m_GroupAllocatePipelines[i]->BindStorageBuffer(GPUSCENE_BINDING_SCENE_STATE, m_SceneStateBuffers[i], COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, true);
 		m_GroupAllocatePipelines[i]->BindStorageBuffer(GPUSCENE_BINDING_MEGA_SHADER_STATE, m_MegaShaderStateBuffers[i], COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, true);
-		m_GroupAllocatePipelines[i]->Init("gpuscene/group_allocate.comp", m_ComputeBindingEnv);
+		m_GroupAllocatePipelines[i]->Init("gpuscene/group_allocate.comp", m_ComputeBindingEnv, KRenderGlobal::EnableAsyncShaderCompile);
 
 		KRenderGlobal::RenderDevice->CreateComputePipeline(m_GroupScatterPipelines[i]);
 		m_GroupScatterPipelines[i]->BindStorageBuffer(GPUSCENE_BINDING_SCENE_STATE, m_SceneStateBuffers[i], COMPUTE_RESOURCE_IN, true);
@@ -1154,7 +1154,7 @@ void KGPUScene::InitializePipelines()
 		m_GroupScatterPipelines[i]->BindStorageBuffer(GPUSCENE_BINDING_INSTANCE_CULL_RESULT, m_InstanceCullResultBuffers[i], COMPUTE_RESOURCE_IN, true);
 		m_GroupScatterPipelines[i]->BindStorageBuffer(GPUSCENE_BINDING_MEGA_SHADER_STATE, m_MegaShaderStateBuffers[i], COMPUTE_RESOURCE_IN, true);
 		m_GroupScatterPipelines[i]->BindStorageBuffer(GPUSCENE_BINDING_GROUP_DATA, m_GroupDataBuffers[i], COMPUTE_RESOURCE_OUT, true);
-		m_GroupScatterPipelines[i]->Init("gpuscene/group_scatter.comp", m_ComputeBindingEnv);
+		m_GroupScatterPipelines[i]->Init("gpuscene/group_scatter.comp", m_ComputeBindingEnv, KRenderGlobal::EnableAsyncShaderCompile);
 	}
 }
 

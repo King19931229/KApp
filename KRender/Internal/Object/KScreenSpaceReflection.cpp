@@ -224,13 +224,13 @@ bool KScreenSpaceReflection::Init(uint32_t width, uint32_t height, float ratio, 
 	KRenderGlobal::RenderDevice->CreateRenderPass(m_TemporalPass);
 	KRenderGlobal::RenderDevice->CreateRenderPass(m_ComposePass);
 
-	KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "shading/quad.vert", m_QuadVS, false);
-	KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "ssr/ssr.frag", m_ReflectionFS, false);
-	KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "ssr/ssr_reuse.frag", m_RayReuseFS, false);
-	KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "ssr/ssr_temporal.frag", m_TemporalFS, false);
-	KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "ssr/ssr_blit.frag", m_BlitFS, false);
-	KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "ssr/ssr_atrous.frag", m_AtrousFS, false);
-	KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "ssr/ssr_compose.frag", m_ComposeFS, false);
+	KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "shading/quad.vert", m_QuadVS, KRenderGlobal::EnableAsyncShaderCompile);
+	KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "ssr/ssr.frag", m_ReflectionFS, KRenderGlobal::EnableAsyncShaderCompile);
+	KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "ssr/ssr_reuse.frag", m_RayReuseFS, KRenderGlobal::EnableAsyncShaderCompile);
+	KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "ssr/ssr_temporal.frag", m_TemporalFS, KRenderGlobal::EnableAsyncShaderCompile);
+	KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "ssr/ssr_blit.frag", m_BlitFS, KRenderGlobal::EnableAsyncShaderCompile);
+	KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "ssr/ssr_atrous.frag", m_AtrousFS, KRenderGlobal::EnableAsyncShaderCompile);
+	KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "ssr/ssr_compose.frag", m_ComposeFS, KRenderGlobal::EnableAsyncShaderCompile);
 
 	Resize(width, height);
 

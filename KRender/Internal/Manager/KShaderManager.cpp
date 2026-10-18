@@ -204,6 +204,7 @@ bool KShaderManager::UnInit()
 
 bool KShaderManager::Reload()
 {
+	bool success = true;
 	ClearSourceCache();
 	for (auto it = m_Shaders.begin(), itEnd = m_Shaders.end(); it != itEnd; ++it)
 	{
@@ -211,10 +212,10 @@ bool KShaderManager::Reload()
 		for (auto it = variantionMap.begin(), itEnd = variantionMap.end(); it != itEnd; ++it)
 		{
 			KShaderRef& ref = it->second;
-			ASSERT_RESULT((*ref)->Reload());
+			success = (*ref)->Reload() && success;
 		}
 	}
-	return true;
+	return success;
 }
 
 bool KShaderManager::ClearSourceCache()
@@ -262,27 +263,42 @@ bool KShaderManager::AcquireByEnvironment(ShaderType type, const char* path, con
 	size_t hash = CalcVariantionHash(env);
 
 	auto itVar = variantionMap.find(hash);
+	if (itVar != variantionMap.end() && itVar->second->GetResourceState() == RS_UNLOADED)
+	{
+		variantionMap.erase(itVar);
+		ClearSourceCache();
+		itVar = variantionMap.end();
+	}
 	if (itVar == variantionMap.end())
 	{
 		IKShaderPtr soul;
 		KRenderGlobal::RenderDevice->CreateShader(soul);
 		ApplyEnvironment(soul, env);
-		if (soul->InitFromFile(type, path, async))
+		bool initialized = soul->InitFromFile(type, path, async);
+		KShaderRef ref(soul, [this](IKShaderPtr soul)
 		{
-			KShaderRef ref(soul, [this](IKShaderPtr soul)
-			{
-				Release(soul);
-			});
-			variantionMap[hash] = ref;
+			Release(soul);
+		});
+		variantionMap[hash] = ref;
+		if (initialized)
+		{
 			shader = ref;
 			return true;
 		}
 	}
 	else
 	{
+		assert(itVar->second->GetType() == type);
+		assert(strcmp(itVar->second->GetPath(), path) == 0);
+		if (!async)
+		{
+			itVar->second->WaitForDevice();
+			if (itVar->second->GetResourceState() != RS_DEVICE_LOADED)
+			{
+				return false;
+			}
+		}
 		shader = itVar->second;
-		assert((*shader)->GetType() == type);
-		assert(strcmp((*shader)->GetPath(), path) == 0);
 		return true;
 	}
 	return false;

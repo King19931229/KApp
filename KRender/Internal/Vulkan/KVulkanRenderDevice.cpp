@@ -23,7 +23,7 @@
 #include "KBase/Interface/IKLog.h"
 
 #if defined(_WIN32) && defined(_DEBUG)
-#define USE_VALIDAION_LAYER 1
+#define USE_VALIDAION_LAYER 0
 #else
 #define USE_VALIDAION_LAYER 0
 #endif

@@ -777,7 +777,7 @@ void KRenderCore::DebugCode()
 
 	VertexFormat formats[] = { VF_POINT_NORMAL_UV };
 
-	shaderMap.Init(initContext, false);
+	shaderMap.Init(initContext, KRenderGlobal::EnableAsyncShaderCompile);
 	shaderMap.GetVSShader(formats, ARRAY_SIZE(formats));
 	shaderMap.GetFSShader(formats, ARRAY_SIZE(formats), nullptr);
 

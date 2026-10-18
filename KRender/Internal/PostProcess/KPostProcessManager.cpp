@@ -55,8 +55,8 @@ bool KPostProcessManager::Init(size_t width, size_t height,
 	m_Width = width;
 	m_Height = height;
 
-	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "postprocess/screenquad.vert", m_ScreenDrawVS, false));
-	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "postprocess/screenquad.frag", m_ScreenDrawFS, false));
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "postprocess/screenquad.vert", m_ScreenDrawVS, KRenderGlobal::EnableAsyncShaderCompile));
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "postprocess/screenquad.frag", m_ScreenDrawFS, KRenderGlobal::EnableAsyncShaderCompile));
 
 	KRenderGlobal::RenderDevice->CreateSampler(m_Sampler);
 	m_Sampler->SetFilterMode(FM_LINEAR, FM_LINEAR);

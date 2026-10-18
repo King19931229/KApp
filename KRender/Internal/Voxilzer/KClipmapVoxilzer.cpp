@@ -1000,7 +1000,7 @@ void KClipmapVoxilzer::SetupVoxelPipeline()
 	m_ClearRegionPipeline->BindUniformBuffer(SHADER_BINDING_VOXEL_CLIPMAP, voxelBuffer);
 	m_ClearRegionPipeline->BindDynamicUniformBuffer(SHADER_BINDING_OBJECT);
 
-	m_ClearRegionPipeline->Init("voxel/clipmap/lighting/clear_region.comp", KShaderCompileEnvironment());
+	m_ClearRegionPipeline->Init("voxel/clipmap/lighting/clear_region.comp", KShaderCompileEnvironment(), KRenderGlobal::EnableAsyncShaderCompile);
 
 	IKSamplerPtr csmSampler = KRenderGlobal::CascadedShadowMap.GetSampler();
 
@@ -1012,7 +1012,7 @@ void KClipmapVoxilzer::SetupVoxelPipeline()
 	m_ClearRadiancePipeline->BindUniformBuffer(SHADER_BINDING_VOXEL_CLIPMAP, voxelBuffer);
 	m_ClearRadiancePipeline->BindStorageImage(VOXEL_CLIPMAP_BINDING_RADIANCE, m_VoxelRadiance->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_OUT, 0, false);
 	m_ClearRadiancePipeline->BindDynamicUniformBuffer(SHADER_BINDING_OBJECT);
-	m_ClearRadiancePipeline->Init("voxel/clipmap/lighting/clear_radiance.comp", KShaderCompileEnvironment());
+	m_ClearRadiancePipeline->Init("voxel/clipmap/lighting/clear_radiance.comp", KShaderCompileEnvironment(), KRenderGlobal::EnableAsyncShaderCompile);
 
 	// Inject Radiance
 	m_InjectRadiancePipeline->BindUniformBuffer(SHADER_BINDING_GLOBAL, globalBuffer);
@@ -1035,7 +1035,7 @@ void KClipmapVoxilzer::SetupVoxelPipeline()
 	m_InjectRadiancePipeline->BindUniformBuffer(SHADER_BINDING_CAMERA, cameraBuffer);
 	m_InjectRadiancePipeline->BindUniformBuffer(SHADER_BINDING_STATIC_CASCADED_SHADOW, shadowBuffer);
 
-	m_InjectRadiancePipeline->Init("voxel/clipmap/lighting/inject_radiance.comp", KShaderCompileEnvironment());
+	m_InjectRadiancePipeline->Init("voxel/clipmap/lighting/inject_radiance.comp", KShaderCompileEnvironment(), KRenderGlobal::EnableAsyncShaderCompile);
 
 	// Inject Propagation
 	m_InjectPropagationPipeline->BindUniformBuffer(SHADER_BINDING_GLOBAL, globalBuffer);
@@ -1049,25 +1049,25 @@ void KClipmapVoxilzer::SetupVoxelPipeline()
 	m_InjectPropagationPipeline->BindSampler(VOXEL_CLIPMAP_BINDING_RADIANCE2, m_VoxelRadiance->GetFrameBuffer(), m_LinearSampler, false);
 	m_InjectPropagationPipeline->BindDynamicUniformBuffer(SHADER_BINDING_OBJECT);
 
-	m_InjectPropagationPipeline->Init("voxel/clipmap/lighting/inject_propagation.comp", KShaderCompileEnvironment());
+	m_InjectPropagationPipeline->Init("voxel/clipmap/lighting/inject_propagation.comp", KShaderCompileEnvironment(), KRenderGlobal::EnableAsyncShaderCompile);
 
 	// DownSample Visibility
 	m_DownSampleVisibilityPipeline->BindUniformBuffer(SHADER_BINDING_VOXEL_CLIPMAP, voxelBuffer);
 	m_DownSampleVisibilityPipeline->BindStorageImage(VOXEL_CLIPMAP_BINDING_VISIBILITY, m_VoxelVisibility->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, 0, false);
 	m_DownSampleVisibilityPipeline->BindDynamicUniformBuffer(SHADER_BINDING_OBJECT);
-	m_DownSampleVisibilityPipeline->Init("voxel/clipmap/lighting/downsample_visibility.comp", KShaderCompileEnvironment());
+	m_DownSampleVisibilityPipeline->Init("voxel/clipmap/lighting/downsample_visibility.comp", KShaderCompileEnvironment(), KRenderGlobal::EnableAsyncShaderCompile);
 
 	// DownSample Visibility
 	m_DownSampleRadiancePipeline->BindUniformBuffer(SHADER_BINDING_VOXEL_CLIPMAP, voxelBuffer);
 	m_DownSampleRadiancePipeline->BindStorageImage(VOXEL_CLIPMAP_BINDING_RADIANCE, m_VoxelRadiance->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, 0, false);
 	m_DownSampleRadiancePipeline->BindDynamicUniformBuffer(SHADER_BINDING_OBJECT);
-	m_DownSampleRadiancePipeline->Init("voxel/clipmap/lighting/downsample_radiance.comp", KShaderCompileEnvironment());
+	m_DownSampleRadiancePipeline->Init("voxel/clipmap/lighting/downsample_radiance.comp", KShaderCompileEnvironment(), KRenderGlobal::EnableAsyncShaderCompile);
 
 	// WrapBorder
 	m_WrapRadianceBorderPipeline->BindUniformBuffer(SHADER_BINDING_VOXEL_CLIPMAP, voxelBuffer);
 	m_WrapRadianceBorderPipeline->BindStorageImage(VOXEL_CLIPMAP_BINDING_RADIANCE, m_VoxelRadiance->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, 0, false);
 	m_WrapRadianceBorderPipeline->BindDynamicUniformBuffer(SHADER_BINDING_OBJECT);
-	m_WrapRadianceBorderPipeline->Init("voxel/clipmap/lighting/wrap_border_radiance.comp", KShaderCompileEnvironment());
+	m_WrapRadianceBorderPipeline->Init("voxel/clipmap/lighting/wrap_border_radiance.comp", KShaderCompileEnvironment(), KRenderGlobal::EnableAsyncShaderCompile);
 
 	KRenderGlobal::ImmediateCommandList.BeginRecord();
 	for (uint32_t cascadedIndex = 0; cascadedIndex < KRenderGlobal::CascadedShadowMap.GetNumCascaded(); ++cascadedIndex)
@@ -1080,10 +1080,10 @@ void KClipmapVoxilzer::SetupVoxelPipeline()
 
 void KClipmapVoxilzer::SetupVoxelDrawPipeline()
 {
-	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "voxel/clipmap/draw/draw_voxels.vert", m_VoxelDrawVS, false));
-	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_GEOMETRY, "voxel/clipmap/draw/draw_voxels.geom", m_VoxelDrawGS, false));
-	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_GEOMETRY, "voxel/clipmap/draw/draw_voxels_wireframe.geom", m_VoxelWireFrameDrawGS, false));
-	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "voxel/clipmap/draw/draw_voxels.frag", m_VoxelDrawFS, false));
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "voxel/clipmap/draw/draw_voxels.vert", m_VoxelDrawVS, KRenderGlobal::EnableAsyncShaderCompile));
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_GEOMETRY, "voxel/clipmap/draw/draw_voxels.geom", m_VoxelDrawGS, KRenderGlobal::EnableAsyncShaderCompile));
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_GEOMETRY, "voxel/clipmap/draw/draw_voxels_wireframe.geom", m_VoxelWireFrameDrawGS, KRenderGlobal::EnableAsyncShaderCompile));
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "voxel/clipmap/draw/draw_voxels.frag", m_VoxelDrawFS, KRenderGlobal::EnableAsyncShaderCompile));
 
 	enum
 	{
@@ -1277,9 +1277,9 @@ bool KClipmapVoxilzer::Init(IKRenderScene* scene, const KCamera* camera, uint32_
 
 	m_ClipmapVolumeDimensionX6Face = m_ClipmapVolumeDimensionX * 6;
 
-	KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "voxel/quad.vert", m_QuadVS, false);
-	KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "voxel/clipmap/lighting/light_pass.frag", m_LightPassFS, false);
-	KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "voxel/clipmap/lighting/light_compose.frag", m_LightComposeFS, false);
+	KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "voxel/quad.vert", m_QuadVS, KRenderGlobal::EnableAsyncShaderCompile);
+	KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "voxel/clipmap/lighting/light_pass.frag", m_LightPassFS, KRenderGlobal::EnableAsyncShaderCompile);
+	KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "voxel/clipmap/lighting/light_compose.frag", m_LightComposeFS, KRenderGlobal::EnableAsyncShaderCompile);
 
 	IKRenderDevice* renderDevice = KRenderGlobal::RenderDevice;
 

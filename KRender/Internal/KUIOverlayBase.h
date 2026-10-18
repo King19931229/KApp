@@ -11,8 +11,8 @@ protected:
 	std::vector<IKIndexBufferPtr> m_IndexBuffers;
 	std::vector<IKVertexBufferPtr> m_VertexBuffers;
 
-	IKShaderPtr m_VertexShader;
-	IKShaderPtr m_FragmentShader;
+	KShaderRef m_VertexShader;
+	KShaderRef m_FragmentShader;
 
 	IKTexturePtr m_FontTexture;
 	IKSamplerPtr m_FontSampler;

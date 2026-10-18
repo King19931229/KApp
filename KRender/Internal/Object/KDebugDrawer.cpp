@@ -43,8 +43,8 @@ bool KRTDebugDrawer::Init(IKFrameBufferPtr frameBuffer, float x, float y, float 
 	m_Rect.w = width;
 	m_Rect.h = height;
 
-	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "others/debugquad.vert", m_VSShader, false));
-	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "others/debugquadcolor.frag", m_FSShader, false));
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "others/debugquad.vert", m_VSShader, KRenderGlobal::EnableAsyncShaderCompile));
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "others/debugquadcolor.frag", m_FSShader, KRenderGlobal::EnableAsyncShaderCompile));
 
 	KSamplerDescription samplerDesc;
 

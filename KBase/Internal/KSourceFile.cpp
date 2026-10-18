@@ -397,17 +397,7 @@ bool KSourceFile::Open(const char* pszFilePath)
 
 		if (Parse(m_FinalSource, m_FileDirPath, m_FileName, nullptr))
 		{
-			m_AnnotatedSource.clear();
-			std::vector<std::string> splitResult;
-			if (KStringUtil::Split(m_FinalSource, "\n", splitResult))
-			{
-				m_AnnotatedSource.reserve(m_FinalSource.length() + splitResult.size() * 5);
-				for (size_t i = 0; i < splitResult.size(); ++i)
-				{
-					const std::string& line = splitResult[i];
-					m_AnnotatedSource = m_AnnotatedSource + std::to_string(i + 1) + "> " + line + "\n";
-				}
-			}
+
 			return true;
 		}
 		Clear();
@@ -431,6 +421,7 @@ bool KSourceFile::Clear()
 	m_FileName.clear();
 	m_OriginalSource.clear();
 	m_FinalSource.clear();
+	m_AnnotatedSource.clear();
 	m_FileInfos.clear();
 	return true;
 }
@@ -623,5 +614,18 @@ const char* KSourceFile::GetFinalSource()
 
 const char* KSourceFile::GetAnnotatedSource()
 {
+	if (m_AnnotatedSource.empty() && !m_FinalSource.empty())
+	{
+		std::vector<std::string> splitResult;
+		if (KStringUtil::Split(m_FinalSource, "\n", splitResult))
+		{
+			m_AnnotatedSource.reserve(m_FinalSource.length() + splitResult.size() * 5);
+			for (size_t i = 0; i < splitResult.size(); ++i)
+			{
+				const std::string& line = splitResult[i];
+				m_AnnotatedSource += std::to_string(i + 1) + "> " + line + "\n";
+			}
+		}
+	}
 	return m_AnnotatedSource.c_str();
 }

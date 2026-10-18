@@ -145,9 +145,9 @@ bool KHiZBuffer::Init(uint32_t width, uint32_t height)
 {
 	UnInit();
 
-	KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "shading/quad.vert", m_QuadVS, false);
-	KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "shading/hiz_read.frag", m_ReadDepthFS, false);
-	KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "shading/hiz_build.frag", m_BuildHiZFS, false);
+	KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "shading/quad.vert", m_QuadVS, KRenderGlobal::EnableAsyncShaderCompile);
+	KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "shading/hiz_read.frag", m_ReadDepthFS, KRenderGlobal::EnableAsyncShaderCompile);
+	KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "shading/hiz_build.frag", m_BuildHiZFS, KRenderGlobal::EnableAsyncShaderCompile);
 
 	KRenderGlobal::RenderDevice->CreateRenderTarget(m_HiZMinBuffer);
 	KRenderGlobal::RenderDevice->CreateRenderTarget(m_HiZMaxBuffer);

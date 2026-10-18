@@ -88,9 +88,6 @@ bool KUIOverlayBase::Init()
 {
 	UnInit();
 
-	KRenderGlobal::RenderDevice->CreateShader(m_VertexShader);
-	KRenderGlobal::RenderDevice->CreateShader(m_FragmentShader);
-
 	KRenderGlobal::RenderDevice->CreateTexture(m_FontTexture);
 	KRenderGlobal::RenderDevice->CreateSampler(m_FontSampler);
 
@@ -132,17 +129,9 @@ bool KUIOverlayBase::UnInit()
 	}
 	m_VertexBuffers.clear();
 
-	if(m_VertexShader)
-	{
-		m_VertexShader->UnInit();
-		m_VertexShader = nullptr;
-	}
+	m_VertexShader.Release();
 
-	if(m_FragmentShader)
-	{
-		m_FragmentShader->UnInit();
-		m_FragmentShader = nullptr;
-	}
+	m_FragmentShader.Release();
 
 	if(m_FontTexture)
 	{
@@ -198,8 +187,8 @@ void KUIOverlayBase::PrepareResources()
 	m_FontSampler->SetFilterMode(FM_LINEAR, FM_LINEAR);
 	ASSERT_RESULT(m_FontSampler->Init(0, 0));
 
-	ASSERT_RESULT(m_VertexShader->InitFromFile(ST_VERTEX, "others/uioverlay.vert", false));
-	ASSERT_RESULT(m_FragmentShader->InitFromFile(ST_FRAGMENT, "others/uioverlay.frag", false));
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "others/uioverlay.vert", m_VertexShader, KRenderGlobal::EnableAsyncShaderCompile));
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "others/uioverlay.frag", m_FragmentShader, KRenderGlobal::EnableAsyncShaderCompile));
 }
 
 void KUIOverlayBase::PreparePipeline()
@@ -215,8 +204,8 @@ void KUIOverlayBase::PreparePipeline()
 	pipeline->SetFrontFace(FF_COUNTER_CLOCKWISE);
 	pipeline->SetPolygonMode(PM_FILL);
 	pipeline->SetDepthFunc(CF_ALWAYS, false, false);
-	pipeline->SetShader(ST_VERTEX, m_VertexShader);
-	pipeline->SetShader(ST_FRAGMENT, m_FragmentShader);
+	pipeline->SetShader(ST_VERTEX, m_VertexShader.Get());
+	pipeline->SetShader(ST_FRAGMENT, m_FragmentShader.Get());
 	pipeline->SetSampler(SHADER_BINDING_TEXTURE0, m_FontTexture->GetFrameBuffer(), m_FontSampler);
 
 	pipeline->CreateConstantBlock(ST_VERTEX, sizeof(m_PushConstBlock));

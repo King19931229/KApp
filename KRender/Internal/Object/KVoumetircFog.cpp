@@ -70,7 +70,7 @@ void KVolumetricFog::InitializePipeline()
 			m_VoxelLightInjectPipeline[i]->BindSampler(VOLUMETRIC_FOG_BINDING_DYNAMIC_CSM0 + cascadedIndex, shadowRT->GetFrameBuffer(), csmSampler, false);
 		}
 
-		m_VoxelLightInjectPipeline[i]->Init("volumetricfog/inject_light.comp", KShaderCompileEnvironment());
+		m_VoxelLightInjectPipeline[i]->Init("volumetricfog/inject_light.comp", KShaderCompileEnvironment(), KRenderGlobal::EnableAsyncShaderCompile);
 	}
 
 	for (uint32_t i = 0; i < 2; ++i)
@@ -78,7 +78,7 @@ void KVolumetricFog::InitializePipeline()
 		m_RayMatchPipeline[i]->BindDynamicUniformBuffer(SHADER_BINDING_OBJECT);
 		m_RayMatchPipeline[i]->BindSampler(VOLUMETRIC_FOG_BINDING_VOXEL_CURR, m_VoxelLightTarget[i]->GetFrameBuffer(), *m_VoxelSampler, false);
 		m_RayMatchPipeline[i]->BindStorageImage(VOLUMETRIC_FOG_BINDING_VOXEL_RESULT, m_RayMatchResultTarget->GetFrameBuffer(), VOXEL_FORMAT, COMPUTE_RESOURCE_OUT, 0, false);
-		m_RayMatchPipeline[i]->Init("volumetricfog/raymatch.comp", KShaderCompileEnvironment());
+		m_RayMatchPipeline[i]->Init("volumetricfog/raymatch.comp", KShaderCompileEnvironment(), KRenderGlobal::EnableAsyncShaderCompile);
 	}
 
 	m_ScatteringPipeline->SetVertexBinding(KRenderGlobal::QuadDataProvider.GetVertexFormat(), KRenderGlobal::QuadDataProvider.GetVertexFormatArraySize());
@@ -138,8 +138,8 @@ bool KVolumetricFog::Init(uint32_t gridX, uint32_t gridY, uint32_t gridZ, float 
 	m_Depth = depth;
 	m_MainCamera = camera;
 
-	KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "shading/quad.vert", m_QuadVS, false);
-	KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "volumetricfog/scattering.frag", m_ScatteringFS, false);
+	KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "shading/quad.vert", m_QuadVS, KRenderGlobal::EnableAsyncShaderCompile);
+	KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "volumetricfog/scattering.frag", m_ScatteringFS, KRenderGlobal::EnableAsyncShaderCompile);
 
 	KSamplerDescription desc;
 	desc.minFilter = desc.magFilter = FM_LINEAR;

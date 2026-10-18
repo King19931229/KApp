@@ -42,10 +42,10 @@ bool KDepthOfField::Init(uint32_t width, uint32_t height, float ratio)
 	KRenderGlobal::RenderDevice->CreatePipeline(m_HorizontalPipeline);
 	KRenderGlobal::RenderDevice->CreatePipeline(m_VerticalPipeline);
 
-	KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "shading/quad.vert", m_QuadVS, false);
-	KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "dof/coc.frag", m_CocFS, false);
-	KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "dof/horizontal.frag", m_HorizontalFS, false);
-	KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "dof/vertical.frag", m_VerticalFS, false);
+	KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "shading/quad.vert", m_QuadVS, KRenderGlobal::EnableAsyncShaderCompile);
+	KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "dof/coc.frag", m_CocFS, KRenderGlobal::EnableAsyncShaderCompile);
+	KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "dof/horizontal.frag", m_HorizontalFS, KRenderGlobal::EnableAsyncShaderCompile);
+	KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "dof/vertical.frag", m_VerticalFS, KRenderGlobal::EnableAsyncShaderCompile);
 
 	Resize(width, height);
 

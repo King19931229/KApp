@@ -214,15 +214,18 @@ bool KShaderMap::Init(const KShaderMapInitContext& context, bool async)
 	m_IncludeFiles = context.includeFiles;
 	m_Macros = context.macros;
 
-	m_Async = false;
+	m_Async = async;
 
 	VertexFormat templateFormat[] = { VF_POINT_NORMAL_UV };
 
 	m_VSTemplateShader = GetVSShader(templateFormat, ARRAY_SIZE(templateFormat));
 	m_FSTemplateShader = GetFSShader(templateFormat, ARRAY_SIZE(templateFormat), nullptr);
 
-	m_Async = async;
-
+	if (!m_VSTemplateShader || !m_FSTemplateShader)
+	{
+		UnInit();
+		return false;
+	}
 	return true;
 }
 
@@ -234,7 +237,7 @@ bool KShaderMap::UnInit()
 	m_VSFile.clear();
 	m_FSFile.clear();
 	m_IncludeSources.clear();
-	m_IncludeSources.clear();
+	m_IncludeFiles.clear();
 	m_Macros.clear();
 
 	for (ShaderMap* shadermap : { &m_VSShaderMap, &m_VSInstanceShaderMap, &m_FSShaderMap, &m_VSGPUSceneShaderMap, &m_FSGPUSceneShaderMap })
@@ -333,11 +336,14 @@ bool KShaderMap::IsAllFSLoaded()
 bool KShaderMap::IsPermutationLoaded(const VertexFormat* formats, size_t count, const KTextureBinding* textureBinding)
 {
 	size_t vsHash = CalcHash(formats, count, nullptr);
-	if (m_VSShaderMap.find(vsHash) == m_VSShaderMap.end()) return false;
-	if (m_VSInstanceShaderMap.find(vsHash) == m_VSInstanceShaderMap.end()) return false;
+	auto vsIt = m_VSShaderMap.find(vsHash);
+	if (vsIt == m_VSShaderMap.end() || vsIt->second->GetResourceState() != RS_DEVICE_LOADED) return false;
+	auto instanceIt = m_VSInstanceShaderMap.find(vsHash);
+	if (instanceIt == m_VSInstanceShaderMap.end() || instanceIt->second->GetResourceState() != RS_DEVICE_LOADED) return false;
 
 	size_t fsHash = CalcHash(formats, count, textureBinding);
-	if (m_FSShaderMap.find(fsHash) == m_FSShaderMap.end()) return false;
+	auto fsIt = m_FSShaderMap.find(fsHash);
+	if (fsIt == m_FSShaderMap.end() || fsIt->second->GetResourceState() != RS_DEVICE_LOADED) return false;
 
 	return true;
 }
@@ -346,7 +352,8 @@ const KShaderInformation* KShaderMap::GetVSInformation()
 {
 	if (m_VSTemplateShader)
 	{
-		return &m_VSTemplateShader->GetInformation();
+		m_VSTemplateShader->WaitForDevice();
+		if (IsVSTemplateLoaded()) return &m_VSTemplateShader->GetInformation();
 	}
 	return nullptr;
 }
@@ -355,7 +362,8 @@ const KShaderInformation* KShaderMap::GetFSInformation()
 {
 	if (m_FSTemplateShader)
 	{
-		return &m_FSTemplateShader->GetInformation();
+		m_FSTemplateShader->WaitForDevice();
+		if (IsFSTemplateLoaded()) return &m_FSTemplateShader->GetInformation();
 	}
 	return nullptr;
 }
@@ -366,6 +374,11 @@ IKShaderPtr KShaderMap::GetShaderImplement(ShaderType shaderType, ShaderMap& sha
 	{
 		size_t hash = CalcHash(formats, count, textureBinding);
 		auto it = shaderMap.find(hash);
+		if (it != shaderMap.end() && it->second->GetResourceState() == RS_UNLOADED)
+		{
+			shaderMap.erase(it);
+			it = shaderMap.end();
+		}
 		if (it != shaderMap.end())
 		{
 			return *it->second;

@@ -1,4 +1,5 @@
 #include "KVulkanComputePipeline.h"
+#include "KBase/Interface/IKLog.h"
 #include "KVulkanRenderTarget.h"
 #include "KVulkanFrameBuffer.h"
 #include "KVulkanAccelerationStructure.h"
@@ -279,7 +280,7 @@ VkDescriptorSet KVulkanComputePipeline::Alloc(size_t frameIndex, size_t frameNum
 	return VK_NULL_HANDEL;
 }
 
-void KVulkanComputePipeline::CreateLayout()
+bool KVulkanComputePipeline::CreateLayout()
 {
 	uint32_t frames = KRenderGlobal::NumFramesInFlight;
 	m_Descriptors.resize(frames);
@@ -354,17 +355,20 @@ void KVulkanComputePipeline::CreateLayout()
 	descriptorSetLayoutCI.pBindings = m_LayoutBindings.data();
 	descriptorSetLayoutCI.bindingCount = (uint32_t)m_LayoutBindings.size();
 
-	VK_ASSERT_RESULT(vkCreateDescriptorSetLayout(KVulkanGlobal::device, &descriptorSetLayoutCI, nullptr, &m_DescriptorLayout));
+	if (vkCreateDescriptorSetLayout(KVulkanGlobal::device, &descriptorSetLayoutCI, nullptr, &m_DescriptorLayout) != VK_SUCCESS)
+	{
+		return false;
+	}
 
 	VkPipelineLayoutCreateInfo pipelineLayoutCI = {};
 	pipelineLayoutCI.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 	pipelineLayoutCI.setLayoutCount = 1;
 	pipelineLayoutCI.pSetLayouts = &m_DescriptorLayout;
 
-	VK_ASSERT_RESULT(vkCreatePipelineLayout(KVulkanGlobal::device, &pipelineLayoutCI, nullptr, &m_PipelineLayout));
+	return vkCreatePipelineLayout(KVulkanGlobal::device, &pipelineLayoutCI, nullptr, &m_PipelineLayout) == VK_SUCCESS;
 }
 
-void KVulkanComputePipeline::CreatePipeline()
+bool KVulkanComputePipeline::CreatePipeline()
 {
 	KVulkanShader* vulkanShader = (KVulkanShader*)(*m_ComputeShader).get();
 	VkPipelineShaderStageCreateInfo shaderCreateInfo = {};
@@ -378,7 +382,20 @@ void KVulkanComputePipeline::CreatePipeline()
 	createInfo.layout = m_PipelineLayout;
 	createInfo.stage = shaderCreateInfo;
 
-	vkCreateComputePipelines(KVulkanGlobal::device, KVulkanGlobal::pipelineCache, 1, &createInfo, nullptr, &m_Pipeline);
+	VkPipeline pipeline = VK_NULL_HANDLE;
+	if (vkCreateComputePipelines(KVulkanGlobal::device, KVulkanGlobal::pipelineCache, 1, &createInfo, nullptr, &pipeline) != VK_SUCCESS)
+	{
+		if (pipeline != VK_NULL_HANDLE) vkDestroyPipeline(KVulkanGlobal::device, pipeline, nullptr);
+		KG_LOGE(LM_RENDER, "Compute pipeline creation failed <%s>", m_ComputeShader->GetPath());
+		return false;
+	}
+	DestroyPipeline();
+	m_Pipeline = pipeline;
+	if (!m_Name.empty())
+	{
+		KVulkanHelper::DebugUtilsSetObjectName(KVulkanGlobal::device, (uint64_t)m_Pipeline, VK_OBJECT_TYPE_PIPELINE, m_Name.c_str());
+	}
+	return true;
 }
 
 void KVulkanComputePipeline::DestroyDescriptorSet()
@@ -419,15 +436,31 @@ void KVulkanComputePipeline::DestroyPipeline()
 	}
 }
 
-bool KVulkanComputePipeline::Init(const char* szShader, const KShaderCompileEnvironment& env)
+bool KVulkanComputePipeline::Init(const char* szShader, const KShaderCompileEnvironment& env, bool async)
 {
 	UnInit();
-	if (KRenderGlobal::ShaderManager.Acquire(ST_COMPUTE, szShader, env, m_ComputeShader, false))
+	if (KRenderGlobal::ShaderManager.Acquire(ST_COMPUTE, szShader, env, m_ComputeShader, async) && CreateLayout())
 	{
-		CreateLayout();
-		CreatePipeline();
 		KRenderGlobal::PipelineManager.AddComputePipeline(this);
+		if (async || EnsurePipeline())
+		{
+			return true;
+		}
+	}
+	UnInit();
+	return false;
+}
+
+bool KVulkanComputePipeline::EnsurePipeline()
+{
+	if (m_Pipeline != VK_NULL_HANDLE)
+	{
 		return true;
+	}
+	if (m_ComputeShader && m_PipelineLayout != VK_NULL_HANDLE)
+	{
+		m_ComputeShader->WaitForDevice();
+		return m_ComputeShader->GetResourceState() == RS_DEVICE_LOADED && CreatePipeline();
 	}
 	return false;
 }
@@ -644,7 +677,7 @@ void KVulkanComputePipeline::PostDispatch(IKCommandBufferPtr primaryBuffer)
 bool KVulkanComputePipeline::Execute(IKCommandBufferPtr primaryBuffer, uint32_t groupX, uint32_t groupY, uint32_t groupZ, const KDynamicConstantBufferUsage* usage)
 {
 	uint32_t frameIndex = KRenderGlobal::CurrentInFlightFrameIndex;
-	if (primaryBuffer && frameIndex < m_Descriptors.size())
+	if (primaryBuffer && frameIndex < m_Descriptors.size() && EnsurePipeline())
 	{
 		VkDescriptorSet dstSet = Alloc(frameIndex, KRenderGlobal::CurrentFrameNum);
 
@@ -668,7 +701,7 @@ bool KVulkanComputePipeline::Execute(IKCommandBufferPtr primaryBuffer, uint32_t 
 bool KVulkanComputePipeline::ExecuteIndirect(IKCommandBufferPtr primaryBuffer, IKStorageBufferPtr indirectBuffer, const KDynamicConstantBufferUsage* usage)
 {
 	uint32_t frameIndex = KRenderGlobal::CurrentInFlightFrameIndex;
-	if (primaryBuffer && frameIndex < m_Descriptors.size())
+	if (primaryBuffer && frameIndex < m_Descriptors.size() && EnsurePipeline())
 	{
 		VkDescriptorSet dstSet = Alloc(frameIndex, KRenderGlobal::CurrentFrameNum);
 
@@ -706,12 +739,10 @@ bool KVulkanComputePipeline::Reload(bool reloadShader)
 		if (reloadShader)
 		{
 			KRenderGlobal::ShaderManager.ClearSourceCache();
-			m_ComputeShader->Reload();
+			if (!m_ComputeShader->Reload()) return false;
 		}
-		DestroyPipeline();
-		CreatePipeline();
-		SetDebugName(m_ComputeShader->GetPath());
-		return true;
+		m_ComputeShader->WaitForDevice();
+		return m_ComputeShader->GetResourceState() == RS_DEVICE_LOADED && CreatePipeline();
 	}
 	return false;
 }
@@ -721,7 +752,10 @@ bool KVulkanComputePipeline::SetDebugName(const char* name)
 	if (name)
 	{
 		m_Name = name;
-		KVulkanHelper::DebugUtilsSetObjectName(KVulkanGlobal::device, (uint64_t)m_Pipeline, VK_OBJECT_TYPE_PIPELINE, name);
+		if (m_Pipeline != VK_NULL_HANDLE)
+		{
+			KVulkanHelper::DebugUtilsSetObjectName(KVulkanGlobal::device, (uint64_t)m_Pipeline, VK_OBJECT_TYPE_PIPELINE, name);
+		}
 		return true;
 	}
 	return false;

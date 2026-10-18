@@ -56,7 +56,7 @@ bool KPipelineBase::InvaildHandle(IKShader* shader)
 {
 	if (shader)
 	{
-		Reload();
+		Reload(false);
 	}
 	return true;
 }
@@ -401,7 +401,7 @@ bool KPipelineBase::DestroyDevice()
 
 bool KPipelineBase::CreateLayout()
 {
-	KRenderGlobal::PipelineManager.AcquireLayout(m_Binding, m_Layout);
+	if (!KRenderGlobal::PipelineManager.AcquireLayout(m_Binding, m_Layout)) return false;
 	for (uint32_t i = 0; i < LAYOUT_SHADER_COUNT; ++i)
 	{
 		if (m_Binding.shaders[i])
@@ -432,9 +432,9 @@ bool KPipelineBase::Reload(bool reloadShader)
 
 bool KPipelineBase::GetHandle(IKRenderPassPtr renderPass, IKPipelineHandlePtr& handle)
 {
-	if (!m_Layout)
+	if (!m_Layout && !CreateLayout())
 	{
-		CreateLayout();
+		return false;
 	}
 
 	if (renderPass)

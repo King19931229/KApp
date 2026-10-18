@@ -19,8 +19,8 @@ bool KMaterialSubMesh::CreateShadowPipeline()
 {
 	if (m_SubMesh && m_Material)
 	{
-		ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "shadow/shadow.vert", m_ShadowVSShader, false));
-		ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "shadow/shadow.frag", m_ShadowFSShader, false));
+		ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "shadow/shadow.vert", m_ShadowVSShader, KRenderGlobal::EnableAsyncShaderCompile));
+		ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "shadow/shadow.frag", m_ShadowFSShader, KRenderGlobal::EnableAsyncShaderCompile));
 
 		for (RenderStage stage : {RENDER_STAGE_SHADOW_GEN})
 		{
@@ -49,11 +49,11 @@ bool KMaterialSubMesh::Init(KSubMeshPtr subMesh, KMaterialRef material)
 	m_SubMesh = subMesh;
 	m_Material = material;
 
-	ASSERT_RESULT(CreateMaterialPipeline());
-	ASSERT_RESULT(CreateShadowPipeline());
-	ASSERT_RESULT(CreateGBufferPipeline());
-	ASSERT_RESULT(CreateVoxelPipeline());
-	ASSERT_RESULT(CreateVirtualFeedbackPipeline());
+	if (!CreateMaterialPipeline() || !CreateShadowPipeline() || !CreateGBufferPipeline() || !CreateVoxelPipeline() || !CreateVirtualFeedbackPipeline())
+	{
+		UnInit();
+		return false;
+	}
 
 	for (size_t i = 0; i < RENDER_STAGE_COUNT; ++i)
 	{
@@ -67,8 +67,8 @@ bool KMaterialSubMesh::InitDebug(KSubMeshPtr subMesh, DebugPrimitive primtive)
 {
 	m_SubMesh = subMesh;
 
-	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "debug.vert", m_DebugVSShader, false));
-	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "debug.frag", m_DebugFSShader, false));
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "debug.vert", m_DebugVSShader, KRenderGlobal::EnableAsyncShaderCompile));
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "debug.frag", m_DebugFSShader, KRenderGlobal::EnableAsyncShaderCompile));
 
 	RenderStage debugStage = RENDER_STAGE_UNKNOWN;
 	switch (primtive)
@@ -117,14 +117,6 @@ bool KMaterialSubMesh::CreateMaterialPipeline()
 	{
 		const KVertexData* vertexData = m_SubMesh->m_pVertexData;
 
-		IKShaderPtr vsShader = m_Material->GetVSShader(vertexData->vertexFormats.data(), vertexData->vertexFormats.size());
-		IKShaderPtr fsShader = m_Material->GetFSShader(vertexData->vertexFormats.data(), vertexData->vertexFormats.size());
-
-		if (vsShader->GetResourceState() != RS_DEVICE_LOADED || fsShader->GetResourceState() != RS_DEVICE_LOADED)
-		{
-			return false;
-		}
-
 		MaterialShadingMode shaingMode = m_Material->GetShadingMode();
 
 		for (RenderStage stage : {RENDER_STAGE_OPAQUE, RENDER_STAGE_OPAQUE_INSTANCE, RENDER_STAGE_TRANSPRANT, RENDER_STAGE_TRANSPRANT_DEPTH_PEELING})
@@ -136,7 +128,7 @@ bool KMaterialSubMesh::CreateMaterialPipeline()
 		{
 			m_Pipelines[RENDER_STAGE_OPAQUE] = m_Material->CreatePipeline(vertexData->vertexFormats.data(), vertexData->vertexFormats.size());
 			m_Pipelines[RENDER_STAGE_OPAQUE_INSTANCE] = m_Material->CreateInstancePipeline(vertexData->vertexFormats.data(), vertexData->vertexFormats.size());
-
+			return m_Pipelines[RENDER_STAGE_OPAQUE] && m_Pipelines[RENDER_STAGE_OPAQUE_INSTANCE];
 		}
 		else
 		{
@@ -147,9 +139,10 @@ bool KMaterialSubMesh::CreateMaterialPipeline()
 
 			m_Pipelines[RENDER_STAGE_TRANSPRANT_ABUFFER_DEPTH_PEELING] = m_Material->CreateABufferDepthPeelingPipeline(vertexData->vertexFormats.data(), vertexData->vertexFormats.size());
 			m_Pipelines[RENDER_STAGE_TRANSPRANT_ABUFFER_DEPTH_PEELING_INSTANCE] = m_Material->CreateABufferDepthPeelingInstancePipeline(vertexData->vertexFormats.data(), vertexData->vertexFormats.size());
+			return m_Pipelines[RENDER_STAGE_TRANSPRANT] && m_Pipelines[RENDER_STAGE_TRANSPRANT_DEPTH_PEELING]
+				&& m_Pipelines[RENDER_STAGE_TRANSPRANT_DEPTH_PEELING_INSTANCE] && m_Pipelines[RENDER_STAGE_TRANSPRANT_ABUFFER_DEPTH_PEELING]
+				&& m_Pipelines[RENDER_STAGE_TRANSPRANT_ABUFFER_DEPTH_PEELING_INSTANCE];
 		}
-
-		return true;
 	}
 	return false;
 }
@@ -279,15 +272,15 @@ bool KMaterialSubMesh::CreateVirtualFeedbackPipeline()
 
 bool KMaterialSubMesh::CreateVoxelPipeline()
 {
-	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "voxel/svo/voxelzation/voxelzation.vert", m_VoxelVSShader, false));
-	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_GEOMETRY, "voxel/svo/voxelzation/voxelzation.geom", m_VoxelGSShader, false));
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "voxel/svo/voxelzation/voxelzation.vert", m_VoxelVSShader, KRenderGlobal::EnableAsyncShaderCompile));
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_GEOMETRY, "voxel/svo/voxelzation/voxelzation.geom", m_VoxelGSShader, KRenderGlobal::EnableAsyncShaderCompile));
 
-	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "voxel/svo/voxelzation/voxelzation.frag", m_VoxelFSShader, false));
-	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "voxel/svo/voxelzation/voxelzation_sparse.frag", m_VoxelSparseFSShader, false));
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "voxel/svo/voxelzation/voxelzation.frag", m_VoxelFSShader, KRenderGlobal::EnableAsyncShaderCompile));
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "voxel/svo/voxelzation/voxelzation_sparse.frag", m_VoxelSparseFSShader, KRenderGlobal::EnableAsyncShaderCompile));
 
-	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "voxel/clipmap/voxelzation/voxelzation_clipmap.vert", m_VoxelClipmapVSShader, false));
-	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_GEOMETRY, "voxel/clipmap/voxelzation/voxelzation_clipmap.geom", m_VoxelClipmapGSShader, false));
-	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "voxel/clipmap/voxelzation/voxelzation_clipmap.frag", m_VoxelClipmapFSShader, false));
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "voxel/clipmap/voxelzation/voxelzation_clipmap.vert", m_VoxelClipmapVSShader, KRenderGlobal::EnableAsyncShaderCompile));
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_GEOMETRY, "voxel/clipmap/voxelzation/voxelzation_clipmap.geom", m_VoxelClipmapGSShader, KRenderGlobal::EnableAsyncShaderCompile));
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "voxel/clipmap/voxelzation/voxelzation_clipmap.frag", m_VoxelClipmapFSShader, KRenderGlobal::EnableAsyncShaderCompile));
 
 	for (RenderStage stage : {RENDER_STAGE_VOXEL, RENDER_STAGE_SPARSE_VOXEL, RENDER_STAGE_CLIPMAP_VOXEL})
 	{

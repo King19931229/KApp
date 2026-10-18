@@ -267,8 +267,17 @@ void KVulkanRayTracePipeline::DestroyShaderBindingTable(ShaderBindingTable& shad
 	}
 }
 
-void KVulkanRayTracePipeline::CreateShaderBindingTables()
+bool KVulkanRayTracePipeline::CreateShaderBindingTables()
 {
+	if (!m_RayGenShader.shader) return false;
+	for (ShaderInfo* shaderInfo : { &m_AnyHitShader, &m_ClosestHitShader, &m_RayGenShader, &m_MissShader })
+	{
+		if (shaderInfo->shader)
+		{
+			shaderInfo->shader->WaitForDevice();
+			if (shaderInfo->shader->GetResourceState() != RS_DEVICE_LOADED) return false;
+		}
+	}
 	std::vector<VkPipelineShaderStageCreateInfo> shaderStages;
 	m_ShaderGroups.clear();
 
@@ -330,7 +339,7 @@ void KVulkanRayTracePipeline::CreateShaderBindingTables()
 	rayTracingPipelineCI.pGroups = m_ShaderGroups.data();
 	rayTracingPipelineCI.maxPipelineRayRecursionDepth = 4;
 	rayTracingPipelineCI.layout = m_Pipeline.layout;
-	VK_ASSERT_RESULT(KVulkanGlobal::vkCreateRayTracingPipelinesKHR(KVulkanGlobal::device, VK_NULL_HANDLE, VK_NULL_HANDLE, 1, &rayTracingPipelineCI, nullptr, &m_Pipeline.pipeline));
+	if (KVulkanGlobal::vkCreateRayTracingPipelinesKHR(KVulkanGlobal::device, VK_NULL_HANDLE, VK_NULL_HANDLE, 1, &rayTracingPipelineCI, nullptr, &m_Pipeline.pipeline) != VK_SUCCESS) return false;
 
 	const uint32_t handleSize = KVulkanGlobal::rayTracingPipelineProperties.shaderGroupHandleSize;
 	const uint32_t handleSizeAligned = KNumerical::AlignedSize(KVulkanGlobal::rayTracingPipelineProperties.shaderGroupHandleSize, KVulkanGlobal::rayTracingPipelineProperties.shaderGroupHandleAlignment);
@@ -338,7 +347,7 @@ void KVulkanRayTracePipeline::CreateShaderBindingTables()
 	const uint32_t sbtSize = groupCount * handleSizeAligned;
 
 	std::vector<uint8_t> shaderHandleStorage(sbtSize);
-	VK_ASSERT_RESULT(KVulkanGlobal::vkGetRayTracingShaderGroupHandlesKHR(KVulkanGlobal::device, m_Pipeline.pipeline, 0, groupCount, sbtSize, shaderHandleStorage.data()));
+	if (KVulkanGlobal::vkGetRayTracingShaderGroupHandlesKHR(KVulkanGlobal::device, m_Pipeline.pipeline, 0, groupCount, sbtSize, shaderHandleStorage.data()) != VK_SUCCESS) return false;
 
 	CreateShaderBindingTable(m_ShaderBindingTables.raygen, 1);
 	CreateShaderBindingTable(m_ShaderBindingTables.miss, 1);
@@ -390,6 +399,7 @@ void KVulkanRayTracePipeline::CreateShaderBindingTables()
 		}
 		++handleIndex;
 	}
+	return true;
 }
 
 void KVulkanRayTracePipeline::DestroyShaderBindingTables()
@@ -540,19 +550,17 @@ bool KVulkanRayTracePipeline::ResizeImage(uint32_t width, uint32_t height)
 	return false;
 }
 
-void KVulkanRayTracePipeline::CreateShader()
+bool KVulkanRayTracePipeline::CreateShader()
 {
 	auto AcquireShader = [](ShaderInfo& shaderInfo, ShaderType type)
 	{
-		if (!shaderInfo.path.empty())
-		{
-			ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(type, shaderInfo.path.c_str(), shaderInfo.shader, false));
-		}
+		return shaderInfo.path.empty() || KRenderGlobal::ShaderManager.Acquire(type, shaderInfo.path.c_str(), shaderInfo.shader, KRenderGlobal::EnableAsyncShaderCompile);
 	};
-	AcquireShader(m_AnyHitShader, ST_ANY_HIT);
-	AcquireShader(m_ClosestHitShader, ST_CLOSEST_HIT);
-	AcquireShader(m_RayGenShader, ST_RAYGEN);
-	AcquireShader(m_MissShader, ST_MISS);
+	bool success = AcquireShader(m_AnyHitShader, ST_ANY_HIT);
+	success = AcquireShader(m_ClosestHitShader, ST_CLOSEST_HIT) && success;
+	success = AcquireShader(m_RayGenShader, ST_RAYGEN) && success;
+	success = AcquireShader(m_MissShader, ST_MISS) && success;
+	return success;
 }
 
 void KVulkanRayTracePipeline::DestroyShader()
@@ -567,15 +575,13 @@ bool KVulkanRayTracePipeline::Reload()
 {
 	if (m_AnyHitShader.shader|| m_ClosestHitShader.shader || m_RayGenShader.shader || m_MissShader.shader)
 	{
-		if (m_AnyHitShader.shader) (*m_AnyHitShader.shader)->Reload();
-		if (m_ClosestHitShader.shader) (*m_ClosestHitShader.shader)->Reload();
-		if (m_RayGenShader.shader) (*m_RayGenShader.shader)->Reload();
-		if (m_MissShader.shader) (*m_MissShader.shader)->Reload();
+		if (m_AnyHitShader.shader && !(*m_AnyHitShader.shader)->Reload()) return false;
+		if (m_ClosestHitShader.shader && !(*m_ClosestHitShader.shader)->Reload()) return false;
+		if (m_RayGenShader.shader && !(*m_RayGenShader.shader)->Reload()) return false;
+		if (m_MissShader.shader && !(*m_MissShader.shader)->Reload()) return false;
 
 		DestroyShaderBindingTables();
-		CreateShaderBindingTables();
-
-		return true;
+		return CreateShaderBindingTables();
 	}
 	return false;
 }
@@ -600,8 +606,11 @@ bool KVulkanRayTracePipeline::Init(IKUniformBufferPtr cameraBuffer, IKAccelerati
 	{
 		CreateStrogeScene();
 		CreateDescriptorSet();
-		CreateShader();
-		CreateShaderBindingTables();
+		if (!CreateShader() || !CreateShaderBindingTables())
+		{
+			UnInit();
+			return false;
+		}
 		CreateCommandBuffers();
 	}
 
@@ -656,7 +665,7 @@ bool KVulkanRayTracePipeline::Execute(IKCommandBufferPtr primaryBuffer)
 	uint32_t frameIndex = KRenderGlobal::CurrentInFlightFrameIndex;
 	if (KVulkanGlobal::supportRaytrace)
 	{
-		if (primaryBuffer && frameIndex < m_Descriptor.sets.size())
+		if (m_Inited && m_Pipeline.pipeline != VK_NULL_HANDLE && primaryBuffer && frameIndex < m_Descriptor.sets.size())
 		{
 			if (m_ASUpdated)
 			{

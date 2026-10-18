@@ -22,8 +22,8 @@ bool KDepthPeeling::Init(uint32_t width, uint32_t height, uint32_t layers)
 	UnInit();
 	m_PeelingLayers = layers;
 
-	KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "shading/quad.vert", m_QuadVS, false);
-	KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "shading/underblend.frag", m_UnderBlendFS, false);
+	KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "shading/quad.vert", m_QuadVS, KRenderGlobal::EnableAsyncShaderCompile);
+	KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "shading/underblend.frag", m_UnderBlendFS, KRenderGlobal::EnableAsyncShaderCompile);
 
 	Resize(width, height);
 

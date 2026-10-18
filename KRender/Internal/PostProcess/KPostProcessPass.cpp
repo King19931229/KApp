@@ -114,8 +114,8 @@ bool KPostProcessPass::Init()
 	}
 	else
 	{
-		ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, m_VSFile.c_str(), m_VSShader, false));
-		ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, m_FSFile.c_str(), m_FSShader, false));
+		ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, m_VSFile.c_str(), m_VSShader, KRenderGlobal::EnableAsyncShaderCompile));
+		ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, m_FSFile.c_str(), m_FSShader, KRenderGlobal::EnableAsyncShaderCompile));
 
 		{
 			KRenderGlobal::RenderDevice->CreatePipeline(m_Pipeline);

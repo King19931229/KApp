@@ -100,9 +100,9 @@ protected:
 	void DestroyStrogeScene();
 	void CreateDescriptorSet();
 	void DestroyDescriptorSet();
-	void CreateShader();
+	bool CreateShader();
 	void DestroyShader();
-	void CreateShaderBindingTables();
+	bool CreateShaderBindingTables();
 	void DestroyShaderBindingTables();
 	void CreateCommandBuffers();
 	void DestroyCommandBuffers();
