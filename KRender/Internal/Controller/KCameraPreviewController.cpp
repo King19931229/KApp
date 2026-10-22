@@ -109,6 +109,8 @@ bool KCameraPreviewController::UnInit()
 		m_Window->UnRegisterMouseCallback(&m_MouseCallback);
 		m_Window->UnRegisterScrollCallback(&m_ScrollCallback);
 	}
+	m_Window = nullptr;
+	m_Camera = nullptr;
 	return true;
 }
 

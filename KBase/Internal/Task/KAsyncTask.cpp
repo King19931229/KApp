@@ -6,6 +6,7 @@ KAsyncTask::KAsyncTask(IKTaskWorkPtr task)
 	: m_TaskWork(task)
 	, m_ThreadPool(nullptr)
 	, m_WorkCounter(0)
+	, m_Completed(task == nullptr)
 {}
 
 KAsyncTask::~KAsyncTask()
@@ -14,22 +15,25 @@ KAsyncTask::~KAsyncTask()
 
 bool KAsyncTask::IsCompleted() const
 {
-	return m_TaskWork == nullptr;
+	return m_Completed.load(std::memory_order_acquire);
 }
 
 void KAsyncTask::WaitForCompletion()
 {
-	if (m_TaskWork)
+	if (!IsCompleted())
 	{
 		if (m_ThreadPool)
 		{
 			m_WorkFinishEvent.Wait();
+			while (!IsCompleted())
+			{
+				std::this_thread::yield();
+			}
 		}
 		else
 		{
-			m_TaskWork->DoWork();
+			DoWork();
 		}
-		m_TaskWork = nullptr;
 	}
 }
 
@@ -44,11 +48,16 @@ void KAsyncTask::Abandon()
 		m_TaskWork->Abandon();
 		m_TaskWork = nullptr;
 	}
+	if (m_ThreadPool)
+	{
+		m_WorkFinishEvent.Notify();
+	}
+	m_Completed.store(true, std::memory_order_release);
 }
 
 void KAsyncTask::StartAsync()
 {
-	if (m_TaskWork && m_WorkCounter.load() == 0)
+	if (!IsCompleted() && m_WorkCounter.load() == 0)
 	{
 		m_WorkCounter.fetch_add(1);
 		m_ThreadPool = GetAsyncTaskManager()->GetThreadPool();
@@ -58,17 +67,7 @@ void KAsyncTask::StartAsync()
 
 void KAsyncTask::StartSync()
 {
-	if (m_ThreadPool)
-	{
-		if (m_WorkCounter.load() == 1)
-		{
-			m_WorkFinishEvent.Wait();
-		}
-	}
-	else
-	{
-		DoWork();
-	}
+	WaitForCompletion();
 }
 
 void KAsyncTask::DoWork()
@@ -81,4 +80,5 @@ void KAsyncTask::DoWork()
 		m_WorkCounter.fetch_add(-1);
 		m_WorkFinishEvent.Notify();
 	}
+	m_Completed.store(true, std::memory_order_release);
 }

@@ -67,7 +67,7 @@ vec4 SampleClipmap(vec3 posW, uint clipmapLevel, uvec3 visibleFace, vec3 weight)
 	vec3 samplePosY = WorldPositionToSampleCoord(posW, extent, clipmapLevel, levelCount, visibleFace.y, 6);
 	vec3 samplePosZ = WorldPositionToSampleCoord(posW, extent, clipmapLevel, levelCount, visibleFace.z, 6);
 	return clamp(texture(voxelRadiance, samplePosX) * weight.x +
-				 texture(voxelRadiance, samplePosX) * weight.y +
+				 texture(voxelRadiance, samplePosY) * weight.y +
 				 texture(voxelRadiance, samplePosZ) * weight.z, 0.0, 1.0);
 }
 

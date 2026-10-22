@@ -1,6 +1,7 @@
 #include "KRenderer.h"
 #include "KRenderUtil.h"
 #include "Internal/KRenderGlobal.h"
+#include "Internal/KRenderThread.h"
 #include "Internal/Gizmo/KCameraCube.h"
 #include "Internal/KConstantGlobal.h"
 #include "KBase/Publish/KHash.h"
@@ -172,7 +173,7 @@ bool KRenderer::Render(uint32_t chainImageIndex)
 	RemoveUnreferenced();
 
 	std::vector<IKEntity*> cullRes;
-	KRenderGlobal::Scene.GetVisibleEntities(*m_Camera, cullRes);
+	m_Scene->GetVisibleEntities(*m_Camera, cullRes);
 
 	m_Shadow.Reset();
 	m_RHICommandList.SetCommandBuffer(m_Shadow.pool->Request(CBL_PRIMARY));
@@ -596,6 +597,16 @@ bool KRenderer::SetSceneCamera(IKRenderScene* scene, const KCamera* camera)
 
 bool KRenderer::SetCallback(IKRenderWindow* window, OnWindowRenderCallback* callback)
 {
+	if (!IsInRenderThread())
+	{
+		bool result = false;
+		ENQUEUE_RENDER_COMMAND(SetWindowRenderCallback)([this, window, callback, &result]()
+		{
+			result = SetCallback(window, callback);
+		});
+		FLUSH_RENDER_COMMAND();
+		return result;
+	}
 	if (window && callback)
 	{
 		m_WindowRenderCB[window] = callback;
@@ -606,6 +617,16 @@ bool KRenderer::SetCallback(IKRenderWindow* window, OnWindowRenderCallback* call
 
 bool KRenderer::RemoveCallback(IKRenderWindow* window)
 {
+	if (!IsInRenderThread())
+	{
+		bool result = false;
+		ENQUEUE_RENDER_COMMAND(RemoveWindowRenderCallback)([this, window, &result]()
+		{
+			result = RemoveCallback(window);
+		});
+		FLUSH_RENDER_COMMAND();
+		return result;
+	}
 	if (window)
 	{
 		if (m_WindowRenderCB.erase(window))
@@ -721,32 +742,59 @@ bool KRenderer::Update()
 
 bool KRenderer::Execute(uint32_t chainImageIndex)
 {
-	if (m_SwapChain)
+	if (!m_SwapChain)
 	{
-		IKRenderWindow* window = m_SwapChain->GetWindow();
-		ASSERT_RESULT(window);
+		return false;
+	}
 
-		size_t windowWidth = 0, windowHeight = 0;
-		ASSERT_RESULT(window->GetSize(windowWidth, windowHeight));
+	IKRenderWindow* window = m_SwapChain->GetWindow();
+	ASSERT_RESULT(window);
+	bool secondaryWindow = window != KRenderGlobal::MainWindow;
+	IKRenderScene* previousScene = m_Scene;
+	const KCamera* previousCamera = m_Camera;
+	bool previousCameraCube = m_DisplayCameraCube;
+	bool previousCameraOutdate = m_CameraOutdate;
+	glm::mat4 previousViewProj = m_CameraOutdate ? glm::mat4(1.0f) : m_PrevViewProj;
 
-		// 窗口最小化后就干脆不提交了
-		if (windowWidth && windowHeight)
+	size_t windowWidth = 0, windowHeight = 0;
+	bool drawable = window->GetSize(windowWidth, windowHeight) && windowWidth && windowHeight;
+	if (drawable)
+	{
+		auto it = m_WindowRenderCB.find(window);
+		if (it != m_WindowRenderCB.end() && *(it->second))
 		{
-			// 促发绘制回调
-			{
-				auto it = m_WindowRenderCB.find(window);
-				if (it != m_WindowRenderCB.end())
-				{
-					(*(it->second))(this, chainImageIndex);
-				}
-			}
-
-			if (m_Scene && m_Camera)
-			{
-				Render(chainImageIndex);
-				return true;
-			}
+			(*(it->second))(this, chainImageIndex);
 		}
 	}
-	return false;
+
+	bool rendered = false;
+	if (drawable && m_Scene && m_Camera)
+	{
+		rendered = Render(chainImageIndex);
+	}
+	else
+	{
+		// Acquire has succeeded: consume its semaphore even without scene draws.
+		m_RHICommandList.SetImmediate(KRenderGlobal::EnableRHIImmediate);
+		m_PostGraphics.Reset();
+		m_RHICommandList.SetCommandBuffer(m_PostGraphics.pool->Request(CBL_PRIMARY));
+		m_RHICommandList.BeginRecord();
+		m_RHICommandList.BeginRenderPass(m_SwapChain->GetRenderPass(chainImageIndex), SUBPASS_CONTENTS_INLINE);
+		m_RHICommandList.EndRenderPass();
+		m_RHICommandList.EndRecord();
+		m_SwapChain->GetInFlightFence()->Reset();
+		m_RHICommandList.QueueSubmit(m_PostGraphics.queue, { { m_SwapChain->GetImageAvailableSemaphore(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT } }, { m_SwapChain->GetRenderFinishSemaphore() }, m_SwapChain->GetInFlightFence());
+		m_RHICommandList.Flush(RHICommandFlush::DispatchToRHIThread);
+		rendered = true;
+	}
+
+	if (secondaryWindow)
+	{
+		m_Scene = previousScene;
+		m_Camera = previousCamera;
+		m_DisplayCameraCube = previousCameraCube;
+		m_PrevViewProj = previousViewProj;
+		m_CameraOutdate = previousCameraOutdate;
+	}
+	return rendered;
 }

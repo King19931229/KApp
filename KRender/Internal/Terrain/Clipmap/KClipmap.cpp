@@ -1,5 +1,6 @@
 #include "KClipmap.h"
 #include "KBase/Interface/IKLog.h"
+#include "KBase/Interface/Task/IKAsyncTask.h"
 #include "KBase/Publish/KMath.h"
 #include <Internal/KRenderGlobal.h>
 #include "glm/glm.hpp"
@@ -900,8 +901,11 @@ void KClipmap::InitializeClipmapLevel()
 		m_ClipLevels[i]->Init();
 		m_ClipLevels[i]->PopulateUpdateRects();
 		m_ClipLevels[i]->UpdateClipStartScale();
-		m_ClipLevels[i]->UpdateHeightData();
 	}
+	ParallelFor([this](uint32_t level)
+	{
+		m_ClipLevels[level]->UpdateHeightData();
+	}, (uint32_t)m_LevelCount);
 }
 
 void KClipmap::InitializePipeline()
@@ -1126,8 +1130,12 @@ void KClipmap::Update(const KCamera* camera)
 
 		clipLevel->PopulateUpdateRects();
 		clipLevel->UpdateClipStartScale();
-		clipLevel->UpdateHeightData();
 	}
+
+	ParallelFor([this](uint32_t level)
+	{
+		m_ClipLevels[level]->UpdateHeightData();
+	}, (uint32_t)m_LevelCount);
 
 	FLUSH_INFLIGHT_RENDER_JOB();
 	for (int32_t level = 0; level < m_LevelCount; ++level)

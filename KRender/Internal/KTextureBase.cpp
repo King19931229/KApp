@@ -374,8 +374,8 @@ bool KTextureBase::InitMemoryFromFile(const std::string& filePath, bool bGenerat
 
 	if (async)
 	{
-		m_MemoryLoadTask = GetTaskGraphManager()->CreateAndDispatch(IKTaskWorkPtr(new KLambdaTaskWork(loadImpl)), NamedThread::ANY_THREAD, {});
 		m_ResourceState = RS_MEMORY_PENDING;
+		m_MemoryLoadTask = GetTaskGraphManager()->CreateAndDispatch(IKTaskWorkPtr(new KLambdaTaskWork(loadImpl)), NamedThread::ANY_THREAD, {});
 		return true;
 	}
 	else
@@ -387,62 +387,60 @@ bool KTextureBase::InitMemoryFromFile(const std::string& filePath, bool bGenerat
 bool KTextureBase::InitMemoryFromData(const void* pRawData, const std::string& name, size_t width, size_t height, size_t depth, ImageFormat format, bool cubeMap, bool bGenerateMipmap, bool async)
 {
 	ReleaseMemory();
+
+	size_t formatSize = 0;
+	if (!ImageFormatToSize(format, formatSize))
+	{
+		return false;
+	}
+
+	size_t faceCount = cubeMap ? 6 : 1;
+	KImageDataPtr pImageData = KImageDataPtr(KNEW KImageData(width * height * depth * faceCount * formatSize));
+	if (pRawData)
+	{
+		memcpy(pImageData->GetData(), pRawData, pImageData->GetSize());
+	}
+
+	for (size_t face = 0; face < faceCount; ++face)
+	{
+		KSubImageInfo subImageInfo;
+		subImageInfo.uWidth = width;
+		subImageInfo.uHeight = height;
+		subImageInfo.uOffset = pImageData->GetSize() * face / faceCount;
+		subImageInfo.uSize = pImageData->GetSize() / faceCount;
+		subImageInfo.uFaceIndex = face;
+		subImageInfo.uMipmapIndex = 0;
+		pImageData->GetSubImageInfo().push_back(subImageInfo);
+	}
+
 	auto loadImpl = [=]()->bool
 	{
 		m_ResourceState = RS_MEMORY_LOADING;
 
-		size_t formatSize = 0;
-		if (ImageFormatToSize(format, formatSize))
+		m_ImageData.eFormat = format;
+		m_ImageData.uWidth = width;
+		m_ImageData.uHeight = height;
+		m_ImageData.uDepth = depth;
+		m_ImageData.uMipmap = 1;
+		m_ImageData.bCompressed = false;
+		m_ImageData.bCubemap = cubeMap;
+		m_ImageData.pData = pImageData;
+
+		if (InitProperty(bGenerateMipmap))
 		{
-			size_t faceCount = cubeMap ? 6 : 1;
-			KImageDataPtr pImageData = KImageDataPtr(KNEW KImageData(width * height * depth * faceCount * formatSize));
-
-			if (pRawData)
-			{
-				memcpy(pImageData->GetData(), pRawData, pImageData->GetSize());
-			}
-			else
-			{
-				memset(pImageData->GetData(), 0, pImageData->GetSize());
-			}
-
-			m_ImageData.eFormat = format;
-			m_ImageData.uWidth = width;
-			m_ImageData.uHeight = height;
-			m_ImageData.uDepth = depth;
-			m_ImageData.uMipmap = 1;
-			m_ImageData.bCompressed = false;
-			m_ImageData.bCubemap = cubeMap;
-			m_ImageData.pData = pImageData;
-
-			for (size_t face = 0; face < faceCount; ++face)
-			{
-				KSubImageInfo subImageInfo;
-				subImageInfo.uWidth = width;
-				subImageInfo.uHeight = height;
-				subImageInfo.uOffset = pImageData->GetSize() * face / faceCount;
-				subImageInfo.uSize = pImageData->GetSize() / faceCount;
-				subImageInfo.uFaceIndex = face;
-				subImageInfo.uMipmapIndex = 0;
-				m_ImageData.pData->GetSubImageInfo().push_back(subImageInfo);
-			}
-
-			if (InitProperty(bGenerateMipmap))
-			{
-				m_Path = name;
-				m_ResourceState = RS_MEMORY_LOADED;
-				return true;
-			}
+			m_Path = name;
+			m_ResourceState = RS_MEMORY_LOADED;
+			return true;
 		}
 		m_ImageData.pData = nullptr;
-		m_ResourceState = RS_UNLOADED;		
+		m_ResourceState = RS_UNLOADED;
 		return false;
 	};
 
 	if (async)
 	{
-		m_MemoryLoadTask = GetTaskGraphManager()->CreateAndDispatch(IKTaskWorkPtr(new KLambdaTaskWork(loadImpl)), NamedThread::ANY_THREAD, {});
 		m_ResourceState = RS_MEMORY_PENDING;
+		m_MemoryLoadTask = GetTaskGraphManager()->CreateAndDispatch(IKTaskWorkPtr(new KLambdaTaskWork(loadImpl)), NamedThread::ANY_THREAD, {});
 		return true;
 	}
 	else
@@ -502,8 +500,8 @@ bool KTextureBase::InitMemoryFrom2DArray(const std::string& name, size_t width, 
 
 	if (async)
 	{
-		m_MemoryLoadTask = GetTaskGraphManager()->CreateAndDispatch(IKTaskWorkPtr(new KLambdaTaskWork(loadImpl)), NamedThread::ANY_THREAD, {});
 		m_ResourceState = RS_MEMORY_PENDING;
+		m_MemoryLoadTask = GetTaskGraphManager()->CreateAndDispatch(IKTaskWorkPtr(new KLambdaTaskWork(loadImpl)), NamedThread::ANY_THREAD, {});
 		return true;
 	}
 	else

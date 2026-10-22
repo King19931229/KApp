@@ -117,7 +117,6 @@ bool KEMaterialEditWindow::Init()
 
 	IKRenderCore* renderCore = KEngineGlobal::Engine->GetRenderCore();
 	IKRenderer* renderer = renderCore->GetRenderer();
-	renderer->SetCallback(m_RenderWidget->GetRenderWindow(), &m_OnRenderCallBack);
 
 	m_MiniScene = CreateRenderScene();
 	m_MiniScene->Init("MiniScene", SCENE_MANGER_TYPE_OCTREE, 100000.0f, glm::vec3(0.0f));
@@ -136,25 +135,28 @@ bool KEMaterialEditWindow::Init()
 
 	m_CameraController = CreateCameraPreviewController();
 	m_CameraController->Init(&m_MiniCamera, m_RenderWidget->GetRenderWindow());
+	renderer->SetCallback(m_RenderWidget->GetRenderWindow(), &m_OnRenderCallBack);
 
 	return true;
 }
 
 bool KEMaterialEditWindow::UnInit()
 {
-	SAFE_UNINIT(m_CameraController);
-
-	SAFE_UNINIT(m_PropertyWidget);
-	SAFE_DELETE(m_PropertyDockWidget);
-
-	setCentralWidget(nullptr);
 	if (m_RenderWidget)
 	{
 		IKRenderCore* renderCore = KEngineGlobal::Engine->GetRenderCore();
 		IKRenderer* renderer = renderCore->GetRenderer();
 		renderer->RemoveCallback(m_RenderWidget->GetRenderWindow());
+	}
+	SAFE_UNINIT(m_CameraController);
+	if (m_RenderWidget)
+	{
 		m_RenderWidget->UnInit();
 	}
+
+	SAFE_UNINIT(m_PropertyWidget);
+	SAFE_DELETE(m_PropertyDockWidget);
+	setCentralWidget(nullptr);
 
 	SAFE_UNINIT(m_MiniScene);
 	SAFE_UNINIT(m_RenderWidget);

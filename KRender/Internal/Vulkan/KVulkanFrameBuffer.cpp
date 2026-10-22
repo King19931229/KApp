@@ -379,7 +379,7 @@ bool KVulkanFrameBuffer::CopyToReadback(IKFrameBuffer* framebuffer)
 	
 			blitInfo.srcWidth = src->GetWidth();
 			blitInfo.srcHeight = src->GetHeight();
-			blitInfo.dstHeight = m_Width;
+			blitInfo.dstWidth = m_Width;
 			blitInfo.dstHeight = m_Height;
 			blitInfo.srcMipLevel = 0;
 			blitInfo.srcArrayIndex = 0;

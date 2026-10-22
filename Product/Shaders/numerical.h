@@ -56,13 +56,9 @@ float FloatPrecision(in float x, in uint NumExponentBits, in uint NumMantissaBit
 {
 	const int exponentShift = (1 << int(NumExponentBits - 1)) - 1;
 	uint valueAsInt = floatBitsToUint(x);
-	valueAsInt &= uint(~0) >> 1;
-	float exponent = pow(2.0, int(valueAsInt >> NumMantissaBits) - exponentShift);
-    // float exponent = float(SmallestPowerOf2GreaterThan(uint(x)));
-	// Average precision
-	return exponent / pow(2.0, NumMantissaBits);
-	// Minimum precision
-	// return pow(2.0, -int(NumMantissaBits) - 1) * exponent;
+	int exponent = int((valueAsInt >> 23) & 0xFFu) - 127;
+	exponent = max(exponent, 1 - exponentShift);
+	return exp2(float(exponent - int(NumMantissaBits)));
 }
 
 float FloatPrecisionR10(in float x)

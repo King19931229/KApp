@@ -109,7 +109,7 @@ void main()
 	ivec2 curSamplePos = ivec2(round(curTexPos * vec2(outSize) - vec2(0.5)));
 
 	float value = imageLoad(curAOImage, curSamplePos).r;
-	float variance = imageLoad(varianceImage, curSamplePos).g;
+	float variance = imageLoad(varianceImage, curSamplePos).r;
 	vec4 normalDepth = imageLoad(curNormalDepthImage, curSamplePos);
 	vec2 ddxy = DDXYDepth(curSamplePos, outSize);
 

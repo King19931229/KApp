@@ -45,9 +45,9 @@ void KHeightMap::Init(const char* filename)
 
 		unsigned char* srcData = imageData.pData->GetData();
 
-		for (int32_t y = 0; y < m_Width; ++y)
+		for (int32_t y = 0; y < m_Height; ++y)
 		{
-			for (int32_t x = 0; x < m_Height; ++x)
+			for (int32_t x = 0; x < m_Width; ++x)
 			{
 				if (imageData.eFormat == IF_R32_FLOAT)
 				{

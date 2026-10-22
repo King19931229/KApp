@@ -995,68 +995,82 @@ void KVirtualGeometryStreamingManager::RemoveGeometry(uint32_t resourceIndex)
 		KVirtualGeometryPages pages = m_ResourcePages[resourceIndex];
 		uint32_t numRootPage = pages.numRootPage;
 
-		for (uint32_t i = 0; i < numRootPage; ++i)
+		m_ActualStreamInPages.erase(std::remove_if(m_ActualStreamInPages.begin(), m_ActualStreamInPages.end(), [resourceIndex](KVirtualGeometryActivePage* page)
 		{
-			KVirtualGeometryStreamingPageDesc desc;
-			desc.resourceIndex = resourceIndex;
-			desc.pageIndex = i;
-			auto it = m_CommitedPages.find(desc);
-			if (it != m_CommitedPages.end())
-			{
-				KVirtualGeometryActivePage* rootPage = it->second;
-				if (m_FreeRootPageHead)
-				{
-					rootPage->next = m_FreeRootPageHead;
-					rootPage->prev = m_FreeRootPageHead->prev;
-				}
-				else
-				{
-					rootPage->prev = rootPage->next = rootPage;
-				}
-				// UpdatePageRefCount(rootPage, false);
-				// ApplyFixup(rootPage, false);
-				assert(!rootPage->pendingPage.IsValid());
-				rootPage->residentPage.Invalidate();
-				rootPage->refCount = 0;
-				m_FreeRootPageHead = rootPage;
-				m_CommitedPages.erase(it);
-			}
-			m_CommitingPages.erase(desc);
-			m_PendingUploadPages.erase(std::remove(m_PendingUploadPages.begin(), m_PendingUploadPages.end(), desc), m_PendingUploadPages.end());
-		}
-		// assert(ListLength(m_UsedRootPageHead) + ListLength(m_FreeRootPageHead) == m_MaxRootPages);
+			return page->residentPage.resourceIndex == resourceIndex;
+		}), m_ActualStreamInPages.end());
+		m_ClusterFixupUpdates.erase(std::remove_if(m_ClusterFixupUpdates.begin(), m_ClusterFixupUpdates.end(), [this, resourceIndex](const KVirtualGeometryClusterFixupUpdate& fixup)
+		{
+			return m_Pages[fixup.gpuPageIndex]->residentPage.resourceIndex == resourceIndex;
+		}), m_ClusterFixupUpdates.end());
 
-		for (uint32_t i = numRootPage; i < (uint32_t)pages.pages.size(); ++i)
+		auto RecyclePage = [](KVirtualGeometryActivePage* page, KVirtualGeometryActivePage*& usedHead, KVirtualGeometryActivePage*& freeHead)
 		{
-			KVirtualGeometryStreamingPageDesc desc;
-			desc.resourceIndex = resourceIndex;
-			desc.pageIndex = i;
-			auto it = m_CommitedPages.find(desc);
-			if (it != m_CommitedPages.end())
+			if (page->next == page)
 			{
-				KVirtualGeometryActivePage* streamingPage = it->second;
-				if (m_FreeStreamingPageHead)
+				usedHead = nullptr;
+			}
+			else
+			{
+				page->prev->next = page->next;
+				page->next->prev = page->prev;
+				if (usedHead == page)
 				{
-					streamingPage->next = m_FreeStreamingPageHead;
-					streamingPage->prev = m_FreeStreamingPageHead->prev;
+					usedHead = page->next;
+				}
+			}
+			if (freeHead)
+			{
+				page->next = freeHead;
+				page->prev = freeHead->prev;
+				freeHead->prev->next = page;
+				freeHead->prev = page;
+			}
+			else
+			{
+				page->prev = page->next = page;
+			}
+			freeHead = page;
+		};
+
+		for (KVirtualGeometryActivePage* page : m_Pages)
+		{
+			bool removeResident = page->residentPage.resourceIndex == resourceIndex;
+			bool removePending = page->pendingPage.resourceIndex == resourceIndex;
+			if (removePending && page->residentPage.IsValid() && !removeResident)
+			{
+				m_PendingStreamOutPages.erase(std::remove(m_PendingStreamOutPages.begin(), m_PendingStreamOutPages.end(), page->residentPage), m_PendingStreamOutPages.end());
+			}
+			if (removeResident)
+			{
+				page->residentPage.Invalidate();
+				page->refCount = 0;
+			}
+			if (removePending)
+			{
+				page->pendingPage.Invalidate();
+			}
+			if ((removeResident || removePending) && !page->residentPage.IsValid() && !page->pendingPage.IsValid())
+			{
+				page->refCount = 0;
+				if (page->index < m_MaxStreamingPages)
+				{
+					RecyclePage(page, m_UsedStreamingPageHead, m_FreeStreamingPageHead);
 				}
 				else
 				{
-					streamingPage->prev = streamingPage->next = streamingPage;
+					RecyclePage(page, m_UsedRootPageHead, m_FreeRootPageHead);
 				}
-				// UpdatePageRefCount(streamingPage, false);
-				// ApplyFixup(streamingPage, false);
-				streamingPage->residentPage.Invalidate();
-				streamingPage->refCount = 0;
-				m_FreeStreamingPageHead = streamingPage;
-				m_CommitedPages.erase(it);
 			}
-			m_CommitingPages.erase(desc);
-			m_PendingUploadPages.erase(std::remove(m_PendingUploadPages.begin(), m_PendingUploadPages.end(), desc), m_PendingUploadPages.end());
-			m_PendingStreamInPages.erase(std::remove(m_PendingStreamInPages.begin(), m_PendingStreamInPages.end(), desc), m_PendingStreamInPages.end());
-			m_PendingStreamOutPages.erase(std::remove(m_PendingStreamOutPages.begin(), m_PendingStreamOutPages.end(), desc), m_PendingStreamOutPages.end());
+			if (page->residentPage.IsValid() && page->residentPage.resourceIndex > resourceIndex)
+			{
+				--page->residentPage.resourceIndex;
+			}
+			if (page->pendingPage.IsValid() && page->pendingPage.resourceIndex > resourceIndex)
+			{
+				--page->pendingPage.resourceIndex;
+			}
 		}
-		// assert(ListLength(m_UsedStreamingPageHead) + ListLength(m_FreeStreamingPageHead) == m_MaxStreamingPages);
 
 		auto AdjustPageMap = [](std::unordered_map<KVirtualGeometryStreamingPageDesc, KVirtualGeometryActivePage*>& mapToAdjust, uint32_t resourceIndex)
 		{
@@ -1080,6 +1094,10 @@ void KVirtualGeometryStreamingManager::RemoveGeometry(uint32_t resourceIndex)
 
 		auto AdjustPageList = [](std::vector<KVirtualGeometryStreamingPageDesc>& list, uint32_t resourceIndex)
 		{
+			list.erase(std::remove_if(list.begin(), list.end(), [resourceIndex](const KVirtualGeometryStreamingPageDesc& desc)
+			{
+				return desc.resourceIndex == resourceIndex;
+			}), list.end());
 			for (KVirtualGeometryStreamingPageDesc& desc : list)
 			{
 				if (desc.resourceIndex > resourceIndex)
@@ -1092,6 +1110,32 @@ void KVirtualGeometryStreamingManager::RemoveGeometry(uint32_t resourceIndex)
 		AdjustPageList(m_PendingUploadPages, resourceIndex);
 		AdjustPageList(m_PendingStreamInPages, resourceIndex);
 		AdjustPageList(m_PendingStreamOutPages, resourceIndex);
+
+		std::unordered_set<KVirtualGeometryStreamingPageDesc> requestedCommitedPages;
+		for (KVirtualGeometryStreamingPageDesc desc : m_RequestedCommitedPages)
+		{
+			if (desc.resourceIndex != resourceIndex)
+			{
+				if (desc.resourceIndex > resourceIndex)
+				{
+					--desc.resourceIndex;
+				}
+				requestedCommitedPages.insert(desc);
+			}
+		}
+		m_RequestedCommitedPages.swap(requestedCommitedPages);
+
+		m_HierarchyFixupUpdates.erase(std::remove_if(m_HierarchyFixupUpdates.begin(), m_HierarchyFixupUpdates.end(), [resourceIndex](const KVirtualGeometryHierarchyFixupUpdate& fixup)
+		{
+			return fixup.resourceIndex == resourceIndex;
+		}), m_HierarchyFixupUpdates.end());
+		for (KVirtualGeometryHierarchyFixupUpdate& fixup : m_HierarchyFixupUpdates)
+		{
+			if (fixup.resourceIndex > resourceIndex)
+			{
+				--fixup.resourceIndex;
+			}
+		}
 
 		m_ResourcePages.erase(m_ResourcePages.begin() + resourceIndex);
 		m_ResourcePageStorages.erase(m_ResourcePageStorages.begin() + resourceIndex);

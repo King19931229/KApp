@@ -61,7 +61,7 @@ void KVulkanDescriptorPool::Move(KVulkanDescriptorPool&& rhs)
 	m_BlockSize = std::move(rhs.m_BlockSize);
 
 	m_ImageCount = std::move(rhs.m_ImageCount);
-	m_StorageImageCount = std::move(m_StorageImageCount);
+	m_StorageImageCount = std::move(rhs.m_StorageImageCount);
 	m_UniformBufferCount = std::move(rhs.m_UniformBufferCount);
 	m_StorageBufferCount = std::move(rhs.m_StorageBufferCount);
 	m_DynamicUniformBufferCount = std::move(rhs.m_DynamicUniformBufferCount);
@@ -195,6 +195,10 @@ VkDescriptorPool KVulkanDescriptorPool::CreateDescriptorPool(size_t maxCount)
 	storagePoolSize.type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
 	storagePoolSize.descriptorCount = (uint32_t)maxCount * m_StorageBufferCount;
 
+	VkDescriptorPoolSize storageImagePoolSize = {};
+	storageImagePoolSize.type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+	storageImagePoolSize.descriptorCount = (uint32_t)maxCount * m_StorageImageCount;
+
 	VkDescriptorPoolSize dynamicStoragePoolSize = {};
 	dynamicStoragePoolSize.type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC;
 	dynamicStoragePoolSize.descriptorCount = (uint32_t)maxCount * m_DynamicStorageBufferCount;
@@ -211,12 +215,16 @@ VkDescriptorPool KVulkanDescriptorPool::CreateDescriptorPool(size_t maxCount)
 	samplerPoolSize.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 	samplerPoolSize.descriptorCount = (uint32_t)maxCount * m_ImageCount;
 
-	VkDescriptorPoolSize poolSizes[5];
+	VkDescriptorPoolSize poolSizes[6];
 	uint32_t poolSizeCount = 0;
 
 	if (storagePoolSize.descriptorCount > 0)
 	{
 		poolSizes[poolSizeCount++] = storagePoolSize;
+	}
+	if (storageImagePoolSize.descriptorCount > 0)
+	{
+		poolSizes[poolSizeCount++] = storageImagePoolSize;
 	}
 	if (dynamicStoragePoolSize.descriptorCount > 0)
 	{

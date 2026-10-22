@@ -20,7 +20,7 @@ public:
 
 		void ThreadFunc()
 		{
-			while(!m_bQuit)
+			while (true)
 			{
 				std::function<void()> job;
 				{
@@ -52,8 +52,11 @@ public:
 		{
 			if (m_Thread.joinable())
 			{
-				m_bQuit = true;
-				m_Cond.notify_one();
+				{
+					std::lock_guard<std::mutex> lock(m_Lock);
+					m_bQuit = true;
+				}
+				m_Cond.notify_all();
 				m_Thread.join();
 			}
 		}

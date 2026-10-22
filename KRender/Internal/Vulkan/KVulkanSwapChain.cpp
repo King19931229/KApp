@@ -8,6 +8,7 @@
 #include "Internal/KRenderGlobal.h"
 #include "Interface/IKRenderWindow.h"
 #include "KBase/Publish/KConfig.h"
+#include "KBase/Interface/IKLog.h"
 #include <algorithm>
 
 KVulkanSwapChain::KVulkanSwapChain()
@@ -426,13 +427,24 @@ void KVulkanSwapChain::WaitForInFlightFrame()
 	VK_ASSERT_RESULT(vkResult);
 }
 
-void KVulkanSwapChain::AcquireNextImage(uint32_t& imageIndex)
+SwapChainAcquireResult KVulkanSwapChain::AcquireNextImage(uint32_t& imageIndex)
 {
 	// 获取可用交换链Image索引 促发交换链Image可用信号量
 	VkSemaphore singalSemaphore = ((KVulkanSemaphore*)m_ImageAvailableSemaphore.get())->GetVkSemaphore();
-	VkResult vkResult = vkAcquireNextImageKHR(KVulkanGlobal::device, m_SwapChain, UINT64_MAX, singalSemaphore, VK_NULL_HANDLE, &imageIndex);
-	m_CurrentImageIndex = imageIndex;
-	ASSERT_RESULT(vkResult == VK_SUCCESS || vkResult == VK_ERROR_OUT_OF_DATE_KHR || vkResult == VK_SUBOPTIMAL_KHR);
+	uint32_t acquiredImageIndex = 0;
+	VkResult vkResult = vkAcquireNextImageKHR(KVulkanGlobal::device, m_SwapChain, UINT64_MAX, singalSemaphore, VK_NULL_HANDLE, &acquiredImageIndex);
+	if (vkResult == VK_SUCCESS || vkResult == VK_SUBOPTIMAL_KHR)
+	{
+		imageIndex = acquiredImageIndex;
+		m_CurrentImageIndex = acquiredImageIndex;
+		return SCAR_SUCCESS;
+	}
+	if (vkResult == VK_ERROR_OUT_OF_DATE_KHR)
+	{
+		return SCAR_OUT_OF_DATE;
+	}
+	KG_LOGE(LM_RENDER, "Failed to acquire swapchain image: %s (%d)", VK_ERROR_STRING(vkResult), (int)vkResult);
+	return SCAR_FAILED;
 }
 
 void KVulkanSwapChain::PresentQueue(bool& needResize)

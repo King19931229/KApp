@@ -323,16 +323,16 @@ bool KRenderScene::RayPick(const glm::vec3& origin, const glm::vec3& dir, std::v
 
 bool KRenderScene::CloestRayPick(const glm::vec3& origin, const glm::vec3& dir, IKEntity*& result)
 {
+	result = nullptr;
 	if (m_SceneMgr)
 	{
 		std::vector<IKEntity*> entities;
 		if (m_SceneMgr->Pick(origin, dir, entities))
 		{
+			float maxDistance = std::numeric_limits<float>::max();
 			for (IKEntity* entity : entities)
 			{
 				glm::vec3 resultPoint;
-				float maxDistance = std::numeric_limits<float>::max();
-				result = nullptr;
 
 				if (entity->Intersect(origin, dir, resultPoint, &maxDistance))
 				{
@@ -345,7 +345,6 @@ bool KRenderScene::CloestRayPick(const glm::vec3& origin, const glm::vec3& dir, 
 			return result != nullptr;
 		}
 	}
-	result = nullptr;
 	return false;
 }
 

@@ -1,5 +1,6 @@
 #include "KVirtualGeometryScene.h"
 #include "Internal/KRenderGlobal.h"
+#include "KBase/Interface/Entity/IKEntityManager.h"
 #include "Internal/ECS/Component/KRenderComponent.h"
 #include "KBase/Publish/KMath.h"
 
@@ -34,6 +35,11 @@ void KVirtualGeometryScene::OnSceneChanged(EntitySceneOp op, IKEntity* entity)
 	}
 	if (op == ESO_REMOVE)
 	{
+		IKRenderComponent* renderComponent = nullptr;
+		if (entity->GetComponent(CT_RENDER, &renderComponent))
+		{
+			renderComponent->UnRegisterCallback(&m_OnRenderComponentChangedFunc);
+		}
 		RemoveInstance(entity);
 	}
 	else if (op == ESO_TRANSFORM)
@@ -227,6 +233,7 @@ bool KVirtualGeometryScene::Init(IKRenderScene* scene, const KCamera* camera)
 				else if (i == INSTANCE_CULL_POST)
 				{
 					m_InstanceCullPipeline[i]->BindStorageBuffer(BINDING_MAIN_CULL_RESULT, m_MainCullResultBuffer, COMPUTE_RESOURCE_IN, true);
+					m_InstanceCullPipeline[i]->BindStorageBuffer(BINDING_POST_CULL_INDIRECT_ARGS, m_PostCullIndirectArgsBuffer, COMPUTE_RESOURCE_IN, true);
 					m_InstanceCullPipeline[i]->BindSampler(BINDING_HIZ_BUFFER, KRenderGlobal::HiZBuffer.GetMaxBuffer()->GetFrameBuffer(), KRenderGlobal::HiZBuffer.GetHiZSampler(), true);
 				}
 
@@ -418,6 +425,17 @@ bool KVirtualGeometryScene::UnInit()
 	if (m_Scene)
 	{
 		m_Scene->UnRegisterEntityObserver(&m_OnSceneChangedFunc);
+		if (KECS::EntityManager)
+		{
+			KECS::EntityManager->ViewAllEntity([this](IKEntityPtr entity)
+			{
+				IKRenderComponent* renderComponent = nullptr;
+				if (entity->GetComponent(CT_RENDER, &renderComponent))
+				{
+					renderComponent->UnRegisterCallback(&m_OnRenderComponentChangedFunc);
+				}
+			});
+		}
 		m_Scene = nullptr;
 	}
 

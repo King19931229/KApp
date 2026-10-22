@@ -125,7 +125,7 @@ bool KRenderComponent::Pick(const glm::vec3& localOrigin, const glm::vec3& local
 	if (m_Mesh)
 	{
 		const KTriangleMesh& triangleMesh = (*m_Mesh)->GetTriangleMesh();
-		if (triangleMesh.CloestPickPoint(localOrigin, localDir, result))
+		if (triangleMesh.Pick(localOrigin, localDir, result))
 		{
 			return true;
 		}
@@ -138,7 +138,7 @@ bool KRenderComponent::CloestPick(const glm::vec3& localOrigin, const glm::vec3&
 	if (m_Mesh)
 	{
 		const KTriangleMesh& triangleMesh = (*m_Mesh)->GetTriangleMesh();
-		if (triangleMesh.Pick(localOrigin, localDir, result))
+		if (triangleMesh.CloestPickPoint(localOrigin, localDir, result))
 		{
 			return true;
 		}
@@ -256,7 +256,6 @@ bool KRenderComponent::UnInit()
 		{
 			(*callback)(this, false);
 		}
-		m_Callbacks.clear();
 
 		for (KMaterialSubMeshPtr& materialSubMesh : m_MaterialSubMeshes)
 		{

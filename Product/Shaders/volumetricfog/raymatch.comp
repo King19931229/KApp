@@ -1,6 +1,6 @@
 #define COMPUTE_SHADER
 #include "volumetric_fog_public.h"
-layout(local_size_x = GROUP_SIZE, local_size_y = GROUP_SIZE, local_size_z = GROUP_SIZE) in;
+layout(local_size_x = GROUP_SIZE, local_size_y = GROUP_SIZE, local_size_z = 1) in;
 
 layout(binding = VOLUMETRIC_FOG_BINDING_VOXEL_CURR) uniform sampler3D currVoxel;
 layout(binding = VOLUMETRIC_FOG_BINDING_VOXEL_RESULT, VOXEL_FORMAT) uniform writeonly image3D resultVoxel;
@@ -12,7 +12,8 @@ vec4 Accumulate(int z, float n, float f, float grid_size_z,
 	const float slice_transmittance = exp(-slice_density * thickness / (f - n));
 
 	// https://github.com/Unity-Technologies/VolumetricLighting/blob/master/Assets/VolumetricFog/Shaders/Scatter.compute
-	vec3 slice_scattering_integral = slice_scattering * (1.0 - slice_transmittance) / slice_density;
+	vec3 slice_scattering_integral = slice_scattering * (slice_density > 0.0
+		? (1.0 - slice_transmittance) / slice_density : thickness / (f - n));
 
 	accum_scattering += slice_scattering_integral * accum_transmittance;
 	accum_transmittance *= slice_transmittance;

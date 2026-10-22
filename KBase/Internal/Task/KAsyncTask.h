@@ -9,6 +9,7 @@ protected:
 	IKTaskThreadPool* m_ThreadPool;
 	KEvent m_WorkFinishEvent;
 	std::atomic<int32_t> m_WorkCounter;
+	std::atomic_bool m_Completed;
 public:
 	KAsyncTask(IKTaskWorkPtr task);
 	~KAsyncTask();

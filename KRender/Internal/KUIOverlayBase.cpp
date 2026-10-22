@@ -10,6 +10,7 @@
 #include "Internal/KRenderGlobal.h"
 
 #include "imgui.h"
+#include "imgui_internal.h"
 
 KUIOverlayBase::KUIOverlayBase()
 	: m_UIContext(nullptr)
@@ -55,6 +56,7 @@ void KUIOverlayBase::InitImgui()
 	ASSERT_RESULT(m_UIContext == nullptr);
 	// Init ImGui
 	m_UIContext = ImGui::CreateContext();
+	ImGui::SetCurrentContext((ImGuiContext*)m_UIContext);
 	// Color scheme
 	ImGuiStyle& style = ImGui::GetStyle();
 	style.Colors[ImGuiCol_TitleBg] = ImVec4(1.0f, 0.0f, 0.0f, 1.0f);
@@ -87,6 +89,7 @@ void KUIOverlayBase::UnInitImgui()
 bool KUIOverlayBase::Init()
 {
 	UnInit();
+	ImGuiContext* previousContext = ImGui::GetCurrentContext();
 
 	KRenderGlobal::RenderDevice->CreateTexture(m_FontTexture);
 	KRenderGlobal::RenderDevice->CreateSampler(m_FontSampler);
@@ -107,6 +110,7 @@ bool KUIOverlayBase::Init()
 	InitImgui();
 	PrepareResources();
 	PreparePipeline();
+	if (previousContext) ImGui::SetCurrentContext(previousContext);
 
 	return true;
 }
@@ -155,7 +159,7 @@ void KUIOverlayBase::PrepareResources()
 	ASSERT_RESULT(m_FontTexture != nullptr);
 	ASSERT_RESULT(m_FontSampler != nullptr);
 
-	ImGuiIO& io = ImGui::GetIO();
+	ImGuiIO& io = ((ImGuiContext*)m_UIContext)->IO;
 
 	// Create font texture
 	unsigned char* fontData = nullptr;
@@ -216,10 +220,10 @@ bool KUIOverlayBase::Update()
 {
 	unsigned int imageIndex = KRenderGlobal::CurrentInFlightFrameIndex;
 	
-	ImDrawData* imDrawData = ImGui::GetDrawData();
+	ImDrawData* imDrawData = &((ImGuiContext*)m_UIContext)->DrawData;
 	bool updateCmdBuffers = false;
 
-	if (!imDrawData) 
+	if (!imDrawData->Valid)
 	{
 		return true;
 	};
@@ -272,21 +276,21 @@ bool KUIOverlayBase::Update()
 
 bool KUIOverlayBase::Resize(size_t width, size_t height)
 {
-	ImGuiIO& io = ImGui::GetIO();
+	ImGuiIO& io = ((ImGuiContext*)m_UIContext)->IO;
 	io.DisplaySize = ImVec2((float)(width), (float)(height));
 	return true;
 }
 
 bool KUIOverlayBase::SetMousePosition(unsigned int x, unsigned int y)
 {
-	ImGuiIO& io = ImGui::GetIO();
+	ImGuiIO& io = ((ImGuiContext*)m_UIContext)->IO;
 	io.MousePos = ImVec2((float)x, (float)y);
 	return true;
 }
 
 bool KUIOverlayBase::SetMouseDown(InputMouseButton button, bool down)
 {
-	ImGuiIO& io = ImGui::GetIO();
+	ImGuiIO& io = ((ImGuiContext*)m_UIContext)->IO;
 	switch (button)
 	{
 	case INPUT_MOUSE_BUTTON_LEFT:
@@ -307,7 +311,7 @@ bool KUIOverlayBase::SetMouseDown(InputMouseButton button, bool down)
 
 bool KUIOverlayBase::SetMouseScroll(float x, float y)
 {
-	ImGuiIO& io = ImGui::GetIO();
+	ImGuiIO& io = ((ImGuiContext*)m_UIContext)->IO;
 	float speed = 0.4f;
 	io.MouseWheel += speed * y;
 	io.MouseWheelH += speed * x;
@@ -316,6 +320,7 @@ bool KUIOverlayBase::SetMouseScroll(float x, float y)
 
 bool KUIOverlayBase::StartNewFrame()
 {
+	ImGui::SetCurrentContext((ImGuiContext*)m_UIContext);
 	ImGui::NewFrame();
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0);
 	return true;
@@ -323,6 +328,7 @@ bool KUIOverlayBase::StartNewFrame()
 
 bool KUIOverlayBase::EndNewFrame()
 {
+	ImGui::SetCurrentContext((ImGuiContext*)m_UIContext);
 	ImGui::PopStyleVar();
 	ImGui::Render();
 	return true;

@@ -48,7 +48,7 @@ bool KTransformComponent::UnRegisterTransformChangeCallback(KTransformChangeCall
 	if (callback)
 	{
 		auto it = std::find(m_TransformChangeCallbacks.begin(), m_TransformChangeCallbacks.end(), callback);
-		if (it == m_TransformChangeCallbacks.end())
+		if (it != m_TransformChangeCallbacks.end())
 		{
 			m_TransformChangeCallbacks.erase(it);
 		}

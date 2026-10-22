@@ -51,7 +51,7 @@ void AddFilterContribution(
 		&& samplePos.x <= (1.0 - 0.5 * invScreenSize.x)
 	 	&& samplePos.y <= (1.0 - 0.5 * invScreenSize.y))
 	{
-		vec4 gbuffer0Data = texture(gbuffer0, screenCoord);
+		vec4 gbuffer0Data = texture(gbuffer0, samplePos);
 
 		vec4 iValue = texture(inputImage, samplePos);
 		float iDepth = LinearDepthToNonLinearDepth(camera.proj, DecodeDepth(gbuffer0Data));

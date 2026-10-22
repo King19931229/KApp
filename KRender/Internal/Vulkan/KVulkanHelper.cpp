@@ -289,6 +289,9 @@ namespace KVulkanHelper
 		case AM_CLAMP_TO_EDGE:
 			vkAddressMode = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
 			return true;
+		case AM_MIRRORED_REPEAT:
+			vkAddressMode = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
+			return true;
 		case AM_MIRROR_CLAMP_TO_EDGE:
 			vkAddressMode = VK_SAMPLER_ADDRESS_MODE_MIRROR_CLAMP_TO_EDGE;
 			return true;

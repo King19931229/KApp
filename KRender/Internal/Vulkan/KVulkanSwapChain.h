@@ -95,7 +95,7 @@ public:
 	virtual bool UnRegisterSwapChainRecreateCallback(KSwapChainRecreateCallback* callback);
 
 	virtual void WaitForInFlightFrame();
-	virtual void AcquireNextImage(uint32_t& imageIndex);
+	virtual SwapChainAcquireResult AcquireNextImage(uint32_t& imageIndex);
 	virtual void PresentQueue(bool& needResize);
 
 	inline VkImage GetImage(size_t imageIndex) { return (imageIndex >= m_SwapChainImages.size()) ? VK_NULL_HANDLE : m_SwapChainImages[imageIndex]; }

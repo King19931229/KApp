@@ -1,5 +1,6 @@
 #pragma once
 #include <thread>
+#include <atomic>
 #include <mutex>
 #include <vector>
 #include <functional>
@@ -10,6 +11,7 @@ public:
 	typedef std::function<void(const char*)> InputCallBackType;
 protected:
 	std::thread* m_Thread;
+	std::atomic<bool> m_Stop;
 	std::mutex m_Lock;
 	std::vector<InputCallBackType*> m_InputCallbacks;
 public:

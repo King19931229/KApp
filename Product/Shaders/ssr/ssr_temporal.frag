@@ -109,7 +109,7 @@ void main()
 
 	float motionLength = length(motion);
 
-	float motionWeight = pow(1.0 - 8.0 * motionLength, motionSigma);
+	float motionWeight = pow(clamp(1.0 - 8.0 * motionLength, 0.0, 1.0), motionSigma);
 	float depthWeight = 1.0;
 	float normalWeight = 1.0;
 

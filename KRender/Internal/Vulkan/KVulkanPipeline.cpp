@@ -17,6 +17,13 @@ KVulkanPipeline::KVulkanPipeline()
 	, m_PipelineLayout(VK_NULL_HANDLE)
 	, m_LastTrimFrame(-1)
 {
+	for (size_t i = 0; i < m_Pools.size(); ++i)
+	{
+		m_PoolInitializeds[i] = false;
+#ifdef _DEBUG
+		m_PoolInitialing[i] = false;
+#endif
+	}
 }
 
 KVulkanPipeline::~KVulkanPipeline()

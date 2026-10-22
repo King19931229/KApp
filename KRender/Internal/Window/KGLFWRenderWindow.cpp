@@ -334,11 +334,14 @@ bool KGLFWRenderWindow::UnInit()
 #ifndef __ANDROID__
 	if (m_Device)
 	{
-		ENQUEUE_RENDER_COMMAND(GLFW_UnInitWindow)([this]()
+		if (m_bPrimary)
 		{
-			return m_Device->UnInit();
-		});
-		FLUSH_RENDER_COMMAND();
+			ENQUEUE_RENDER_COMMAND(GLFW_UnInitWindow)([this]()
+			{
+				return m_Device->UnInit();
+			});
+			FLUSH_RENDER_COMMAND();
+		}
 		m_Device = nullptr;
 	}
 

@@ -1,4 +1,5 @@
 #include "Publish/Mesh/KVirtualGeometryBuilder.h"
+#include "Interface/Task/IKAsyncTask.h"
 
 void KMeshCluster::UnInit()
 {
@@ -1424,10 +1425,10 @@ void KVirtualGeometryBuilder::BuildDAG(const std::vector<KMeshProcessorVertex>& 
 
 void KVirtualGeometryBuilder::BuildMaterialRanges()
 {
-	for (size_t i = 0; i < m_Clusters.size(); ++i)
+	ParallelFor([this](uint32_t i)
 	{
 		m_Clusters[i]->BuildMaterialRange();
-	}
+	}, (uint32_t)m_Clusters.size());
 }
 
 void KVirtualGeometryBuilder::SortClusterGroup()
@@ -1567,7 +1568,7 @@ void KVirtualGeometryBuilder::ConstrainCluster()
 
 void KVirtualGeometryBuilder::BuildReuseBatch()
 {
-	for (size_t i = 0; i < m_Clusters.size(); ++i)
+	ParallelFor([this](uint32_t i)
 	{
 		KMeshClusterPtr cluster = m_Clusters[i];
 		for (KMeshClusterMaterialRange& materialRange : cluster->materialRanges)
@@ -1634,7 +1635,7 @@ void KVirtualGeometryBuilder::BuildReuseBatch()
 				materialRange.batchTriCounts.push_back(batchTriangleNum);
 			}
 		}
-	}
+	}, (uint32_t)m_Clusters.size());
 }
 
 void KVirtualGeometryBuilder::BuildPage()
@@ -1835,7 +1836,7 @@ void KVirtualGeometryBuilder::BuildPageStorage()
 {
 	m_PageStorages.storages.resize(m_Pages.pages.size());
 
-	for (uint32_t i = 0; i < (uint32_t)m_Pages.pages.size(); ++i)
+	ParallelFor([this](uint32_t i)
 	{
 		KVirtualGeometryPageStorage& pageStorage = m_PageStorages.storages[i];
 		const KVirtualGeometryPage& page = m_Pages.pages[i];
@@ -1930,7 +1931,7 @@ void KVirtualGeometryBuilder::BuildPageStorage()
 		pageStorage.batchStorageByteOffset = pageSize;
 		pageSize += sizeof(KMeshClusterBatch) * (uint32_t)pageStorage.batchStorage.batches.size();
 		assert(pageSize == page.dataByteSize);
-	}
+	}, (uint32_t)m_Pages.pages.size());
 }
 
 float KVirtualGeometryBuilder::SortBVHNodesByAxis(const std::vector<KMeshClusterBVHNodePtr>& bvhNodes, SortAxis axis, const std::vector<uint32_t>& indices, const KRange& range, std::vector<uint32_t>& sorted)

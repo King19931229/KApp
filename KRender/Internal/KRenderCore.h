@@ -15,6 +15,7 @@
 
 #include <unordered_set>
 #include <chrono>
+#include <atomic>
 
 #define STD_TIME_POINT_NOW() std::chrono::high_resolution_clock::now()
 #define STD_TIME_POINT_UNDEFINED() std::chrono::high_resolution_clock::time_point()
@@ -57,7 +58,7 @@ protected:
 	STD_TIME_POINT_TYPE m_LastTickTime;
 
 	bool m_bInit;
-	bool m_bTickShouldEnd;
+	std::atomic_bool m_bTickShouldEnd;
 	bool m_bSwapChainResized;
 
 	bool InitPostProcess();

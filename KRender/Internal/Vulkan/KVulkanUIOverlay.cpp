@@ -11,6 +11,7 @@
 #include "Internal/KRenderGlobal.h"
 
 #include "imgui.h"
+#include "imgui_internal.h"
 
 KVulkanUIOverlay::KVulkanUIOverlay()
 {
@@ -29,11 +30,11 @@ bool KVulkanUIOverlay::Draw(IKRenderPassPtr renderPass, KRHICommandList& command
 		KVulkanCommandBuffer* vulkanCommandBuffer = (KVulkanCommandBuffer*)inCommandBuffer.get();
 		const VkCommandBuffer commandBuffer = vulkanCommandBuffer->GetVkHandle();
 
-		ImDrawData* imDrawData = ImGui::GetDrawData();
+		ImDrawData* imDrawData = &((ImGuiContext*)m_UIContext)->DrawData;
 		int32_t vertexOffset = 0;
 		int32_t indexOffset = 0;
 
-		if ((!imDrawData) || (imDrawData->CmdListsCount == 0))
+		if ((!imDrawData->Valid) || (imDrawData->CmdListsCount == 0))
 		{
 			return;
 		}
@@ -53,7 +54,7 @@ bool KVulkanUIOverlay::Draw(IKRenderPassPtr renderPass, KRHICommandList& command
 
 			VkBuffer vkVertexBufferHandle = vulkanVertexBuffer->GetVulkanHandle();
 
-			ImGuiIO& io = ImGui::GetIO();
+			ImGuiIO& io = ((ImGuiContext*)m_UIContext)->IO;
 
 			vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 			vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, NULL);

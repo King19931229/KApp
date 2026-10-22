@@ -8,6 +8,7 @@ void main()
 #if INSTANCE_CULL_MODE != INSTANCE_CULL_POST
 	uint instanceId = gl_GlobalInvocationID.x;
 #else
+	if (gl_GlobalInvocationID.x >= PostCullIndirectArgs[3]) return;
 	uint instanceId = MainCullResult[gl_GlobalInvocationID.x];
 #endif
 
@@ -33,7 +34,7 @@ void main()
 		{
 			uint offset = atomicAdd(PostCullIndirectArgs[3], 1);
 			MainCullResult[offset] = instanceId;
-			PostCullIndirectArgs[0] = atomicMax(PostCullIndirectArgs[0], (offset + VG_GROUP_SIZE - 1) / VG_GROUP_SIZE);
+			atomicMax(PostCullIndirectArgs[0], (offset + VG_GROUP_SIZE) / VG_GROUP_SIZE);
 		}
 #endif
 #endif

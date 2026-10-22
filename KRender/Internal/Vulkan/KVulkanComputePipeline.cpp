@@ -197,10 +197,16 @@ VkDescriptorPool KVulkanComputePipeline::CreateDescriptorPool(uint32_t maxCount)
 {
 	VkDescriptorPool pool = VK_NULL_HANDEL;
 
+	std::vector<VkDescriptorPoolSize> poolSizes = m_PoolSizes;
+	for (VkDescriptorPoolSize& poolSize : poolSizes)
+	{
+		poolSize.descriptorCount *= maxCount;
+	}
+
 	VkDescriptorPoolCreateInfo descriptorPoolCreateInfo = {};
 	descriptorPoolCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-	descriptorPoolCreateInfo.poolSizeCount = (uint32_t)m_PoolSizes.size();
-	descriptorPoolCreateInfo.pPoolSizes = m_PoolSizes.data();
+	descriptorPoolCreateInfo.poolSizeCount = (uint32_t)poolSizes.size();
+	descriptorPoolCreateInfo.pPoolSizes = poolSizes.data();
 	descriptorPoolCreateInfo.maxSets = maxCount;
 	descriptorPoolCreateInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
 
@@ -339,7 +345,7 @@ bool KVulkanComputePipeline::CreateLayout()
 		}
 
 		VkDescriptorSetLayoutBinding newBinding = KVulkanInitializer::CreateDescriptorSetLayoutBinding(type, stageFlags, location, newWrite.descriptorCount);
-		VkDescriptorPoolSize newPoolSize = { type, 1 };
+		VkDescriptorPoolSize newPoolSize = { type, newBinding.descriptorCount };
 
 		m_LayoutBindings.push_back(newBinding);
 		m_PoolSizes.push_back(newPoolSize);

@@ -5,6 +5,13 @@
 typedef std::function<void(uint32_t chainIndex, uint32_t frameIndex)> KDevicePresentCallback;
 typedef std::function<void(uint32_t width, uint32_t height)> KSwapChainRecreateCallback;
 
+enum SwapChainAcquireResult
+{
+	SCAR_SUCCESS,
+	SCAR_OUT_OF_DATE,
+	SCAR_FAILED
+};
+
 struct IKSwapChain
 {
 	virtual ~IKSwapChain() {}
@@ -16,7 +23,7 @@ struct IKSwapChain
 	virtual uint32_t GetHeight() = 0;
 
 	virtual void WaitForInFlightFrame() = 0;
-	virtual void AcquireNextImage(uint32_t& imageIndex) = 0;
+	virtual SwapChainAcquireResult AcquireNextImage(uint32_t& imageIndex) = 0;
 	virtual void PresentQueue(bool& needResize) = 0;
 
 	virtual IKSemaphorePtr GetImageAvailableSemaphore() = 0;

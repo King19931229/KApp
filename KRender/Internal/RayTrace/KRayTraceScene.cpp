@@ -1,6 +1,7 @@
 #include "KRayTraceScene.h"
 #include "KRayTraceManager.h"
 #include "Internal/KRenderGlobal.h"
+#include "KBase/Interface/Entity/IKEntityManager.h"
 #include "KBase/Interface/Component/IKRenderComponent.h"
 #include "KBase/Interface/Component/IKTransformComponent.h"
 
@@ -152,8 +153,8 @@ void KRayTraceScene::OnSceneChanged(EntitySceneOp op, IKEntity* entity)
 						m_ASHandles[entity].insert(handle);					
 				}
 				bottomUpChanged = true;
-				renderComponent->RegisterCallback(&m_OnRenderComponentChangedFunc);
 			}
+			renderComponent->RegisterCallback(&m_OnRenderComponentChangedFunc);
 		}
 		else if (op == ESO_TRANSFORM)
 		{
@@ -170,6 +171,11 @@ void KRayTraceScene::OnSceneChanged(EntitySceneOp op, IKEntity* entity)
 	}
 	else
 	{
+		IKRenderComponent* renderComponent = nullptr;
+		if (entity->GetComponent(CT_RENDER, &renderComponent))
+		{
+			renderComponent->UnRegisterCallback(&m_OnRenderComponentChangedFunc);
+		}
 		auto it = m_ASHandles.find(entity);
 		if (it != m_ASHandles.end())
 		{
@@ -333,11 +339,23 @@ bool KRayTraceScene::UnInit()
 	if (m_Scene)
 	{
 		m_Scene->UnRegisterEntityObserver(&m_OnSceneChangedFunc);
+		if (KECS::EntityManager)
+		{
+			KECS::EntityManager->ViewAllEntity([this](IKEntityPtr entity)
+			{
+				IKRenderComponent* renderComponent = nullptr;
+				if (entity->GetComponent(CT_RENDER, &renderComponent))
+				{
+					renderComponent->UnRegisterCallback(&m_OnRenderComponentChangedFunc);
+				}
+			});
+		}
 		m_Scene = nullptr;
 	}
 
 	m_Camera = nullptr;
 	m_ASHandles.clear();
+	ClearBottomLevelAS();
 	for (auto it = m_RaytracePipelineInfos.begin(); it != m_RaytracePipelineInfos.end(); ++it)
 	{
 		SAFE_UNINIT(it->pipeline);

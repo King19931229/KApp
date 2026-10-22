@@ -111,6 +111,8 @@ void KAsyncTaskManager::ParallelFor(std::function<void(uint32_t)> body, uint32_t
 		}
 	}
 
+	numWorker = std::min(numWorker, numBatch);
+
 	std::atomic_uint32_t batchIndexCounter = 0;
 	std::atomic_uint32_t remainTaskNumCounter = taskNum;
 	KEvent finishEvent;
@@ -134,6 +136,10 @@ void KAsyncTaskManager::ParallelFor(std::function<void(uint32_t)> body, uint32_t
 	}
 
 	finishEvent.Wait();
+	for (IKAsyncTaskRef& workerTask : workerTasks)
+	{
+		workerTask->WaitForCompletion();
+	}
 }
 
 void KAsyncTaskManager::Init()

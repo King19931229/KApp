@@ -7,6 +7,7 @@
 
 #include "KBase/Interface/IKAssetLoader.h"
 #include "KBase/Interface/IKCodec.h"
+#include "KBase/Interface/IKLog.h"
 #include "KBase/Interface/Entity/IKEntityManager.h"
 #include "KBase/Publish/KPlatform.h"
 #include "KBase/Publish/KTimer.h"
@@ -465,6 +466,11 @@ void KRenderCore::Update()
 
 void KRenderCore::Render()
 {
+	if (m_bTickShouldEnd)
+	{
+		return;
+	}
+
 	KRenderGlobal::Renderer.GetRHICommandList().Flush(RHICommandFlush::FlushRHIThread);
 
 	IKSwapChain* mainSwapChain = m_MainWindow->GetSwapChain();
@@ -488,7 +494,19 @@ void KRenderCore::Render()
 	mainSwapChain->WaitForInFlightFrame();
 
 	uint32_t chainImageIndex = 0;
-	mainSwapChain->AcquireNextImage(chainImageIndex);
+	SwapChainAcquireResult acquireResult = mainSwapChain->AcquireNextImage(chainImageIndex);
+	if (acquireResult != SCAR_SUCCESS)
+	{
+		if (acquireResult == SCAR_OUT_OF_DATE)
+		{
+			m_bSwapChainResized = m_Device->RecreateSwapChain(mainSwapChain);
+		}
+		else
+		{
+			m_bTickShouldEnd = true;
+		}
+		return;
+	}
 
 	Update();
 
@@ -509,29 +527,65 @@ void KRenderCore::Render()
 		}
 	}
 
-	std::unordered_map<IKRenderWindow*, IKSwapChainPtr> m_SecordaryWindow;
-
-	if (!m_SecordaryWindow.empty())
+	if (!m_SecordaryWindows.empty())
 	{
-		// 等待设备空闲 不再进行FrameInFlight
 		FLUSH_INFLIGHT_RENDER_JOB();
 	}
 
-	for (auto& pair : m_SecordaryWindow)
+	for (IKRenderWindow* window : m_SecordaryWindows)
 	{
-		IKSwapChain* secordarySwapChain = pair.second.get();
-		// 处理次交换链的FrameInFlight 但是FrameIndex依然使用主交换链的结果
-		secordarySwapChain->WaitForInFlightFrame();
-		secordarySwapChain->AcquireNextImage(chainImageIndex);
-
+		IKSwapChain* secordarySwapChain = window->GetSwapChain();
+		size_t width = 0, height = 0;
+		if (!secordarySwapChain || window->IsMinimized() || !window->GetSize(width, height) || !width || !height)
 		{
-			KRenderGlobal::Renderer.SetSwapChain(secordarySwapChain);
-			KRenderGlobal::Renderer.Update();
-			KRenderGlobal::Renderer.Execute(chainImageIndex);
+			continue;
+		}
+		IKUIOverlay* secondaryUI = window->GetUIOverlay();
+		secordarySwapChain->WaitForInFlightFrame();
+		acquireResult = secordarySwapChain->AcquireNextImage(chainImageIndex);
+		if (acquireResult != SCAR_SUCCESS)
+		{
+			if (acquireResult == SCAR_OUT_OF_DATE)
+			{
+				if (m_Device->RecreateSwapChain(secordarySwapChain) && secondaryUI)
+				{
+					secondaryUI->Resize(secordarySwapChain->GetWidth(), secordarySwapChain->GetHeight());
+				}
+			}
+			else
+			{
+				m_bTickShouldEnd = true;
+				break;
+			}
+			continue;
+		}
 
-			KRenderGlobal::Renderer.GetRHICommandList().Present(secordarySwapChain, [](IKSwapChain* swapChain, bool needResize) {});
+		KRenderGlobal::Renderer.SetSwapChain(secordarySwapChain);
+		KRenderGlobal::Renderer.SetUIOverlay(secondaryUI);
+		if (secondaryUI)
+		{
+			secondaryUI->StartNewFrame();
+			secondaryUI->EndNewFrame();
+			secondaryUI->Update();
+		}
+		KRenderGlobal::Renderer.Update();
+		if (!KRenderGlobal::Renderer.Execute(chainImageIndex))
+		{
+			KG_LOGE(LM_RENDER, "Failed to render acquired secondary swapchain image");
+			m_bTickShouldEnd = true;
+			break;
+		}
+
+		bool resized = false;
+		KRenderGlobal::Renderer.GetRHICommandList().Present(secordarySwapChain, [&resized](IKSwapChain* swapChain, bool needResize) { resized = needResize; });
+		FLUSH_INFLIGHT_RENDER_JOB();
+		if (resized && secondaryUI)
+		{
+			secondaryUI->Resize(secordarySwapChain->GetWidth(), secordarySwapChain->GetHeight());
 		}
 	}
+	KRenderGlobal::Renderer.SetSwapChain(mainSwapChain);
+	KRenderGlobal::Renderer.SetUIOverlay(uiOverlay);
 }
 
 bool KRenderCore::Tick()
@@ -590,11 +644,21 @@ bool KRenderCore::Wait()
 
 bool KRenderCore::RegisterSecordaryWindow(IKRenderWindowPtr& window)
 {
-	if (m_bInit)
+	if (!IsInRenderThread())
+	{
+		bool result = false;
+		ENQUEUE_RENDER_COMMAND(RegisterSecondaryWindow)([this, &window, &result]()
+		{
+			result = RegisterSecordaryWindow(window);
+		});
+		FLUSH_RENDER_COMMAND();
+		return result;
+	}
+	if (m_bInit && window)
 	{
 		if (std::find(m_SecordaryWindows.begin(), m_SecordaryWindows.end(), window.get()) == m_SecordaryWindows.end())
 		{
-			window->CreateUISwapChain();
+			if (!window->CreateUISwapChain()) return false;
 			m_SecordaryWindows.push_back(window.get());
 			return true;
 		}
@@ -604,18 +668,29 @@ bool KRenderCore::RegisterSecordaryWindow(IKRenderWindowPtr& window)
 
 bool KRenderCore::UnRegisterSecordaryWindow(IKRenderWindowPtr& window)
 {
-	if (m_bInit)
+	bool result = false;
+	auto unregister = [this, &window, &result]()
 	{
-		auto it = std::find(m_SecordaryWindows.begin(), m_SecordaryWindows.end(), window.get());
-		if (it != m_SecordaryWindows.end())
+		if (m_bInit && window)
 		{
-			m_SecordaryWindows.erase(it);
-			window->DestroyUISwapChain();
-			SAFE_UNINIT(window);
-			return true;
+			auto it = std::find(m_SecordaryWindows.begin(), m_SecordaryWindows.end(), window.get());
+			if (it != m_SecordaryWindows.end())
+			{
+				FLUSH_INFLIGHT_RENDER_JOB();
+				KRenderGlobal::Renderer.RemoveCallback(window.get());
+				m_SecordaryWindows.erase(it);
+				window->DestroyUISwapChain();
+				result = true;
+			}
 		}
+	};
+	ENQUEUE_RENDER_COMMAND(UnregisterSecondaryWindow)(unregister);
+	FLUSH_RENDER_COMMAND();
+	if (result)
+	{
+		SAFE_UNINIT(window);
 	}
-	return false;
+	return result;
 }
 
 bool KRenderCore::RegisterInitCallback(KRenderCoreInitCallback* callback)

@@ -110,7 +110,7 @@ void ComputeValues(vec2 p, ivec2 outSize, vec4 curNormalDepth, out vec4 values)
 		sampleAOValue[i] = imageLoad(prevAOImage, samplePos[i]).r;
 		sampleHitDistanceValue[i] = imageLoad(prevHitDistanceImage, samplePos[i]).r;
 		sampleSqaredMeanValue[i] = imageLoad(prevSqaredMeanImage, samplePos[i]).r;
-		sampleTspp[i] = max(1.0, float(floatBitsToUint(imageLoad(prevTsppImage, samplePos[i]).r)));
+		sampleTspp[i] = max(1.0, imageLoad(prevTsppImage, samplePos[i]).r);
 	}
 
 	vec2 ddxy = DDXYDepthUV(p, outSize);
@@ -124,7 +124,7 @@ void ComputeValues(vec2 p, ivec2 outSize, vec4 curNormalDepth, out vec4 values)
 
 	if (dot(weights, vec4(1.0)) < 1e-3)
 	{
-		values = vec4(0, 0, 0, uintBitsToFloat(uint(0)));
+		values = vec4(0);
 		return;
 	}
 
@@ -147,7 +147,7 @@ void ComputeValues(vec2 p, ivec2 outSize, vec4 curNormalDepth, out vec4 values)
 		tspp += sampleTspp[i] * weights[i];
 	}
 
-	values = vec4(ao, sqaredMean, hitDistance, uintBitsToFloat(uint(round(tspp))));
+	values = vec4(ao, sqaredMean, hitDistance, round(tspp));
 }
 
 vec2 ComputeMotion(vec2 p)

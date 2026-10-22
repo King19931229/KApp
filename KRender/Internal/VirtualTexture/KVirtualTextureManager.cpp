@@ -374,8 +374,9 @@ void KVirtualTextureManager::HandleFeedbackResult()
 				uint32_t virtualID = -1;
 				uint32_t tileOffset = -1;
 
-				for (const TileOffsetRecord& record : m_TileOffsetRecords)
+				for (auto it = m_TileOffsetRecords.rbegin(); it != m_TileOffsetRecords.rend(); ++it)
 				{
+					const TileOffsetRecord& record = *it;
 					if (tileIndex >= record.tileOffset)
 					{
 						virtualID = record.virtualID;
@@ -675,7 +676,7 @@ void KVirtualTextureManager::ProcessPhysicalUpdate(KRHICommandList& commandList)
 		}
 	}
 
-	m_CurrentTargetBinding = (m_CurrentTargetBinding + 1) / MAX_MATERIAL_TEXTURE_BINDING;
+	m_CurrentTargetBinding = (m_CurrentTargetBinding + 1) % MAX_MATERIAL_TEXTURE_BINDING;
 
 	{
 		for (auto& pair : m_TextureMap)

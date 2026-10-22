@@ -7,8 +7,8 @@ layout(binding = BINDING_CUR_SQARED_MEAN, r16f) uniform image2D curSqaredMeanIma
 layout(binding = BINDING_CUR_TSPP, r16f) uniform image2D curTsppImage;
 layout(binding = BINDING_CUR_AO, r16f) uniform image2D curAOImage;
 layout(binding = BINDING_LOCAL_MEAN_VARIANCE_OUTPUT, rg16f) uniform image2D localMeanVarianceImage;
-layout(binding = BINDING_VARIANCE, rg16f) uniform image2D varianceImage;
-layout(binding = BINDING_BLUR_STRENGTH, rg16f) uniform image2D blurStrengthImage;
+layout(binding = BINDING_VARIANCE, r16f) uniform image2D varianceImage;
+layout(binding = BINDING_BLUR_STRENGTH, r16f) uniform image2D blurStrengthImage;
 
 layout(binding = BINDING_UNIFORM) uniform AOProperties 
 {
@@ -30,7 +30,7 @@ void main()
 	ivec2 storePos = ivec2(gl_GlobalInvocationID.xy);
 
 	vec4 cachedValues = imageLoad(reprojectedImage, storePos);
-	uint tspp = floatBitsToUint(imageLoad(curTsppImage, storePos).a);
+	uint tspp = uint(imageLoad(curTsppImage, storePos).r);
 	cachedValues.w = float(tspp);
 
 	bool isCurrentFrameValueActive = true;//mod(gl_GlobalInvocationID.x + gl_GlobalInvocationID.y, 2) == mod(frame_number, 2);
@@ -118,7 +118,7 @@ void main()
 	float TsppRatio = min(float(tspp), blurStrength_MaxTspp) / blurStrength_MaxTspp;
 	float blurStrength = pow(1 - TsppRatio, blurDecayStrength);
 
-	imageStore(curTsppImage, storePos, vec4(uintBitsToFloat(tspp)));
+	imageStore(curTsppImage, storePos, vec4(float(tspp)));
 	imageStore(curAOImage, storePos, vec4(value));
 	imageStore(curSqaredMeanImage, storePos, vec4(valueSquaredMean));
 	imageStore(curHitDistanceImage, storePos, vec4(rayHitDistance));
