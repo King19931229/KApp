@@ -2,6 +2,7 @@
 #include "IKRenderConfig.h"
 #include "IKResource.h"
 #include "KBase/Publish/KReferenceHolder.h"
+#include <glm/glm.hpp>
 
 struct KSamplerDescription
 {
@@ -18,15 +19,19 @@ struct KSamplerDescription
 	unsigned short anisotropicCount;
 	bool anisotropic;
 
+	glm::vec4 borderColor;
+
 	KSamplerDescription()
 	{
 		// 与KSamplerBase匹配
+		ZERO_MEMORY(*this);
 		addressU = addressV = addressW = AM_REPEAT;
 		minFilter = magFilter = FM_NEAREST;
 		minMipmap = 0;
 		maxMipmap = 0;
 		anisotropicCount = 0;
 		anisotropic = false;
+		borderColor = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
 	}
 
 	bool operator==(const KSamplerDescription& rhs) const
@@ -59,6 +64,9 @@ struct IKSampler
 
 	virtual bool SetAnisotropicCount(unsigned short count) = 0;
 	virtual bool GetAnisotropicCount(unsigned short& count) = 0;
+
+	virtual bool SetBorderColor(const glm::vec4& color) = 0;
+	virtual bool GetBorderColor(glm::vec4& color) = 0;
 
 	virtual bool GetMipmapLod(unsigned short& minMipmap, unsigned short& maxMipmap) = 0;
 

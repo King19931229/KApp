@@ -58,7 +58,7 @@ float FloatPrecision(in float x, in uint NumExponentBits, in uint NumMantissaBit
 	uint valueAsInt = floatBitsToUint(x);
 	int exponent = int((valueAsInt >> 23) & 0xFFu) - 127;
 	exponent = max(exponent, 1 - exponentShift);
-	return exp2(float(exponent - int(NumMantissaBits)));
+	return exp2(float(exponent - int(NumMantissaBits) - 1));
 }
 
 float FloatPrecisionR10(in float x)

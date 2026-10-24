@@ -62,7 +62,8 @@ enum MeshTextureAddress
 {
 	MTA_REPEAT,
 	MTA_CLAMP_TO_EDGE,
-	MTA_MIRRORED_REPEAT
+	MTA_MIRRORED_REPEAT,
+	MTA_CLAMP_TO_BORDER
 };
 
 enum MaterialAlphaMode

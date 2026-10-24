@@ -14,6 +14,8 @@ protected:
 	bool m_AnisotropicEnable;
 	unsigned short m_AnisotropicCount;
 
+	glm::vec4 m_BorderColor;
+
 	unsigned short m_MinMipmap;
 	unsigned short m_MaxMipmap;
 public:
@@ -31,6 +33,9 @@ public:
 
 	virtual bool SetAnisotropicCount(unsigned short count);
 	virtual bool GetAnisotropicCount(unsigned short& count);
+
+	virtual bool SetBorderColor(const glm::vec4& color);
+	virtual bool GetBorderColor(glm::vec4& color);
 
 	virtual bool GetMipmapLod(unsigned short& minMipmap, unsigned short& maxMipmap);
 

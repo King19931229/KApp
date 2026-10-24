@@ -16,7 +16,6 @@ void main()
 	uint groupOffset = MegaShaderState[megaShaderIndex].groupWriteOffset;
 
 	uint globalIndex = gl_GlobalInvocationID.x;
-	if (globalIndex >= uint(IndrectDrawArgs.length()) / 4) return;
 	if (globalIndex < groupNum)
 	{
 		uint instanceIndex = GroupData[groupOffset + globalIndex];

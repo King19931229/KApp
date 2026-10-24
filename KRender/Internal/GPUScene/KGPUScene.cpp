@@ -929,11 +929,22 @@ void KGPUScene::RebuildInstance()
 		}
 	}
 
+	size_t instanceBufferCount = (size_t)KMath::SmallestPowerOf2GreaterEqualThan(m_Instances.size());
+	if (instanceBufferCount < GPUSCENE_GROUP_SIZE)
+	{
+		instanceBufferCount = GPUSCENE_GROUP_SIZE;
+	}
+	std::vector<KGPUSceneInstance> instanceBufferData(instanceBufferCount);
+	for (size_t i = 0; i < m_Instances.size(); ++i)
+	{
+		instanceBufferData[i] = m_Instances[i];
+	}
+
 	for (size_t i = 0; i < m_InstanceDataBuffers.size(); ++i)
 	{
 		IKStorageBufferPtr buffer = m_InstanceDataBuffers[i];
 		buffer->UnInit();
-		buffer->InitMemory(m_Instances.size() * sizeof(KGPUSceneInstance), m_Instances.data());
+		buffer->InitMemory(instanceBufferCount * sizeof(KGPUSceneInstance), instanceBufferData.data());
 		buffer->InitDevice(false, false);
 	}
 
@@ -976,7 +987,8 @@ void KGPUScene::RebuildMegaShaderBuffer()
 		}
 		if (shaderItem.drawArgsDataCount < m_Instances.size())
 		{
-			shaderItem.drawArgsDataCount = (uint32_t)KMath::SmallestPowerOf2GreaterEqualThan(m_Instances.size());
+			uint32_t drawArgsCount = (uint32_t)KMath::SmallestPowerOf2GreaterEqualThan(m_Instances.size());
+			shaderItem.drawArgsDataCount = drawArgsCount < GPUSCENE_GROUP_SIZE ? GPUSCENE_GROUP_SIZE : drawArgsCount;
 			for (size_t i = 0; i < shaderItem.indirectDrawArgsBuffers.size(); ++i)
 			{
 				shaderItem.indirectDrawArgsBuffers[i]->UnInit();

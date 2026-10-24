@@ -447,6 +447,7 @@ bool KVulkanComputePipeline::Init(const char* szShader, const KShaderCompileEnvi
 	UnInit();
 	if (KRenderGlobal::ShaderManager.Acquire(ST_COMPUTE, szShader, env, m_ComputeShader, async) && CreateLayout())
 	{
+		SetDebugName(m_ComputeShader->GetPath());
 		KRenderGlobal::PipelineManager.AddComputePipeline(this);
 		if (async || EnsurePipeline())
 		{
@@ -749,6 +750,15 @@ bool KVulkanComputePipeline::Reload(bool reloadShader)
 		}
 		m_ComputeShader->WaitForDevice();
 		return m_ComputeShader->GetResourceState() == RS_DEVICE_LOADED && CreatePipeline();
+	}
+	return false;
+}
+
+bool KVulkanComputePipeline::DebugDump()
+{
+	if (m_ComputeShader)
+	{
+		return m_ComputeShader->DebugDump();
 	}
 	return false;
 }

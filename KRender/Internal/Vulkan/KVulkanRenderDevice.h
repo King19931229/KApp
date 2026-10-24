@@ -43,6 +43,7 @@ class KVulkanRenderDevice : public IKRenderDevice
 		VkPhysicalDeviceMeshShaderFeaturesEXT extMeshShader = {};
 		VkPhysicalDeviceShaderFloat16Int8Features shaderFloat16Int8 = {};
 		VkPhysicalDeviceDiagnosticsConfigFeaturesNV diagnosticsConfig = {};
+		VkPhysicalDeviceCustomBorderColorFeaturesEXT customBorderColor = {};
 	};
 
 	struct SupportedProperties

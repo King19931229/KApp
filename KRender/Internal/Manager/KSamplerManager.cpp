@@ -22,6 +22,7 @@ namespace std
 
 		KHash::HashCombine(hash, KHash::HashCompute(desc.anisotropicCount));
 		KHash::HashCombine(hash, KHash::HashCompute(desc.anisotropic));
+		KHash::HashCombine(hash, KHash::HashCompute(desc.borderColor));
 
 		return hash;
 	}

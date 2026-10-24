@@ -155,5 +155,7 @@ public:
 	virtual bool ExecuteIndirect(IKCommandBufferPtr primaryBuffer, IKStorageBufferPtr indirectBuffer, const KDynamicConstantBufferUsage* usage);
 	virtual bool Reload(bool reloadShader);
 
+	virtual bool DebugDump();
+
 	virtual bool SetDebugName(const char* name);
 };

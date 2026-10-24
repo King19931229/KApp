@@ -15,7 +15,6 @@ layout(local_size_x = GPUSCENE_GROUP_SIZE, local_size_y = 1, local_size_z = 1) i
 void main()
 {
 	uint globalIndex = gl_GlobalInvocationID.x;
-	if (globalIndex >= uint(InstanceData.length())) return;
 	uint instanceIndex = globalIndex;
 
 	uint meshIndex = InstanceData[instanceIndex].miscs[1];

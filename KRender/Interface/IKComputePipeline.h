@@ -32,5 +32,7 @@ struct IKComputePipeline
 	virtual bool ExecuteIndirect(IKCommandBufferPtr primaryBuffer, IKStorageBufferPtr indirectBuffer, const KDynamicConstantBufferUsage* usage = nullptr) = 0;
 	virtual bool Reload(bool reloadShader = true) = 0;
 
+	virtual bool DebugDump() = 0;
+
 	virtual bool SetDebugName(const char* name) = 0;
 };

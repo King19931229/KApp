@@ -55,8 +55,8 @@ public:
 				{
 					std::lock_guard<std::mutex> lock(m_Lock);
 					m_bQuit = true;
+					m_Cond.notify_one();
 				}
-				m_Cond.notify_all();
 				m_Thread.join();
 			}
 		}

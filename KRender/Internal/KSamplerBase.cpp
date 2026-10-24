@@ -11,6 +11,8 @@ KSamplerBase::KSamplerBase()
 	m_AnisotropicEnable(false),
 	m_AnisotropicCount(0),
 
+	m_BorderColor(0.0f, 0.0f, 0.0f, 1.0f),
+
 	m_MinMipmap(0),
 	m_MaxMipmap(0)
 {
@@ -72,6 +74,18 @@ bool KSamplerBase::SetAnisotropicCount(unsigned short count)
 bool KSamplerBase::GetAnisotropicCount(unsigned short& count)
 {
 	count = m_AnisotropicCount;
+	return true;
+}
+
+bool KSamplerBase::SetBorderColor(const glm::vec4& color)
+{
+	m_BorderColor = color;
+	return true;
+}
+
+bool KSamplerBase::GetBorderColor(glm::vec4& color)
+{
+	color = m_BorderColor;
 	return true;
 }
 

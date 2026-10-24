@@ -1,7 +1,22 @@
 #include "KVulkanSampler.h"
 #include "KVulkanHelper.h"
 #include "KVulkanGlobal.h"
+#include "Internal/KRenderGlobal.h"
 #include "KBase/Interface/IKLog.h"
+
+static VkBorderColor ToVkBorderColor(const glm::vec4& color)
+{
+	if (color.a <= 0.0f)
+	{
+		return VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK;
+	}
+	if (color.r == 0.0f && color.g == 0.0f && color.b == 0.0f)
+	{
+		return VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK;
+	}
+	KG_LOGW(LM_RENDER, "Custom border color is not supported, fallback to opaque black");
+	return VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK;
+}
 
 KVulkanSampler::KVulkanSampler()
 	: KSamplerBase()
@@ -67,7 +82,22 @@ bool KVulkanSampler::CreateDevice()
 		samplerInfo.anisotropyEnable = VK_FALSE;
 	}
 
-	samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+	VkSamplerCustomBorderColorCreateInfoEXT customBorderColorInfo = {};
+	if (KRenderGlobal::SupportCustomBorderColor)
+	{
+		customBorderColorInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CUSTOM_BORDER_COLOR_CREATE_INFO_EXT;
+		customBorderColorInfo.customBorderColor.float32[0] = m_BorderColor.r;
+		customBorderColorInfo.customBorderColor.float32[1] = m_BorderColor.g;
+		customBorderColorInfo.customBorderColor.float32[2] = m_BorderColor.b;
+		customBorderColorInfo.customBorderColor.float32[3] = m_BorderColor.a;
+		customBorderColorInfo.format = VK_FORMAT_UNDEFINED;
+		samplerInfo.pNext = &customBorderColorInfo;
+		samplerInfo.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK;
+	}
+	else
+	{
+		samplerInfo.borderColor = ToVkBorderColor(m_BorderColor);
+	}
 
 	samplerInfo.unnormalizedCoordinates = VK_FALSE;
 

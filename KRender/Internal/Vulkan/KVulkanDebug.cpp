@@ -1,7 +1,3 @@
 #include "KVulkanDebug.h"
 
-namespace KVulkanDebug
-{
-	GraphicsContext RunningGraphics = {};
-	ComputeContext RunningCompute = {};
-}
+KVulkanDebug::RunningContext KVulkanDebug::Context;

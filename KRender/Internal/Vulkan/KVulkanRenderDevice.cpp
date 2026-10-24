@@ -525,6 +525,7 @@ void KVulkanRenderDevice::QuerySupportedFeatures(PhysicalDevice& device)
 	appendFeature(features.extMeshShader, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_EXT, supportsExtension(VK_EXT_MESH_SHADER_EXTENSION_NAME));
 	appendFeature(features.shaderFloat16Int8, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_FLOAT16_INT8_FEATURES, supportsVulkan12 || supportsExtension(VK_KHR_SHADER_FLOAT16_INT8_EXTENSION_NAME));
 	appendFeature(features.diagnosticsConfig, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DIAGNOSTICS_CONFIG_FEATURES_NV, supportsExtension(VK_NV_DEVICE_DIAGNOSTICS_CONFIG_EXTENSION_NAME));
+	appendFeature(features.customBorderColor, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_CUSTOM_BORDER_COLOR_FEATURES_EXT, supportsExtension(VK_EXT_CUSTOM_BORDER_COLOR_EXTENSION_NAME));
 
 	vkGetPhysicalDeviceFeatures2(device.device, &features2);
 	device.deviceFeatures = features2.features;
@@ -541,6 +542,7 @@ void KVulkanRenderDevice::QuerySupportedFeatures(PhysicalDevice& device)
 	features.extMeshShader.pNext = nullptr;
 	features.shaderFloat16Int8.pNext = nullptr;
 	features.diagnosticsConfig.pNext = nullptr;
+	features.customBorderColor.pNext = nullptr;
 }
 
 void* KVulkanRenderDevice::GetEnabledFeatures()
@@ -652,6 +654,17 @@ void* KVulkanRenderDevice::GetEnabledFeatures()
 		diagnosticsConfigCreateInfo.pNext = pNext;
 		pNext = &diagnosticsConfigCreateInfo;
 #endif
+	}
+
+	if (m_PhysicalDevice.supportedFeatures.customBorderColor.customBorderColors
+		&& m_PhysicalDevice.supportedFeatures.customBorderColor.customBorderColorWithoutFormat)
+	{
+		static VkPhysicalDeviceCustomBorderColorFeaturesEXT customBorderColorFeatures = {};
+		customBorderColorFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_CUSTOM_BORDER_COLOR_FEATURES_EXT;
+		customBorderColorFeatures.customBorderColors = VK_TRUE;
+		customBorderColorFeatures.customBorderColorWithoutFormat = VK_TRUE;
+		customBorderColorFeatures.pNext = pNext;
+		pNext = &customBorderColorFeatures;
 	}
 
 	return pNext;
@@ -917,6 +930,16 @@ bool KVulkanRenderDevice::CreateLogicalDevice()
 		// 组装支持扩展
 		std::vector<const char*> extensionNames(DEVICE_DEFAULT_EXTENSIONS, DEVICE_DEFAULT_EXTENSIONS + ARRAY_SIZE(DEVICE_DEFAULT_EXTENSIONS));
 
+		if (std::find(m_PhysicalDevice.supportedExtensions.begin(), m_PhysicalDevice.supportedExtensions.end(), VK_EXT_CUSTOM_BORDER_COLOR_EXTENSION_NAME) != m_PhysicalDevice.supportedExtensions.end())
+		{
+			extensionNames.push_back(VK_EXT_CUSTOM_BORDER_COLOR_EXTENSION_NAME);
+		}
+
+		if (std::find(m_PhysicalDevice.supportedExtensions.begin(), m_PhysicalDevice.supportedExtensions.end(), VK_KHR_SAMPLER_MIRROR_CLAMP_TO_EDGE_EXTENSION_NAME) != m_PhysicalDevice.supportedExtensions.end())
+		{
+			extensionNames.push_back(VK_KHR_SAMPLER_MIRROR_CLAMP_TO_EDGE_EXTENSION_NAME);
+		}
+
 		if (m_PhysicalDevice.supportNVAftermatchExtension)
 		{
 			extensionNames.insert(extensionNames.end(), DEVICE_NV_AFTERMATCH_EXTENSIONS, DEVICE_NV_AFTERMATCH_EXTENSIONS + ARRAY_SIZE(DEVICE_NV_AFTERMATCH_EXTENSIONS));
@@ -1065,6 +1088,10 @@ VkBool32 KVulkanRenderDevice::DebugUtilsMessengerCallback(
 	if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
 	{
 		KG_LOGE(LM_RENDER, "[Vulkan][%s][Error][%s] %s\n", messageTypeName, messageIdName, message);
+		if (messageType & VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT)
+		{
+			KVulkanDebug::Context.DebugDump();
+		}
 	}
 	else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
 	{
@@ -1212,6 +1239,7 @@ bool KVulkanRenderDevice::Init(IKRenderWindow* window)
 	validationFeatures.disabledValidationFeatureCount = ARRAY_SIZE(disables);
 	validationFeatures.pDisabledValidationFeatures = disables;
 
+	//const VkValidationFeatureEnableEXT* enables = nullptr;
 	const VkValidationFeatureEnableEXT enables[] =
 	{
 		// VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_EXT,
@@ -1220,8 +1248,9 @@ bool KVulkanRenderDevice::Init(IKRenderWindow* window)
 		// VK_VALIDATION_FEATURE_ENABLE_BEST_PRACTICES_EXT,
 		// VK_VALIDATION_FEATURE_ENABLE_DEBUG_PRINTF_EXT,
 	};
-	validationFeatures.enabledValidationFeatureCount = ARRAY_SIZE(enables);
-	validationFeatures.pEnabledValidationFeatures = enables;
+
+	validationFeatures.enabledValidationFeatureCount = (enables != nullptr) ? ARRAY_SIZE(enables) : 0;
+	validationFeatures.pEnabledValidationFeatures = (validationFeatures.enabledValidationFeatureCount > 0) ? enables : nullptr;
 
 	VkInstanceCreateInfo createInfo = {};
 	createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
@@ -1238,10 +1267,32 @@ bool KVulkanRenderDevice::Init(IKRenderWindow* window)
 			createInfo.enabledLayerCount = VALIDATION_LAYER_CANDIDATE[m_ValidationLayerIdx].arraySize;
 			createInfo.ppEnabledLayerNames = VALIDATION_LAYER_CANDIDATE[m_ValidationLayerIdx].layers;
 
+			// 输出验证层版本
+			std::vector<VkLayerProperties> availableLayers;
+			uint32_t layerCount = 0;
+			vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
+			availableLayers.resize(layerCount);
+			vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
+
 			for (uint32_t i = 0; i < createInfo.enabledLayerCount; ++i)
 			{
 				KG_LOG(LM_RENDER, "Vulkan validation layer picked [%s]\n", createInfo.ppEnabledLayerNames[i]);
+
+				for (const auto& layer : availableLayers)
+				{
+					if (strcmp(layer.layerName, createInfo.ppEnabledLayerNames[i]) == 0)
+					{
+						KG_LOG(LM_RENDER, "		-> Validation layer version: %d.%d.%d (spec: %d, impl: %d)\n",
+							VK_VERSION_MAJOR(layer.specVersion),
+							VK_VERSION_MINOR(layer.specVersion),
+							VK_VERSION_PATCH(layer.specVersion),
+							layer.specVersion,
+							layer.implementationVersion);
+						break;
+					}
+				}
 			}
+
 			createInfo.pNext = &validationFeatures;
 		}
 		else
@@ -1477,6 +1528,8 @@ bool KVulkanRenderDevice::InitDeviceGlobal()
 	KRenderGlobal::NumTransferQueue = (uint32_t)KVulkanGlobal::transferFamilyIndices.size();
 
 	KRenderGlobal::SupportAnisotropySample = m_Properties.anisotropySupport;
+	KRenderGlobal::SupportCustomBorderColor = m_PhysicalDevice.supportedFeatures.customBorderColor.customBorderColors
+		&& m_PhysicalDevice.supportedFeatures.customBorderColor.customBorderColorWithoutFormat;
 
 	KVulkanGlobal::rayTracingPipelineProperties = m_PhysicalDevice.supportedProperties.rayTracingPipeline;
 	KVulkanGlobal::accelerationStructureFeatures = m_PhysicalDevice.supportedFeatures.accelerationStructure;

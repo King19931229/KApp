@@ -49,7 +49,9 @@ KSamplerDescription KMaterialTextureBinding::ToSamplerDesc(const KMeshTextureSam
 			case MTA_CLAMP_TO_EDGE:
 				return AM_CLAMP_TO_EDGE;
 			case MTA_MIRRORED_REPEAT:
-				return AM_MIRRORED_REPEAT;
+				return AM_MIRROR_REPEAT;
+			case MTA_CLAMP_TO_BORDER:
+				return AM_CLAMP_TO_BORDER;
 			default:
 				assert(false && "should not reach");
 				return AM_REPEAT;

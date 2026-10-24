@@ -6,38 +6,61 @@
 
 namespace KVulkanDebug
 {
-	struct GraphicsContext
+	struct RunningContext
 	{
-		KVulkanPipeline* pipeline;
-	};
-	struct ComputeContext
-	{
-		KVulkanComputePipeline* pipeline;
+		struct GraphicsContext
+		{
+			KVulkanPipeline* pipeline = nullptr;
+		};
+		struct ComputeContext
+		{
+			KVulkanComputePipeline* pipeline = nullptr;
+		};
+		GraphicsContext graphics;
+		ComputeContext compute;
+
+		bool graphicsRunning = false;
+		bool computeRunning = false;
+
+		void DebugDump()
+		{
+			if (graphicsRunning && graphics.pipeline)
+			{
+				graphics.pipeline->DebugDump();
+			}
+			if (computeRunning && compute.pipeline)
+			{
+				compute.pipeline->DebugDump();
+			}
+		}
 	};
 
-	extern GraphicsContext RunningGraphics;
-	extern ComputeContext RunningCompute;
+	extern RunningContext Context;
 
 	struct GraphicsScope
 	{
 		GraphicsScope(KVulkanPipeline* pipeline)
 		{
-			RunningGraphics.pipeline = pipeline;
+			Context.graphics.pipeline = pipeline;
+			Context.graphicsRunning = true;
 		}
 		~GraphicsScope()
 		{
-			RunningGraphics.pipeline = nullptr;
+			Context.graphics.pipeline = nullptr;
+			Context.graphicsRunning = false;
 		}
 	};
 	struct ComputeScope
 	{
 		ComputeScope(KVulkanComputePipeline* pipeline)
 		{
-			RunningCompute.pipeline = pipeline;
+			Context.compute.pipeline = pipeline;
+			Context.computeRunning = true;
 		}
 		~ComputeScope()
 		{
-			RunningCompute.pipeline = nullptr;
+			Context.compute.pipeline = nullptr;
+			Context.computeRunning = false;
 		}
 	};
 }

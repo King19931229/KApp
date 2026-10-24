@@ -426,7 +426,6 @@ void InitQEM(IKEnginePtr engine)
 									glm::quat detRotQuat = glm::angleAxis(dt * 3.0f / glm::pi<float>(), glm::vec3(0, 1, 0));
 									glm::quat newRot = detRotQuat * transform->GetRotateQuat();
 									transform->SetRotateQuat(newRot);
-									// scene->Transform(transform->GetEntityHandle());
 								}
 							});
 						}
