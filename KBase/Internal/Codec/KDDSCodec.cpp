@@ -668,7 +668,7 @@ bool KDDSCodec::CodecImpl(IKDataStreamPtr stream, bool forceAlpha, KCodecResult&
 				break;
 
 			case DXGI_FORMAT_BC4_SNORM:
-				sourceFormat = IF_BC5_SNORM;
+				sourceFormat = IF_BC4_SNORM;
 				break;
 
 			case DXGI_FORMAT_BC5_TYPELESS:
@@ -793,6 +793,7 @@ bool KDDSCodec::CodecImpl(IKDataStreamPtr stream, bool forceAlpha, KCodecResult&
 				break;
 			default:
 				// unable to decompress
+				result.eFormat = sourceFormat;
 				decompressDXT = false;
 				result.bCompressed = true;
 				break;

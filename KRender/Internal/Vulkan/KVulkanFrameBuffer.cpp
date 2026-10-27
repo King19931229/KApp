@@ -336,21 +336,8 @@ bool KVulkanFrameBuffer::InitReadback(VkFormat format, uint32_t width, uint32_t 
 
 bool KVulkanFrameBuffer::SupportBlit() const
 {
-	// Check blit support for source and destination
-	VkFormatProperties formatProps;
-	// Check if the device supports blitting from optimal images
-	vkGetPhysicalDeviceFormatProperties(KVulkanGlobal::physicalDevice, m_Format, &formatProps);
-	uint32_t testBits = 0;
-	testBits = VK_FORMAT_FEATURE_BLIT_SRC_BIT | VK_FORMAT_FEATURE_BLIT_DST_BIT;
-	if (m_Tiling == VK_IMAGE_TILING_OPTIMAL)
-	{
-		return (formatProps.optimalTilingFeatures & testBits) == testBits;
-	}
-	if (m_Tiling == VK_IMAGE_TILING_LINEAR)
-	{
-		return (formatProps.linearTilingFeatures & testBits) == testBits;
-	}
-	return false;
+	return KVulkanHelper::IsFormatSupported(KVulkanGlobal::physicalDevice, m_Format, m_Tiling,
+		VK_FORMAT_FEATURE_BLIT_SRC_BIT | VK_FORMAT_FEATURE_BLIT_DST_BIT);
 }
 
 bool KVulkanFrameBuffer::CopyToReadback(IKFrameBuffer* framebuffer)
@@ -415,18 +402,23 @@ bool KVulkanFrameBuffer::Readback(void* pDest, size_t size)
 {
 	if (pDest && IsReadback())
 	{
-		if (m_AllocInfo.pMapped)
+		VkImageSubresource subresource = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 0 };
+		VkSubresourceLayout layout;
+		vkGetImageSubresourceLayout(KVulkanGlobal::device, m_Image, &subresource, &layout);
+
+		void* pSrc = m_AllocInfo.pMapped;
+		if (!pSrc && vkMapMemory(KVulkanGlobal::device, m_AllocInfo.vkMemroy, m_AllocInfo.vkOffset, layout.offset + layout.size, 0, &pSrc) != VK_SUCCESS)
 		{
-			memcpy(pDest, m_AllocInfo.pMapped, size);
+			return false;
 		}
-		else
+		size_t rowSize = size / m_Height;
+		for (uint32_t y = 0; y < m_Height; ++y)
 		{
-			void* pSrc = nullptr;
-			if (vkMapMemory(KVulkanGlobal::device, m_AllocInfo.vkMemroy, m_AllocInfo.vkOffset, size, 0, (void**)&pSrc) == VK_SUCCESS)
-			{
-				memcpy(pDest, pSrc, size);
-				vkUnmapMemory(KVulkanGlobal::device, m_AllocInfo.vkMemroy);
-			}
+			memcpy((char*)pDest + y * rowSize, (char*)pSrc + layout.offset + y * layout.rowPitch, rowSize);
+		}
+		if (!m_AllocInfo.pMapped)
+		{
+			vkUnmapMemory(KVulkanGlobal::device, m_AllocInfo.vkMemroy);
 		}
 		return true;
 	}

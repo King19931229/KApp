@@ -21,7 +21,8 @@ KTransformComponent::KTransformComponent()
 	m_Position(glm::vec3(0.0f)),
 	m_Scale(glm::vec3(1.0f)),
 	m_Rotate(glm::quat(1.0f, 0.0f, 0.0f, 0.0f)),
-	m_IsStatic(false)
+	m_IsStatic(false),
+	m_PrevTransformDirty(false)
 {
 	m_FinalTransform.MODEL = glm::mat4(1.0f);
 	m_FinalTransform.PRVE_MODEL = glm::mat4(1.0f);
@@ -145,6 +146,14 @@ void KTransformComponent::UpdateTransform()
 bool KTransformComponent::Tick(float dt)
 {
 	ASSERT_RESULT(IsInGameThread());
+	if (m_PrevTransformDirty)
+	{
+		ENQUEUE_RENDER_COMMAND(KTransformComponent_SyncPreviousTransformToRender)([this, previous = m_FinalTransform.PRVE_MODEL]()
+		{
+			m_FinalTransform_RenderThread.PRVE_MODEL = previous;
+		});
+	}
+	m_PrevTransformDirty = m_FinalTransform.PRVE_MODEL != m_FinalTransform.MODEL;
 	m_FinalTransform.PRVE_MODEL = m_FinalTransform.MODEL;
 	return true;
 }
@@ -293,5 +302,5 @@ void KTransformComponent::SetRenderScene(IKRenderScene* renderScene)
 const KConstantDefinition::OBJECT& KTransformComponent::FinalTransform_RenderThread() const
 {
 	ASSERT_RESULT(IsInRenderThread());
-	return m_FinalTransform;
+	return m_FinalTransform_RenderThread;
 }

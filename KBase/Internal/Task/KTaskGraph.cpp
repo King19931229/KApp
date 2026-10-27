@@ -51,7 +51,7 @@ void KGraphTask::Abandon(IKGraphTaskRef thisTask)
 {
 	std::unique_lock<decltype(m_WorkProcessLock)> lock(m_WorkProcessLock);
 	assert(thisTask.Get() == this);
-	if (thisTask.Get() != this)
+	if (thisTask.Get() != this || !m_TaskEvent)
 	{
 		return;
 	}
@@ -82,6 +82,7 @@ KGraphTaskEvent::KGraphTaskEvent(NamedThread::Type thread)
 	, m_DoneEvent(std::make_shared<KEvent>())
 	, m_Done(std::make_shared<std::atomic_bool>(false))
 	, m_Queued(false)
+	, m_NumPrerequisite(0)
 {
 }
 
@@ -247,11 +248,18 @@ void KGraphTaskEvent::QueueTask()
 
 void KGraphTaskEvent::Abandon()
 {
-	std::unique_lock<decltype(m_TaskProcessLock)> lock(m_TaskProcessLock);
-	if (m_Task)
+	IKGraphTaskRef task;
 	{
-		((KGraphTask*)m_Task.Get())->Abandon(m_Task);
-		m_Task.Release();
+		std::unique_lock<decltype(m_TaskProcessLock)> lock(m_TaskProcessLock);
+		task = m_Task;
+		if (task)
+		{
+			m_Queued = true;
+		}
+	}
+	if (task)
+	{
+		((KGraphTask*)task.Get())->Abandon(task);
 	}
 }
 

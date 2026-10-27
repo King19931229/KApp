@@ -1,6 +1,6 @@
 #include "KVirtualGeometryScene.h"
 #include "Internal/KRenderGlobal.h"
-#include "KBase/Interface/Entity/IKEntityManager.h"
+#include "Internal/Render/KRenderUtil.h"
 #include "Internal/ECS/Component/KRenderComponent.h"
 #include "KBase/Publish/KMath.h"
 
@@ -425,17 +425,7 @@ bool KVirtualGeometryScene::UnInit()
 	if (m_Scene)
 	{
 		m_Scene->UnRegisterEntityObserver(&m_OnSceneChangedFunc);
-		if (KECS::EntityManager)
-		{
-			KECS::EntityManager->ViewAllEntity([this](IKEntityPtr entity)
-			{
-				IKRenderComponent* renderComponent = nullptr;
-				if (entity->GetComponent(CT_RENDER, &renderComponent))
-				{
-					renderComponent->UnRegisterCallback(&m_OnRenderComponentChangedFunc);
-				}
-			});
-		}
+		KRenderUtil::UnRegisterRenderComponentCallback(&m_OnRenderComponentChangedFunc);
 		m_Scene = nullptr;
 	}
 

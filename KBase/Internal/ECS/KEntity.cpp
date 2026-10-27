@@ -104,7 +104,7 @@ bool KEntity::UnRegisterComponent(ComponentType type)
 	if (type != CT_UNKNOWN && m_Components[type])
 	{
 		IKComponentBase* component = m_Components[type];
-		component->UnRegisterEntityHandle();
+		// Keep the entity handle valid for destruction callbacks.
 		KECS::ComponentManager->Free(component);
 		m_Components[type] = nullptr;
 		return true;
@@ -115,14 +115,13 @@ bool KEntity::UnRegisterComponent(ComponentType type)
 
 bool KEntity::UnRegisterAllComponent()
 {
-	for (uint32_t i = 0; i < CT_COUNT; ++i)
+	for (uint32_t i = CT_COUNT; i > 0; --i)
 	{
-		IKComponentBase* component = m_Components[i];
+		IKComponentBase* component = m_Components[i - 1];
 		if (component)
 		{
-			component->UnRegisterEntityHandle();
 			KECS::ComponentManager->Free(component);
-			m_Components[i] = nullptr;
+			m_Components[i - 1] = nullptr;
 		}
 	}
 
@@ -287,9 +286,9 @@ bool KEntity::Intersect(const glm::vec3& origin, const glm::vec3& dir, glm::vec3
 
 bool KEntity::Tick(float dt)
 {
-	for (uint32_t i = 0; i < CT_COUNT; ++i)
+	for (uint32_t i = CT_COUNT; i > 0; --i)
 	{
-		IKComponentBase* component = m_Components[i];
+		IKComponentBase* component = m_Components[i - 1];
 		if (component)
 		{
 			component->Tick(dt);

@@ -15,6 +15,8 @@ typedef std::function<bool(const KMaterialSubMeshInstance&, const KMaterialSubMe
 
 namespace KRenderUtil
 {
+	void UnRegisterRenderComponentCallback(RenderComponentObserverFunc* callback);
+
 	void CalculateInstancesByMesh(const std::vector<IKEntity*>& entities, std::vector<KMaterialSubMeshInstance>& instances);
 	void CalculateInstancesByMaterial(const std::vector<IKEntity*>& entities, std::vector<KMaterialSubMeshInstance>& instances);
 	void CalculateInstancesByVirtualTexture(const std::vector<IKEntity*>& entities, uint32_t targetBinding, IKTexturePtr virtualTexture, std::vector<KMaterialSubMeshInstance>& instances);

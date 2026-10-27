@@ -92,6 +92,8 @@ protected:
 
 	const KCamera* m_Camera;
 	glm::mat4 m_PrevCamMat;
+	const KCamera* m_HistoryCamera;
+	glm::mat4 m_PrevProj;
 
 	uint32_t m_Width;
 	uint32_t m_Height;

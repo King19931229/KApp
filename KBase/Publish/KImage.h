@@ -234,6 +234,8 @@ namespace KImageHelper
 			case IF_ETC2_RGB8:
 			case IF_ETC2_RGB8A1:
 			case IF_DXT1:
+			case IF_BC4_UNORM:
+			case IF_BC4_SNORM:
 				size = 8;
 				return true;
 			case IF_ETC2_RGB8A8:
@@ -241,6 +243,12 @@ namespace KImageHelper
 			case IF_DXT3:
 			case IF_DXT4:
 			case IF_DXT5:
+			case IF_BC5_UNORM:
+			case IF_BC5_SNORM:
+			case IF_BC6H_UF16:
+			case IF_BC6H_SF16:
+			case IF_BC7_UNORM:
+			case IF_BC7_UNORM_SRGB:
 				size = 16;
 				return true;
 			case IF_ASTC_4x4_UNORM:

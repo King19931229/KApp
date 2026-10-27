@@ -14,6 +14,7 @@ protected:
 	glm::vec3 m_Scale;
 	glm::quat m_Rotate;	
 	bool m_IsStatic;
+	bool m_PrevTransformDirty;
 	
 	KConstantDefinition::OBJECT m_FinalTransform;
 	KConstantDefinition::OBJECT m_FinalTransform_RenderThread;

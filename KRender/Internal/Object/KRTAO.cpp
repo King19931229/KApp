@@ -5,6 +5,8 @@
 KRTAO::KRTAO()
 	: m_Camera(nullptr)
 	, m_PrevCamMat(glm::mat4(1.0f))
+	, m_HistoryCamera(nullptr)
+	, m_PrevProj(1.0f)
 	, m_Width(1024)
 	, m_Height(1024)
 	, m_CurrentAOIndex(0)
@@ -161,11 +163,11 @@ bool KRTAO::Init(IKRayTraceScene* scene)
 				m_ReprojectPipeline[i]->BindStorageImage(BINDING_PREV_HITDISTANCE, m_HitDistanceTarget[(i + 1) & 1]->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
 				m_ReprojectPipeline[i]->BindStorageImage(BINDING_PREV_SQARED_MEAN, m_SquaredMeanTarget[(i + 1) & 1]->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
 				m_ReprojectPipeline[i]->BindStorageImage(BINDING_PREV_TSPP, m_TSPP[(i + 1) & 1]->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
-				m_ReprojectPipeline[i]->BindStorageImage(BINDING_CUR_TSPP, m_TSPP[i]->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
+				m_ReprojectPipeline[i]->BindStorageImage(BINDING_CUR_TSPP, m_TSPP[i]->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_OUT, 0, true);
 
 				m_ReprojectPipeline[i]->BindStorageImage(BINDING_REPROJECTED, m_ReprojectedTarget->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_OUT, 0, true);
 				m_ReprojectPipeline[i]->BindUniformBuffer(BINDING_CAMERA, cameraBuffer);
-				m_ReprojectPipeline[i]->BindUniformBuffer(BINDING_UNIFORM, m_AOUniformBuffer);
+				m_ReprojectPipeline[i]->BindDynamicUniformBuffer(BINDING_UNIFORM);
 				m_ReprojectPipeline[i]->Init("ao/reproject.comp", m_RTAOEnv, KRenderGlobal::EnableAsyncShaderCompile);
 			}
 
@@ -234,7 +236,7 @@ bool KRTAO::Init(IKRayTraceScene* scene)
 			for (uint32_t i = 0; i < 2; ++i)
 			{
 				renderDevice->CreateComputePipeline(m_ComposePipeline[i]);
-				m_ComposePipeline[i]->BindStorageImage(BINDING_CUR_AO, m_AOTarget[i]->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
+				m_ComposePipeline[i]->BindStorageImage(BINDING_CUR_AO, m_AtrousAOTarget->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
 				m_ComposePipeline[i]->BindStorageImage(BINDING_CUR_HITDISTANCE, m_HitDistanceTarget[i]->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
 				m_ComposePipeline[i]->BindStorageImage(BINDING_GBUFFER_RT0, gbuffer0->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
 				m_ComposePipeline[i]->BindStorageImage(BINDING_GBUFFER_RT1, gbuffer1->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
@@ -301,6 +303,7 @@ bool KRTAO::UnInit()
 	SAFE_UNINIT(m_MeanUniformBuffer);
 
 	m_Camera = nullptr;
+	m_HistoryCamera = nullptr;
 	return true;
 }
 
@@ -347,7 +350,20 @@ bool KRTAO::Execute(KRHICommandList& commandList, IKQueuePtr graphicsQueue, IKQu
 
 		{
 			commandList.BeginDebugMarker("RTAO_Reproject", glm::vec4(1));
-			commandList.Execute(m_ReprojectPipeline[m_CurrentAOIndex], groupX, groupY, 1);
+			const KCamera* camera = KRenderGlobal::Renderer.GetCamera();
+			struct ObjectData
+			{
+				glm::mat4 prevProj;
+				uint32_t historyValid;
+			} objectData;
+			objectData.prevProj = m_HistoryCamera ? m_PrevProj : camera->GetProjectiveMatrix();
+			objectData.historyValid = m_HistoryCamera == camera;
+
+			KDynamicConstantBufferUsage objectUsage;
+			objectUsage.binding = BINDING_UNIFORM;
+			objectUsage.range = sizeof(objectData);
+			KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, objectUsage);
+			commandList.Execute(m_ReprojectPipeline[m_CurrentAOIndex], groupX, groupY, 1, &objectUsage);
 			commandList.EndDebugMarker();
 		}
 
@@ -385,7 +401,13 @@ bool KRTAO::Execute(KRHICommandList& commandList, IKQueuePtr graphicsQueue, IKQu
 
 		commandList.EndDebugMarker();
 
+		m_HistoryCamera = KRenderGlobal::Renderer.GetCamera();
+		m_PrevProj = m_HistoryCamera->GetProjectiveMatrix();
 		m_CurrentAOIndex = (m_CurrentAOIndex + 1) & 1;
+	}
+	else
+	{
+		m_HistoryCamera = nullptr;
 	}
 	return true;
 }
@@ -429,6 +451,7 @@ bool KRTAO::Reload()
 
 void KRTAO::Resize(uint32_t width, uint32_t height)
 {
+	m_HistoryCamera = nullptr;
 	if (m_AtrousAOTarget)
 	{
 		uint32_t newWidth = width ? (width / 2) : m_Width;

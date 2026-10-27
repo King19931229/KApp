@@ -53,6 +53,7 @@ namespace KVulkanHelper
 
 	bool PopulateInputBindingDescription(const VertexFormat* pData, size_t uCount, VulkanBindingDetailList& list);
 
+	bool IsFormatSupported(VkPhysicalDevice physicalDevice, VkFormat format, VkImageTiling tiling, VkFormatFeatureFlags features);
 	bool FindSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features, VkFormat& vkFormat);
 	bool HasDepthComponent(VkFormat format);
 	bool HasStencilComponent(VkFormat format);

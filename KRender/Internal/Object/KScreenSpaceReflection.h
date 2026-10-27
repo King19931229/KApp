@@ -2,6 +2,8 @@
 #include "KHiZBuffer.h"
 #include "Internal/Object/KDebugDrawer.h"
 
+class KCamera;
+
 class KScreenSpaceReflection
 {
 protected:
@@ -16,6 +18,7 @@ protected:
 	IKRenderTargetPtr m_FinalTsppTarget;
 	IKRenderTargetPtr m_VarianceTarget;
 	IKRenderTargetPtr m_ComposeTarget;
+	IKRenderTargetPtr m_HistoryNormalDepthTarget;
 	uint32_t m_FullWidth;
 	uint32_t m_FullHeight;
 	uint32_t m_Width;
@@ -27,6 +30,8 @@ protected:
 	bool m_Enable;
 	bool m_ResolveInFullResolution;
 	bool m_FirstFrame;
+	const KCamera* m_HistoryCamera;
+	glm::mat4 m_PrevProj;
 
 	KShaderRef m_QuadVS;
 	KShaderRef m_ReflectionFS;

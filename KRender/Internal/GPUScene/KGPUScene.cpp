@@ -2,6 +2,7 @@
 #include "Internal/ECS/Component/KRenderComponent.h"
 #include "Internal/ECS/Component/KTransformComponent.h"
 #include "Internal/KRenderGlobal.h"
+#include "Internal/Render/KRenderUtil.h"
 
 #define COMPUTE_HASH_CONSTRUCT_MEGA_BUFFER 0
 
@@ -1037,6 +1038,11 @@ void KGPUScene::OnSceneChanged(EntitySceneOp op, IKEntity* entity)
 	}
 	if (op == ESO_REMOVE)
 	{
+		IKRenderComponent* renderComponent = nullptr;
+		if (entity->GetComponent(CT_RENDER, &renderComponent))
+		{
+			renderComponent->UnRegisterCallback(&m_OnRenderComponentChangedFunc);
+		}
 		RemoveEntity(entity);
 	}
 	else if (op == ESO_TRANSFORM)
@@ -1050,6 +1056,19 @@ void KGPUScene::OnSceneChanged(EntitySceneOp op, IKEntity* entity)
 
 void KGPUScene::OnRenderComponentChanged(IKRenderComponent* renderComponent, bool init)
 {
+	IKEntity* entity = renderComponent->GetEntityHandle();
+	if (!entity)
+	{
+		return;
+	}
+	if (init)
+	{
+		OnSceneChanged(ESO_ADD, entity);
+	}
+	else
+	{
+		RemoveEntity(entity);
+	}
 }
 
 void KGPUScene::InitializeBuffers()
@@ -1209,6 +1228,7 @@ bool KGPUScene::UnInit()
 	if (m_Scene)
 	{
 		m_Scene->UnRegisterEntityObserver(&m_OnSceneChangedFunc);
+		KRenderUtil::UnRegisterRenderComponentCallback(&m_OnRenderComponentChangedFunc);
 		m_Scene = nullptr;
 	}
 
@@ -1323,6 +1343,12 @@ bool KGPUScene::Execute(KRHICommandList& commandList)
 {
 	if (!KRenderGlobal::EnableGPUScene)
 	{
+		return true;
+	}
+
+	if (m_SubMeshes.empty())
+	{
+		m_Instances.clear();
 		return true;
 	}
 

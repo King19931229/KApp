@@ -758,9 +758,7 @@ namespace KVulkanInitializer
 	void GenerateMipmaps(VkImage image, VkFormat format, int32_t texWidth, int32_t texHeight, int32_t texDepth, uint32_t baseLayer, uint32_t layers, uint32_t mipLevels)
 	{
 		// 检查该format是否支持线性过滤
-		VkFormatProperties formatProperties;
-		vkGetPhysicalDeviceFormatProperties(KVulkanGlobal::physicalDevice, format, &formatProperties);
-		if (!(formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT))
+		if (!KVulkanHelper::IsFormatSupported(KVulkanGlobal::physicalDevice, format, VK_IMAGE_TILING_OPTIMAL, VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT))
 		{
 			ASSERT_RESULT(false && "Linear filter not supported on this format");
 			return;

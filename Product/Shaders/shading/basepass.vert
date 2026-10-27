@@ -43,7 +43,7 @@ void main()
 	out_darwIndex = darwIndex;
 #endif
 
-	vec4 worldNormal = normalize(worldMatrix * vec4(normal, 0.0));
+	vec3 worldNormal = normalize(transpose(inverse(mat3(worldMatrix))) * normal);
 
 #if TANGENT_BINORMAL_INPUT
 	vec4 worldTangent = normalize(worldMatrix * vec4(tangent, 0.0));

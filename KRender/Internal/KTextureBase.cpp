@@ -91,7 +91,7 @@ static bool ImageFormatToElementFormat(ImageFormat imageForamt, ElementFormat& e
 		elementFormat = EF_BC4_SNORM;
 		return true;
 	case IF_BC5_UNORM:
-		elementFormat = EF_BC5_SNORM;
+		elementFormat = EF_BC5_UNORM;
 		return true;
 	case IF_BC5_SNORM:
 		elementFormat = EF_BC5_SNORM;

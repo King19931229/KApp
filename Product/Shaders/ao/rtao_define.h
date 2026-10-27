@@ -22,12 +22,10 @@ vec4 GetNormalWeights(in vec3 normal, in vec3 sampleNormal[4], float sigma, floa
 	return normalWeights;
 }
 
-vec4 GetDepthWeights(in float depth, in vec2 dxdy, in vec4 sampleDepths, float sigma, float weightCutoff, uint NumExponentBits, uint NumMantissaBits)
+vec4 GetDepthWeights(in float depth, in vec2 dxdy, in vec4 sampleDepths, float sigma, float weightCutoff, vec4 depthFloatPrecision)
 {
 	float depthThreshold = dot(vec2(1.0), abs(dxdy));
-	float depthFloatPrecision = FloatPrecision(depth, NumExponentBits, NumMantissaBits);
-
-	float depthTolerance = sigma * depthThreshold + depthFloatPrecision;
+	vec4 depthTolerance = sigma * depthThreshold + depthFloatPrecision;
 	vec4 depthWeights = min(depthTolerance / (abs(sampleDepths - vec4(depth)) + depthFloatPrecision), 1);
 
 	depthWeights.x *= float(depthWeights.x >= weightCutoff);
@@ -52,19 +50,12 @@ void ComputeBilinearWeights(vec2 targetOffset, ivec2 size, ivec2 samplePos[4], i
 
 void ComputeWeights(vec2 targetOffset, ivec2 size, ivec2 samplePos[4],
 	in vec3 normal, in vec3 sampleNormal[4], float normalSigma, float normalSigmaExponent,
-	in float depth, in vec2 dxdy, in vec4 sampleDepths, float depthSigma, float depthWeightCutoff, uint NumExponentBits, uint NumMantissaBits,
+	in float depth, in vec2 dxdy, in vec4 sampleDepths, float depthSigma, float depthWeightCutoff, vec4 depthFloatPrecision,
 	in out vec4 weights)
 {
-	vec4 isWithinBounds = vec4(
-		IsWithinBounds(samplePos[0], size),
-		IsWithinBounds(samplePos[1], size),
-		IsWithinBounds(samplePos[2], size),
-		IsWithinBounds(samplePos[3], size));
-
-	weights = isWithinBounds;
-	weights *= GetBilinearWeights(targetOffset);
+	ComputeBilinearWeights(targetOffset, size, samplePos, weights);
 	weights *= GetNormalWeights(normal, sampleNormal, normalSigma, normalSigmaExponent);
-	weights *= GetDepthWeights(depth, dxdy, sampleDepths, depthSigma, depthWeightCutoff, NumExponentBits, NumMantissaBits);
+	weights *= GetDepthWeights(depth, dxdy, sampleDepths, depthSigma, depthWeightCutoff, depthFloatPrecision);
 }
 
 #define RTAO_GROUP_SIZE 8

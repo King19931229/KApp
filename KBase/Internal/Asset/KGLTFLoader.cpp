@@ -1417,6 +1417,7 @@ void KGLTFLoader::TransformMeshVertices()
 		{
 			glm::mat4 posTransform = node->GetMatrix();
 			glm::mat4 vecTransform = glm::mat4(glm::mat3(posTransform));
+			glm::mat3 normalTransform = glm::transpose(glm::inverse(glm::mat3(posTransform)));
 
 			for (PrimitivePtr primitive : node->mesh->primitives)
 			{
@@ -1426,7 +1427,7 @@ void KGLTFLoader::TransformMeshVertices()
 					
 					vert.pos = posTransform * glm::vec4(vert.pos, 1);
 
-					vert.normal = vecTransform * glm::vec4(vert.normal, 0);
+					vert.normal = glm::normalize(normalTransform * vert.normal);
 					vert.tangent = vecTransform * glm::vec4(vert.tangent, 0);
 					vert.binormal = vecTransform * glm::vec4(vert.binormal, 0);					
 				}

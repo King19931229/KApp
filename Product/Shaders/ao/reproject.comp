@@ -32,23 +32,29 @@ layout(binding = BINDING_GBUFFER_RT1, GBUFFER_IMAGE1_FORMAT) uniform image2D gbu
 
 layout(binding = BINDING_UNIFORM) uniform AOProperties 
 {
-	float rtao_radius;
-	int   rtao_samples;
-	float rtao_power;
-	int   rtao_distance_based;
-	int   frame_number;
-	int   enable_checkboard;
+	mat4 prevProj;
+	uint historyValid;
 };
+
+float PreviousDepth(vec2 uv, float depth)
+{
+	vec3 worldPos = DecodePosition(vec4(0, 0, 0, depth), uv);
+	vec4 previous = camera.prevViewProj * vec4(worldPos, 1.0);
+	if (previous.w <= 0) return -1;
+	return NonLinearDepthToLinearDepth(prevProj, previous.z / previous.w);
+}
 
 vec2 DDXYDepthSingle(ivec2 curSamplePos, ivec2 outSize)
 {
-	float depth = imageLoad(curNormalDepthImage, curSamplePos).a;
+	if (!IsWithinBounds(curSamplePos, outSize)) return vec2(0);
+	vec2 uv = (vec2(curSamplePos) + vec2(0.5)) / vec2(outSize);
+	float depth = PreviousDepth(uv, imageLoad(curNormalDepthImage, curSamplePos).a);
 
 	ivec2 xBiasSampleGPos = curSamplePos + ivec2(1, 0);
-	float xBiasDepth = IsWithinBounds(xBiasSampleGPos, outSize) ? imageLoad(curNormalDepthImage, xBiasSampleGPos).a : depth;
+	float xBiasDepth = IsWithinBounds(xBiasSampleGPos, outSize) ? PreviousDepth(uv + vec2(1.0 / outSize.x, 0), imageLoad(curNormalDepthImage, xBiasSampleGPos).a) : depth;
 
 	ivec2 yBiasSampleGPos = curSamplePos + ivec2(0, 1);
-	float yBiasDepth = IsWithinBounds(yBiasSampleGPos, outSize) ? imageLoad(curNormalDepthImage, yBiasSampleGPos).a : depth;
+	float yBiasDepth = IsWithinBounds(yBiasSampleGPos, outSize) ? PreviousDepth(uv + vec2(0, 1.0 / outSize.y), imageLoad(curNormalDepthImage, yBiasSampleGPos).a) : depth;
 
 	return vec2(xBiasDepth - depth, yBiasDepth - depth);
 }
@@ -84,7 +90,7 @@ vec2 DDXYDepthUV(vec2 p, ivec2 outSize)
 	return ddxy;
 }
 
-void ComputeValues(vec2 p, ivec2 outSize, vec4 curNormalDepth, out vec4 values)
+void ComputeValues(vec2 p, vec2 curPos, ivec2 outSize, vec3 curNormal, float previousDepth, float projectedPrecision, out vec4 values)
 {
 	const ivec2 offsets[4] = { {0, 0}, {1, 0}, {0, 1}, {1, 1} };
 	ivec2 topLeft = ivec2(floor(p));
@@ -104,23 +110,26 @@ void ComputeValues(vec2 p, ivec2 outSize, vec4 curNormalDepth, out vec4 values)
 
 	for(int i = 0; i < 4; ++i)
 	{
-		vec4 normalDepth = imageLoad(prevNormalDepthImage, samplePos[i]);
+		ivec2 pos = clamp(samplePos[i], ivec2(0), outSize - ivec2(1));
+		vec4 normalDepth = imageLoad(prevNormalDepthImage, pos);
 		sampleNormal[i] = normalDepth.xyz;
 		sampleDepths[i] = normalDepth.w;
-		sampleAOValue[i] = imageLoad(prevAOImage, samplePos[i]).r;
-		sampleHitDistanceValue[i] = imageLoad(prevHitDistanceImage, samplePos[i]).r;
-		sampleSqaredMeanValue[i] = imageLoad(prevSqaredMeanImage, samplePos[i]).r;
-		sampleTspp[i] = max(1.0, imageLoad(prevTsppImage, samplePos[i]).r);
+		sampleAOValue[i] = imageLoad(prevAOImage, pos).r;
+		sampleHitDistanceValue[i] = imageLoad(prevHitDistanceImage, pos).r;
+		sampleSqaredMeanValue[i] = imageLoad(prevSqaredMeanImage, pos).r;
+		sampleTspp[i] = max(1.0, imageLoad(prevTsppImage, pos).r);
 	}
 
-	vec2 ddxy = DDXYDepthUV(p, outSize);
+	vec2 ddxy = DDXYDepthSingle(ivec2(curPos), outSize);
 	vec2 targetOffset = p - vec2(topLeft);
 
+	vec4 depthPrecision = vec4(projectedPrecision) + vec4(
+		FloatPrecisionR16(sampleDepths.x), FloatPrecisionR16(sampleDepths.y),
+		FloatPrecisionR16(sampleDepths.z), FloatPrecisionR16(sampleDepths.w));
 	vec4 weights;
 	ComputeWeights(targetOffset, outSize, samplePos,
-		curNormalDepth.xyz, sampleNormal, 1.1, 32,
-		curNormalDepth.w, ddxy, sampleDepths, 1.0, 0.5, 5, 10,
-		weights);
+		curNormal, sampleNormal, 1.1, 32,
+		previousDepth, ddxy, sampleDepths, 1.0, 0.5, depthPrecision, weights);
 
 	if (dot(weights, vec4(1.0)) < 1e-3)
 	{
@@ -194,8 +203,11 @@ void main()
 	vec2 reprojectPos = vec2(preTexPos * vec2(outSize) - vec2(0.5));
 	vec4 curNormalDepth = imageLoad(curNormalDepthImage, storePos);
 	vec4 values;
+	float previousDepth = PreviousDepth(curTexPos, curNormalDepth.w);
+	float projectedPrecision = abs(PreviousDepth(curTexPos, curNormalDepth.w + FloatPrecisionR16(curNormalDepth.w)) - previousDepth);
 
-	ComputeValues(reprojectPos, outSize, curNormalDepth, values);
+	ComputeValues(reprojectPos, vec2(storePos), outSize, curNormalDepth.xyz, previousDepth, projectedPrecision, values);
+	values = historyValid != 0 ? values : vec4(0);
 	imageStore(reprojectedImage, storePos, values);
 	imageStore(curTsppImage, storePos, vec4(values.a));
 }

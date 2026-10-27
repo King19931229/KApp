@@ -4,9 +4,25 @@
 #include "Internal/ECS/Component/KRenderComponent.h"
 #include "Internal/ECS/Component/KDebugComponent.h"
 #include "KBase/Interface/Entity/IKEntity.h"
+#include "KBase/Interface/Entity/IKEntityManager.h"
 
 namespace KRenderUtil
 {
+	void UnRegisterRenderComponentCallback(RenderComponentObserverFunc* callback)
+	{
+		if (KECS::EntityManager)
+		{
+			KECS::EntityManager->ViewAllEntity([callback](IKEntityPtr entity)
+			{
+				IKRenderComponent* renderComponent = nullptr;
+				if (entity->GetComponent(CT_RENDER, &renderComponent))
+				{
+					renderComponent->UnRegisterCallback(callback);
+				}
+			});
+		}
+	}
+
 	void CalculateInstancesByMesh(const std::vector<IKEntity*>& entities, std::vector<KMaterialSubMeshInstance>& instances)
 	{
 		instances.clear();

@@ -135,6 +135,12 @@ bool KVulkanTexture::InitDevice(bool async)
 					vkUnmapMemory(device, stagingAllocInfo.vkMemroy);
 				}
 
+				VkImageUsageFlags usage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+				if (KVulkanHelper::IsFormatSupported(KVulkanGlobal::physicalDevice, m_TextureFormat, VK_IMAGE_TILING_OPTIMAL, VK_FORMAT_FEATURE_STORAGE_IMAGE_BIT))
+				{
+					usage |= VK_IMAGE_USAGE_STORAGE_BIT;
+				}
+
 				KVulkanInitializer::CreateVkImage((uint32_t)m_Width,
 					(uint32_t)m_Height,
 					(uint32_t)m_Depth,
@@ -144,7 +150,7 @@ bool KVulkanTexture::InitDevice(bool async)
 					imageType,
 					m_TextureFormat,
 					VK_IMAGE_TILING_OPTIMAL,
-					VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT,
+					usage,
 					VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 					createFlags,
 					m_TextureImage, m_AllocInfo);

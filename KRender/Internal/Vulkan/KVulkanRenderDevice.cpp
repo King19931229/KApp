@@ -765,11 +765,8 @@ bool KVulkanRenderDevice::CreateLogicalDevice()
 			for (size_t i = 0; i < arraySize; ++i)
 			{
 				VkFormat format = formats[i];
-				VkFormatProperties props;
-				vkGetPhysicalDeviceFormatProperties(m_PhysicalDevice.device, format, &props);
-				if (!(props.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT) ||
-					!(props.optimalTilingFeatures & VK_FORMAT_FEATURE_BLIT_SRC_BIT) ||
-					!(props.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT))
+				if (!KVulkanHelper::IsFormatSupported(m_PhysicalDevice.device, format, VK_IMAGE_TILING_OPTIMAL,
+					VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT | VK_FORMAT_FEATURE_BLIT_SRC_BIT | VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT))
 				{
 					return false;
 				}

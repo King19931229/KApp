@@ -13,6 +13,8 @@ KScreenSpaceReflection::KScreenSpaceReflection()
 	, m_Enable(true)
 	, m_ResolveInFullResolution(true)
 	, m_FirstFrame(false)
+	, m_HistoryCamera(nullptr)
+	, m_PrevProj(1.0f)
 {
 }
 
@@ -110,6 +112,7 @@ void KScreenSpaceReflection::InitializePipeline()
 		pipeline->SetSampler(SHADER_BINDING_TEXTURE7, KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET2)->GetFrameBuffer(), KRenderGlobal::GBuffer.GetSampler(), false);
 		pipeline->SetSampler(SHADER_BINDING_TEXTURE8, KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET3)->GetFrameBuffer(), KRenderGlobal::GBuffer.GetSampler(), false);
 		pipeline->SetSampler(SHADER_BINDING_TEXTURE9, KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET4)->GetFrameBuffer(), KRenderGlobal::GBuffer.GetSampler(), false);
+		pipeline->SetSampler(SHADER_BINDING_TEXTURE10, m_HistoryNormalDepthTarget->GetFrameBuffer(), KRenderGlobal::GBuffer.GetSampler(), false);
 
 		pipeline->SetConstantBuffer(CBT_CAMERA, ST_VERTEX | ST_FRAGMENT, cameraBuffer);
 
@@ -135,6 +138,7 @@ void KScreenSpaceReflection::InitializePipeline()
 		pipeline->SetSampler(SHADER_BINDING_TEXTURE0, m_FinalTarget->GetFrameBuffer(), KRenderGlobal::GBuffer.GetSampler(), false);
 		pipeline->SetSampler(SHADER_BINDING_TEXTURE1, m_FinalSquaredTarget->GetFrameBuffer(), KRenderGlobal::GBuffer.GetSampler(), false);
 		pipeline->SetSampler(SHADER_BINDING_TEXTURE2, m_FinalTsppTarget->GetFrameBuffer(), KRenderGlobal::GBuffer.GetSampler(), false);
+		pipeline->SetSampler(SHADER_BINDING_TEXTURE3, KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET0)->GetFrameBuffer(), KRenderGlobal::GBuffer.GetSampler(), false);
 
 		pipeline->Init();
 	}
@@ -204,6 +208,7 @@ bool KScreenSpaceReflection::Init(uint32_t width, uint32_t height, float ratio, 
 	KRenderGlobal::RenderDevice->CreateRenderTarget(m_FinalTsppTarget);
 	KRenderGlobal::RenderDevice->CreateRenderTarget(m_VarianceTarget);
 	KRenderGlobal::RenderDevice->CreateRenderTarget(m_ComposeTarget);
+	KRenderGlobal::RenderDevice->CreateRenderTarget(m_HistoryNormalDepthTarget);
 	for (uint32_t i = 0; i < 2; ++i)
 	{
 		KRenderGlobal::RenderDevice->CreateRenderTarget(m_TemporalTarget[i]);
@@ -249,6 +254,8 @@ bool KScreenSpaceReflection::UnInit()
 	SAFE_UNINIT(m_FinalTsppTarget);
 	SAFE_UNINIT(m_VarianceTarget);
 	SAFE_UNINIT(m_ComposeTarget);
+	SAFE_UNINIT(m_HistoryNormalDepthTarget);
+	m_HistoryCamera = nullptr;
 	for (uint32_t i = 0; i < 2; ++i)
 	{
 		SAFE_UNINIT(m_TemporalTarget[i]);
@@ -319,6 +326,7 @@ bool KScreenSpaceReflection::Resize(uint32_t width, uint32_t height)
 {
 	m_CurrentIdx = 0;
 	m_FirstFrame = true;
+	m_HistoryCamera = nullptr;
 
 	m_Width = std::max((uint32_t)(width * m_Ratio), 1U);
 	m_Height = std::max((uint32_t)(height * m_Ratio), 1U);
@@ -360,6 +368,10 @@ bool KScreenSpaceReflection::Resize(uint32_t width, uint32_t height)
 		m_BlurTarget[i]->InitFromColor(m_FullWidth, m_FullHeight, 1, 1, EF_R16G16B16A16_FLOAT);
 		m_BlurTarget[i]->GetFrameBuffer()->SetDebugName(("SSR_BlurTarget_" + std::to_string(i)).c_str());
 	}
+
+	m_HistoryNormalDepthTarget->UnInit();
+	m_HistoryNormalDepthTarget->InitFromColor(m_FullWidth, m_FullHeight, 1, 1, EF_R16G16B16A16_FLOAT);
+	m_HistoryNormalDepthTarget->GetFrameBuffer()->SetDebugName("SSR_HistoryNormalDepthTarget");
 
 	m_FinalTarget->UnInit();
 	m_FinalTarget->InitFromColor(m_FullWidth, m_FullHeight, 1, 1, EF_R16G16B16A16_FLOAT);
@@ -439,6 +451,10 @@ bool KScreenSpaceReflection::Resize(uint32_t width, uint32_t height)
 		m_BlitPass[i]->SetOpColor(3, LO_CLEAR, SO_STORE);
 		m_BlitPass[i]->SetClearColor(3, { 0.0f, 0.0f, 0.0f, 0.0f });
 
+		m_BlitPass[i]->SetColorAttachment(4, m_HistoryNormalDepthTarget->GetFrameBuffer());
+		m_BlitPass[i]->SetOpColor(4, LO_CLEAR, SO_STORE);
+		m_BlitPass[i]->SetClearColor(4, { 0.0f, 0.0f, 0.0f, 0.0f });
+
 		ASSERT_RESULT(m_BlitPass[i]->Init());
 		m_BlitPass[i]->SetDebugName(("SSR_BlitPass_" + std::to_string(i)).c_str());
 	}
@@ -472,6 +488,8 @@ bool KScreenSpaceReflection::Resize(uint32_t width, uint32_t height)
 		KRenderGlobal::ImmediateCommandList.Transition(m_TemporalTsppTarget[i]->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 		KRenderGlobal::ImmediateCommandList.Transition(m_BlurTarget[i]->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 	}
+
+	KRenderGlobal::ImmediateCommandList.Transition(m_HistoryNormalDepthTarget->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 
 	KRenderGlobal::ImmediateCommandList.BeginRenderPass(m_TemporalPass, SUBPASS_CONTENTS_INLINE);
 	KRenderGlobal::ImmediateCommandList.SetViewport(m_TemporalPass->GetViewPort());
@@ -594,16 +612,21 @@ bool KScreenSpaceReflection::Execute(KRHICommandList& commandList)
 			command.indexData = &KRenderGlobal::QuadDataProvider.GetIndexData();
 			command.indexDraw = true;
 
+			const KCamera* camera = KRenderGlobal::Renderer.GetCamera();
 			struct ObjectData
 			{
+				glm::mat4 prevProj;
+				uint32_t historyValid;
 			} objectData;
+			objectData.prevProj = m_HistoryCamera ? m_PrevProj : camera->GetProjectiveMatrix();
+			objectData.historyValid = m_HistoryCamera == camera;
 
 			KDynamicConstantBufferUsage objectUsage;
 			objectUsage.binding = SHADER_BINDING_OBJECT;
 			objectUsage.range = sizeof(objectData);
 			KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, objectUsage);
 
-			// command.objectUsage = objectUsage;
+			command.dynamicConstantUsages.push_back(objectUsage);
 
 			command.pipeline = m_TemporalPipeline[m_CurrentIdx];
 			command.pipeline->GetHandle(m_TemporalPass, command.pipelineHandle);
@@ -623,6 +646,7 @@ bool KScreenSpaceReflection::Execute(KRHICommandList& commandList)
 		{
 			commandList.BeginDebugMarker("SSR_Blit", glm::vec4(1));
 
+			commandList.Transition(m_HistoryNormalDepthTarget->GetFrameBuffer(), PIPELINE_STAGE_FRAGMENT_SHADER, PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_COLOR_ATTACHMENT);
 			commandList.BeginRenderPass(m_BlitPass[m_CurrentIdx], SUBPASS_CONTENTS_INLINE);
 			commandList.SetViewport(m_BlitPass[m_CurrentIdx]->GetViewPort());
 
@@ -642,6 +666,7 @@ bool KScreenSpaceReflection::Execute(KRHICommandList& commandList)
 			commandList.Transition(m_TemporalSquaredTarget[m_CurrentIdx]->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 			commandList.Transition(m_TemporalTsppTarget[m_CurrentIdx]->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 			commandList.Transition(m_BlurTarget[m_CurrentIdx]->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+			commandList.Transition(m_HistoryNormalDepthTarget->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 
 			commandList.EndDebugMarker();
 		}
@@ -652,7 +677,7 @@ bool KScreenSpaceReflection::Execute(KRHICommandList& commandList)
 			{
 				commandList.BeginDebugMarker("SSR_AtrousPass" + std::to_string(level), glm::vec4(1));
 
-				uint32_t i = level & 1;
+				uint32_t i = (m_CurrentIdx + level) & 1;
 
 				commandList.BeginRenderPass(m_AtrousPass[i], SUBPASS_CONTENTS_INLINE);
 				commandList.SetViewport(m_AtrousPass[i]->GetViewPort());
@@ -692,7 +717,7 @@ bool KScreenSpaceReflection::Execute(KRHICommandList& commandList)
 		{
 			commandList.BeginDebugMarker("SSR_Compose", glm::vec4(1));
 
-			uint32_t i = m_AtrousLevel & 1;
+			uint32_t i = (m_CurrentIdx + m_AtrousLevel) & 1;
 
 			commandList.BeginRenderPass(m_ComposePass, SUBPASS_CONTENTS_INLINE);
 			commandList.SetViewport(m_ComposePass->GetViewPort());
@@ -713,10 +738,13 @@ bool KScreenSpaceReflection::Execute(KRHICommandList& commandList)
 
 			commandList.EndDebugMarker();
 		}
+		m_HistoryCamera = KRenderGlobal::Renderer.GetCamera();
+		m_PrevProj = m_HistoryCamera->GetProjectiveMatrix();
 		commandList.Transition(KRenderGlobal::GBuffer.GetSceneColor()->GetFrameBuffer(), PIPELINE_STAGE_FRAGMENT_SHADER, PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_COLOR_ATTACHMENT);
 	}
 	else
 	{
+		m_HistoryCamera = nullptr;
 		commandList.BeginDebugMarker("SSR_Compose", glm::vec4(1));
 		commandList.BeginRenderPass(m_ComposePass, SUBPASS_CONTENTS_INLINE);
 		commandList.SetViewport(m_ComposePass->GetViewPort());

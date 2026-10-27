@@ -1,7 +1,7 @@
 #include "KRayTraceScene.h"
 #include "KRayTraceManager.h"
 #include "Internal/KRenderGlobal.h"
-#include "KBase/Interface/Entity/IKEntityManager.h"
+#include "Internal/Render/KRenderUtil.h"
 #include "KBase/Interface/Component/IKRenderComponent.h"
 #include "KBase/Interface/Component/IKTransformComponent.h"
 
@@ -203,13 +203,13 @@ void KRayTraceScene::OnRenderComponentChanged(IKRenderComponent* renderComponent
 		return;
 	}
 
-	KTransformComponent* transformComponent = nullptr;
-	ASSERT_RESULT(entity->GetComponent(CT_TRANSFORM, &transformComponent));
-
 	bool bottomUpChanged = false;
 
 	if (init)
 	{
+		KTransformComponent* transformComponent = nullptr;
+		ASSERT_RESULT(entity->GetComponent(CT_TRANSFORM, &transformComponent));
+
 		std::vector<IKAccelerationStructurePtr> subAS;
 		std::vector<IKMaterialTextureBindingPtr> mtlTex;
 
@@ -339,17 +339,7 @@ bool KRayTraceScene::UnInit()
 	if (m_Scene)
 	{
 		m_Scene->UnRegisterEntityObserver(&m_OnSceneChangedFunc);
-		if (KECS::EntityManager)
-		{
-			KECS::EntityManager->ViewAllEntity([this](IKEntityPtr entity)
-			{
-				IKRenderComponent* renderComponent = nullptr;
-				if (entity->GetComponent(CT_RENDER, &renderComponent))
-				{
-					renderComponent->UnRegisterCallback(&m_OnRenderComponentChangedFunc);
-				}
-			});
-		}
+		KRenderUtil::UnRegisterRenderComponentCallback(&m_OnRenderComponentChangedFunc);
 		m_Scene = nullptr;
 	}
 

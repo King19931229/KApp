@@ -70,12 +70,12 @@ public:
 			min[2] = max[2] = transform[3][2];
 
 			float e = 0.0f, f = 0.0f;
-			for(int i = 0; i < 3; i++)
+			for(int j = 0; j < 3; j++)
 			{
-				for(int j = 0; j < 3; j++)
+				for(int i = 0; i < 3; i++)
 				{
-					e = transform[j][i] * m_Min[i];
-					f = transform[j][i] * m_Max[i];
+					e = transform[i][j] * m_Min[i];
+					f = transform[i][j] * m_Max[i];
 
 					if(e < f)
 					{

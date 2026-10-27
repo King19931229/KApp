@@ -16,6 +16,13 @@ layout(binding = BINDING_TEXTURE6) uniform sampler2D gbuffer1;
 layout(binding = BINDING_TEXTURE7) uniform sampler2D gbuffer2;
 layout(binding = BINDING_TEXTURE8) uniform sampler2D gbuffer3;
 layout(binding = BINDING_TEXTURE9) uniform sampler2D gbuffer4;
+layout(binding = BINDING_TEXTURE10) uniform sampler2D historyNormalDepthImage;
+
+layout(binding = BINDING_OBJECT) uniform Object_DYN_UNIFORM
+{
+	mat4 prevProj;
+	uint historyValid;
+} object;
 
 layout(location = 0) out vec4 outSSR;
 layout(location = 1) out vec4 outSquaredSSR;
@@ -118,7 +125,8 @@ void main()
 		motionWeight = 0;
 	}
 
-	if (hitoryUV.x < invScreenSize.x || hitoryUV.y < invScreenSize.y || hitoryUV.x > (1 - invScreenSize.x) || hitoryUV.y > (1 - invScreenSize.y))
+	if (object.historyValid == 0 || any(isnan(hitoryUV))
+		|| hitoryUV.x < invScreenSize.x || hitoryUV.y < invScreenSize.y || hitoryUV.x > (1 - invScreenSize.x) || hitoryUV.y > (1 - invScreenSize.y))
 	{
 		history = vec4(0);
 		historySquared = vec4(0);
@@ -148,17 +156,20 @@ void main()
 			gbuffer0Data = texture(gbuffer0, screenCoord);
 			float currentDepth = DecodeDepth(gbuffer0Data);
 			vec3 currentVSNormal = normalize(DecodeNormalViewSpace(gbuffer0Data));
+			vec4 previousPosition = camera.prevViewProj * vec4(DecodePosition(gbuffer0Data, screenCoord), 1.0);
+			float previousDepth = previousPosition.w > 0 ? NonLinearDepthToLinearDepth(object.prevProj, previousPosition.z / previousPosition.w) : 0;
 
-			gbuffer0Data = texture(gbuffer0, hitoryUV);
+			gbuffer0Data = previousPosition.w > 0 ? texture(historyNormalDepthImage, 0.5 * previousPosition.xy / previousPosition.w + vec2(0.5)) : gbuffer0Data;
 			float historyDepth = DecodeDepth(gbuffer0Data);
 			vec3 historyVSNormal = normalize(DecodeNormalViewSpace(gbuffer0Data));
 
-			vec2 dxdy = vec2(dFdx(currentDepth), dFdy(currentDepth));
+			vec2 dxdy = vec2(dFdx(previousDepth), dFdy(previousDepth));
 			float depthThreshold = dot(vec2(1.0), abs(dxdy));
-			float depthFloatPrecision = FloatPrecision(currentDepth, 5, 10);
+			vec4 precisionPosition = camera.prevViewProj * vec4(DecodePosition(vec4(0, 0, 0, currentDepth + FloatPrecision(currentDepth, 5, 10)), screenCoord), 1.0);
+			float depthFloatPrecision = abs(NonLinearDepthToLinearDepth(object.prevProj, precisionPosition.z / precisionPosition.w) - previousDepth) + FloatPrecision(historyDepth, 5, 10);
 
 			float depthTolerance = depthSigma * depthThreshold + depthFloatPrecision;
-			depthWeight = min(depthTolerance / (abs(historyDepth - currentDepth) + depthFloatPrecision), 1);
+			depthWeight = previousPosition.w > 0 ? min(depthTolerance / (abs(historyDepth - previousDepth) + depthFloatPrecision), 1) : 0;
 			depthWeight *= float(depthWeight >= depthWeightCutoff);
 
 			normalWeight = pow(clamp(normalSigma * dot(currentVSNormal, historyVSNormal), 0.0, 1.0), normalSigmaExponent);
@@ -208,18 +219,21 @@ void main()
 	maxColor = mean + localStdDev;
 
 	// ComputeMinMaxColor(screenCoord, invScreenSize, minColor, maxColor);
+	vec4 historyVariance = max(vec4(0), historySquared - history * history);
 	history = clamp(history, minColor, maxColor);
+	historySquared = historyVariance + history * history;
 
 	const float minSmoothingFactor = 0.03;
 	if (history.a > 0)
 		result = mix(current, history, weight * (1.0 - max(1.0 / max(tssp, 1), minSmoothingFactor)));
 	else
 		result = current;
+	squaredMean = history.a > 0 ? mix(currentSquared, historySquared, weight * (1.0 - max(1.0 / max(tssp, 1), minSmoothingFactor))) : currentSquared;
 
 	bool valid = result.w > 0;
 	
 	outSSR = valid ? result : vec4(0);
-	outSquaredSSR = valid ? result * result : vec4(0);
+	outSquaredSSR = valid ? squaredMean : vec4(0);
 	outTspp = vec4(valid ? (tssp / 255.0) : 0);
-	outVariance = variance;
+	outVariance = tssp > 4 ? max(vec4(0), squaredMean - result * result) : variance;
 }

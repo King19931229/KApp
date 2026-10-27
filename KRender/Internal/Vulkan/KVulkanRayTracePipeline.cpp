@@ -388,7 +388,7 @@ bool KVulkanRayTracePipeline::CreateShaderBindingTables()
 	{
 		if (m_ShaderBindingTables.hit.allocInfo.pMapped)
 		{
-			m_ShaderBindingTables.hit.mapped = m_ShaderBindingTables.miss.allocInfo.pMapped;
+			m_ShaderBindingTables.hit.mapped = m_ShaderBindingTables.hit.allocInfo.pMapped;
 			memcpy(m_ShaderBindingTables.hit.mapped, shaderHandleStorage.data() + (VkDeviceSize)handleSizeAligned * handleIndex, (VkDeviceSize)handleSize);
 		}
 		else
