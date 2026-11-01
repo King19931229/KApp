@@ -37,8 +37,8 @@ uniform CameraInfo
 
 #include "shading/gbuffer.h"
 
-layout(binding = BINDING_GBUFFER_RT0, GBUFFER_IMAGE0_FORMAT) uniform image2D gbuffer0Image;
-layout(binding = BINDING_GBUFFER_RT1, GBUFFER_IMAGE1_FORMAT) uniform image2D gbuffer1Image;
+layout(binding = BINDING_GBUFFER_RT0) uniform sampler2D gbuffer0Image;
+layout(binding = BINDING_GBUFFER_RT1) uniform sampler2D gbuffer1Image;
 
 //----------------------------------------------------------------------------
 // Tracing a ray and returning the weight based on the distance of the hit
@@ -87,12 +87,12 @@ void ComputeValues(vec2 p, in out vec4 normalDepth, in out vec3 origin)
 	vec4 sampleNormalDepth[4];
 	for(int i = 0; i < 4; ++i)
 	{
-		vec4 gbuffer0Data = imageLoad(gbuffer0Image, samplePos[i]);
+		vec4 gbuffer0Data = texelFetch(gbuffer0Image, samplePos[i], 0);
 		sampleNormalDepth[i] = vec4(DecodeNormal(gbuffer0Data), DecodeDepth(gbuffer0Data));
 	}
 
 	vec2 targetOffset = p - vec2(topLeft);
-	ivec2 size = imageSize(gbuffer0Image);
+	ivec2 size = textureSize(gbuffer0Image, 0);
 
 	vec4 weights;
 	ComputeBilinearWeights(targetOffset, size, samplePos, weights);
@@ -118,7 +118,7 @@ void ComputeValues(vec2 p, in out vec4 normalDepth, in out vec3 origin)
 	normalDepth = vec4(normalize(normal), depth);
 
 	vec2 uv = (vec2(closest) + vec2(0.5)) / vec2(size);
-	vec4 gbuffer0Data = imageLoad(gbuffer0Image, closest);
+	vec4 gbuffer0Data = texelFetch(gbuffer0Image, closest, 0);
 	origin = DecodePosition(gbuffer0Data, uv);
 	origin += normalDepth.xyz;
 }
@@ -134,7 +134,7 @@ void main()
 
 	ivec2 storePos = ivec2(gl_GlobalInvocationID.xy);
 	vec2 curTexPos = (gl_GlobalInvocationID.xy + 0.5) / vec2(outSize);
-	vec2 curSampleGPos = vec2(curTexPos * vec2(imageSize(gbuffer0Image)) - vec2(0.5));
+	vec2 curSampleGPos = vec2(curTexPos * vec2(textureSize(gbuffer0Image, 0)) - vec2(0.5));
 
 	vec4 normalDepth;
 	vec3 origin;

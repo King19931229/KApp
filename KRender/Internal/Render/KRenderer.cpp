@@ -180,6 +180,9 @@ bool KRenderer::Render(uint32_t chainImageIndex)
 
 	m_RHICommandList.BeginRecord();
 	{
+		// The previous frame's final graphics submission joins its compute work.
+		// Order all shared-resource reuse after that frame's remaining graphics work.
+		m_RHICommandList.PipelineMemoryBarrier(PIPELINE_STAGE_ALL_COMMANDS, PIPELINE_STAGE_ALL_COMMANDS);
 		KRenderGlobal::VirtualTextureManager.Update(m_RHICommandList, cullRes);
 		KRenderGlobal::GPUScene.Execute(m_RHICommandList);
 
@@ -230,30 +233,9 @@ bool KRenderer::Render(uint32_t chainImageIndex)
 		KRenderGlobal::GBuffer.TransitionGBuffer(m_RHICommandList, m_PreGraphics.queue, m_PreGraphics.queue, PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER | PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 		KRenderGlobal::GBuffer.TransitionDepthStencil(m_RHICommandList, m_PreGraphics.queue, m_PreGraphics.queue, PIPELINE_STAGE_EARLY_FRAGMENT_TESTS | PIPELINE_STAGE_LATE_FRAGMENT_TESTS, PIPELINE_STAGE_FRAGMENT_SHADER | PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 
-		if (KRenderGlobal::GIMethod == KRenderGlobal::SVO_GI)
-		{
-			KRenderGlobal::Voxilzer.UpdateFrame(m_RHICommandList);
-		}
-		if (KRenderGlobal::GIMethod == KRenderGlobal::CLIPMAP_GI)
-		{
-			KRenderGlobal::ClipmapVoxilzer.UpdateFrame(m_RHICommandList);
-		}
-
-		// KRenderGlobal::FrameGraph.Compile();
-		// KRenderGlobal::FrameGraph.Execute(m_RHICommandList, chainImageIndex);
-
-		KRenderGlobal::CascadedShadowMap.UpdateMask(m_RHICommandList);
-		KRenderGlobal::VolumetricFog.Execute(m_RHICommandList);
-
 		// 清空AO结果
 		KRenderGlobal::DeferredRenderer.EmptyAO(m_RHICommandList);
-
-		if (KRenderGlobal::EnableAsyncCompute)
-		{
-			KRenderGlobal::GBuffer.TransitionGBuffer(m_RHICommandList, m_PreGraphics.queue, m_Compute.queue, PIPELINE_STAGE_ALL_COMMANDS, PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_GENERAL);
-			KRenderGlobal::GBuffer.TransitionDepthStencil(m_RHICommandList, m_PreGraphics.queue, m_Compute.queue, PIPELINE_STAGE_ALL_COMMANDS, PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_GENERAL);
-			KRenderGlobal::GBuffer.TransitionAO(m_RHICommandList, m_PreGraphics.queue, m_Compute.queue, PIPELINE_STAGE_ALL_COMMANDS, PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_GENERAL);
-		}
+		m_RHICommandList.Transition(KRenderGlobal::GBuffer.GetAOTarget()->GetFrameBuffer(), PIPELINE_STAGE_ALL_COMMANDS, PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_GENERAL);
 	}
 	m_RHICommandList.EndRecord();
 	m_RHICommandList.QueueSubmit(m_PreGraphics.queue, {}, { m_PreGraphics.finish }, nullptr);
@@ -264,19 +246,33 @@ bool KRenderer::Render(uint32_t chainImageIndex)
 
 	m_RHICommandList.BeginRecord();
 	{
-		KRenderGlobal::GBuffer.TransitionGBuffer(m_RHICommandList, m_PreGraphics.queue, m_Compute.queue, PIPELINE_STAGE_COMPUTE_SHADER, PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_GENERAL);
-		KRenderGlobal::GBuffer.TransitionDepthStencil(m_RHICommandList, m_PreGraphics.queue, m_Compute.queue, PIPELINE_STAGE_COMPUTE_SHADER, PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_GENERAL);
-		KRenderGlobal::GBuffer.TransitionAO(m_RHICommandList, m_PreGraphics.queue, m_Compute.queue, PIPELINE_STAGE_COMPUTE_SHADER, PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_GENERAL);
-
-		KRenderGlobal::RTAO.Execute(m_RHICommandList, m_PreGraphics.queue, m_Compute.queue);
-
-		KRenderGlobal::GBuffer.TransitionAO(m_RHICommandList, m_Compute.queue, m_PostGraphics.queue, PIPELINE_STAGE_COMPUTE_SHADER, PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_GENERAL, IMAGE_LAYOUT_SHADER_READ_ONLY);
-		KRenderGlobal::GBuffer.TransitionGBuffer(m_RHICommandList, m_Compute.queue, m_PostGraphics.queue, PIPELINE_STAGE_COMPUTE_SHADER, PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_GENERAL, IMAGE_LAYOUT_SHADER_READ_ONLY);
-		KRenderGlobal::GBuffer.TransitionDepthStencil(m_RHICommandList, m_Compute.queue, m_PostGraphics.queue, PIPELINE_STAGE_COMPUTE_SHADER, PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_GENERAL, IMAGE_LAYOUT_SHADER_READ_ONLY);
+		KRenderGlobal::RTAO.Execute(m_RHICommandList);
 	}
 
 	m_RHICommandList.EndRecord();
 	m_RHICommandList.QueueSubmit(m_Compute.queue, { { m_PreGraphics.finish, PIPELINE_STAGE_ALL_COMMANDS } }, { m_Compute.finish }, nullptr);
+	m_RHICommandList.Flush(RHICommandFlush::DispatchToRHIThread);
+
+	m_ParallelGraphics.Reset();
+	m_RHICommandList.SetCommandBuffer(m_ParallelGraphics.pool->Request(CBL_PRIMARY));
+	m_RHICommandList.BeginRecord();
+	{
+		if (KRenderGlobal::GIMethod == KRenderGlobal::SVO_GI)
+		{
+			KRenderGlobal::Voxilzer.UpdateFrame(m_RHICommandList);
+		}
+		if (KRenderGlobal::GIMethod == KRenderGlobal::CLIPMAP_GI)
+		{
+			KRenderGlobal::ClipmapVoxilzer.UpdateFrame(m_RHICommandList);
+		}
+		KRenderGlobal::CascadedShadowMap.UpdateMask(m_RHICommandList);
+		KRenderGlobal::VolumetricFog.Execute(m_RHICommandList);
+		KRenderGlobal::HiZBuffer.Construct(m_RHICommandList);
+		KRenderGlobal::ScreenSpaceReflection.Execute(m_RHICommandList);
+	}
+	m_RHICommandList.EndRecord();
+	// This branch follows PreGraphics on the same queue and does not wait for AO.
+	m_RHICommandList.QueueSubmit(m_ParallelGraphics.queue, {}, {}, nullptr);
 	m_RHICommandList.Flush(RHICommandFlush::DispatchToRHIThread);
 
 	m_PostGraphics.Reset();
@@ -284,18 +280,7 @@ bool KRenderer::Render(uint32_t chainImageIndex)
 
 	m_RHICommandList.BeginRecord();
 	{
-		// KRenderGlobal::RenderDevice->SetCheckPointMarker(commandBuffer.get(), KRenderGlobal::CurrentFrameNum, "Render");
-
-		if (KRenderGlobal::EnableAsyncCompute)
-		{
-			KRenderGlobal::GBuffer.TransitionAO(m_RHICommandList, m_Compute.queue, m_PostGraphics.queue, PIPELINE_STAGE_COMPUTE_SHADER, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_GENERAL, IMAGE_LAYOUT_SHADER_READ_ONLY);
-			KRenderGlobal::GBuffer.TransitionGBuffer(m_RHICommandList, m_Compute.queue, m_PostGraphics.queue, PIPELINE_STAGE_COMPUTE_SHADER, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_GENERAL, IMAGE_LAYOUT_SHADER_READ_ONLY);
-			KRenderGlobal::GBuffer.TransitionDepthStencil(m_RHICommandList, m_Compute.queue, m_PostGraphics.queue, PIPELINE_STAGE_COMPUTE_SHADER, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_GENERAL, IMAGE_LAYOUT_SHADER_READ_ONLY);
-		}
-
-		KRenderGlobal::HiZBuffer.Construct(m_RHICommandList);
-
-		KRenderGlobal::ScreenSpaceReflection.Execute(m_RHICommandList);
+		m_RHICommandList.Transition(KRenderGlobal::GBuffer.GetAOTarget()->GetFrameBuffer(), PIPELINE_STAGE_ALL_COMMANDS, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_GENERAL, IMAGE_LAYOUT_SHADER_READ_ONLY);
 
 		KRenderGlobal::DeferredRenderer.DeferredLighting(m_RHICommandList);
 
@@ -316,7 +301,9 @@ bool KRenderer::Render(uint32_t chainImageIndex)
 		KRenderGlobal::DeferredRenderer.PostProcessResult(m_RHICommandList);
 
 		KRenderGlobal::DeferredRenderer.DebugObject(m_RHICommandList, cullRes);
-		KRenderGlobal::GBuffer.TransitionDepthStencil(m_RHICommandList, m_PostGraphics.queue, m_PostGraphics.queue, PIPELINE_STAGE_LATE_FRAGMENT_TESTS, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+		// Foreground clears and writes depth as an attachment. Keep depth and
+		// stencil in the same layout and order its writes after DebugObject.
+		KRenderGlobal::GBuffer.TransitionDepthStencil(m_RHICommandList, m_PostGraphics.queue, m_PostGraphics.queue, PIPELINE_STAGE_EARLY_FRAGMENT_TESTS | PIPELINE_STAGE_LATE_FRAGMENT_TESTS, PIPELINE_STAGE_EARLY_FRAGMENT_TESTS | PIPELINE_STAGE_LATE_FRAGMENT_TESTS, IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT, IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT);
 		KRenderGlobal::DeferredRenderer.Foreground(m_RHICommandList);
 
 		// 绘制Final
@@ -482,23 +469,21 @@ bool KRenderer::SwitchAsyncCompute(bool enableAsyncCompute)
 
 	m_Shadow.UnInit();
 	m_PreGraphics.UnInit();
+	m_ParallelGraphics.UnInit();
 	m_PostGraphics.UnInit();
 	m_Compute.UnInit();
 
-	if (KRenderGlobal::EnableAsyncCompute)
+	m_Shadow.Init(QUEUE_GRAPHICS, 0, m_MultithreadCount, "Shadow");
+	m_PreGraphics.Init(QUEUE_GRAPHICS, 0, m_MultithreadCount, "PreGraphics");
+	m_ParallelGraphics.Init(QUEUE_GRAPHICS, 0, m_MultithreadCount, "ParallelGraphics");
+	m_PostGraphics.Init(QUEUE_GRAPHICS, 0, m_MultithreadCount, "PostGraphics");
+	bool asyncCompute = enableAsyncCompute && KRenderGlobal::NumComputeQueue > 0;
+	m_Compute.Init(asyncCompute ? QUEUE_COMPUTE : QUEUE_GRAPHICS, 0, m_MultithreadCount, "Compute");
+	if (enableAsyncCompute && !asyncCompute)
 	{
-		m_Shadow.Init(QUEUE_GRAPHICS, 0, m_MultithreadCount, "Shadow");
-		m_PreGraphics.Init(QUEUE_GRAPHICS, 0, m_MultithreadCount, "PreGraphics");
-		m_PostGraphics.Init(QUEUE_PRESENT, 0, m_MultithreadCount, "PostGraphics");
-		m_Compute.Init(QUEUE_COMPUTE, 0, m_MultithreadCount, "Compute");
+		KG_LOG(LM_RENDER, "AsyncCompute unavailable: executing compute work on the graphics queue\n");
 	}
-	else
-	{
-		m_Shadow.Init(QUEUE_PRESENT, 0, m_MultithreadCount, "Shadow");
-		m_PreGraphics.Init(QUEUE_PRESENT, 0, m_MultithreadCount, "PreGraphics");
-		m_PostGraphics.Init(QUEUE_PRESENT, 0, m_MultithreadCount, "PostGraphics");
-		m_Compute.Init(QUEUE_PRESENT, 0, m_MultithreadCount, "Compute");
-	}
+	KRenderGlobal::RTAO.InvalidateHistory();
 
 	return true;
 }
@@ -511,6 +496,7 @@ bool KRenderer::ResetThreadNum(uint32_t threadNum)
 
 	m_Shadow.SetThreadNum(threadNum);
 	m_PreGraphics.SetThreadNum(threadNum);
+	m_ParallelGraphics.SetThreadNum(threadNum);
 	m_PostGraphics.SetThreadNum(threadNum);
 	m_Compute.SetThreadNum(threadNum);
 
@@ -555,6 +541,7 @@ bool KRenderer::UnInit()
 
 	m_Shadow.UnInit();
 	m_PreGraphics.UnInit();
+	m_ParallelGraphics.UnInit();
 	m_PostGraphics.UnInit();
 	m_Compute.UnInit();
 

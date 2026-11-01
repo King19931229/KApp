@@ -121,6 +121,11 @@ void KRHIImmediateCommandList::TransitionIndirect(IKStorageBufferPtr buf)
 	m_CommandBuffer->TransitionIndirect(buf);
 }
 
+void KRHIImmediateCommandList::PipelineMemoryBarrier(PipelineStages srcStages, PipelineStages dstStages)
+{
+	m_CommandBuffer->PipelineMemoryBarrier(srcStages, dstStages);
+}
+
 void KRHIImmediateCommandList::Transition(IKFrameBufferPtr buf, PipelineStages srcStages, PipelineStages dstStages, ImageLayout oldLayout, ImageLayout newLayout)
 {
 	m_CommandBuffer->Transition(buf, srcStages, dstStages, oldLayout, newLayout);

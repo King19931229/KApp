@@ -12,35 +12,20 @@ uniform Object_DYN_UNIFORM
 
 void main()
 {
-	int minBuild = object.minBuild;
+	ivec2 srcSize = textureSize(depthSampler, 0);
+	ivec2 dstSize = max(srcSize / 2, ivec2(1));
+	ivec2 dstCoord = clamp(ivec2(inUV * vec2(dstSize)), ivec2(0), dstSize - ivec2(1));
+	ivec2 minCoord = (dstCoord * srcSize) / dstSize;
+	ivec2 maxCoord = ((dstCoord + ivec2(1)) * srcSize + dstSize - ivec2(1)) / dstSize - ivec2(1);
 
-	vec2 srcSize = vec2(textureSize(depthSampler, 0));
-
-	ivec2 texCoord = ivec2(inUV * srcSize * 0.5 - vec2(0.5));
-
-	ivec2 pixelPos00 = ivec2(2 * texCoord.x, 2 * texCoord.y);
-	ivec2 pixelPos01 = ivec2(2 * texCoord.x + 1, 2 * texCoord.y);
-	ivec2 pixelPos10 = ivec2(2 * texCoord.x, 2 * texCoord.y + 1);
-	ivec2 pixelPos11 = ivec2(2 * texCoord.x + 1, 2 * texCoord.y + 1);
-
-	float depth = 0.0;
-
-	if (minBuild != 0)
+	float depth = object.minBuild != 0 ? 1.0 : 0.0;
+	for (int y = minCoord.y; y <= maxCoord.y; ++y)
 	{
-		depth = 1.0;
-		depth = min(texelFetch(depthSampler, pixelPos00, 0).r, depth);
-		depth = min(texelFetch(depthSampler, pixelPos01, 0).r, depth);
-		depth = min(texelFetch(depthSampler, pixelPos10, 0).r, depth);
-		depth = min(texelFetch(depthSampler, pixelPos11, 0).r, depth);
+		for (int x = minCoord.x; x <= maxCoord.x; ++x)
+		{
+			float srcDepth = texelFetch(depthSampler, ivec2(x, y), 0).r;
+			depth = object.minBuild != 0 ? min(depth, srcDepth) : max(depth, srcDepth);
+		}
 	}
-	else
-	{
-		depth = 0.0;
-		depth = max(texelFetch(depthSampler, pixelPos00, 0).r, depth);
-		depth = max(texelFetch(depthSampler, pixelPos01, 0).r, depth);
-		depth = max(texelFetch(depthSampler, pixelPos10, 0).r, depth);
-		depth = max(texelFetch(depthSampler, pixelPos11, 0).r, depth);
-	}
-
 	outColor = vec4(depth);
 }

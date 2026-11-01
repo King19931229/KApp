@@ -2,6 +2,7 @@
 
 namespace KVulkanGlobal
 {
+	std::vector<uint32_t> resourceSharingFamilyIndices;
 	bool deviceReady = false;
 	bool supportRaytrace = false;
 	bool supportNVMeshShader = false;

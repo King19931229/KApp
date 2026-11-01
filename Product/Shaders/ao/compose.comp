@@ -28,8 +28,8 @@ layout(binding = BINDING_UNIFORM) uniform AOProperties
 
 layout(binding = BINDING_CUR_AO, r16f) uniform image2D curAOImage;
 layout(binding = BINDING_CUR_HITDISTANCE, r16f) uniform image2D curHitDistanceImage;
-layout(binding = BINDING_GBUFFER_RT0, GBUFFER_IMAGE0_FORMAT) uniform image2D gbuffer0Image;
-layout(binding = BINDING_GBUFFER_RT1, GBUFFER_IMAGE1_FORMAT) uniform image2D gbuffer1Image;
+layout(binding = BINDING_GBUFFER_RT0) uniform sampler2D gbuffer0Image;
+layout(binding = BINDING_GBUFFER_RT1) uniform sampler2D gbuffer1Image;
 layout(binding = BINDING_PREV_NORMAL_DEPTH, rgba16f) uniform image2D prevNormalDepthImage;
 layout(binding = BINDING_CUR_NORMAL_DEPTH, rgba16f) uniform image2D curNormalDepthImage;
 layout(binding = BINDING_REPROJECTED, rgba16f) uniform image2D reprojectedImage;

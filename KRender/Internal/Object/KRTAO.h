@@ -117,7 +117,8 @@ public:
 	bool& GetEnable() { return m_Enable; }
 
 	bool DebugRender(IKRenderPassPtr renderPass, KRHICommandList& commandList);
-	bool Execute(KRHICommandList& commandList, IKQueuePtr graphicsQueue, IKQueuePtr computeQueue);
+	bool Execute(KRHICommandList& commandList);
+	void InvalidateHistory();
 
 	AoControl& GetAoParameters() { return m_AOParameters; }
 

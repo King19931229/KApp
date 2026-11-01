@@ -29,8 +29,8 @@ public:
 
 	void AddTask(IKGraphTaskRef task, TaskPriority taskPriority)
 	{
-		m_Queue->AddTask(task, taskPriority);
 		((KGraphTask*)task.Get())->SetTaskQueue(m_Queue);
+		m_Queue->AddTask(task, taskPriority);
 		m_Trigger.Notify();
 		m_HangUp = false;
 	}

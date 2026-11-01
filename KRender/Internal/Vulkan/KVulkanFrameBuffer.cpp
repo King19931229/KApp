@@ -588,11 +588,13 @@ bool KVulkanFrameBuffer::Transition(IKCommandBuffer* cmd, IKQueue* srcQueue, IKQ
 		uint32_t srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 		uint32_t dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 
-		if (srcQueue)
+		// Images allocated by this backend are shared across the device's queue families.
+		bool concurrent = m_FrameBufferType != FT_EXTERNAL_SOURCE && KVulkanGlobal::resourceSharingFamilyIndices.size() > 1;
+		if (srcQueue && !concurrent)
 		{
 			srcQueueFamilyIndex = ((KVulkanQueue*)srcQueue)->GetQueueFamilyIndex();
 		}
-		if (dstQueue)
+		if (dstQueue && !concurrent)
 		{
 			dstQueueFamilyIndex = ((KVulkanQueue*)dstQueue)->GetQueueFamilyIndex();
 		}

@@ -1,20 +1,23 @@
 #pragma once
 #include "Interface/Task/IKTaskGraph.h"
+#include <atomic>
+#include <cstdint>
 #include <vector>
 
 class KGraphTask : public IKGraphTask
 {
+friend class KGraphTaskEvent;
 protected:
 	IKGraphTaskEventRef m_TaskEvent;
 	IKTaskWorkPtr m_TaskWork;
-	IKGraphTaskQueue* m_TaskQueue;
-	std::mutex m_WorkProcessLock;
+	std::atomic<IKGraphTaskQueue*> m_TaskQueue;
+
+	void Abandon(IKGraphTaskRef thisTask);
 public:
 	KGraphTask(IKGraphTaskEventRef taskEvent, IKTaskWorkPtr taskWork, IKGraphTaskQueue* taskQueue);
 	~KGraphTask();
 
 	void SetTaskQueue(IKGraphTaskQueue* queue);
-	void Abandon(IKGraphTaskRef thisTask);
 
 	virtual void DoWork() override;	
 	virtual void DetachFromEvent() override;
@@ -23,12 +26,20 @@ public:
 
 class KGraphTaskEvent : public IKGraphTaskEvent
 {
+friend class KGraphTask;
 protected:
+	enum GraphTaskState
+	{
+		GTS_IDLE = 0,
+		GTS_RUNNING = 1,
+		GTS_DONE = -1,
+	};
+
 	IKGraphTaskRef m_Task;
 
 	std::mutex m_TaskProcessLock;
 	std::shared_ptr<KEvent> m_DoneEvent;
-	std::shared_ptr<std::atomic_bool> m_Done;
+	std::shared_ptr<std::atomic<int32_t>> m_State;
 	bool m_Queued;
 
 	NamedThread::Type m_ThreadToExecuteOn;

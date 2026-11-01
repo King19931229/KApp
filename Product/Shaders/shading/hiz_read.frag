@@ -14,11 +14,17 @@ uniform Object_DYN_UNIFORM
 #define SAMPLE_METHOD_MIN_MAX 0
 #define SAMPLE_METHOD_AVERAGE 1
 #define SAMPLE_METHOD_WEIGHT_AVERAGE 2
+#define SAMPLE_METHOD_COPY 3
 
-#define SAMPLE_METHOD SAMPLE_METHOD_MIN_MAX
+#define SAMPLE_METHOD SAMPLE_METHOD_COPY
 
 void main()
 {
+#if SAMPLE_METHOD == SAMPLE_METHOD_COPY
+	ivec2 srcSize = textureSize(depthSampler, 0);
+	ivec2 coord = clamp(ivec2(inUV * vec2(srcSize)), ivec2(0), srcSize - ivec2(1));
+	outColor = vec4(texelFetch(depthSampler, coord, 0).r);
+#else
 	vec4 sampleScaleBias = object.sampleScaleBias;
 	int minBuild = object.minBuild;
 
@@ -29,7 +35,7 @@ void main()
 	ivec2 topRightCoord = ivec2(topRight);
 
 #if SAMPLE_METHOD == SAMPLE_METHOD_MIN_MAX
-	float depth = (minBuild != 0) ? 0.0 : 1.0;
+	float depth = (minBuild != 0) ? 1.0 : 0.0;
 #elif SAMPLE_METHOD == SAMPLE_METHOD_AVERAGE
 	float depth = 0;
 	float weight = 1.0 / float((topRightCoord.x - bottomLeftCoord.x + 1) * (topRightCoord.y - bottomLeftCoord.y + 1));
@@ -76,7 +82,7 @@ void main()
 			weightSum += weight;
 			depth += linearDepth * weight;
 #elif SAMPLE_METHOD == SAMPLE_METHOD_MIN_MAX
-			if (minBuild == 0)
+			if (minBuild != 0)
 				depth = min(texelFetch(depthSampler, ivec2(x,y), 0).r, depth);
 			else
 				depth = max(texelFetch(depthSampler, ivec2(x,y), 0).r, depth);
@@ -92,4 +98,5 @@ void main()
 #endif
 
 	outColor = vec4(depth);
+#endif
 }

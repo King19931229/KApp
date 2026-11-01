@@ -22,6 +22,7 @@ namespace KVulkanGlobal
 	extern std::vector<uint32_t> graphicsFamilyIndices;
 	extern std::vector<uint32_t> computeFamilyIndices;
 	extern std::vector<uint32_t> transferFamilyIndices;
+	extern std::vector<uint32_t> resourceSharingFamilyIndices;
 
 	extern std::vector<VkQueue> graphicsQueues;
 	extern std::vector<VkQueue> computeQueues;

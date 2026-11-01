@@ -68,17 +68,51 @@ bool KSourceFile::EarseComment(std::string& out, const std::string& in)
 	return true;
 }
 
+static void ReadLongLine(IKDataStreamPtr stream, char* szBuffer, size_t uBufferSize, std::string& line)
+{
+	line.clear();
+	while(!stream->IsEOF())
+	{
+		size_t uPos = stream->Tell();
+		size_t uReadSize = std::min(uBufferSize - 1, stream->GetSize() - uPos);
+		if(uReadSize == 0 || !stream->Read(szBuffer, uReadSize))
+			break;
+
+		char* pszLineEnd = uReadSize ? (char*)memchr(szBuffer, '\n', uReadSize) : nullptr;
+		if(pszLineEnd)
+		{
+			line.append(szBuffer, pszLineEnd - szBuffer);
+			stream->Seek((long)(uPos + (pszLineEnd - szBuffer) + 1));
+			break;
+		}
+		line.append(szBuffer, uReadSize);
+	}
+	if(!line.empty() && *line.rbegin() == '\r')
+		line.erase(line.end() - 1);
+};
+
 IKDataStreamPtr KSourceFile::PostProcessDataStream(IKDataStreamPtr input)
 {
-	char szBuffer[1024] = { 0 };
 	std::string rawFileData, fileData;
 
 	IKDataStreamPtr pData = nullptr;
 	if (input)
 	{
-		while (input->ReadLine(szBuffer, sizeof(szBuffer)))
+		char szBuffer[1024] = { 0 };
+		std::string longLine;
+
+		while (true)
 		{
-			rawFileData += szBuffer;
+			if (input->ReadLine(szBuffer, sizeof(szBuffer)))
+			{
+				rawFileData += szBuffer;
+				rawFileData += "\n";
+				continue;
+			}
+			if (input->IsEOF())
+				break;
+			ReadLongLine(input, szBuffer, sizeof(szBuffer), longLine);
+			rawFileData += longLine;
 			rawFileData += "\n";
 		}
 
@@ -90,9 +124,8 @@ IKDataStreamPtr KSourceFile::PostProcessDataStream(IKDataStreamPtr input)
 			pData = GetDataStream(IT_MEMORY);
 			pData->Open(fileData.length() + 1, IM_READ_WRITE);
 			pData->Write(fileData.c_str(), fileData.length() + 1);
+			pData->Seek(0);
 		}
-
-		pData->Seek(0);
 
 		input->Close();
 	}
@@ -177,9 +210,6 @@ bool KSourceFile::Parse(std::string& output, const std::string& dir, const std::
 		std::string curLine;
 		std::string includeFile;
 		size_t uLineCount = 0;
-
-		char szBuffer[1024] = {0};
-		char szInclude[64] = {0};
 
 		IKDataStreamPtr pData = nullptr;
 		
@@ -266,27 +296,30 @@ bool KSourceFile::Parse(std::string& output, const std::string& dir, const std::
 				}
 			}
 
-			while(pData->ReadLine(szBuffer, sizeof(szBuffer)))
+			char szBuffer[1024] = { 0 };
+			std::string longLine;
+
+			while(true)
 			{
-				if(strstr(szBuffer, "#include") == szBuffer)
+				char* szLine = szBuffer;
+				if(!pData->ReadLine(szBuffer, sizeof(szBuffer)))
+				{
+					if(pData->IsEOF())
+						break;
+					ReadLongLine(pData, szBuffer, sizeof(szBuffer), longLine);
+					szLine = &longLine[0];
+				}
+				if(strstr(szLine, "#include") == szLine)
 				{
 					char* pszIncludeBeg = nullptr;
 					char* pszIncludeEnd = nullptr;
-					long nLen = 0;
-					pszIncludeBeg = strchr(szBuffer, '"');
-					pszIncludeBeg = pszIncludeBeg ? pszIncludeBeg : strchr(szBuffer, '<');
-					pszIncludeEnd = strrchr(szBuffer, '"');
-					pszIncludeEnd = pszIncludeEnd ? pszIncludeEnd : strchr(szBuffer, '>');
-					nLen = (long)(pszIncludeEnd - pszIncludeBeg - 1);
-					if(pszIncludeBeg && pszIncludeEnd && nLen > 0)
+					pszIncludeBeg = strchr(szLine, '"');
+					pszIncludeBeg = pszIncludeBeg ? pszIncludeBeg : strchr(szLine, '<');
+					pszIncludeEnd = strrchr(szLine, '"');
+					pszIncludeEnd = pszIncludeEnd ? pszIncludeEnd : strchr(szLine, '>');
+					if(pszIncludeBeg && pszIncludeEnd && pszIncludeEnd > pszIncludeBeg + 1)
 					{
-#ifndef _WIN32
-						strncpy(szInclude, pszIncludeBeg + 1, nLen);
-#else
-						strncpy_s(szInclude, sizeof(szInclude), pszIncludeBeg + 1, nLen);
-#endif
-						szInclude[nLen] = '\0';
-						includeFile = szInclude;
+						includeFile.assign(pszIncludeBeg + 1, pszIncludeEnd - pszIncludeBeg - 1);
 						Trim(includeFile);
 
 						// 检查include是否合理,是否存在环形依赖
@@ -342,18 +375,22 @@ bool KSourceFile::Parse(std::string& output, const std::string& dir, const std::
 							curFileData += includeFileData;
 						}
 					}
+					else
+					{
+						return false;
+					}
 				}
 				else
 				{
-					curFileData += std::string(szBuffer) + "\n";
+					curFileData += std::string(szLine) + "\n";
 				}
 
 				if (pParent == nullptr)
 				{
-					m_OriginalSource += std::string(szBuffer) + "\n";
+					m_OriginalSource += std::string(szLine) + "\n";
 				}
 			}
-			if (pParent == nullptr && *curFileData.rbegin() == '\n')
+			if (pParent == nullptr && !curFileData.empty() && *curFileData.rbegin() == '\n')
 			{
 				curFileData.erase(curFileData.end() - 1);
 			}

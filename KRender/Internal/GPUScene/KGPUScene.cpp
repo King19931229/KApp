@@ -930,39 +930,39 @@ void KGPUScene::RebuildInstance()
 		}
 	}
 
-	size_t instanceBufferCount = (size_t)KMath::SmallestPowerOf2GreaterEqualThan(m_Instances.size());
-	if (instanceBufferCount < GPUSCENE_GROUP_SIZE)
-	{
-		instanceBufferCount = GPUSCENE_GROUP_SIZE;
-	}
-	std::vector<KGPUSceneInstance> instanceBufferData(instanceBufferCount);
-	for (size_t i = 0; i < m_Instances.size(); ++i)
-	{
-		instanceBufferData[i] = m_Instances[i];
-	}
-
+	size_t instanceBufferCount = std::max((size_t)GPUSCENE_GROUP_SIZE,
+		(size_t)KMath::SmallestPowerOf2GreaterEqualThan(m_Instances.size()));
 	for (size_t i = 0; i < m_InstanceDataBuffers.size(); ++i)
 	{
 		IKStorageBufferPtr buffer = m_InstanceDataBuffers[i];
-		buffer->UnInit();
-		buffer->InitMemory(instanceBufferCount * sizeof(KGPUSceneInstance), instanceBufferData.data());
-		buffer->InitDevice(false, false);
+		if (buffer->GetBufferSize() < instanceBufferCount * sizeof(KGPUSceneInstance))
+		{
+			buffer->UnInit();
+			buffer->InitMemory(instanceBufferCount * sizeof(KGPUSceneInstance), nullptr);
+			buffer->InitDevice(false, false);
+		}
 	}
 
 	for (size_t i = 0; i < m_GroupDataBuffers.size(); ++i)
 	{
 		IKStorageBufferPtr buffer = m_GroupDataBuffers[i];
-		buffer->UnInit();
-		buffer->InitMemory(m_Instances.size() * sizeof(uint32_t), nullptr);
-		buffer->InitDevice(false, false);
+		if (buffer->GetBufferSize() < instanceBufferCount * sizeof(uint32_t))
+		{
+			buffer->UnInit();
+			buffer->InitMemory(instanceBufferCount * sizeof(uint32_t), nullptr);
+			buffer->InitDevice(false, false);
+		}
 	}
 
 	for (size_t i = 0; i < m_InstanceCullResultBuffers.size(); ++i)
 	{
 		IKStorageBufferPtr buffer = m_InstanceCullResultBuffers[i];
-		buffer->UnInit();
-		buffer->InitMemory(sizeof(uint32_t) * m_Instances.size(), nullptr);
-		buffer->InitDevice(false, false);
+		if (buffer->GetBufferSize() < instanceBufferCount * sizeof(uint32_t))
+		{
+			buffer->UnInit();
+			buffer->InitMemory(instanceBufferCount * sizeof(uint32_t), nullptr);
+			buffer->InitDevice(false, false);
+		}
 	}
 }
 
@@ -1378,12 +1378,15 @@ bool KGPUScene::Execute(KRHICommandList& commandList)
 			glm::mat4 view;
 			glm::mat4 proj;
 			glm::mat4 viewProj;
+			uint32_t instanceCount = 0;
+			uint32_t padding[3] = { 0 };
 		} cameraObjectUsage;
 		static_assert((sizeof(cameraObjectUsage) % 16) == 0, "Size must be a multiple of 16");
 
 		cameraObjectUsage.view = m_Camera->GetViewMatrix();
 		cameraObjectUsage.proj = m_Camera->GetProjectiveMatrix();
 		cameraObjectUsage.viewProj = m_Camera->GetProjectiveMatrix() * m_Camera->GetViewMatrix();
+		cameraObjectUsage.instanceCount = (uint32_t)m_Instances.size();
 
 		KDynamicConstantBufferUsage objectUsage;
 		objectUsage.binding = GPUSCENE_BINDING_OBJECT;

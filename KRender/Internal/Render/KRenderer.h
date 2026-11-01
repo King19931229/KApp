@@ -96,6 +96,7 @@ protected:
 
 	GPUQueueMiscs m_Shadow;
 	GPUQueueMiscs m_PreGraphics;
+	GPUQueueMiscs m_ParallelGraphics;
 	GPUQueueMiscs m_PostGraphics;
 	GPUQueueMiscs m_Compute;
 

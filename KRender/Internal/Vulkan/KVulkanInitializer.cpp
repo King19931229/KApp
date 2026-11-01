@@ -6,6 +6,24 @@
 
 namespace KVulkanInitializer
 {
+	void SetupResourceSharing(VkBufferCreateInfo& createInfo)
+	{
+		const std::vector<uint32_t>& families = KVulkanGlobal::resourceSharingFamilyIndices;
+		bool concurrent = families.size() > 1;
+		createInfo.sharingMode = concurrent ? VK_SHARING_MODE_CONCURRENT : VK_SHARING_MODE_EXCLUSIVE;
+		createInfo.queueFamilyIndexCount = concurrent ? (uint32_t)families.size() : 0;
+		createInfo.pQueueFamilyIndices = concurrent ? families.data() : nullptr;
+	}
+
+	void SetupResourceSharing(VkImageCreateInfo& createInfo)
+	{
+		const std::vector<uint32_t>& families = KVulkanGlobal::resourceSharingFamilyIndices;
+		bool concurrent = families.size() > 1;
+		createInfo.sharingMode = concurrent ? VK_SHARING_MODE_CONCURRENT : VK_SHARING_MODE_EXCLUSIVE;
+		createInfo.queueFamilyIndexCount = concurrent ? (uint32_t)families.size() : 0;
+		createInfo.pQueueFamilyIndices = concurrent ? families.data() : nullptr;
+	}
+
 	void CreateVkBuffer(VkDeviceSize size,
 		VkBufferUsageFlags usage,
 		VkMemoryPropertyFlags properties,
@@ -18,7 +36,7 @@ namespace KVulkanInitializer
 		bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
 		bufferInfo.size = size;
 		bufferInfo.usage = usage;
-		bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+		SetupResourceSharing(bufferInfo);
 		VK_ASSERT_RESULT(vkCreateBuffer(KVulkanGlobal::device, &bufferInfo, nullptr, &vkBuffer));
 		{
 			VkMemoryRequirements memRequirements = {};
@@ -99,7 +117,7 @@ namespace KVulkanInitializer
 		imageInfo.tiling = tiling;
 		imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 		imageInfo.usage = usage;
-		imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+		SetupResourceSharing(imageInfo);
 		imageInfo.samples = numSamples;
 		imageInfo.flags = flags;
 
@@ -182,6 +200,7 @@ namespace KVulkanInitializer
 		bufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
 		bufferCreateInfo.size = buildSizeInfo.accelerationStructureSize;
 		bufferCreateInfo.usage = VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
+		SetupResourceSharing(bufferCreateInfo);
 		VK_ASSERT_RESULT(vkCreateBuffer(KVulkanGlobal::device, &bufferCreateInfo, nullptr, &accelerationStructure.buffer));
 
 		VkMemoryRequirements memoryRequirements = {};
@@ -235,6 +254,7 @@ namespace KVulkanInitializer
 		bufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
 		bufferCreateInfo.size = (accelerationStructureBuildGeometryInfo.mode == VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR) ? accelerationStructureBuildSizesInfo.buildScratchSize : accelerationStructureBuildSizesInfo.updateScratchSize;
 		bufferCreateInfo.usage = VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
+		SetupResourceSharing(bufferCreateInfo);
 		VK_ASSERT_RESULT(vkCreateBuffer(KVulkanGlobal::device, &bufferCreateInfo, nullptr, &scratchBufferHandle));
 
 		VkMemoryRequirements memoryRequirements = {};
@@ -298,6 +318,7 @@ namespace KVulkanInitializer
 		bufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
 		bufferCreateInfo.size = (accelerationStructureBuildGeometryInfo.mode == VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR) ? accelerationStructureBuildSizesInfo.buildScratchSize : accelerationStructureBuildSizesInfo.updateScratchSize;
 		bufferCreateInfo.usage = VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
+		SetupResourceSharing(bufferCreateInfo);
 		VK_ASSERT_RESULT(vkCreateBuffer(KVulkanGlobal::device, &bufferCreateInfo, nullptr, &scratchBufferHandle));
 
 		VkMemoryRequirements memoryRequirements = {};

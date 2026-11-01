@@ -64,7 +64,7 @@ bool AdvanceRay(vec3 origin, vec3 dir, vec3 invDir,
 
 	// o + d * t = p' => t = (p' - o) / d
 	vec3 t = boundaryPos * invDir - origin * invDir;
-	t.z = t.z > 0 ? t.z : SSR_FLOAT_MAX;
+	t.z = t.z > currentT ? t.z : SSR_FLOAT_MAX;
 
 	float minT = min(min(t.x, t.y), t.z);
 	position = origin + minT * dir;
@@ -210,14 +210,20 @@ void main()
 
 		while (stepCount < maxStepCount && currentMip >= mostDetailMip && t <= maxT)
 		{
+			if (any(lessThan(position.xy, vec2(0.0))) || any(greaterThanEqual(position.xy, vec2(1.0))))
+				break;
+
 			vec2 currentMipPosition = currentMipResolution * position.xy;
 			float surfaceZ = texelFetch(hiZ, ivec2(currentMipPosition), currentMip).r;
 			bool skippedTile = AdvanceRay(originPos, reflectDir, invReflectDir,
 				currentMipPosition, invCurrentMipResolution,
 				floorOffset, uvOffset, surfaceZ, position, t);
-			currentMip += skippedTile ? 1 : -1;
-			currentMipResolution *= skippedTile ? 0.5 : 2.0;
-			invCurrentMipResolution *= skippedTile ? 2.0 : 0.5;
+			currentMip = skippedTile ? min(currentMip + 1, object.maxHiZMip) : currentMip - 1;
+			if (currentMip >= mostDetailMip)
+			{
+				currentMipResolution = vec2(textureSize(hiZ, currentMip));
+				invCurrentMipResolution = vec2(1.0) / currentMipResolution;
+			}
 			++stepCount;
 		}
 

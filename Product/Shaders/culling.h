@@ -26,6 +26,7 @@ struct ScreenRect
 
 	// For HZB sampling
 	ivec4	hzbTexels;
+	vec4	hzbUV;
 	int		hzbLevel;
 
 	float	depth;
@@ -185,6 +186,7 @@ ScreenRect GetScreenRect(ivec4 viewRect, FrustumCullData cull, int desiredFootpr
 	rect.depth = cull.rectMin.z;
 
 	vec4 rectUV = clamp((vec4(cull.rectMin.xy, cull.rectMax.xy) * vec4(0.5) + vec4(0.5)).xyzw, vec4(0), vec4(1));
+	rect.hzbUV = rectUV;
 	vec2 viewSize = vec2(viewRect.zw) - vec2(viewRect.xy);
 
 	// Calculate pixel footprint of rectangle in full resolution.

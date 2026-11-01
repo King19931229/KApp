@@ -79,6 +79,7 @@ public:
 	virtual bool ResetQuery(IKQueryPtr query);
 
 	virtual bool TransitionIndirect(IKStorageBufferPtr buf);
+	virtual bool PipelineMemoryBarrier(PipelineStages srcStages, PipelineStages dstStages);
 
 	virtual bool Transition(IKFrameBufferPtr buf, PipelineStages srcStages, PipelineStages dstStages, ImageLayout oldLayout, ImageLayout newLayout);
 	virtual bool TransitionOwnership(IKFrameBufferPtr buf, IKQueuePtr srcQueue, IKQueuePtr dstQueue, PipelineStages srcStages, PipelineStages dstStages, ImageLayout oldLayout, ImageLayout newLayout);

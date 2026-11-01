@@ -794,6 +794,19 @@ bool KVulkanCommandBuffer::TransitionIndirect(IKStorageBufferPtr buf)
 	return false;
 }
 
+bool KVulkanCommandBuffer::PipelineMemoryBarrier(PipelineStages srcStages, PipelineStages dstStages)
+{
+	VkPipelineStageFlags vkSrcStages = 0;
+	VkPipelineStageFlags vkDstStages = 0;
+	ASSERT_RESULT(KVulkanHelper::PipelineStagesToVkPipelineStageFlags(srcStages, vkSrcStages));
+	ASSERT_RESULT(KVulkanHelper::PipelineStagesToVkPipelineStageFlags(dstStages, vkDstStages));
+	VkMemoryBarrier barrier = { VK_STRUCTURE_TYPE_MEMORY_BARRIER };
+	barrier.srcAccessMask = VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT;
+	barrier.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT;
+	vkCmdPipelineBarrier(GetVkHandle(), vkSrcStages, vkDstStages, 0, 1, &barrier, 0, nullptr, 0, nullptr);
+	return true;
+}
+
 bool KVulkanCommandBuffer::Transition(IKFrameBufferPtr buf, PipelineStages srcStages, PipelineStages dstStages, ImageLayout oldLayout, ImageLayout newLayout)
 {
 	if (buf)

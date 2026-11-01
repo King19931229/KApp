@@ -89,10 +89,8 @@ void KHiZBuffer::InitializePipeline()
 
 bool KHiZBuffer::Resize(uint32_t width, uint32_t height)
 {
-	const uint32_t DIMENSION_DIV = 1;
-
-	m_HiZWidth = KMath::BiggestPowerOf2LessEqualThan(width / DIMENSION_DIV);
-	m_HiZHeight = KMath::BiggestPowerOf2LessEqualThan(height / DIMENSION_DIV);
+	m_HiZWidth = width;
+	m_HiZHeight = height;
 
 	m_NumMips = (uint32_t)std::log2(std::max(m_HiZWidth, m_HiZHeight)) + 1;
 

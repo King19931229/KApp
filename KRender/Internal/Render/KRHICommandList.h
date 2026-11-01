@@ -286,6 +286,21 @@ RHICOMMAND_DEFINE(KResetQueryCmd)
 	virtual void Execute(KRHICommandList& commandList);
 };
 
+RHICOMMAND_DEFINE(KMemoryBarrierCmd)
+{
+	IKCommandBufferPtr commandBuffer;
+	PipelineStages srcStages;
+	PipelineStages dstStages;
+
+	KMemoryBarrierCmd(IKCommandBufferPtr inCommandBuffer, PipelineStages inSrcStages, PipelineStages inDstStages)
+		: commandBuffer(inCommandBuffer)
+		, srcStages(inSrcStages)
+		, dstStages(inDstStages)
+	{}
+
+	virtual void Execute(KRHICommandList& commandList);
+};
+
 RHICOMMAND_DEFINE(KTransitionIndirectCmd)
 {
 	IKCommandBufferPtr commandBuffer;
@@ -578,6 +593,7 @@ struct KRHICommandListBase
 	virtual void EndQuery(IKQueryPtr query) = 0;
 	virtual void ResetQuery(IKQueryPtr query) = 0;
 	virtual void TransitionIndirect(IKStorageBufferPtr buf) = 0;
+	virtual void PipelineMemoryBarrier(PipelineStages srcStages, PipelineStages dstStages) = 0;
 	virtual void Transition(IKFrameBufferPtr buf, PipelineStages srcStages, PipelineStages dstStages, ImageLayout oldLayout, ImageLayout newLayout) = 0;
 	virtual void TransitionOwnership(IKFrameBufferPtr buf, IKQueuePtr srcQueue, IKQueuePtr dstQueue, PipelineStages srcStages, PipelineStages dstStages, ImageLayout oldLayout, ImageLayout newLayout) = 0;
 	virtual void TransitionMipmap(IKFrameBufferPtr buf, uint32_t mipmap, PipelineStages srcStages, PipelineStages dstStages, ImageLayout oldLayout, ImageLayout newLayout) = 0;
@@ -625,6 +641,7 @@ public:
 	void ResetQuery(IKQueryPtr query);
 
 	void TransitionIndirect(IKStorageBufferPtr buf);
+	void PipelineMemoryBarrier(PipelineStages srcStages, PipelineStages dstStages);
 
 	void Transition(IKFrameBufferPtr buf, PipelineStages srcStages, PipelineStages dstStages, ImageLayout oldLayout, ImageLayout newLayout);
 	void TransitionOwnership(IKFrameBufferPtr buf, IKQueuePtr srcQueue, IKQueuePtr dstQueue, PipelineStages srcStages, PipelineStages dstStages, ImageLayout oldLayout, ImageLayout newLayout);
@@ -709,6 +726,7 @@ public:
 	void ResetQuery(IKQueryPtr query);
 
 	void TransitionIndirect(IKStorageBufferPtr buf);
+	void PipelineMemoryBarrier(PipelineStages srcStages, PipelineStages dstStages);
 
 	void Transition(IKFrameBufferPtr buf, PipelineStages srcStages, PipelineStages dstStages, ImageLayout oldLayout, ImageLayout newLayout);
 	void TransitionOwnership(IKFrameBufferPtr buf, IKQueuePtr srcQueue, IKQueuePtr dstQueue, PipelineStages srcStages, PipelineStages dstStages, ImageLayout oldLayout, ImageLayout newLayout);

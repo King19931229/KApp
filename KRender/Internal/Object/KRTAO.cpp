@@ -114,8 +114,8 @@ bool KRTAO::Init(IKRayTraceScene* scene)
 			for (uint32_t i = 0; i < 2; ++i)
 			{
 				renderDevice->CreateComputePipeline(m_AOComputePipeline[i]);
-				m_AOComputePipeline[i]->BindStorageImage(BINDING_GBUFFER_RT0, gbuffer0->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
-				m_AOComputePipeline[i]->BindStorageImage(BINDING_GBUFFER_RT1, gbuffer1->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
+				m_AOComputePipeline[i]->BindSampler(BINDING_GBUFFER_RT0, gbuffer0->GetFrameBuffer(), KRenderGlobal::GBuffer.GetSampler(), true);
+				m_AOComputePipeline[i]->BindSampler(BINDING_GBUFFER_RT1, gbuffer1->GetFrameBuffer(), KRenderGlobal::GBuffer.GetSampler(), true);
 				m_AOComputePipeline[i]->BindAccelerationStructure(BINDING_AS, scene->GetTopDownAS(), true);
 				m_AOComputePipeline[i]->BindUniformBuffer(BINDING_CAMERA, cameraBuffer);
 				m_AOComputePipeline[i]->BindUniformBuffer(BINDING_UNIFORM, m_AOUniformBuffer);
@@ -153,8 +153,8 @@ bool KRTAO::Init(IKRayTraceScene* scene)
 			for (uint32_t i = 0; i < 2; ++i)
 			{
 				renderDevice->CreateComputePipeline(m_ReprojectPipeline[i]);
-				m_ReprojectPipeline[i]->BindStorageImage(BINDING_GBUFFER_RT0, gbuffer0->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
-				m_ReprojectPipeline[i]->BindStorageImage(BINDING_GBUFFER_RT1, gbuffer1->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
+				m_ReprojectPipeline[i]->BindSampler(BINDING_GBUFFER_RT0, gbuffer0->GetFrameBuffer(), KRenderGlobal::GBuffer.GetSampler(), true);
+				m_ReprojectPipeline[i]->BindSampler(BINDING_GBUFFER_RT1, gbuffer1->GetFrameBuffer(), KRenderGlobal::GBuffer.GetSampler(), true);
 
 				m_ReprojectPipeline[i]->BindStorageImage(BINDING_PREV_NORMAL_DEPTH, m_NormalDepthTarget[(i + 1) & 1]->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
 				m_ReprojectPipeline[i]->BindStorageImage(BINDING_CUR_NORMAL_DEPTH, m_NormalDepthTarget[i]->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
@@ -238,8 +238,8 @@ bool KRTAO::Init(IKRayTraceScene* scene)
 				renderDevice->CreateComputePipeline(m_ComposePipeline[i]);
 				m_ComposePipeline[i]->BindStorageImage(BINDING_CUR_AO, m_AtrousAOTarget->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
 				m_ComposePipeline[i]->BindStorageImage(BINDING_CUR_HITDISTANCE, m_HitDistanceTarget[i]->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
-				m_ComposePipeline[i]->BindStorageImage(BINDING_GBUFFER_RT0, gbuffer0->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
-				m_ComposePipeline[i]->BindStorageImage(BINDING_GBUFFER_RT1, gbuffer1->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
+				m_ComposePipeline[i]->BindSampler(BINDING_GBUFFER_RT0, gbuffer0->GetFrameBuffer(), KRenderGlobal::GBuffer.GetSampler(), true);
+				m_ComposePipeline[i]->BindSampler(BINDING_GBUFFER_RT1, gbuffer1->GetFrameBuffer(), KRenderGlobal::GBuffer.GetSampler(), true);
 				m_ComposePipeline[i]->BindStorageImage(BINDING_PREV_NORMAL_DEPTH, m_NormalDepthTarget[(i + 1) & 1]->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
 				m_ComposePipeline[i]->BindStorageImage(BINDING_CUR_NORMAL_DEPTH, m_NormalDepthTarget[i]->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
 				m_ComposePipeline[i]->BindStorageImage(BINDING_REPROJECTED, m_ReprojectedTarget->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
@@ -324,7 +324,14 @@ bool KRTAO::DebugRender(IKRenderPassPtr renderPass, KRHICommandList& commandList
 	return m_DebugDrawer.Render(renderPass, commandList);
 }
 
-bool KRTAO::Execute(KRHICommandList& commandList, IKQueuePtr graphicsQueue, IKQueuePtr computeQueue)
+void KRTAO::InvalidateHistory()
+{
+	m_HistoryCamera = nullptr;
+	m_PrevCamMat = glm::mat4(0.0f);
+	m_AOParameters.frame = 0;
+}
+
+bool KRTAO::Execute(KRHICommandList& commandList)
 {
 	if (m_AOComputePipeline[m_CurrentAOIndex] && m_Enable)
 	{

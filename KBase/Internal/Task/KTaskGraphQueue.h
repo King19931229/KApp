@@ -1,6 +1,7 @@
 #pragma once
 #include "Interface/Task/IKTaskGraph.h"
 #include "Publish/KSystem.h"
+#include <atomic>
 #include <list>
 #include <vector>
 
@@ -9,7 +10,7 @@ class KGraphTaskQueue : public IKGraphTaskQueue
 protected:
 	std::vector<std::list<IKGraphTaskRef>> m_PriorityTasks;
 	std::mutex m_QueueMutex;
-	bool m_Done;
+	std::atomic_bool m_Done;
 public:
 	KGraphTaskQueue()
 		: m_Done(false)
@@ -29,8 +30,13 @@ public:
 
 	void UnInit() override
 	{
-		std::unique_lock<decltype(m_QueueMutex)> lock(m_QueueMutex);
-		for (auto& taskList : m_PriorityTasks)
+		decltype(m_PriorityTasks) tasks;
+		{
+			std::lock_guard<decltype(m_QueueMutex)> lock(m_QueueMutex);
+			m_Done = true;
+			tasks.swap(m_PriorityTasks);
+		}
+		for (auto& taskList : tasks)
 		{
 			for (IKGraphTaskRef task : taskList)
 			{
@@ -38,22 +44,27 @@ public:
 			}
 			taskList.clear();
 		}
-		m_PriorityTasks.clear();
-		m_Done = true;
 	}
 
 	bool IsDone() const override
 	{
-		return m_Done;
+		return m_Done.load();
 	}
 
 	void AddTask(IKGraphTaskRef task, TaskPriority priority) override
 	{
-		std::unique_lock<decltype(m_QueueMutex)> lock(m_QueueMutex);
-		m_PriorityTasks[priority].push_back(task);
+		{
+			std::lock_guard<decltype(m_QueueMutex)> lock(m_QueueMutex);
+			if (!m_Done.load())
+			{
+				m_PriorityTasks[priority].push_back(task);
 #if KTASK_GRAPH_DEBUG_PRINT_LEVEL > 1
-		printf("[GraphTaskQueue] AddTask %s (priority:%d)\n", task->GetDebugInfo(), priority);
+				printf("[GraphTaskQueue] AddTask %s (priority:%d)\n", task->GetDebugInfo(), priority);
 #endif
+				return;
+			}
+		}
+		task->DetachFromEvent();
 	}
 
 	void RemoveTask(IKGraphTaskRef task) override

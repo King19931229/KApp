@@ -5,6 +5,9 @@
 
 namespace KVulkanInitializer
 {
+	void SetupResourceSharing(VkBufferCreateInfo& createInfo);
+	void SetupResourceSharing(VkImageCreateInfo& createInfo);
+
 	struct BufferSubRegionCopyInfo
 	{
 		uint32_t offset = 0;

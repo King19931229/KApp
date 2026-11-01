@@ -61,7 +61,7 @@ namespace KRenderGlobal
 	bool EnableMultithreadRender = true;
 	bool EnableRHIImmediate = false;
 	bool EnableAsyncLoad = true;
-	bool EnableAsyncShaderCompile = false;
+	bool EnableAsyncShaderCompile = true;
 	bool EnableGPUScene = false;
 	bool EnableAsyncCompute = false;
 	bool EnablePeeling = false;

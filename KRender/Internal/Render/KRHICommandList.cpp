@@ -124,6 +124,11 @@ void KTransitionIndirectCmd::Execute(KRHICommandList& commandList)
 	commandBuffer->TransitionIndirect(buf);
 }
 
+void KMemoryBarrierCmd::Execute(KRHICommandList& commandList)
+{
+	commandBuffer->PipelineMemoryBarrier(srcStages, dstStages);
+}
+
 void KTransitionCmd::Execute(KRHICommandList& commandList)
 {
 	commandBuffer->Transition(buf, srcStages, dstStages, oldLayout, newLayout);
@@ -415,6 +420,12 @@ void KRHICommandList::ResetQuery(IKQueryPtr query)
 void KRHICommandList::TransitionIndirect(IKStorageBufferPtr buf)
 {
 	KRHICommandBasePtr command = KRHICommandBasePtr(KNEW KTransitionIndirectCmd(m_CommandBuffer, buf));
+	ExecuteOrInsertNextCommand(command);
+}
+
+void KRHICommandList::PipelineMemoryBarrier(PipelineStages srcStages, PipelineStages dstStages)
+{
+	KRHICommandBasePtr command = KRHICommandBasePtr(KNEW KMemoryBarrierCmd(m_CommandBuffer, srcStages, dstStages));
 	ExecuteOrInsertNextCommand(command);
 }
 

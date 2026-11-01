@@ -21,6 +21,8 @@
 #include "KVulkanHeapAllocator.h"
 
 #include "KBase/Interface/IKLog.h"
+#include <cstdlib>
+#include <cstring>
 
 #if defined(_WIN32) && defined(_DEBUG)
 #define USE_VALIDAION_LAYER 0
@@ -226,6 +228,17 @@ KVulkanRenderDevice::KVulkanRenderDevice()
 	, m_ValidationLayerIdx(-1)
 	, m_GpuCrashTracker(nullptr)
 {
+#ifdef _WIN32
+	char* validation = nullptr;
+	size_t validationLength = 0;
+	_dupenv_s(&validation, &validationLength, "KAPP_VULKAN_VALIDATION");
+#else
+	const char* validation = std::getenv("KAPP_VULKAN_VALIDATION");
+#endif
+	m_EnableValidationLayer = m_EnableValidationLayer || (validation && std::strcmp(validation, "1") == 0);
+#ifdef _WIN32
+	std::free(validation);
+#endif
 }
 
 KVulkanRenderDevice::~KVulkanRenderDevice()
@@ -273,7 +286,12 @@ bool KVulkanRenderDevice::FindQueue(PhysicalDevice& device, VkQueueFlags bits, c
 	for (uint32_t idx = 0; idx < (uint32_t)device.allFamilyProperties.size(); ++idx)
 	{
 		VkQueueFamilyProperties vkFamilyProperties = device.allFamilyProperties[idx];
-		if (vkFamilyProperties.queueFlags & bits && vkFamilyProperties.queueCount > 0)
+		VkQueueFlags supportedFlags = vkFamilyProperties.queueFlags;
+		if (supportedFlags & (VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT))
+		{
+			supportedFlags |= VK_QUEUE_TRANSFER_BIT;
+		}
+		if ((supportedFlags & bits) == bits && vkFamilyProperties.queueCount > 0)
 		{
 			if (std::find(forbidQueueFamilies.begin(), forbidQueueFamilies.end(), idx) == forbidQueueFamilies.end())
 			{
@@ -1498,7 +1516,7 @@ bool KVulkanRenderDevice::InitDeviceGlobal()
 		KVulkanGlobal::graphicsFamilyIndices.push_back(familyIndex);
 
 		VkQueueFamilyProperties familyProperty = std::get<1>(tuple);
-		if (familyProperty.queueCount > 1)
+		if (KVulkanGlobal::graphicsFamilyIndices.size() == 1 && familyProperty.queueCount > 1)
 		{
 			hasPresentQueue = true;
 		}
@@ -1515,6 +1533,13 @@ bool KVulkanRenderDevice::InitDeviceGlobal()
 		uint32_t familyIndex = std::get<0>(tuple);
 		KVulkanGlobal::transferFamilyIndices.push_back(familyIndex);
 	}
+
+	std::vector<uint32_t>& sharingFamilies = KVulkanGlobal::resourceSharingFamilyIndices;
+	sharingFamilies = KVulkanGlobal::graphicsFamilyIndices;
+	sharingFamilies.insert(sharingFamilies.end(), KVulkanGlobal::computeFamilyIndices.begin(), KVulkanGlobal::computeFamilyIndices.end());
+	sharingFamilies.insert(sharingFamilies.end(), KVulkanGlobal::transferFamilyIndices.begin(), KVulkanGlobal::transferFamilyIndices.end());
+	std::sort(sharingFamilies.begin(), sharingFamilies.end());
+	sharingFamilies.erase(std::unique(sharingFamilies.begin(), sharingFamilies.end()), sharingFamilies.end());
 
 	KVulkanGlobal::graphicsQueues.resize(KVulkanGlobal::graphicsFamilyIndices.size());
 	KVulkanGlobal::computeQueues.resize(KVulkanGlobal::computeFamilyIndices.size());
@@ -1629,6 +1654,7 @@ bool KVulkanRenderDevice::UnInitDeviceGlobal()
 	KVulkanGlobal::graphicsFamilyIndices = {};
 	KVulkanGlobal::computeFamilyIndices = {};
 	KVulkanGlobal::transferFamilyIndices = {};
+	KVulkanGlobal::resourceSharingFamilyIndices.clear();
 
 	KVulkanGlobal::graphicsQueues = {};
 	KVulkanGlobal::computeQueues = {};

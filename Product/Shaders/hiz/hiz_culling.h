@@ -5,8 +5,22 @@
 
 float GetMaxDepthFromHZB(ScreenRect rect, ivec2 hzbSize, bool bSample4x4)
 {
-	float mipLevel = float(rect.hzbLevel);
-	vec2 texelSize = vec2(exp2(mipLevel)) / vec2(hzbSize);
+	int maxMip = textureQueryLevels(hiZTex) - 1;
+	int mip = clamp(rect.hzbLevel, 0, maxMip);
+	int maxOffset = bSample4x4 ? 3 : 1;
+	ivec2 mipSize;
+	while (true)
+	{
+		mipSize = textureSize(hiZTex, mip);
+		ivec4 maxTexel = ivec4(mipSize - ivec2(1), mipSize - ivec2(1));
+		rect.hzbTexels = clamp(ivec4(rect.hzbUV * vec4(vec2(mipSize), vec2(mipSize))), ivec4(0), maxTexel);
+		if (all(lessThanEqual(rect.hzbTexels.zw - rect.hzbTexels.xy, ivec2(maxOffset))) || mip == maxMip)
+			break;
+		++mip;
+	}
+	rect.hzbLevel = mip;
+	float mipLevel = float(mip);
+	vec2 texelSize = vec2(1.0) / vec2(mipSize);
 	float maxDepth = 0;
 
 	if (bSample4x4)
@@ -42,7 +56,7 @@ float GetMaxDepthFromHZB(ScreenRect rect, ivec2 hzbSize, bool bSample4x4)
 		else
 		{
 			// textureLod result will be wrong if no maxlod was setted in sampler
-#if true
+#if 0 // Use integer texelFetch coordinates for the selected mip.
 			vec4 xCoords = (min(vec4(rect.hzbTexels.x) + vec4(0, 1, 2, 3), vec4(rect.hzbTexels.z)) + vec4(0.5f)) * texelSize.x;
 			vec4 yCoords = (min(vec4(rect.hzbTexels.y) + vec4(0, 1, 2, 3), vec4(rect.hzbTexels.w)) + vec4(0.5f)) * texelSize.y;
 
@@ -108,7 +122,7 @@ float GetMaxDepthFromHZB(ScreenRect rect, ivec2 hzbSize, bool bSample4x4)
 		}
 		else
 		{
-			vec4 coords = ((vec2(rect.hzbTexels) + vec2(0.5f)) * texelSize).xyxy;
+			vec4 coords = (vec4(rect.hzbTexels) + vec4(0.5f)) * texelSize.xyxy;
 			depth.z = textureLod(hiZTex, coords.xw, mipLevel).r;	// (-,+)
 			depth.w = textureLod(hiZTex, coords.zw, mipLevel).r;	// (+,+)
 			depth.x = textureLod(hiZTex, coords.zy, mipLevel).r;	// (+,-)
@@ -116,7 +130,7 @@ float GetMaxDepthFromHZB(ScreenRect rect, ivec2 hzbSize, bool bSample4x4)
 		}
 
 		depth.yz = (rect.hzbTexels.x == rect.hzbTexels.z) ? vec2(0.0) : depth.yz;	// Mask off right pixels, if footprint is only one pixel wide.
-		depth.zw = (rect.hzbTexels.y == rect.hzbTexels.w) ? vec2(0.0) : depth.xy;	// Mask off bottom pixels, if footprint is only one pixel tall.
+		depth.zw = (rect.hzbTexels.y == rect.hzbTexels.w) ? vec2(0.0) : depth.zw;	// Mask off bottom pixels, if footprint is only one pixel tall.
 
 		maxDepth = max(maxDepth, max(depth.x, depth.y));
 		maxDepth = max(maxDepth, max(depth.z, depth.w));

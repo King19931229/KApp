@@ -50,6 +50,7 @@ struct IKCommandBuffer
 	virtual bool ResetQuery(IKQueryPtr query) = 0;
 
 	virtual bool TransitionIndirect(IKStorageBufferPtr buf) = 0;
+	virtual bool PipelineMemoryBarrier(PipelineStages srcStages, PipelineStages dstStages) = 0;
 
 	virtual bool Transition(IKFrameBufferPtr buf, PipelineStages srcStages, PipelineStages dstStages, ImageLayout oldLayout, ImageLayout newLayout) = 0;
 	virtual bool TransitionOwnership(IKFrameBufferPtr buf, IKQueuePtr srcQueue, IKQueuePtr dstQueue, PipelineStages srcStages, PipelineStages dstStages, ImageLayout oldLayout, ImageLayout newLayout) = 0;

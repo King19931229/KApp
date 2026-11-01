@@ -220,6 +220,7 @@ void KVulkanRayTracePipeline::CreateShaderBindingTable(ShaderBindingTable& shade
 	bufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
 	bufferCreateInfo.size = static_cast<VkDeviceSize>(KVulkanGlobal::rayTracingPipelineProperties.shaderGroupHandleSize) * handleCount;
 	bufferCreateInfo.usage = VK_BUFFER_USAGE_SHADER_BINDING_TABLE_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
+	KVulkanInitializer::SetupResourceSharing(bufferCreateInfo);
 	VK_ASSERT_RESULT(vkCreateBuffer(KVulkanGlobal::device, &bufferCreateInfo, nullptr, &shaderBindingTable.buffer));
 
 	VkMemoryRequirements memoryRequirements = {};

@@ -27,8 +27,8 @@ uniform CameraInfo
 
 #include "shading/gbuffer.h"
 
-layout(binding = BINDING_GBUFFER_RT0, GBUFFER_IMAGE0_FORMAT) uniform image2D gbuffer0Image;
-layout(binding = BINDING_GBUFFER_RT1, GBUFFER_IMAGE1_FORMAT) uniform image2D gbuffer1Image;
+layout(binding = BINDING_GBUFFER_RT0) uniform sampler2D gbuffer0Image;
+layout(binding = BINDING_GBUFFER_RT1) uniform sampler2D gbuffer1Image;
 
 layout(binding = BINDING_UNIFORM) uniform AOProperties 
 {
@@ -171,7 +171,7 @@ vec2 ComputeMotion(vec2 p)
 	}
 
 	vec2 targetOffset = p - vec2(topLeft);
-	ivec2 size = imageSize(gbuffer1Image);
+	ivec2 size = textureSize(gbuffer1Image, 0);
 
 	vec4 weights;
 	ComputeBilinearWeights(targetOffset, size, samplePos, weights);
@@ -180,7 +180,7 @@ vec2 ComputeMotion(vec2 p)
 	vec2 motion = vec2(0);
 	for(int i = 0; i < 4; ++i)
 	{
-		vec4 gbuffer1Data = imageLoad(gbuffer1Image, samplePos[i]);
+		vec4 gbuffer1Data = texelFetch(gbuffer1Image, samplePos[i], 0);
 		motion += DecodeMotion(gbuffer1Data) * weights[i];
 	}
 	return motion;
@@ -188,7 +188,7 @@ vec2 ComputeMotion(vec2 p)
 
 void main()
 {
-	ivec2 inSize = imageSize(gbuffer0Image);
+	ivec2 inSize = textureSize(gbuffer0Image, 0);
 	ivec2 outSize = imageSize(reprojectedImage);
 
 	// Check if not outside boundaries

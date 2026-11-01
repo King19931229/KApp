@@ -22,54 +22,54 @@ void KGraphTask::SetTaskQueue(IKGraphTaskQueue* queue)
 
 void KGraphTask::DoWork()
 {
-	std::unique_lock<decltype(m_WorkProcessLock)> lock(m_WorkProcessLock);
-	IKGraphTaskEventRef taskEvent = m_TaskEvent;
+	KGraphTaskEvent* taskEvent = (KGraphTaskEvent*)m_TaskEvent.Get();
+	int32_t expected = KGraphTaskEvent::GTS_IDLE;
+	if (!taskEvent->m_State->compare_exchange_strong(expected, KGraphTaskEvent::GTS_RUNNING, std::memory_order_acq_rel, std::memory_order_acquire))
+	{
+		return;
+	}
 	if (m_TaskWork)
 	{
 		m_TaskWork->DoWork();
-		if (taskEvent)
-		{
-			((KGraphTaskEvent*)taskEvent.Get())->OnTaskDone();
-		}
 #if KTASK_GRAPH_DEBUG_PRINT_LEVEL
 		printf("[GraphTask] Done %s\n", GetDebugInfo());
 #endif
+		m_TaskWork = nullptr;
 	}
 	m_TaskQueue = nullptr;
-	m_TaskEvent.Release();
+	taskEvent->OnTaskDone();
 }
 
 void KGraphTask::DetachFromEvent()
 {
-	std::unique_lock<decltype(m_WorkProcessLock)> lock(m_WorkProcessLock);
-	m_TaskWork = nullptr;
-	m_TaskQueue = nullptr;
-	m_TaskEvent.Release();
+	KGraphTaskEvent* taskEvent = (KGraphTaskEvent*)m_TaskEvent.Get();
+	int32_t expected = KGraphTaskEvent::GTS_IDLE;
+	if (!taskEvent->m_State->compare_exchange_strong(expected, KGraphTaskEvent::GTS_RUNNING, std::memory_order_acq_rel, std::memory_order_acquire))
+	{
+		taskEvent->WaitForCompletion();
+		return;
+	}
+	Abandon(taskEvent->m_Task);
 }
 
 void KGraphTask::Abandon(IKGraphTaskRef thisTask)
 {
-	std::unique_lock<decltype(m_WorkProcessLock)> lock(m_WorkProcessLock);
 	assert(thisTask.Get() == this);
-	if (thisTask.Get() != this || !m_TaskEvent)
+	if (thisTask.Get() != this)
 	{
 		return;
 	}
-	if (m_TaskQueue)
+	IKGraphTaskQueue* taskQueue = m_TaskQueue.exchange(nullptr);
+	if (taskQueue)
 	{
-		m_TaskQueue->RemoveTask(thisTask);
-		m_TaskQueue = nullptr;
+		taskQueue->RemoveTask(thisTask);
 	}
 	if (m_TaskWork)
 	{
 		m_TaskWork->Abandon();
 		m_TaskWork = nullptr;
-		if (m_TaskEvent)
-		{
-			((KGraphTaskEvent*)m_TaskEvent.Get())->OnTaskDone();
-		}
 	}
-	m_TaskEvent.Release();
+	((KGraphTaskEvent*)m_TaskEvent.Get())->OnTaskDone();
 }
 
 const char* KGraphTask::GetDebugInfo()
@@ -80,7 +80,7 @@ const char* KGraphTask::GetDebugInfo()
 KGraphTaskEvent::KGraphTaskEvent(NamedThread::Type thread)
 	: m_ThreadToExecuteOn(thread)
 	, m_DoneEvent(std::make_shared<KEvent>())
-	, m_Done(std::make_shared<std::atomic_bool>(false))
+	, m_State(std::make_shared<std::atomic<int32_t>>(GTS_IDLE))
 	, m_Queued(false)
 	, m_NumPrerequisite(0)
 {
@@ -89,7 +89,7 @@ KGraphTaskEvent::KGraphTaskEvent(NamedThread::Type thread)
 KGraphTaskEvent::KGraphTaskEvent(KGraphTaskEvent& stealFrom)
 	: m_ThreadToExecuteOn(stealFrom.m_ThreadToExecuteOn)
 	, m_DoneEvent(stealFrom.m_DoneEvent)
-	, m_Done(stealFrom.m_Done)
+	, m_State(stealFrom.m_State)
 	, m_Queued(false)
 	, m_Task(stealFrom.m_Task)
 	, m_Subsequents(std::move(stealFrom.m_Subsequents))
@@ -149,7 +149,7 @@ bool KGraphTaskEvent::AddEventToWaitFor(IKGraphTaskEventRef eventToWait)
 {
 	std::unique_lock<decltype(m_TaskProcessLock)> lock(m_TaskProcessLock);
 
-	if (!m_Done->load() && !m_Queued)
+	if (!IsCompleted() && !m_Queued)
 	{
 		if (std::find(m_EventToWaitFor.begin(), m_EventToWaitFor.end(), eventToWait) == m_EventToWaitFor.end())
 		{
@@ -164,7 +164,7 @@ bool KGraphTaskEvent::AddSubsequent(IKGraphTaskEventRef subsequent)
 {
 	std::unique_lock<decltype(m_TaskProcessLock)> lock(m_TaskProcessLock);
 
-	if (!m_Done->load())
+	if (!IsCompleted())
 	{
 		if (std::find(m_Subsequents.begin(), m_Subsequents.end(), subsequent) == m_Subsequents.end())
 		{
@@ -177,7 +177,8 @@ bool KGraphTaskEvent::AddSubsequent(IKGraphTaskEventRef subsequent)
 
 bool KGraphTaskEvent::SetThreadToExetuceOn(NamedThread::Type thread)
 {
-	if (m_Task)
+	std::unique_lock<decltype(m_TaskProcessLock)> lock(m_TaskProcessLock);
+	if (m_Task && !IsCompleted())
 	{
 		m_ThreadToExecuteOn = thread;
 		return true;
@@ -187,15 +188,12 @@ bool KGraphTaskEvent::SetThreadToExetuceOn(NamedThread::Type thread)
 
 bool KGraphTaskEvent::IsCompleted() const
 {
-	return m_Done->load();
+	return m_State->load(std::memory_order_acquire) == GTS_DONE;
 }
 
 void KGraphTaskEvent::WaitForCompletion()
 {
-	if (!m_Done->load())
-	{
-		m_DoneEvent->Wait();
-	}
+	m_DoneEvent->Wait();
 }
 
 void KGraphTaskEvent::Dispatch()
@@ -205,42 +203,53 @@ void KGraphTaskEvent::Dispatch()
 
 void KGraphTaskEvent::OnTaskDone()
 {
-	std::unique_lock<decltype(m_TaskProcessLock)> lock(m_TaskProcessLock);
-	if (m_Task)
+	int32_t expected = GTS_RUNNING;
+	if (m_State->compare_exchange_strong(expected, GTS_DONE, std::memory_order_acq_rel, std::memory_order_acquire))
 	{
-		m_Done->store(true);
-		m_DoneEvent->Notify();
 		DispatchSubsequents(false);
+		m_DoneEvent->Notify();
 	}
-	m_Task.Release();
 }
 
 void KGraphTaskEvent::QueueTask()
 {
-	std::unique_lock<decltype(m_TaskProcessLock)> lock(m_TaskProcessLock);
-	if (m_Queued)
+	IKGraphTaskRef task;
+	IKGraphTaskEventRef newTask;
+	NamedThread::Type thread = NamedThread::ANY_THREAD;
 	{
-		return;
-	}
-	for (IKGraphTaskEventRef eventToWaitFor : m_EventToWaitFor)
-	{
-		if (!eventToWaitFor->IsCompleted())
+		std::lock_guard<decltype(m_TaskProcessLock)> lock(m_TaskProcessLock);
+		if (m_Queued || IsCompleted() || !m_Task)
 		{
-			std::vector<IKGraphTaskRef> prerequisites;
-			IKGraphTaskEventRef noneTask = IKGraphTaskEventRef(new KGraphTaskEvent(NamedThread::ANY_THREAD));
-			IKGraphTaskEventRef newTask = IKGraphTaskEventRef(new KGraphTaskEvent(*this));
-			KGraphTaskEvent::Setup(noneTask, IKTaskWorkPtr(new KEmptyTaskWork()), {}, true);
-			KGraphTaskEvent::Setup(newTask, { noneTask }, false);
-			((KGraphTaskEvent*)noneTask.Get())->Dispatch();
 			return;
 		}
+		for (IKGraphTaskEventRef eventToWaitFor : m_EventToWaitFor)
+		{
+			if (!eventToWaitFor->IsCompleted())
+			{
+				newTask = IKGraphTaskEventRef(new KGraphTaskEvent(*this));
+				break;
+			}
+		}
+		if (!newTask)
+		{
+			if (m_EventToWaitFor.size())
+			{
+				m_EventToWaitFor.clear();
+			}
+			task = m_Task;
+			thread = m_ThreadToExecuteOn;
+			m_Queued = true;
+		}
 	}
-	if (m_EventToWaitFor.size())
+	if (newTask)
 	{
-		m_EventToWaitFor.clear();
+		IKGraphTaskEventRef noneTask = IKGraphTaskEventRef(new KGraphTaskEvent(NamedThread::ANY_THREAD));
+		KGraphTaskEvent::Setup(noneTask, IKTaskWorkPtr(new KEmptyTaskWork()), {}, true);
+		KGraphTaskEvent::Setup(newTask, { noneTask }, false);
+		((KGraphTaskEvent*)noneTask.Get())->Dispatch();
+		return;
 	}
-	GetTaskGraphManager()->AddTask(m_Task, m_ThreadToExecuteOn);
-	m_Queued = true;
+	GetTaskGraphManager()->AddTask(task, thread);
 #if KTASK_GRAPH_DEBUG_PRINT_LEVEL
 	printf("[GraphTask] Queue %s\n", GetDebugInfo());
 #endif
@@ -248,24 +257,28 @@ void KGraphTaskEvent::QueueTask()
 
 void KGraphTaskEvent::Abandon()
 {
-	IKGraphTaskRef task;
+	int32_t expected = GTS_IDLE;
+	if (m_State->compare_exchange_strong(expected, GTS_RUNNING, std::memory_order_acq_rel, std::memory_order_acquire))
 	{
-		std::unique_lock<decltype(m_TaskProcessLock)> lock(m_TaskProcessLock);
-		task = m_Task;
-		if (task)
+		if (m_Task)
 		{
-			m_Queued = true;
+			((KGraphTask*)m_Task.Get())->Abandon(m_Task);
+		}
+		else
+		{
+			OnTaskDone();
 		}
 	}
-	if (task)
+	else
 	{
-		((KGraphTask*)task.Get())->Abandon(task);
+		WaitForCompletion();
 	}
 }
 
 const char* KGraphTaskEvent::GetDebugInfo()
 {
-	if (m_Task)
+	std::unique_lock<decltype(m_TaskProcessLock)> lock(m_TaskProcessLock);
+	if (m_Task && !IsCompleted())
 	{
 		return m_Task->GetDebugInfo();
 	}
@@ -274,7 +287,14 @@ const char* KGraphTaskEvent::GetDebugInfo()
 
 void KGraphTaskEvent::DispatchSubsequents(bool prerequisiteAbandon)
 {
-	for (IKGraphTaskEventRef subsequent : m_Subsequents)
+	IKGraphTaskRef task;
+	std::vector<IKGraphTaskEventRef> subsequents;
+	{
+		std::lock_guard<decltype(m_TaskProcessLock)> lock(m_TaskProcessLock);
+		task = std::move(m_Task);
+		subsequents = std::move(m_Subsequents);
+	}
+	for (IKGraphTaskEventRef subsequent : subsequents)
 	{
 		((KGraphTaskEvent*)subsequent.Get())->ConditionalQueueTask(prerequisiteAbandon);
 	}
