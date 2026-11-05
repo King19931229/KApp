@@ -197,7 +197,7 @@ bool KMaterialSubMesh::CreateGBufferPipeline()
 
 			pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
 			pipeline->SetBlendEnable(false);
-			pipeline->SetCullMode(CM_BACK);
+			pipeline->SetCullMode(m_Material->IsDoubleSide() ? CM_NONE : CM_BACK);
 			pipeline->SetFrontFace(FF_COUNTER_CLOCKWISE);
 			pipeline->SetPolygonMode(PM_FILL);
 			pipeline->SetColorWrite(true, true, true, true);
@@ -250,7 +250,7 @@ bool KMaterialSubMesh::CreateVirtualFeedbackPipeline()
 
 			pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
 			pipeline->SetBlendEnable(false);
-			pipeline->SetCullMode(CM_BACK);
+			pipeline->SetCullMode(m_Material->IsDoubleSide() ? CM_NONE : CM_BACK);
 			pipeline->SetFrontFace(FF_COUNTER_CLOCKWISE);
 			pipeline->SetPolygonMode(PM_FILL);
 			pipeline->SetColorWrite(true, true, true, true);

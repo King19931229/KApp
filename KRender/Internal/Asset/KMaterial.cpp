@@ -847,7 +847,7 @@ bool KMaterial::InitFromImportAssetMaterial(const KMeshRawData::Material& input,
 			}
 		}
 
-		if (i == MTS_DIFFUSE && !m_TextureBinding->GetTexture(i))
+		if (i == MTS_DIFFUSE && (!input.urls[i].empty() || input.codecs[i].pData || input.virtualTileNums[i]) && !m_TextureBinding->GetTexture(i))
 		{
 			m_TextureBinding->SetErrorTexture(i);
 		}

@@ -1,11 +1,13 @@
 #include "KShaderMap.h"
 #include "Internal/KRenderGlobal.h"
+#include "Internal/Render/KRenderUtil.h"
 
 static uint32_t INDEX_NONE = -1;
 
 uint32_t VERTEX_FORMAT_MACRO_INDEX[VF_COUNT];
 uint32_t MATERIAL_TEXTURE_BINDING_MACRO_INDEX[MAX_MATERIAL_TEXTURE_BINDING];
 uint32_t VIRTUAL_TEXTURE_BINDING_MACRO_INDEX[MAX_MATERIAL_TEXTURE_BINDING];
+uint32_t SRGB_TEXTURE_BINDING_MACRO_INDEX[MAX_MATERIAL_TEXTURE_BINDING];
 
 static constexpr char* INSTANCE_INPUT_MACRO = "INSTANCE_INPUT";
 static constexpr char* GPUSCENE_INPUT_MACRO = "GPU_SCENE";
@@ -55,6 +57,13 @@ size_t KShaderMap::CalcHash(const VertexFormat* formats, size_t count, const KTe
 				index = MATERIAL_TEXTURE_BINDING_MACRO_INDEX[i];
 				macrosToEnable[index] = true;
 
+				index = SRGB_TEXTURE_BINDING_MACRO_INDEX[i];
+				if (index != INDEX_NONE && !textureBinding->IsVirtual(i))
+				{
+					IKTexturePtr texture = textureBinding->GetTexture(i);
+					macrosToEnable[index] = KRenderUtil::IsSRGBFormat(texture->GetTextureFormat());
+				}
+
 				if (textureBinding->IsVirtual(i))
 				{
 					index = VIRTUAL_TEXTURE_BINDING_MACRO_INDEX[i];
@@ -84,6 +93,7 @@ void KShaderMap::InitializePermuationMap()
 		memset(VERTEX_FORMAT_MACRO_INDEX, -1, sizeof(VERTEX_FORMAT_MACRO_INDEX));
 		memset(MATERIAL_TEXTURE_BINDING_MACRO_INDEX, -1, sizeof(MATERIAL_TEXTURE_BINDING_MACRO_INDEX));
 		memset(VIRTUAL_TEXTURE_BINDING_MACRO_INDEX, -1, sizeof(VIRTUAL_TEXTURE_BINDING_MACRO_INDEX));
+		memset(SRGB_TEXTURE_BINDING_MACRO_INDEX, -1, sizeof(SRGB_TEXTURE_BINDING_MACRO_INDEX));
 
 		for (size_t i = 0; i < MACRO_SIZE; ++i)
 		{
@@ -98,6 +108,10 @@ void KShaderMap::InitializePermuationMap()
 			if (PERMUTATING_MACRO[i].type == MT_HAS_VIRTUAL_TEXTURE)
 			{
 				VIRTUAL_TEXTURE_BINDING_MACRO_INDEX[PERMUTATING_MACRO[i].textureIndex] = (uint32_t)i;
+			}
+			if (PERMUTATING_MACRO[i].type == MT_HAS_SRGB_TEXTURE)
+			{
+				SRGB_TEXTURE_BINDING_MACRO_INDEX[PERMUTATING_MACRO[i].textureIndex] = (uint32_t)i;
 			}
 		}
 
@@ -341,6 +355,14 @@ bool KShaderMap::IsPermutationLoaded(const VertexFormat* formats, size_t count, 
 	auto instanceIt = m_VSInstanceShaderMap.find(vsHash);
 	if (instanceIt == m_VSInstanceShaderMap.end() || instanceIt->second->GetResourceState() != RS_DEVICE_LOADED) return false;
 
+	if (textureBinding)
+	{
+		for (uint32_t i = 0; i < MAX_MATERIAL_TEXTURE_BINDING; ++i)
+		{
+			IKTexturePtr texture = textureBinding->GetTexture(i);
+			if (SRGB_TEXTURE_BINDING_MACRO_INDEX[i] != INDEX_NONE && !textureBinding->IsVirtual(i) && texture && texture->GetResourceState() < RS_MEMORY_LOADED) return false;
+		}
+	}
 	size_t fsHash = CalcHash(formats, count, textureBinding);
 	auto fsIt = m_FSShaderMap.find(fsHash);
 	if (fsIt == m_FSShaderMap.end() || fsIt->second->GetResourceState() != RS_DEVICE_LOADED) return false;
@@ -372,6 +394,14 @@ IKShaderPtr KShaderMap::GetShaderImplement(ShaderType shaderType, ShaderMap& sha
 {
 	if (formats && count && (shaderType == ST_VERTEX || shaderType == ST_FRAGMENT))
 	{
+		if (shaderType == ST_FRAGMENT && textureBinding)
+		{
+			for (uint32_t i = 0; i < MAX_MATERIAL_TEXTURE_BINDING; ++i)
+			{
+				IKTexturePtr texture = textureBinding->GetTexture(i);
+				if (SRGB_TEXTURE_BINDING_MACRO_INDEX[i] != INDEX_NONE && !textureBinding->IsVirtual(i) && texture) texture->WaitForMemory();
+			}
+		}
 		size_t hash = CalcHash(formats, count, textureBinding);
 		auto it = shaderMap.find(hash);
 		if (it != shaderMap.end() && it->second->GetResourceState() == RS_UNLOADED)

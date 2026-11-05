@@ -29,7 +29,7 @@ protected:
 		float metallicFactor = 1.0f;
 		float roughnessFactor = 1.0f;
 		glm::vec4 baseColorFactor = glm::vec4(1.0f);
-		glm::vec4 emissiveFactor = glm::vec4(1.0f);
+		glm::vec4 emissiveFactor = glm::vec4(0.0f);
 		Texture* baseColorTexture = nullptr;
 		Texture* metallicRoughnessTexture = nullptr;
 		Texture* normalTexture = nullptr;
@@ -50,7 +50,7 @@ protected:
 			Texture* specularGlossinessTexture = nullptr;
 			Texture* diffuseTexture = nullptr;
 			glm::vec4 diffuseFactor = glm::vec4(1.0f);
-			glm::vec3 specularFactor = glm::vec3(0.0f);
+			glm::vec3 specularFactor = glm::vec3(1.0f);
 		} extension;
 		struct PbrWorkflows
 		{

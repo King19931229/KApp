@@ -107,6 +107,7 @@ uint64_t KGPUScene::ComputeHashByMaterialSubMesh(KSubMeshPtr subMesh, IKMaterial
 
 	KHash::HashCombine(hash, material->GetVSInformation()->Hash());
 	KHash::HashCombine(hash, material->GetFSInformation()->Hash());
+	KHash::HashCombine(hash, material->IsDoubleSide());
 
 	const KVertexData* vertexData = subMesh->GetVertexData();
 	for (VertexFormat format : vertexData->vertexFormats)
@@ -120,6 +121,12 @@ uint64_t KGPUScene::ComputeHashByMaterialSubMesh(KSubMeshPtr subMesh, IKMaterial
 		if (textureBinding->GetTexture(i))
 		{
 			KHash::HashCombine(hash, 0xFF);
+			if (SRGB_TEXTURE_BINDING_MACRO_INDEX[i] != uint32_t(-1))
+			{
+				IKTexturePtr texture = textureBinding->GetTexture(i);
+				texture->WaitForMemory();
+				KHash::HashCombine(hash, !textureBinding->GetIsVirtualTexture(i) && KRenderUtil::IsSRGBFormat(texture->GetTextureFormat()));
+			}
 		}
 		else
 		{
@@ -187,7 +194,7 @@ uint32_t KGPUScene::CreateOrGetMegaShaderIndex(KSubMeshPtr subMesh, IKMaterialPt
 
 				pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
 				pipeline->SetBlendEnable(false);
-				pipeline->SetCullMode(CM_BACK);
+				pipeline->SetCullMode(material->IsDoubleSide() ? CM_NONE : CM_BACK);
 				pipeline->SetFrontFace(FF_COUNTER_CLOCKWISE);
 				pipeline->SetPolygonMode(PM_FILL);
 				pipeline->SetColorWrite(true, true, true, true);

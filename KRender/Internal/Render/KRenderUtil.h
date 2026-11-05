@@ -15,6 +15,8 @@ typedef std::function<bool(const KMaterialSubMeshInstance&, const KMaterialSubMe
 
 namespace KRenderUtil
 {
+	bool IsSRGBFormat(ElementFormat format);
+
 	void UnRegisterRenderComponentCallback(RenderComponentObserverFunc* callback);
 
 	void CalculateInstancesByMesh(const std::vector<IKEntity*>& entities, std::vector<KMaterialSubMeshInstance>& instances);

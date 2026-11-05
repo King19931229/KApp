@@ -223,7 +223,7 @@ bool KFreeImageCodec::Save(const KCodecResult& source, const char* pszFile)
 
 	FREE_IMAGE_FORMAT fif = FreeImage_GetFIFFromFormat(ext.c_str());
 
-	if (source.eFormat == IF_R8G8B8A8 && fif != FIF_UNKNOWN && ms_SupportExts.find(ext) != ms_SupportExts.end())
+	if ((source.eFormat == IF_R8G8B8A8 || source.eFormat == IF_R8G8B8A8_SRGB) && fif != FIF_UNKNOWN && ms_SupportExts.find(ext) != ms_SupportExts.end())
 	{
 		size_t byteSize = 0;
 		ASSERT_RESULT(KImageHelper::GetElementByteSize(source.eFormat, byteSize));

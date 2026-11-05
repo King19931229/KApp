@@ -334,18 +334,22 @@ void KGLTFLoader::LoadMaterials(tinygltf::Model& gltfModel)
 		if (mat.extensions.find("KHR_materials_pbrSpecularGlossiness") != mat.extensions.end())
 		{
 			auto ext = mat.extensions.find("KHR_materials_pbrSpecularGlossiness");
+			material.pbrWorkflows.metallicRoughness = false;
+			material.pbrWorkflows.specularGlossiness = true;
+			material.roughnessFactor = ext->second.Has("glossinessFactor") ? 1.0f - (float)ext->second.Get("glossinessFactor").GetNumberAsDouble() : 0.0f;
 			if (ext->second.Has("specularGlossinessTexture"))
 			{
 				auto index = ext->second.Get("specularGlossinessTexture").Get("index");
 				material.extension.specularGlossinessTexture = &m_Textures[index.Get<int>()];
-				auto texCoordSet = ext->second.Get("m_Textures").Get("texCoord");
-				material.texCoordSets.specularGlossiness = texCoordSet.Get<int>();
-				material.pbrWorkflows.specularGlossiness = true;
+				const auto& textureInfo = ext->second.Get("specularGlossinessTexture");
+				material.texCoordSets.specularGlossiness = textureInfo.Has("texCoord") ? textureInfo.Get("texCoord").Get<int>() : 0;
 			}
 			if (ext->second.Has("diffuseTexture"))
 			{
 				auto index = ext->second.Get("diffuseTexture").Get("index");
 				material.extension.diffuseTexture = &m_Textures[index.Get<int>()];
+				const auto& textureInfo = ext->second.Get("diffuseTexture");
+				material.texCoordSets.baseColor = textureInfo.Has("texCoord") ? textureInfo.Get("texCoord").Get<int>() : 0;
 			}
 			if (ext->second.Has("diffuseFactor"))
 			{
@@ -353,7 +357,7 @@ void KGLTFLoader::LoadMaterials(tinygltf::Model& gltfModel)
 				for (uint32_t i = 0; i < factor.ArrayLen(); i++)
 				{
 					auto val = factor.Get(i);
-					material.extension.diffuseFactor[i] = val.IsNumber() ? (float)val.Get<double>() : (float)val.Get<int>();
+					material.extension.diffuseFactor[i] = (float)val.GetNumberAsDouble();
 				}
 			}
 			if (ext->second.Has("specularFactor"))
@@ -362,7 +366,7 @@ void KGLTFLoader::LoadMaterials(tinygltf::Model& gltfModel)
 				for (uint32_t i = 0; i < factor.ArrayLen(); i++)
 				{
 					auto val = factor.Get(i);
-					material.extension.specularFactor[i] = val.IsNumber() ? (float)val.Get<double>() : (float)val.Get<int>();
+					material.extension.specularFactor[i] = (float)val.GetNumberAsDouble();
 				}
 			}
 		}
@@ -1191,15 +1195,16 @@ bool KGLTFLoader::AppendMeshIntoResult(NodePtr node, KMeshRawData& result)
 			part.material.metalWorkFlow = material.pbrWorkflows.metallicRoughness;
 
 			part.material.extension.diffuseFactor = material.extension.diffuseFactor;
+			Texture* diffuseTexture = material.pbrWorkflows.metallicRoughness ? material.baseColorTexture : material.extension.diffuseTexture;
 			part.material.extension.specularFactor = glm::vec4(material.extension.specularFactor, 0);
 			
 			for (uint32_t i = 0; i < MTS_COUNT; ++i)
 			{
-				if (i == MTS_BASE_COLOR && material.baseColorTexture)
+				if (i == MTS_BASE_COLOR && diffuseTexture)
 				{
-					part.material.urls[i] = material.baseColorTexture->url;
-					part.material.codecs[i] = material.baseColorTexture->codec;
-					part.material.samplers[i] = material.baseColorTexture->sampler;
+					part.material.urls[i] = diffuseTexture->url;
+					part.material.codecs[i] = diffuseTexture->codec;
+					part.material.samplers[i] = diffuseTexture->sampler;
 					part.material.texCoordSets.baseColor = material.texCoordSets.baseColor;
 				}
 				if (i == MTS_NORMAL && material.normalTexture)
@@ -1209,14 +1214,14 @@ bool KGLTFLoader::AppendMeshIntoResult(NodePtr node, KMeshRawData& result)
 					part.material.samplers[i] = material.normalTexture->sampler;
 					part.material.texCoordSets.normal = material.texCoordSets.normal;
 				}
-				if (i == MTS_SPECULAR_GLOSINESS && material.extension.specularGlossinessTexture)
+				if (i == MTS_SPECULAR_GLOSINESS && !material.pbrWorkflows.metallicRoughness && material.extension.specularGlossinessTexture)
 				{
 					part.material.urls[i] = material.extension.specularGlossinessTexture->url;
 					part.material.codecs[i] = material.extension.specularGlossinessTexture->codec;
 					part.material.samplers[i] = material.extension.specularGlossinessTexture->sampler;
 					part.material.texCoordSets.specularGlossiness = material.texCoordSets.specularGlossiness;
 				}
-				if (i == MTS_METAL_ROUGHNESS && material.metallicRoughnessTexture)
+				if (i == MTS_METAL_ROUGHNESS && material.pbrWorkflows.metallicRoughness && material.metallicRoughnessTexture)
 				{
 					part.material.urls[i] = material.metallicRoughnessTexture->url;
 					part.material.codecs[i] = material.metallicRoughnessTexture->codec;

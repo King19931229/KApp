@@ -14,8 +14,8 @@ void main()
 
 	vec3 irradiance = vec3(0.0);  
 
-	vec3 up    = vec3(0.0, 1.0, 0.0);
-	vec3 right = cross(up, normal);
+	vec3 up    = abs(normal.z) < 0.999 ? vec3(0.0, 0.0, 1.0) : vec3(1.0, 0.0, 0.0);
+	vec3 right = normalize(cross(up, normal));
 	up         = cross(normal, right);
 
 	float phiDelta = 2.0 * PI / 64.0;

@@ -58,6 +58,9 @@ namespace KVulkanHelper
 		case EF_R8G8B8A8_UNORM:
 			vkFormat = VK_FORMAT_R8G8B8A8_UNORM;
 			return true;
+		case EF_R8G8B8A8_SRGB:
+			vkFormat = VK_FORMAT_R8G8B8A8_SRGB;
+			return true;
 		case EF_R8G8B8A8_SNORM:
 			vkFormat = VK_FORMAT_R8G8B8A8_SNORM;
 			return true;
@@ -71,6 +74,9 @@ namespace KVulkanHelper
 
 		case EF_R8G8B8_UNORM:
 			vkFormat = VK_FORMAT_R8G8B8_UNORM;
+			return true;
+		case EF_R8G8B8_SRGB:
+			vkFormat = VK_FORMAT_R8G8B8_SRGB;
 			return true;
 		case EF_R8G8_UNORM:
 			vkFormat = VK_FORMAT_R8G8_UNORM;

@@ -406,7 +406,8 @@ void KDDSCodec::UnpackDXTColour(ImageFormat format, const DXTColourBlock &block,
 	// Colour lookup table
 	ColourValue derivedColours[4];
 
-	if (format == IF_DXT1 && block.colour_0 <= block.colour_1)
+	const bool isBC1 = format == IF_DXT1 || format == IF_DXT1_SRGB;
+	if (isBC1 && block.colour_0 <= block.colour_1)
 	{
 		// 1-bit alpha
 		UnpackR5G6B5Colour(&(block.colour_0), &derivedColours[0]);
@@ -433,7 +434,7 @@ void KDDSCodec::UnpackDXTColour(ImageFormat format, const DXTColourBlock &block,
 		{
 			// LSB come first
 			uint8_t colIdx = static_cast<uint8_t>(block.indexRow[row] >> (x * 2) & 0x3);
-			if (format == IF_DXT1)
+			if (isBC1)
 			{
 				// Overwrite entire colour
 				pCol[(row * 4) + x] = derivedColours[colIdx];
@@ -600,8 +601,6 @@ bool KDDSCodec::CodecImpl(IKDataStreamPtr stream, bool forceAlpha, KCodecResult&
 			stream->Read(&headerDXT10, sizeof(DDSHeaderDXT10));
 			FlipEndian(&headerDXT10, 4, sizeof(DDSHeaderDXT10) / 4);
 
-			header.flags = headerDXT10.miscFlag;
-
 			if (headerDXT10.arraySize != 1)
 			{
 				KG_LOGE(LM_RENDER, "DDS DXT10header arraySize mismatch!");
@@ -631,6 +630,7 @@ bool KDDSCodec::CodecImpl(IKDataStreamPtr stream, bool forceAlpha, KCodecResult&
 				result.uDepth = 1;
 				break;
 			case DDS_DXT10_DIMENSION_TEXTURE3D:
+				result.b3DTexture = true;
 				if (!(header.flags & DDSD_DEPTH))
 				{
 					KG_LOGE(LM_RENDER, "DDS DXT10header depth mismatch!");
@@ -646,20 +646,26 @@ bool KDDSCodec::CodecImpl(IKDataStreamPtr stream, bool forceAlpha, KCodecResult&
 			{
 			case DXGI_FORMAT_BC1_TYPELESS:
 			case DXGI_FORMAT_BC1_UNORM:
-			case DXGI_FORMAT_BC1_UNORM_SRGB:
 				sourceFormat = IF_DXT1;
+				break;
+			case DXGI_FORMAT_BC1_UNORM_SRGB:
+				sourceFormat = IF_DXT1_SRGB;
 				break;
 
 			case DXGI_FORMAT_BC2_TYPELESS:
 			case DXGI_FORMAT_BC2_UNORM:
-			case DXGI_FORMAT_BC2_UNORM_SRGB:
 				sourceFormat = IF_DXT3;
+				break;
+			case DXGI_FORMAT_BC2_UNORM_SRGB:
+				sourceFormat = IF_DXT3_SRGB;
 				break;
 
 			case DXGI_FORMAT_BC3_TYPELESS:
 			case DXGI_FORMAT_BC3_UNORM:
-			case DXGI_FORMAT_BC3_UNORM_SRGB:
 				sourceFormat = IF_DXT5;
+				break;
+			case DXGI_FORMAT_BC3_UNORM_SRGB:
+				sourceFormat = IF_DXT5_SRGB;
 				break;
 
 			case DXGI_FORMAT_BC4_TYPELESS:
@@ -727,6 +733,9 @@ bool KDDSCodec::CodecImpl(IKDataStreamPtr stream, bool forceAlpha, KCodecResult&
 			case DXGI_FORMAT_R8G8B8A8_UNORM:
 				sourceFormat = IF_R8G8B8A8;
 				break;
+			case DXGI_FORMAT_R8G8B8A8_UNORM_SRGB:
+				sourceFormat = IF_R8G8B8A8_SRGB;
+				break;
 
 			default:
 				KG_LOGE(LM_RENDER, "The DXGI format is not supported!");
@@ -747,8 +756,11 @@ bool KDDSCodec::CodecImpl(IKDataStreamPtr stream, bool forceAlpha, KCodecResult&
 			header.pixelFormat.alphaMask : 0);
 	}
 
-	bool isCompress = false;
-	KImageHelper::GetIsCompress(sourceFormat, isCompress);
+	if (!KImageHelper::IsValid(sourceFormat)) return false;
+	const bool isCompress = KImageHelper::IsCompressed(sourceFormat);
+	const bool isSRGB = KImageHelper::IsSRGBFormat(sourceFormat);
+	const ImageFormat rgbFormat = isSRGB ? IF_R8G8B8_SRGB : IF_R8G8B8;
+	const ImageFormat rgbaFormat = isSRGB ? IF_R8G8B8A8_SRGB : IF_R8G8B8A8;
 	if (isCompress)
 	{
 		if (!KCodec::BCHardwareCodec || result.uMipmap == 1/* || result.b3DTexture*/)
@@ -759,6 +771,7 @@ bool KDDSCodec::CodecImpl(IKDataStreamPtr stream, bool forceAlpha, KCodecResult&
 			switch (sourceFormat)
 			{
 			case IF_DXT1:
+			case IF_DXT1_SRGB:
 				// source can be either 565 or 5551 depending on whether alpha present
 				// unfortunately you have to read a block to figure out which
 				// Note that we upgrade to 32-bit pixel formats here, even
@@ -775,20 +788,22 @@ bool KDDSCodec::CodecImpl(IKDataStreamPtr stream, bool forceAlpha, KCodecResult&
 				// colour_0 <= colour_1 means transparency in DXT1
 				if (block.colour_0 <= block.colour_1)
 				{
-					result.eFormat = IF_R8G8B8A8;
+					result.eFormat = rgbaFormat;
 				}
 				else
 				{
-					result.eFormat = forceAlpha ? IF_R8G8B8A8 : IF_R8G8B8;
+					result.eFormat = forceAlpha ? rgbaFormat : rgbFormat;
 				}
 				result.bCompressed = false;
 				break;
 			case IF_DXT2:
 			case IF_DXT3:
+			case IF_DXT3_SRGB:
 			case IF_DXT4:
 			case IF_DXT5:
+			case IF_DXT5_SRGB:
 				// full alpha present, formats vary only in encoding
-				result.eFormat = IF_R8G8B8A8;
+				result.eFormat = rgbaFormat;
 				result.bCompressed = false;
 				break;
 			default:
@@ -857,92 +872,57 @@ bool KDDSCodec::CodecImpl(IKDataStreamPtr stream, bool forceAlpha, KCodecResult&
 				// Compressed data
 				if (decompressDXT)
 				{
-					// Get the byte size of the dest format element
 					size_t elementByteSize = 0;
 					ASSERT_RESULT(KImageHelper::GetElementByteSize(result.eFormat, elementByteSize));
-					size_t dstPitch = width * elementByteSize;
-
-					DXTColourBlock col;
-					DXTInterpolatedAlphaBlock iAlpha;
-					DXTExplicitAlphaBlock eAlpha;
-					// 4x4 block of decompressed colour
-					ColourValue tempColours[16];
-					size_t destBpp = elementByteSize;
-					size_t sx = std::min(width, (size_t)4);
-					size_t sy = std::min(height, (size_t)4);
-					size_t destPitchMinus4 = dstPitch - destBpp * sx;
-					// slices are done individually
+					unsigned char* destination = static_cast<unsigned char*>(dataPtr);
 					for (size_t z = 0; z < depth; ++z)
 					{
-						// 4x4 blocks in x/y
 						for (size_t y = 0; y < height; y += 4)
 						{
 							for (size_t x = 0; x < width; x += 4)
 							{
-								if (sourceFormat == IF_DXT2 || sourceFormat == IF_DXT3)
+								ColourValue colours[16] = {};
+								if (sourceFormat == IF_DXT2 || sourceFormat == IF_DXT3 || sourceFormat == IF_DXT3_SRGB)
 								{
-									// explicit alpha
-									stream->Read(&eAlpha, sizeof(DXTExplicitAlphaBlock));
-									FlipEndian(eAlpha.alphaRow, sizeof(uint16_t), 4);
-									UnpackDXTAlpha(eAlpha, tempColours);
+									DXTExplicitAlphaBlock alpha;
+									stream->Read(&alpha, sizeof(alpha));
+									FlipEndian(alpha.alphaRow, sizeof(uint16_t), 4);
+									UnpackDXTAlpha(alpha, colours);
 								}
-								else if (sourceFormat == IF_DXT4 || sourceFormat == IF_DXT5)
+								else if (sourceFormat == IF_DXT4 || sourceFormat == IF_DXT5 || sourceFormat == IF_DXT5_SRGB)
 								{
-									// interpolated alpha
-									stream->Read(&iAlpha, sizeof(DXTInterpolatedAlphaBlock));
-									FlipEndian(&(iAlpha.alpha_0), sizeof(uint16_t), 1);
-									FlipEndian(&(iAlpha.alpha_1), sizeof(uint16_t), 1);
-									UnpackDXTAlpha(iAlpha, tempColours);
+									DXTInterpolatedAlphaBlock alpha;
+									stream->Read(&alpha, sizeof(alpha));
+									FlipEndian(&(alpha.alpha_0), sizeof(uint16_t), 1);
+									FlipEndian(&(alpha.alpha_1), sizeof(uint16_t), 1);
+									UnpackDXTAlpha(alpha, colours);
 								}
-								// always read colour
-								stream->Read(&col, sizeof(DXTColourBlock));
-								FlipEndian(&(col.colour_0), sizeof(uint16_t), 1);
-								FlipEndian(&(col.colour_1), sizeof(uint16_t), 1);
-								UnpackDXTColour(sourceFormat, col, tempColours);
+								DXTColourBlock colour;
+								stream->Read(&colour, sizeof(colour));
+								FlipEndian(&(colour.colour_0), sizeof(uint16_t), 1);
+								FlipEndian(&(colour.colour_1), sizeof(uint16_t), 1);
+								UnpackDXTColour(sourceFormat, colour, colours);
 
-								// write 4x4 block to uncompressed version
-								for (size_t by = 0; by < sy; ++by)
+								const size_t blockWidth = std::min(width - x, size_t(4));
+								const size_t blockHeight = std::min(height - y, size_t(4));
+								for (size_t by = 0; by < blockHeight; ++by)
 								{
-									for (size_t bx = 0; bx < sx; ++bx)
+									for (size_t bx = 0; bx < blockWidth; ++bx)
 									{
-										auto PACK_COLOR = [](const ColourValue& value, ImageFormat format, void* dest)->bool
-										{
-											if (format == IF_R8G8B8)
-											{
-												uint32_t intValue = (uint32_t)(value.r * 0xFF) | ((uint32_t)(value.g * 0xFF) << 8) | ((uint32_t)(value.b * 0xFF) << 16);
-												memcpy(dest, &intValue, sizeof(uint8_t) * 3);
-												return true;
-											}
-											else if (format == IF_R8G8B8A8)
-											{
-												uint32_t intValue = (uint32_t)(value.r * 0xFF) | ((uint32_t)(value.g * 0xFF) << 8) | ((uint32_t)(value.b * 0xFF) << 16) | ((uint32_t)(value.a * 0xFF) << 24);
-												memcpy(dest, &intValue, sizeof(uint8_t) * 4);
-												return true;
-											}
-											return false;
-										};
-										ASSERT_RESULT(PACK_COLOR(tempColours[by * 4 + bx], result.eFormat, dataPtr));
-										dataPtr = static_cast<void*>(static_cast<unsigned char*>(dataPtr) + destBpp);
+										const ColourValue& value = colours[by * 4 + bx];
+										unsigned char* pixel = destination + (((z * height + y + by) * width) + x + bx) * elementByteSize;
+										pixel[0] = static_cast<unsigned char>(value.r * 255);
+										pixel[1] = static_cast<unsigned char>(value.g * 255);
+										pixel[2] = static_cast<unsigned char>(value.b * 255);
+										if (elementByteSize == 4) pixel[3] = static_cast<unsigned char>(value.a * 255);
 									}
-									// advance to next row
-									dataPtr = static_cast<void*>(static_cast<unsigned char*>(dataPtr) + destPitchMinus4);
-								}
-								// next block. Our dest pointer is 4 lines down
-								// from where it started
-								if (x + 4 >= width)
-								{
-									// Jump back to the start of the line
-									dataPtr = static_cast<void*>(static_cast<unsigned char*>(dataPtr) - destPitchMinus4);
-								}
-								else
-								{
-									// Jump back up 4 rows and 4 pixels to the
-									// right to be at the next block to the right
-									dataPtr = static_cast<void*>(static_cast<unsigned char*>(dataPtr) - dstPitch * sy + destBpp * sx);
 								}
 							}
 						}
 					}
+					size_t decodedSize = 0;
+					ASSERT_RESULT(KImageHelper::GetByteSize(result.eFormat, width, height, depth, decodedSize));
+					dataPtr = destination + decodedSize;
 				}
 				else
 				{
@@ -963,9 +943,10 @@ bool KDDSCodec::CodecImpl(IKDataStreamPtr stream, bool forceAlpha, KCodecResult&
 
 				// Final data - trim incoming pitch
 				size_t srcPitch;
-				if (header.flags & DDSD_PITCH)
+				if ((header.flags & DDSD_PITCH) && mip == 0)
 				{
-					srcPitch = header.sizeOrPitch / std::max((size_t)1, mip * 2);
+					// The DDS header pitch describes only the top mip.
+					srcPitch = header.sizeOrPitch;
 				}
 				else
 				{

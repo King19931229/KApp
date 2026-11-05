@@ -27,8 +27,8 @@ const vec2 sample_offset[3][9] =
 float BRDF(vec3 N, vec3 V, vec3 L, float roughness)
 {
 	vec3 H = normalize(V + L);
-	float NDF = DistributionGGX(N, H, roughness);
-	float G = GeometrySmithGGXJoint(N, V, L, roughness); // G = GeometrySmithGGX(N, V, 0.0), roughness);
+	float NDF = DistributionGGX(N, H, roughness * roughness);
+	float G = GeometrySmithGGXJoint(N, V, L, roughness * roughness); // G = GeometrySmithGGX(N, V, 0.0), roughness);
 	return NDF * G * PI / 4.0;
 }
 

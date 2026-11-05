@@ -353,30 +353,32 @@ void WriteVirtualFeedback(vec2 uv, uint binding)
 #endif // VIRTUAL_TEXTURE_FEEDBACK_PASS
 #endif // VIRTUAL_TEXTURE_INPUT
 
-#define MANUAL_SRGB 0
+#define MANUAL_SRGB 1
 #define SRGB_FAST_APPROXIMATION 1
 
 const float MIN_ROUGHNESS = 0.03;
+const float MIN_REFLECTANCE = 0.04;
 const float EPSILON = 1e-6;
 
 float ConvertMetallic(vec3 diffuse, vec3 specular, float maxSpecular)
 {
 	float perceivedDiffuse = sqrt(0.299 * diffuse.r * diffuse.r + 0.587 * diffuse.g * diffuse.g + 0.114 * diffuse.b * diffuse.b);
 	float perceivedSpecular = sqrt(0.299 * specular.r * specular.r + 0.587 * specular.g * specular.g + 0.114 * specular.b * specular.b);
-	if (perceivedSpecular < MIN_ROUGHNESS)
+	if (perceivedSpecular < MIN_REFLECTANCE)
 	{
 		return 0.0;
 	}
-	float a = MIN_ROUGHNESS;
-	float b = perceivedDiffuse * (1.0 - maxSpecular) / (1.0 - MIN_ROUGHNESS) + perceivedSpecular - 2.0 * MIN_ROUGHNESS;
-	float c = MIN_ROUGHNESS - perceivedSpecular;
+	float a = MIN_REFLECTANCE;
+	float b = perceivedDiffuse * (1.0 - maxSpecular) / (1.0 - MIN_REFLECTANCE) + perceivedSpecular - 2.0 * MIN_REFLECTANCE;
+	float c = MIN_REFLECTANCE - perceivedSpecular;
 	float D = max(b * b - 4.0 * a * c, 0.0);
 	return clamp((-b + sqrt(D)) / (2.0 * a), 0.0, 1.0);
 }
 
-vec4 SRGBtoLINEAR(vec4 srgbIn)
+vec4 SRGBtoLINEAR(vec4 srgbIn, bool decoded)
 {
-#ifdef MANUAL_SRGB
+#if MANUAL_SRGB
+	if (decoded) return srgbIn;
 	#ifdef SRGB_FAST_APPROXIMATION
 	vec3 linOut = pow(srgbIn.xyz,vec3(2.2));
 	#else //SRGB_FAST_APPROXIMATION
@@ -463,6 +465,11 @@ MaterialPixelParameters ComputeMaterialPixelParameters(
 
 	MaterialPixelParameters parameters;
 
+#if PBR_MATERIAL_SPECULAR_GLOSINESS
+	vec4 baseColorFactor = shading.diffuseFactor;
+#else
+	vec4 baseColorFactor = shading.baseColorFactor;
+#endif
 	vec4 diffuse = vec4(0.0);
 #if HAS_MATERIAL_TEXTURE0
 #if HAS_VIRTUAL_MATERIAL_TEXTURE0
@@ -470,21 +477,21 @@ MaterialPixelParameters ComputeMaterialPixelParameters(
 	float minVirtualMip = round(255.0 * SampleDiffuseLod(texCoord, 0).w);
 	float virtualMip = max(ComputeVirtualMipLevel(texCoord, 0, 0), minVirtualMip);
 	vec4 virtualPageInfo0 = SampleDiffuseLod(texCoord, floor(virtualMip));
-	vec4 d0 = SRGBtoLINEAR(SampleFromVirtualTexture(0, texCoord, virtualPageInfo0));
+	vec4 d0 = SRGBtoLINEAR(SampleFromVirtualTexture(0, texCoord, virtualPageInfo0), false);
 	vec4 virtualPageInfo1 = SampleDiffuseLod(texCoord, ceil(virtualMip));
-	vec4 d1 = SRGBtoLINEAR(SampleFromVirtualTexture(0, texCoord, virtualPageInfo1));
+	vec4 d1 = SRGBtoLINEAR(SampleFromVirtualTexture(0, texCoord, virtualPageInfo1), false);
 	diffuse = mix(d0, d1, fract(virtualMip));
 #else
-	diffuse = SRGBtoLINEAR(SampleDiffuse(texCoord));
+	diffuse = SRGBtoLINEAR(SampleDiffuse(texCoord), MATERIAL_TEXTURE0_SRGB != 0);
 #endif
-	parameters.baseColor = diffuse.rgb * shading.baseColorFactor.rgb;
-	parameters.opacity = diffuse.a * shading.baseColorFactor.a;
+	parameters.baseColor = diffuse.rgb * baseColorFactor.rgb;
+	parameters.opacity = diffuse.a * baseColorFactor.a;
 #else
-	parameters.baseColor = shading.baseColorFactor.rgb;
-	parameters.opacity = 1.0;
+	parameters.baseColor = baseColorFactor.rgb;
+	parameters.opacity = baseColorFactor.a;
 #endif
 
-	if (shading.alphaMask > 0 && parameters.opacity <= shading.alphaMaskCutoff)
+	if (shading.alphaMask > 0 && parameters.opacity < shading.alphaMaskCutoff)
 	{
 		discard;
 	}
@@ -501,6 +508,7 @@ MaterialPixelParameters ComputeMaterialPixelParameters(
 #else
 	parameters.normal = worldNormal;
 #endif
+	parameters.normal *= gl_FrontFacing ? 1.0 : -1.0;
 
 	vec4 prev = prevWorldToClip * vec4(prevWorldPos, 1.0);
 	vec4 curr = worldToClip * vec4(worldPos, 1.0);
@@ -519,37 +527,39 @@ MaterialPixelParameters ComputeMaterialPixelParameters(
 	parameters.roughness *= metalRoughness.g;
 	#else
 	parameters.metal = clamp(parameters.metal, 0.0, 1.0);
-	parameters.roughness = clamp(parameters.roughness, MIN_ROUGHNESS, 1.0);
 	#endif
 #endif
 
 #if PBR_MATERIAL_SPECULAR_GLOSINESS
+	diffuse = vec4(parameters.baseColor, parameters.opacity);
 	vec3 specular;
 	#if HAS_MATERIAL_TEXTURE2
 	vec4 specularGlosiness = SampleSpecularGlosiness(texCoord);
-	parameters.roughness = 1.0 - specularGlosiness.a;
-	specular = SRGBtoLINEAR(specularGlosiness).rgb;
+	parameters.roughness = 1.0 - specularGlosiness.a * (1.0 - shading.roughnessFactor);
+	specular = SRGBtoLINEAR(specularGlosiness, MATERIAL_TEXTURE2_SRGB != 0).rgb;
 	#else
-	parameters.roughness = 0;
-	specular = vec3(0);
+	parameters.roughness = shading.roughnessFactor;
+	specular = vec3(1);
 	#endif
 
+	specular *= shading.specularFactor.rgb;
 	float maxSpecular = max(max(specular.r, specular.g), specular.b);
 
 	// Convert metallic value from specular glossiness inputs
 	float metallic = ConvertMetallic(diffuse.rgb, specular, maxSpecular);
 
-	vec3 baseColorDiffusePart = diffuse.rgb * ((1.0 - maxSpecular) / (1 - MIN_ROUGHNESS) / max(1 - metallic, EPSILON)) * shading.diffuseFactor.rgb;
-	vec3 baseColorSpecularPart = specular - (vec3(MIN_ROUGHNESS) * (1 - metallic) * (1 / max(metallic, EPSILON))) * shading.specularFactor.rgb;
+	vec3 baseColorDiffusePart = diffuse.rgb * ((1.0 - maxSpecular) / (1 - MIN_REFLECTANCE) / max(1 - metallic, EPSILON));
+	vec3 baseColorSpecularPart = (specular - vec3(MIN_REFLECTANCE) * (1 - metallic)) / max(metallic, EPSILON);
 	
 	parameters.baseColor = vec4(mix(baseColorDiffusePart, baseColorSpecularPart, metallic * metallic), diffuse.a).rgb;
 	parameters.metal = metallic;
 #endif
+	parameters.roughness = clamp(parameters.roughness, MIN_ROUGHNESS, 1.0);
 
 #if HAS_MATERIAL_TEXTURE3
-	parameters.emissive = SRGBtoLINEAR(SampleEmissive(texCoord)).rgb;
+	parameters.emissive = SRGBtoLINEAR(SampleEmissive(texCoord), MATERIAL_TEXTURE3_SRGB != 0).rgb * shading.emissiveFactor.rgb;
 #else
-	parameters.emissive = vec3(0);
+	parameters.emissive = shading.emissiveFactor.rgb;
 #endif
 
 #if HAS_MATERIAL_TEXTURE4

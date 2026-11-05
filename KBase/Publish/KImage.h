@@ -2,6 +2,7 @@
 #include <assert.h>
 #include <memory>
 #include <vector>
+#include <limits>
 #include <assert.h>
 
 enum ImageFormat
@@ -73,6 +74,13 @@ enum ImageFormat
 	IF_ASTC_12x12_UNORM,
 	IF_ASTC_12x12_SRGB,
 
+	// sRGB images and DDS block formats
+	IF_DXT1_SRGB,
+	IF_DXT3_SRGB,
+	IF_DXT5_SRGB,
+	IF_R8G8B8_SRGB,
+	IF_R8G8B8A8_SRGB,
+
 	IF_COUNT,
 	IF_INVALID = IF_COUNT
 };
@@ -134,8 +142,15 @@ typedef std::shared_ptr<KImageData> KImageDataPtr;
 
 namespace KImageHelper
 {
+	static bool IsValid(ImageFormat format)
+	{
+		return format >= 0 && format < IF_COUNT;
+	}
+
 	static bool GetIsCompress(ImageFormat format, bool& isCompress)
 	{
+		isCompress = false;
+		if (!IsValid(format)) return false;
 		switch (format)
 		{
 			case IF_ETC1_RGB8:
@@ -144,10 +159,13 @@ namespace KImageHelper
 			case IF_ETC2_RGB8A1:
 
 			case IF_DXT1:
+			case IF_DXT1_SRGB:
 			case IF_DXT2:
 			case IF_DXT3:
+			case IF_DXT3_SRGB:
 			case IF_DXT4:
 			case IF_DXT5:
+			case IF_DXT5_SRGB:
 			case IF_BC4_UNORM:
 			case IF_BC4_SNORM:
 			case IF_BC5_UNORM:
@@ -194,33 +212,80 @@ namespace KImageHelper
 		}
 	}
 
-	static bool GetElementByteSize(ImageFormat format, size_t& size)
+	static bool IsCompressed(ImageFormat format)
+	{
+		bool compressed = false;
+		return GetIsCompress(format, compressed) && compressed;
+	}
+
+	static bool IsSRGBFormat(ImageFormat format)
 	{
 		switch (format)
 		{
+		case IF_BC7_UNORM_SRGB:
+		case IF_ASTC_4x4_SRGB:
+		case IF_ASTC_5x4_SRGB:
+		case IF_ASTC_5x5_SRGB:
+		case IF_ASTC_6x5_SRGB:
+		case IF_ASTC_6x6_SRGB:
+		case IF_ASTC_8x5_SRGB:
+		case IF_ASTC_8x6_SRGB:
+		case IF_ASTC_8x8_SRGB:
+		case IF_ASTC_10x5_SRGB:
+		case IF_ASTC_10x6_SRGB:
+		case IF_ASTC_10x8_SRGB:
+		case IF_ASTC_10x10_SRGB:
+		case IF_ASTC_12x10_SRGB:
+		case IF_ASTC_12x12_SRGB:
+		case IF_DXT1_SRGB:
+		case IF_DXT3_SRGB:
+		case IF_DXT5_SRGB:
+		case IF_R8G8B8_SRGB:
+		case IF_R8G8B8A8_SRGB:
+			return true;
+		default:
+			return false;
+		}
+	}
+
+	static bool GetElementByteSize(ImageFormat format, size_t& size)
+	{
+		size = 0;
+		switch (format)
+		{
 		case IF_R8G8B8A8:
+		case IF_R16G16_FLOAT:
+		case IF_R32_FLOAT:
+		case IF_R32_UINT:
+		case IF_R8G8B8A8_SRGB:
 			size = 4;
 			return true;
 		case IF_R8G8B8:
+		case IF_R8G8B8_SRGB:
 			size = 3;
 			return true;
-
+		case IF_R8G8:
+		case IF_R16_FLOAT:
+		case IF_R16_UINT:
+			size = 2;
+			return true;
+		case IF_R8:
+			size = 1;
+			return true;
 		case IF_R16G16B16_FLOAT:
 			size = 6;
 			return true;
 		case IF_R16G16B16A16_FLOAT:
+		case IF_R32G32_FLOAT:
 			size = 8;
 			return true;
-
 		case IF_R32G32B32_FLOAT:
 			size = 12;
 			return true;
 		case IF_R32G32B32A32_FLOAT:
 			size = 16;
 			return true;
-
 		default:
-			assert(false && "unsupported format");
 			return false;
 		}
 	}
@@ -234,6 +299,7 @@ namespace KImageHelper
 			case IF_ETC2_RGB8:
 			case IF_ETC2_RGB8A1:
 			case IF_DXT1:
+			case IF_DXT1_SRGB:
 			case IF_BC4_UNORM:
 			case IF_BC4_SNORM:
 				size = 8;
@@ -241,8 +307,10 @@ namespace KImageHelper
 			case IF_ETC2_RGB8A8:
 			case IF_DXT2:
 			case IF_DXT3:
+			case IF_DXT3_SRGB:
 			case IF_DXT4:
 			case IF_DXT5:
+			case IF_DXT5_SRGB:
 			case IF_BC5_UNORM:
 			case IF_BC5_SNORM:
 			case IF_BC6H_UF16:
@@ -297,10 +365,13 @@ namespace KImageHelper
 			case IF_ETC2_RGB8A8:
 			case IF_ETC2_RGB8A1:
 			case IF_DXT1:
+			case IF_DXT1_SRGB:
 			case IF_DXT2:
 			case IF_DXT3:
+			case IF_DXT3_SRGB:
 			case IF_DXT4:
 			case IF_DXT5:
+			case IF_DXT5_SRGB:
 			case IF_BC4_SNORM:
 			case IF_BC4_UNORM:
 			case IF_BC5_SNORM:
@@ -403,65 +474,55 @@ namespace KImageHelper
 		return false;
 	}
 
-	static bool GetByteSize(ImageFormat format,
-		size_t width, size_t height, size_t depth,
-		size_t& size)
+	namespace Detail
 	{
-		size = 0;
-		bool isCompress = false;
-		if(GetIsCompress(format, isCompress))
+		inline bool Multiply(size_t left, size_t right, size_t& result)
 		{
-			if(isCompress)
-			{
-				size_t blockWidth = 0;
-				size_t blockHeight = 0;
-				size_t blockSize = 0;
-
-				GetBlockByteSize(format, blockSize);
-				assert(blockSize > 0);
-
-				GetBlockDimension(format, blockWidth, blockHeight);
-				assert(blockWidth > 1 && blockHeight > 1);
-
-				size = (size_t)(ceilf((float)width / blockWidth) * ceilf((float)height / blockHeight) * (float)blockSize) * depth;
-				return true;
-			}
-			else
-			{
-				size_t elementSize = 0;
-				if(GetElementByteSize(format, elementSize))
-				{
-					size = width * height * elementSize;
-					return true;
-				}
-			}
+			if (left && right > (std::numeric_limits<size_t>::max)() / left) return false;
+			result = left * right;
+			return true;
 		}
-		return false;
 	}
 
-	static bool GetByteSize(ImageFormat format,
-		size_t mipmaps, size_t faces,
-		size_t width, size_t height, size_t depth,
-		size_t& totalSize)
+	static bool GetByteSize(ImageFormat format, size_t width, size_t height, size_t depth, size_t& size)
+	{
+		size = 0;
+		if (!IsValid(format) || !width || !height || !depth) return false;
+		size_t blockWidth = 1, blockHeight = 1, blockBytes = 0;
+		if (IsCompressed(format))
+		{
+			if (!GetBlockDimension(format, blockWidth, blockHeight)
+				|| !GetBlockByteSize(format, blockBytes)) return false;
+		}
+		else if (!GetElementByteSize(format, blockBytes)) return false;
+		const size_t blocksX = width / blockWidth + (width % blockWidth != 0);
+		const size_t blocksY = height / blockHeight + (height % blockHeight != 0);
+		size_t bytes = 0;
+		if (!Detail::Multiply(blocksX, blocksY, bytes)
+			|| !Detail::Multiply(bytes, depth, bytes)
+			|| !Detail::Multiply(bytes, blockBytes, bytes)) return false;
+		size = bytes;
+		return true;
+	}
+
+	static bool GetByteSize(ImageFormat format, size_t mipmaps, size_t faces,
+		size_t width, size_t height, size_t depth, size_t& totalSize)
 	{
 		totalSize = 0;
-
-		for(size_t m = 0; m < mipmaps; ++m)
+		if (!mipmaps || !faces) return false;
+		size_t total = 0;
+		for (size_t mip = 0; mip < mipmaps; ++mip)
 		{
-			size_t size = 0;
-			if(GetByteSize(format, width, height, depth, size))
-			{
-				totalSize += size * faces;
-			}
-			else
-			{
-				return false;
-			}
-			if(width > 1) width >>= 1;
-			if(height > 1) height >>= 1;
-			if(depth > 1) depth >>= 1;
+			size_t bytes = 0;
+			if (!GetByteSize(format, width, height, depth, bytes)
+				|| !Detail::Multiply(bytes, faces, bytes)
+				|| bytes > (std::numeric_limits<size_t>::max)() - total) return false;
+			total += bytes;
+			if (width > 1) width >>= 1;
+			if (height > 1) height >>= 1;
+			if (depth > 1) depth >>= 1;
 		}
-
+		totalSize = total;
 		return true;
 	}
 }

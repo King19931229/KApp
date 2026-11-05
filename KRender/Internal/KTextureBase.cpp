@@ -194,63 +194,28 @@ static bool ImageFormatToElementFormat(ImageFormat imageForamt, ElementFormat& e
 		elementFormat = EF_ASTC_12x12_SRGB;
 		return true;
 
+	case IF_DXT1_SRGB:
+		elementFormat = EF_BC1_RGBA_SRGB;
+		return true;
+	case IF_DXT3_SRGB:
+		elementFormat = EF_BC2_SRGB;
+		return true;
+	case IF_DXT5_SRGB:
+		elementFormat = EF_BC3_SRGB;
+		return true;
+	case IF_R8G8B8_SRGB:
+		elementFormat = EF_R8G8B8_SRGB;
+		return true;
+	case IF_R8G8B8A8_SRGB:
+		elementFormat = EF_R8G8B8A8_SRGB;
+		return true;
+
 	case IF_COUNT:
 	default:
 		assert(false && "unsupport format");
 		elementFormat = EF_UNKNOWN;
 		return false;
 	}
-}
-
-// TODO 补充
-static bool ImageFormatToSize(ImageFormat format, size_t& size)
-{
-	switch (format)
-	{
-	case IF_R8G8B8A8:
-		size = 4;
-		return true;
-	case IF_R8G8B8:
-		size = 3;
-		return true;
-	case IF_R8G8:
-		size = 2;
-		return true;
-	case IF_R8:
-		size = 1;
-		return true;
-	case IF_R16G16B16A16_FLOAT:
-		size = 8;
-		return true;
-	case IF_R16G16B16_FLOAT:
-		size = 6;
-		return true;
-	case IF_R16G16_FLOAT:
-		size = 4;
-		return true;
-	case IF_R16_FLOAT:
-		size = 2;
-		return true;
-	case IF_R32G32B32A32_FLOAT:
-		size = 16;
-		return true;
-	case IF_R32G32B32_FLOAT:
-		size = 12;
-		return true;
-	case IF_R32G32_FLOAT:
-		size = 8;
-		return true;
-	case IF_R32_FLOAT:
-		size = 4;
-		return true;
-	case IF_COUNT:
-		break;
-	default:
-		break;
-	}
-	assert(false && "unsupport format");
-	size = 0;
-	return false;
 }
 
 KTextureBase::KTextureBase()
@@ -274,6 +239,15 @@ KTextureBase::~KTextureBase()
 
 bool KTextureBase::InitProperty(bool generateMipmap)
 {
+	if (!KImageHelper::IsValid(m_ImageData.eFormat)
+		|| !m_ImageData.uWidth || !m_ImageData.uHeight || !m_ImageData.uDepth
+		|| !m_ImageData.uSlice || !m_ImageData.uMipmap)
+	{
+		m_Format = EF_UNKNOWN;
+		return false;
+	}
+	if (!ImageFormatToElementFormat(m_ImageData.eFormat, m_Format)) return false;
+	m_ImageData.bCompressed = KImageHelper::IsCompressed(m_ImageData.eFormat);
 	m_Width = m_ImageData.uWidth;
 	m_Height = m_ImageData.uHeight;
 	m_Depth = m_ImageData.uDepth;
@@ -310,11 +284,7 @@ bool KTextureBase::InitProperty(bool generateMipmap)
 		m_TextureType = TT_TEXTURE_3D;
 	}
 
-	if (ImageFormatToElementFormat(m_ImageData.eFormat, m_Format))
-	{
-		return true;
-	}
-	return false;
+	return true;
 }
 
 bool KTextureBase::CancelMemoryTask()
@@ -388,14 +358,15 @@ bool KTextureBase::InitMemoryFromData(const void* pRawData, const std::string& n
 {
 	ReleaseMemory();
 
-	size_t formatSize = 0;
-	if (!ImageFormatToSize(format, formatSize))
+	const size_t faceCount = cubeMap ? 6 : 1;
+	size_t imageSize = 0;
+	if (KImageHelper::IsCompressed(format)
+		|| !KImageHelper::GetByteSize(format, 1, faceCount, width, height, depth, imageSize))
 	{
 		return false;
 	}
 
-	size_t faceCount = cubeMap ? 6 : 1;
-	KImageDataPtr pImageData = KImageDataPtr(KNEW KImageData(width * height * depth * faceCount * formatSize));
+	KImageDataPtr pImageData = KImageDataPtr(KNEW KImageData(imageSize));
 	if (pRawData)
 	{
 		memcpy(pImageData->GetData(), pRawData, pImageData->GetSize());
@@ -406,7 +377,7 @@ bool KTextureBase::InitMemoryFromData(const void* pRawData, const std::string& n
 		KSubImageInfo subImageInfo;
 		subImageInfo.uWidth = width;
 		subImageInfo.uHeight = height;
-		subImageInfo.uOffset = pImageData->GetSize() * face / faceCount;
+		subImageInfo.uOffset = (pImageData->GetSize() / faceCount) * face;
 		subImageInfo.uSize = pImageData->GetSize() / faceCount;
 		subImageInfo.uFaceIndex = face;
 		subImageInfo.uMipmapIndex = 0;
@@ -417,6 +388,7 @@ bool KTextureBase::InitMemoryFromData(const void* pRawData, const std::string& n
 	{
 		m_ResourceState = RS_MEMORY_LOADING;
 
+		m_ImageData = KCodecResult();
 		m_ImageData.eFormat = format;
 		m_ImageData.uWidth = width;
 		m_ImageData.uHeight = height;
@@ -455,12 +427,14 @@ bool KTextureBase::InitMemoryFrom2DArray(const std::string& name, size_t width, 
 
 	auto loadImpl = [=]()->bool
 	{
-		size_t formatSize = 0;
-		if (ImageFormatToSize(format, formatSize))
+		size_t imageSize = 0;
+		if (!KImageHelper::IsCompressed(format)
+			&& KImageHelper::GetByteSize(format, 1, slices, width, height, 1, imageSize))
 		{
-			KImageDataPtr pImageData = KImageDataPtr(KNEW KImageData(width * height * slices * formatSize));
+			KImageDataPtr pImageData = KImageDataPtr(KNEW KImageData(imageSize));
 			memset(pImageData->GetData(), 0, pImageData->GetSize());
 
+			m_ImageData = KCodecResult();
 			m_ImageData.eFormat = format;
 			m_ImageData.uWidth = width;
 			m_ImageData.uHeight = height;
@@ -477,7 +451,7 @@ bool KTextureBase::InitMemoryFrom2DArray(const std::string& name, size_t width, 
 				KSubImageInfo subImageInfo;
 				subImageInfo.uWidth = width;
 				subImageInfo.uHeight = height;
-				subImageInfo.uOffset = pImageData->GetSize() * slice / slices;
+				subImageInfo.uOffset = (pImageData->GetSize() / slices) * slice;
 				subImageInfo.uSize = pImageData->GetSize() / slices;
 				subImageInfo.uSliceIndex = slice;
 				subImageInfo.uMipmapIndex = 0;

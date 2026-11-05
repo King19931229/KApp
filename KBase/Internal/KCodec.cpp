@@ -51,7 +51,7 @@ namespace KCodec
 		{
 			return KCodec::ASTCHardwareCodec;
 		}
-		return true;
+		return KImageHelper::IsValid(format);
 	}
 
 	bool BCFormat(ImageFormat format)
@@ -59,10 +59,13 @@ namespace KCodec
 		switch (format)
 		{
 			case IF_DXT1:
+			case IF_DXT1_SRGB:
 			case IF_DXT2:
 			case IF_DXT3:
+			case IF_DXT3_SRGB:
 			case IF_DXT4:
 			case IF_DXT5:
+			case IF_DXT5_SRGB:
 			case IF_BC4_UNORM:
 			case IF_BC4_SNORM:
 			case IF_BC5_UNORM:

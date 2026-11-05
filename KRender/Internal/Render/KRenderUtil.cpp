@@ -8,6 +8,37 @@
 
 namespace KRenderUtil
 {
+	bool IsSRGBFormat(ElementFormat format)
+	{
+		switch (format)
+		{
+		case EF_BC1_RGB_SRGB:
+		case EF_BC1_RGBA_SRGB:
+		case EF_BC2_SRGB:
+		case EF_BC3_SRGB:
+		case EF_BC7_SRGB:
+		case EF_ASTC_4x4_SRGB:
+		case EF_ASTC_5x4_SRGB:
+		case EF_ASTC_5x5_SRGB:
+		case EF_ASTC_6x5_SRGB:
+		case EF_ASTC_6x6_SRGB:
+		case EF_ASTC_8x5_SRGB:
+		case EF_ASTC_8x6_SRGB:
+		case EF_ASTC_8x8_SRGB:
+		case EF_ASTC_10x5_SRGB:
+		case EF_ASTC_10x6_SRGB:
+		case EF_ASTC_10x8_SRGB:
+		case EF_ASTC_10x10_SRGB:
+		case EF_ASTC_12x10_SRGB:
+		case EF_ASTC_12x12_SRGB:
+		case EF_R8G8B8_SRGB:
+		case EF_R8G8B8A8_SRGB:
+			return true;
+		default:
+			return false;
+		}
+	}
+
 	void UnRegisterRenderComponentCallback(RenderComponentObserverFunc* callback)
 	{
 		if (KECS::EntityManager)

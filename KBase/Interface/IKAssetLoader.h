@@ -143,11 +143,11 @@ struct KMeshRawData
 			metallicFactor = 1.0f;
 			roughnessFactor = 1.0f;
 			baseColorFactor = glm::vec4(1.0f);
-			emissiveFactor = glm::vec4(1.0f);
+			emissiveFactor = glm::vec4(0.0f);
 			metalWorkFlow = false;
 			doubleSided = false;
 			extension.diffuseFactor = glm::vec4(1.0f);
-			extension.specularFactor = glm::vec4(0.0f);
+			extension.specularFactor = glm::vec4(1.0f);
 		}
 	};
 

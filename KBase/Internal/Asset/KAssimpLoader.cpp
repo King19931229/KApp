@@ -137,9 +137,19 @@ bool KAssimpLoader::ImportAiScene(const aiScene* scene, const KAssetImportOption
 
 		aiColor3D pColor[6];
 
-		scene->mMaterials[paiMesh->mMaterialIndex]->Get(AI_MATKEY_COLOR_DIFFUSE, pColor[0]);
-		scene->mMaterials[paiMesh->mMaterialIndex]->Get(AI_MATKEY_COLOR_SPECULAR, pColor[1]);
-		scene->mMaterials[paiMesh->mMaterialIndex]->Get(AI_MATKEY_COLOR_EMISSIVE, pColor[2]);
+		if (aiReturn_SUCCESS == scene->mMaterials[paiMesh->mMaterialIndex]->Get(AI_MATKEY_COLOR_DIFFUSE, pColor[0]))
+		{
+			part.material.extension.diffuseFactor = glm::vec4(pColor[0].r, pColor[0].g, pColor[0].b, 1.0f);
+		}
+		if (aiReturn_SUCCESS == scene->mMaterials[paiMesh->mMaterialIndex]->Get(AI_MATKEY_COLOR_SPECULAR, pColor[1]))
+		{
+			part.material.extension.specularFactor = glm::vec4(pColor[1].r, pColor[1].g, pColor[1].b, 1.0f);
+		}
+		bool hasEmissiveColor = aiReturn_SUCCESS == scene->mMaterials[paiMesh->mMaterialIndex]->Get(AI_MATKEY_COLOR_EMISSIVE, pColor[2]);
+		if (hasEmissiveColor)
+		{
+			part.material.emissiveFactor = glm::vec4(pColor[2].r, pColor[2].g, pColor[2].b, 1.0f);
+		}
 		scene->mMaterials[paiMesh->mMaterialIndex]->Get(AI_MATKEY_COLOR_AMBIENT, pColor[3]);
 		scene->mMaterials[paiMesh->mMaterialIndex]->Get(AI_MATKEY_COLOR_TRANSPARENT, pColor[4]);
 		scene->mMaterials[paiMesh->mMaterialIndex]->Get(AI_MATKEY_COLOR_REFLECTIVE, pColor[5]);
@@ -154,6 +164,7 @@ bool KAssimpLoader::ImportAiScene(const aiScene* scene, const KAssetImportOption
 		if (aiReturn_SUCCESS == scene->mMaterials[paiMesh->mMaterialIndex]->GetTexture(aiTextureType_EMISSIVE, 0, &emissiveMap))
 		{
 			KFileTool::PathJoin(m_AssetFolder, emissiveMap.C_Str(), part.material.urls[MTS_EMISSIVE]);
+			if (!hasEmissiveColor) part.material.emissiveFactor = glm::vec4(1.0f);
 		}
 
 		aiString aoMap;
@@ -187,6 +198,7 @@ bool KAssimpLoader::ImportAiScene(const aiScene* scene, const KAssetImportOption
 		}
 
 		part.material.metalWorkFlow = false;
+		part.material.roughnessFactor = 0.0f;
 
 		const aiVector3D Zero3D(0.0f, 0.0f, 0.0f);
 

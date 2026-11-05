@@ -598,6 +598,13 @@ bool KVirtualGeometryScene::UpdateInstanceData(KRHICommandList& commandList)
 				for (uint32_t i = 0; i < MAX_MATERIAL_TEXTURE_BINDING; ++i)
 				{
 					env.macros.push_back({ PERMUTATING_MACRO[MATERIAL_TEXTURE_BINDING_MACRO_INDEX[i]].macro, textureBinding->GetTexture(i) ? "1" : "0" });
+					uint32_t index = SRGB_TEXTURE_BINDING_MACRO_INDEX[i];
+					if (index != uint32_t(-1))
+					{
+						IKTexturePtr texture = textureBinding->GetTexture(i);
+						if (texture) texture->WaitForMemory();
+						env.macros.push_back({ PERMUTATING_MACRO[index].macro, texture && !textureBinding->GetIsVirtualTexture(i) && KRenderUtil::IsSRGBFormat(texture->GetTextureFormat()) ? "1" : "0" });
+					}
 				}
 
 				if (k == BINNIING_PIPELINE_VERTEX)

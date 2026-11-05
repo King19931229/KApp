@@ -1,4 +1,5 @@
 #pragma once
+#include <atomic>
 #include "Interface/IKTexture.h"
 #include "KBase/Interface/IKCodec.h"
 #include "KBase/Publish/KTaskExecutor.h"
@@ -20,7 +21,7 @@ protected:
 	// 是否需要硬生成mipmap
 	bool m_bGenerateMipmap;
 
-	ResourceState m_ResourceState;
+	std::atomic<ResourceState> m_ResourceState;
 
 	IKGraphTaskEventRef m_MemoryLoadTask;
 

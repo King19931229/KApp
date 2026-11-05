@@ -482,8 +482,7 @@ int main()
 	options.window.type = KEngineOptions::WindowInitializeInformation::TYPE_DEFAULT;
 
 	engine->Init(std::move(window), options);
-	InitQEM(engine);
-	/*
+	//InitQEM(engine);
 	IKDataStreamPtr stream = GetDataStream(IT_FILEHANDLE);
 	if (stream->Open("D:/KApp/scene.txt", IM_READ))
 	{
@@ -493,7 +492,6 @@ int main()
 	}
 	stream->Close();
 	stream = nullptr;
-	*/
 #if 0
 	{
 		KMeshRawData userData;

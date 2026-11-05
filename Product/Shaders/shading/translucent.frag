@@ -118,13 +118,13 @@ void main()
 	vec3 H = normalize(V + L);
 	float VdotH = max(dot(V, H), 0.0);
 
-	float NDF = DistributionGGX(N, H, roughness);
-	float G = GeometrySmithGGXJoint(N, V, L, roughness); // G = GeometrySmithGGX(N, V, 0.0), roughness);
+	float NDF = DistributionGGX(N, H, roughness * roughness);
+	float G = GeometrySmithGGXJoint(N, V, L, roughness * roughness); // G = GeometrySmithGGX(N, V, 0.0), roughness);
 	F = FresnelSchlick(VdotH, F0); // F = FresnelSchlick(NdotV, F0);
 
 	vec3 numerator = NDF * G * F;
 	float denominator = 4.0 * NdotV * NdotL;
-	vec3 diffuseLight = kD * albedo / PI;
+	vec3 diffuseLight = (vec3(1.0) - F) * (1.0 - metallic) * albedo / PI;
 	vec3 specularLight = numerator / max(denominator, 0.001);
 
 	vec3 Lo = vec3(0.0);
@@ -142,9 +142,6 @@ void main()
 	vec3 final = ambient + direct + emissive;
 
 	vec4 finalColor = vec4(final, opacity);
-
-	finalColor += vec4(0.2, 0.5, 0.8, 0.0);
-	finalColor.a = 0.3;
 
 	uint debugOption = debug.debugOption;
 	switch(debugOption)

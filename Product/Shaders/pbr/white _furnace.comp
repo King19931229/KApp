@@ -18,7 +18,7 @@ void main()
 
 	const float roughness = uv.x;
 	const float nDotV = uv.y;
-	const float a = roughness; // (roughness * roughness + 1) * 0.125;
+	const float a = roughness * roughness; // (roughness * roughness + 1) * 0.125;
 
 	const int steps = 64;
 	const float deltaTheta = 0.5 * PI / steps;
