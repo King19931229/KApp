@@ -58,7 +58,7 @@ public:
 
 	bool Init(size_t width, size_t height,
 		unsigned short massCount,
-		ElementFormat startFormat,
+		PixelFormat startFormat,
 		size_t frameInFlight);
 	bool UnInit();
 	bool Resize(size_t width, size_t height);

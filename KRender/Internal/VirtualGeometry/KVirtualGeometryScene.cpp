@@ -603,7 +603,7 @@ bool KVirtualGeometryScene::UpdateInstanceData(KRHICommandList& commandList)
 					{
 						IKTexturePtr texture = textureBinding->GetTexture(i);
 						if (texture) texture->WaitForMemory();
-						env.macros.push_back({ PERMUTATING_MACRO[index].macro, texture && !textureBinding->GetIsVirtualTexture(i) && KRenderUtil::IsSRGBFormat(texture->GetTextureFormat()) ? "1" : "0" });
+						env.macros.push_back({ PERMUTATING_MACRO[index].macro, texture && !textureBinding->GetIsVirtualTexture(i) && KPixelFormatHelper::IsSRGBFormat(texture->GetTextureFormat()) ? "1" : "0" });
 					}
 				}
 

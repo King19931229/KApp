@@ -17,50 +17,80 @@ namespace
 
 	void TestSizes()
 	{
-		const struct { ImageFormat format; size_t bytes; } elements[] =
+		const struct { PixelFormat format; size_t bytes; } elements[] =
 		{
-			{ IF_R8, 1 }, { IF_R8G8, 2 }, { IF_R8G8B8, 3 },
-			{ IF_R8G8B8A8, 4 },
-
-			{ IF_R16_FLOAT, 2 }, { IF_R16G16_FLOAT, 4 }, { IF_R16G16B16_FLOAT, 6 },
-			{ IF_R16G16B16A16_FLOAT, 8 }, { IF_R32_FLOAT, 4 }, { IF_R32G32_FLOAT, 8 },
-			{ IF_R32G32B32_FLOAT, 12 }, { IF_R32G32B32A32_FLOAT, 16 },
-			{ IF_R16_UINT, 2 }, { IF_R32_UINT, 4 },
-
-			{ IF_R8G8B8_SRGB, 3 }, { IF_R8G8B8A8_SRGB, 4 }
+			{ PF_R8_UNORM, 1 }, { PF_R8G8_UNORM, 2 }, { PF_R8G8B8_UNORM, 3 },
+			{ PF_R8G8B8A8_UNORM, 4 }, { PF_R8G8B8A8_SNORM, 4 },
+			{ PF_R4G4B4A4_UNORM, 2 }, { PF_R5G5B5A1_UNORM, 2 },
+			{ PF_R16_FLOAT, 2 }, { PF_R16G16_FLOAT, 4 }, { PF_R16G16B16_FLOAT, 6 },
+			{ PF_R16G16B16A16_FLOAT, 8 }, { PF_R32_FLOAT, 4 }, { PF_R32G32_FLOAT, 8 },
+			{ PF_R32G32B32_FLOAT, 12 }, { PF_R32G32B32A32_FLOAT, 16 },
+			{ PF_R16_UINT, 2 }, { PF_R32_UINT, 4 }, { PF_R32_INT, 4 },
+			{ PF_R32G32B32A32_UINT, 16 }, { PF_R32G32B32A32_INT, 16 },
+			{ PF_R8G8B8_SRGB, 3 }, { PF_R8G8B8A8_SRGB, 4 }
 		};
 		for (const auto& element : elements)
 		{
 			size_t bytes = 0;
-			CHECK(KImageHelper::GetElementByteSize(element.format, bytes));
+			CHECK(KPixelFormatHelper::GetElementByteSize(element.format, bytes));
 			CHECK(bytes == element.bytes);
-			CHECK(KImageHelper::GetByteSize(element.format, 3, 5, 7, bytes));
+			CHECK(KPixelFormatHelper::GetByteSize(element.format, 3, 5, 7, bytes));
 			CHECK(bytes == 105 * element.bytes);
 		}
 		size_t bytes = 0;
-		CHECK(KImageHelper::GetByteSize(IF_R8G8B8A8, 4, 4, 4, bytes) && bytes == 256);
-		CHECK(KImageHelper::GetByteSize(IF_R8G8B8A8, 3, 1, 4, 4, 4, bytes) && bytes == 292);
-		CHECK(KImageHelper::GetByteSize(IF_R8G8B8A8, 3, 6, 4, 4, 1, bytes) && bytes == 504);
-		CHECK(KImageHelper::GetByteSize(IF_R8G8B8A8, 1, 3, 4, 4, 1, bytes) && bytes == 192);
-		CHECK(KImageHelper::GetByteSize(IF_DXT1, 5, 7, 2, bytes) && bytes == 64);
-		CHECK(KImageHelper::GetByteSize(IF_DXT3_SRGB, 1, 1, 1, bytes) && bytes == 16);
-		CHECK(KImageHelper::GetByteSize(IF_ETC2_RGB8A8, 1, 1, 1, bytes) && bytes == 16);
-		CHECK(KImageHelper::GetByteSize(IF_ASTC_5x4_SRGB, 11, 9, 1, bytes) && bytes == 144);
-		CHECK(KImageHelper::GetByteSize(IF_ASTC_12x12_UNORM, 1, 1, 1, bytes) && bytes == 16);
-		CHECK(KImageHelper::GetByteSize(IF_DXT1, 16777217, 1, 1, bytes) && bytes == 33554440);
-		CHECK(!KImageHelper::GetElementByteSize(IF_DXT1, bytes) && bytes == 0);
+		CHECK(KPixelFormatHelper::GetByteSize(PF_R8G8B8A8_UNORM, 4, 4, 4, bytes) && bytes == 256);
+		CHECK(KPixelFormatHelper::GetByteSize(PF_R8G8B8A8_UNORM, 3, 1, 4, 4, 4, bytes) && bytes == 292);
+		CHECK(KPixelFormatHelper::GetByteSize(PF_R8G8B8A8_UNORM, 3, 6, 4, 4, 1, bytes) && bytes == 504);
+		CHECK(KPixelFormatHelper::GetByteSize(PF_R8G8B8A8_UNORM, 1, 3, 4, 4, 1, bytes) && bytes == 192);
+		CHECK(KPixelFormatHelper::GetByteSize(PF_BC1_RGBA_UNORM, 5, 7, 2, bytes) && bytes == 64);
+		CHECK(KPixelFormatHelper::GetByteSize(PF_BC2_SRGB, 1, 1, 1, bytes) && bytes == 16);
+		CHECK(KPixelFormatHelper::GetByteSize(PF_ETC2_R8G8B8A8_UNORM, 1, 1, 1, bytes) && bytes == 16);
+		CHECK(KPixelFormatHelper::GetByteSize(PF_ASTC_5x4_SRGB, 11, 9, 1, bytes) && bytes == 144);
+		CHECK(KPixelFormatHelper::GetByteSize(PF_ASTC_12x12_UNORM, 1, 1, 1, bytes) && bytes == 16);
+		CHECK(KPixelFormatHelper::GetByteSize(PF_BC1_RGBA_UNORM, 16777217, 1, 1, bytes) && bytes == 33554440);
+		CHECK(!KPixelFormatHelper::GetElementByteSize(PF_BC1_RGBA_UNORM, bytes) && bytes == 0);
 		const size_t maximum = (std::numeric_limits<size_t>::max)();
-		CHECK(KImageHelper::GetByteSize(IF_R8, maximum, 1, 1, bytes) && bytes == maximum);
-		CHECK(!KImageHelper::GetByteSize(IF_R8G8B8A8, maximum, 1, 1, bytes) && bytes == 0);
-		CHECK(!KImageHelper::GetByteSize(IF_DXT1, maximum, 1, 1, bytes) && bytes == 0);
-		CHECK(!KImageHelper::GetByteSize(IF_R8, 2, 1, maximum, 1, 1, bytes) && bytes == 0);
-		CHECK(!KImageHelper::GetByteSize(IF_R8G8B8A8, 1, maximum, 1, 1, 1, bytes) && bytes == 0);
-		CHECK(!KImageHelper::GetByteSize(IF_INVALID, 1, 1, 1, bytes) && bytes == 0);
-		CHECK(!KImageHelper::GetByteSize(IF_R8, 0, 1, 1, bytes) && bytes == 0);
-		CHECK(!KImageHelper::GetByteSize(IF_R8, 0, 1, 1, 1, 1, bytes) && bytes == 0);
-		CHECK(!KImageHelper::GetByteSize(IF_R8, 1, 0, 1, 1, 1, bytes) && bytes == 0);
-		CHECK(!KImageHelper::IsValid(static_cast<ImageFormat>(-1)));
-		CHECK(!KImageHelper::IsValid(static_cast<ImageFormat>(IF_COUNT + 1)));
+		CHECK(KPixelFormatHelper::GetByteSize(PF_R8_UNORM, maximum, 1, 1, bytes) && bytes == maximum);
+		CHECK(!KPixelFormatHelper::GetByteSize(PF_R8G8B8A8_UNORM, maximum, 1, 1, bytes) && bytes == 0);
+		CHECK(!KPixelFormatHelper::GetByteSize(PF_BC1_RGBA_UNORM, maximum, 1, 1, bytes) && bytes == 0);
+		CHECK(!KPixelFormatHelper::GetByteSize(PF_R8_UNORM, 2, 1, maximum, 1, 1, bytes) && bytes == 0);
+		CHECK(!KPixelFormatHelper::GetByteSize(PF_R8G8B8A8_UNORM, 1, maximum, 1, 1, 1, bytes) && bytes == 0);
+		CHECK(!KPixelFormatHelper::GetByteSize(PF_UNKNOWN, 1, 1, 1, bytes) && bytes == 0);
+		CHECK(!KPixelFormatHelper::GetByteSize(PF_R8_UNORM, 0, 1, 1, bytes) && bytes == 0);
+		CHECK(!KPixelFormatHelper::GetByteSize(PF_R8_UNORM, 0, 1, 1, 1, 1, bytes) && bytes == 0);
+		CHECK(!KPixelFormatHelper::GetByteSize(PF_R8_UNORM, 1, 0, 1, 1, 1, bytes) && bytes == 0);
+		CHECK(!KPixelFormatHelper::IsValid(static_cast<PixelFormat>(-1)));
+		CHECK(!KPixelFormatHelper::IsValid(static_cast<PixelFormat>(PF_COUNT + 1)));
+	}
+
+	void TestNamesAndResources()
+	{
+		for (int value = 0; value < PF_COUNT; ++value)
+		{
+			const PixelFormat format = static_cast<PixelFormat>(value);
+			CHECK(KPixelFormatHelper::FromString(KPixelFormatHelper::ToString(format)) == format);
+		}
+		CHECK(KPixelFormatHelper::FromString(nullptr) == PF_UNKNOWN);
+		CHECK(KPixelFormatHelper::FromString("UNKNOWN") == PF_UNKNOWN);
+		CHECK(KPixelFormatHelper::FromString("invalid") == PF_UNKNOWN);
+		CHECK(KPixelFormatHelper::IsBCFormat(PF_BC1_RGB_SRGB));
+		CHECK(KPixelFormatHelper::IsETC1Format(PF_ETC1_R8G8B8_UNORM));
+		CHECK(KPixelFormatHelper::IsETC2Format(PF_ETC2_R8G8B8A1_UNORM));
+		CHECK(KPixelFormatHelper::IsASTCFormat(PF_ASTC_10x6_SRGB));
+		CHECK(!KPixelFormatHelper::IsCompressed(PF_R32_UINT));
+		CHECK(!KPixelFormatHelper::IsSRGBFormat(PF_UNKNOWN));
+		// Representative integers from existing post-process JSON resources.
+		const struct { int value; PixelFormat format; } resources[] =
+		{
+			{ 0, PF_R8G8B8A8_UNORM }, { 6, PF_R8_UNORM }, { 13, PF_R32G32B32_FLOAT },
+			{ 27, PF_BC1_RGBA_SRGB }, { 40, PF_ASTC_4x4_UNORM }, { 67, PF_ASTC_12x12_SRGB }
+		};
+		for (const auto& resource : resources)
+		{
+			IKJsonDocumentPtr json = GetJsonDocument();
+			CHECK(json->ParseFromString(("{\"format\":" + std::to_string(resource.value) + "}").c_str()));
+			CHECK(static_cast<PixelFormat>(json->GetMember("format")->GetInt()) == resource.format);
+		}
 	}
 
 	void Append32(std::vector<unsigned char>& data, uint32_t value)
@@ -132,7 +162,7 @@ namespace
 		KCodecResult result;
 		CHECK(codec->Codec(reinterpret_cast<const char*>(data.data()), data.size(), forceAlpha, result));
 		size_t expectedSize = 0;
-		CHECK(KImageHelper::GetByteSize(result.eFormat, result.uMipmap, 1,
+		CHECK(KPixelFormatHelper::GetByteSize(result.eFormat, result.uMipmap, 1,
 			result.uWidth, result.uHeight, result.uDepth, expectedSize));
 		CHECK(result.pData->GetSize() == expectedSize);
 		size_t offset = 0;
@@ -150,7 +180,7 @@ namespace
 	{
 		size_t channels = 0;
 		CHECK(!result.bCompressed);
-		CHECK(KImageHelper::GetElementByteSize(result.eFormat, channels));
+		CHECK(KPixelFormatHelper::GetElementByteSize(result.eFormat, channels));
 		for (size_t offset = 0; offset < result.pData->GetSize(); offset += channels)
 		{
 			const unsigned char* pixel = result.pData->GetData() + offset;
@@ -161,11 +191,11 @@ namespace
 
 	void TestDDS(const char* pngPath)
 	{
-		const struct { uint32_t dxgi; unsigned family; ImageFormat format; bool srgb; } formats[] =
+		const struct { uint32_t dxgi; unsigned family; PixelFormat format; bool srgb; } formats[] =
 		{
-			{ 71, 1, IF_DXT1, false }, { 72, 1, IF_DXT1_SRGB, true },
-			{ 74, 2, IF_DXT3, false }, { 75, 2, IF_DXT3_SRGB, true },
-			{ 77, 3, IF_DXT5, false }, { 78, 3, IF_DXT5_SRGB, true }
+			{ 71, 1, PF_BC1_RGBA_UNORM, false }, { 72, 1, PF_BC1_RGBA_SRGB, true },
+			{ 74, 2, PF_BC2_UNORM, false }, { 75, 2, PF_BC2_SRGB, true },
+			{ 77, 3, PF_BC3_UNORM, false }, { 78, 3, PF_BC3_SRGB, true }
 		};
 		for (const auto& format : formats)
 		{
@@ -173,18 +203,18 @@ namespace
 			KCodecResult compressed = DecodeDDS(data, true, true);
 			CHECK(compressed.eFormat == format.format && compressed.bCompressed);
 			CHECK(std::memcmp(compressed.pData->GetData(), data.data() + 148, compressed.pData->GetSize()) == 0);
-			CHECK(KImageHelper::IsSRGBFormat(compressed.eFormat) == format.srgb);
+			CHECK(KPixelFormatHelper::IsSRGBFormat(compressed.eFormat) == format.srgb);
 			KCodecResult decoded = DecodeDDS(data, false, true);
-			CHECK(decoded.eFormat == (format.srgb ? IF_R8G8B8A8_SRGB : IF_R8G8B8A8));
+			CHECK(decoded.eFormat == (format.srgb ? PF_R8G8B8A8_SRGB : PF_R8G8B8A8_UNORM));
 			CheckDecodedPixels(decoded);
 			if (format.family == 1)
 			{
 				KCodecResult rgb = DecodeDDS(data, false, false);
-				CHECK(rgb.eFormat == (format.srgb ? IF_R8G8B8_SRGB : IF_R8G8B8));
+				CHECK(rgb.eFormat == (format.srgb ? PF_R8G8B8_SRGB : PF_R8G8B8_UNORM));
 				CheckDecodedPixels(rgb);
 			}
 			KCodecResult singleMip = DecodeDDS(MakeDDS(format.dxgi, format.family, 4, 4, 1, 1), true, true);
-			CHECK(KImageHelper::IsSRGBFormat(singleMip.eFormat) == format.srgb);
+			CHECK(KPixelFormatHelper::IsSRGBFormat(singleMip.eFormat) == format.srgb);
 			CheckDecodedPixels(singleMip);
 		}
 		for (unsigned dxt = 1; dxt <= 5; ++dxt)
@@ -193,20 +223,19 @@ namespace
 			const uint32_t fourCC = 0x00545844 | (uint32_t('0' + dxt) << 24);
 			const auto data = MakeDDS(0, family, 4, 4, 1, 2, fourCC);
 			KCodecResult compressed = DecodeDDS(data, true, true);
-			const ImageFormat legacyFormats[] = { IF_DXT1, IF_DXT2, IF_DXT3, IF_DXT4, IF_DXT5 };
-			CHECK(compressed.eFormat == legacyFormats[dxt - 1]);
+			CHECK(compressed.eFormat == (family == 1 ? PF_BC1_RGBA_UNORM : (family == 2 ? PF_BC2_UNORM : PF_BC3_UNORM)));
 			CheckDecodedPixels(DecodeDDS(data, false, true));
 		}
 		for (uint32_t dxgi : { 28u, 29u })
 		{
 			const auto data = MakeDDS(dxgi, 0, 8, 8, 8, 4);
 			KCodecResult volume = DecodeDDS(data, true, true);
-			CHECK(volume.eFormat == (dxgi == 29 ? IF_R8G8B8A8_SRGB : IF_R8G8B8A8));
+			CHECK(volume.eFormat == (dxgi == 29 ? PF_R8G8B8A8_SRGB : PF_R8G8B8A8_UNORM));
 			CHECK(volume.b3DTexture && volume.pData->GetSize() == 2340);
 			CHECK(std::memcmp(volume.pData->GetData(), data.data() + 148, 2340) == 0);
 		}
 		KCodecResult decodedVolume = DecodeDDS(MakeDDS(72, 1, 5, 3, 3, 2), false, true);
-		CHECK(decodedVolume.eFormat == IF_R8G8B8A8_SRGB && decodedVolume.pData->GetSize() == 188);
+		CHECK(decodedVolume.eFormat == PF_R8G8B8A8_SRGB && decodedVolume.pData->GetSize() == 188);
 		CheckDecodedPixels(decodedVolume);
 		for (const auto& format : { std::make_pair(54u, 2u), std::make_pair(41u, 4u), std::make_pair(34u, 4u) })
 		{
@@ -228,6 +257,7 @@ int main(int argc, char** argv)
 	{
 		CHECK(KCodec::CreateCodecManager());
 		TestSizes();
+		TestNamesAndResources();
 		TestDDS(argc > 1 ? argv[1] : "pixel-format-srgb-test.png");
 		success = true;
 		std::printf("Pixel format regression tests passed (%u checks).\n", checks);

@@ -27,7 +27,7 @@ protected:
 		VOLUMETRIC_FOG_BINDING_DYNAMIC_CSM2,
 		VOLUMETRIC_FOG_BINDING_DYNAMIC_CSM3,
 	};
-	static constexpr ElementFormat VOXEL_FORMAT = EF_R16G16B16A16_FLOAT;
+	static constexpr PixelFormat VOXEL_FORMAT = PF_R16G16B16A16_FLOAT;
 	const KCamera* m_MainCamera;
 	IKRenderTargetPtr m_VoxelLightTarget[2];
 	IKRenderTargetPtr m_RayMatchResultTarget;

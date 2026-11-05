@@ -424,7 +424,7 @@ VkDescriptorSet KVulkanDescriptorPool::Alloc(size_t frameIndex, size_t currentFr
 					ASSERT_RESULT_PIPELINE(frameBuffer->IsStorageImage());
 
 					imageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-					imageInfo.imageView = (info.format == EF_UNKNOWN) ? vulkanFrameBuffer->GetImageView() : vulkanFrameBuffer->GetReinterpretImageView(info.format);
+					imageInfo.imageView = (info.format == PF_UNKNOWN) ? vulkanFrameBuffer->GetImageView() : vulkanFrameBuffer->GetReinterpretImageView(info.format);
 					imageInfo.sampler = VK_NULL_HANDEL;
 
 					KHash::HashCombine(hash, vulkanFrameBuffer->GetUniqueID());

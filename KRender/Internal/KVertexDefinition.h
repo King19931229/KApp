@@ -92,7 +92,7 @@ namespace KVertexDefinition
 	struct VertexSemanticDetail
 	{
 		VertexSemantic semantic;
-		ElementFormat elementFormat;
+		PixelFormat pixelFormat;
 		size_t offset;
 	};
 	typedef std::vector<VertexSemanticDetail> VertexSemanticDetailList;

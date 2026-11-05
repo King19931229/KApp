@@ -95,9 +95,9 @@ bool KHiZBuffer::Resize(uint32_t width, uint32_t height)
 	m_NumMips = (uint32_t)std::log2(std::max(m_HiZWidth, m_HiZHeight)) + 1;
 
 	m_HiZMinBuffer->UnInit();
-	m_HiZMinBuffer->InitFromColor(m_HiZWidth, m_HiZHeight, 1, m_NumMips, EF_R32_FLOAT);
+	m_HiZMinBuffer->InitFromColor(m_HiZWidth, m_HiZHeight, 1, m_NumMips, PF_R32_FLOAT);
 	m_HiZMaxBuffer->UnInit();
-	m_HiZMaxBuffer->InitFromColor(m_HiZWidth, m_HiZHeight, 1, m_NumMips, EF_R32_FLOAT);
+	m_HiZMaxBuffer->InitFromColor(m_HiZWidth, m_HiZHeight, 1, m_NumMips, PF_R32_FLOAT);
 
 	KRenderGlobal::ImmediateCommandList.BeginRecord();
 	KRenderGlobal::ImmediateCommandList.Transition(m_HiZMinBuffer->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);

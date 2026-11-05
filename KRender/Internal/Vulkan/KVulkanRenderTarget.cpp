@@ -27,12 +27,12 @@ bool KVulkanRenderTarget::InitFromDepthStencil(uint32_t width, uint32_t height, 
 	return true;
 }
 
-bool KVulkanRenderTarget::InitFromColor(uint32_t width, uint32_t height, uint32_t msaaCount, uint32_t mipmaps, ElementFormat format)
+bool KVulkanRenderTarget::InitFromColor(uint32_t width, uint32_t height, uint32_t msaaCount, uint32_t mipmaps, PixelFormat format)
 {
 	UnInit();
 
 	VkFormat vkFormat = VK_FORMAT_UNDEFINED;
-	ASSERT_RESULT(KVulkanHelper::ElementFormatToVkFormat(format, vkFormat));
+	ASSERT_RESULT(KVulkanHelper::PixelFormatToVkFormat(format, vkFormat));
 
 	((KVulkanFrameBuffer*)m_FrameBuffer.get())->InitColor(
 		vkFormat,
@@ -45,12 +45,12 @@ bool KVulkanRenderTarget::InitFromColor(uint32_t width, uint32_t height, uint32_
 	return true;
 }
 
-bool KVulkanRenderTarget::InitFromStorage(uint32_t width, uint32_t height, uint32_t mipmaps, ElementFormat format)
+bool KVulkanRenderTarget::InitFromStorage(uint32_t width, uint32_t height, uint32_t mipmaps, PixelFormat format)
 {
 	UnInit();
 
 	VkFormat vkFormat = VK_FORMAT_UNDEFINED;
-	ASSERT_RESULT(KVulkanHelper::ElementFormatToVkFormat(format, vkFormat));
+	ASSERT_RESULT(KVulkanHelper::PixelFormatToVkFormat(format, vkFormat));
 
 	((KVulkanFrameBuffer*)m_FrameBuffer.get())->InitStorage2D(
 		vkFormat,
@@ -61,12 +61,12 @@ bool KVulkanRenderTarget::InitFromStorage(uint32_t width, uint32_t height, uint3
 	return true;
 }
 
-bool KVulkanRenderTarget::InitFromStorage3D(uint32_t width, uint32_t height, uint32_t depth, uint32_t mipmaps, ElementFormat format)
+bool KVulkanRenderTarget::InitFromStorage3D(uint32_t width, uint32_t height, uint32_t depth, uint32_t mipmaps, PixelFormat format)
 {
 	UnInit();
 
 	VkFormat vkFormat = VK_FORMAT_UNDEFINED;
-	ASSERT_RESULT(KVulkanHelper::ElementFormatToVkFormat(format, vkFormat));
+	ASSERT_RESULT(KVulkanHelper::PixelFormatToVkFormat(format, vkFormat));
 
 	((KVulkanFrameBuffer*)m_FrameBuffer.get())->InitStorage3D(
 		vkFormat,
@@ -78,12 +78,12 @@ bool KVulkanRenderTarget::InitFromStorage3D(uint32_t width, uint32_t height, uin
 	return true;
 }
 
-bool KVulkanRenderTarget::InitFromReadback(uint32_t width, uint32_t height, uint32_t depth, uint32_t mipmaps, ElementFormat format)
+bool KVulkanRenderTarget::InitFromReadback(uint32_t width, uint32_t height, uint32_t depth, uint32_t mipmaps, PixelFormat format)
 {
 	UnInit();
 
 	VkFormat vkFormat = VK_FORMAT_UNDEFINED;
-	ASSERT_RESULT(KVulkanHelper::ElementFormatToVkFormat(format, vkFormat));
+	ASSERT_RESULT(KVulkanHelper::PixelFormatToVkFormat(format, vkFormat));
 
 	((KVulkanFrameBuffer*)m_FrameBuffer.get())->InitReadback(
 		vkFormat,

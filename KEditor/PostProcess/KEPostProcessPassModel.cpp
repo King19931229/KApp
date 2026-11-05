@@ -1,6 +1,6 @@
 #include "KEPostProcessPassModel.h"
 #include "KEPostProcessData.h"
-#include "KRender/Publish/KEnumString.h"
+#include "KBase/Publish/KPixelFormat.h"
 #include "KRender/Interface/IKPostProcess.h"
 
 decltype(KEPostProcessPassModel::ModelName) KEPostProcessPassModel::ModelName = "PostProcessPass";
@@ -36,15 +36,15 @@ KEPostProcessPassModel::KEPostProcessPassModel(IKPostProcessNodePtr pass)
 		m_Pass->CastPass()->SetShader(value[0].c_str(), value[1].c_str());
 	});
 
-	m_FormatView = KEditor::MakeComboEditView<ElementFormat>();
-	for (uint32_t f = 0; f < EF_COUNT; ++f)
+	m_FormatView = KEditor::MakeComboEditView<PixelFormat>();
+	for (uint32_t f = 0; f < PF_COUNT; ++f)
 	{
-		m_FormatView->SafeComboCast<ElementFormat>()->AppendMapping(
-			ElementFormat(f),
-			KEnumString::ElementForamtToString(ElementFormat(f)));
+		m_FormatView->SafeComboCast<PixelFormat>()->AppendMapping(
+			PixelFormat(f),
+			KPixelFormatHelper::ToString(PixelFormat(f)));
 	}
-	m_FormatView->Cast<ElementFormat>()->SetValue(m_Pass->CastPass()->GetFormat());
-	m_FormatView->Cast<ElementFormat>()->AddListener([this](auto value)
+	m_FormatView->Cast<PixelFormat>()->SetValue(m_Pass->CastPass()->GetFormat());
+	m_FormatView->Cast<PixelFormat>()->AddListener([this](auto value)
 	{
 		m_Pass->CastPass()->SetFormat(value);
 	});

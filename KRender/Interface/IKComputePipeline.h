@@ -15,12 +15,12 @@ struct IKComputePipeline
 	virtual ~IKComputePipeline() {}
 
 	virtual void BindSampler(uint32_t location, IKFrameBufferPtr target, IKSamplerPtr sampler, bool dynamicWrite) = 0;
-	virtual void BindStorageImage(uint32_t location, IKFrameBufferPtr target, ElementFormat format, ComputeResourceFlags flags, uint32_t mipmap, bool dynamicWrite) = 0;
+	virtual void BindStorageImage(uint32_t location, IKFrameBufferPtr target, PixelFormat format, ComputeResourceFlags flags, uint32_t mipmap, bool dynamicWrite) = 0;
 	virtual void BindAccelerationStructure(uint32_t location, IKAccelerationStructurePtr as, bool dynamicWrite) = 0;
 	virtual void BindUniformBuffer(uint32_t location, IKUniformBufferPtr buffer) = 0;
 
 	virtual void BindSamplers(uint32_t location, const std::vector<IKFrameBufferPtr>& targets, const std::vector<IKSamplerPtr>& samplers, bool dynamicWrite) = 0;
-	virtual void BindStorageImages(uint32_t location, const std::vector<IKFrameBufferPtr>& targets, ElementFormat format, ComputeResourceFlags flags, uint32_t mipmap, bool dynamicWrite) = 0;
+	virtual void BindStorageImages(uint32_t location, const std::vector<IKFrameBufferPtr>& targets, PixelFormat format, ComputeResourceFlags flags, uint32_t mipmap, bool dynamicWrite) = 0;
 
 	virtual void BindStorageBuffer(uint32_t location, IKStorageBufferPtr buffer, ComputeResourceFlags flags, bool dynamicWrite) = 0;
 

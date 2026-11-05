@@ -583,7 +583,7 @@ int main()
 #if 0
 		IKRayTracePipelinePtr rayPipeline;
 		device->CreateRayTracePipeline(rayPipeline);
-		rayPipeline->SetStorageImage(EF_R8G8B8A8_UNORM);
+		rayPipeline->SetStorageImage(PF_R8G8B8A8_UNORM);
 		rayPipeline->SetShaderTable(ST_RAYGEN, "raytrace/raygen.rgen");
 		rayPipeline->SetShaderTable(ST_CLOSEST_HIT, "raytrace/raytrace.rchit");
 		rayPipeline->SetShaderTable(ST_MISS, "raytrace/raytrace.rmiss");

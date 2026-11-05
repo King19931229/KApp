@@ -26,7 +26,7 @@ bool KFreeImageCodec::CodecImpl(IKDataStreamPtr stream, bool forceAlpha, KCodecR
 
 	result.uWidth = 0;
 	result.uHeight = 0;
-	result.eFormat = IF_INVALID;
+	result.eFormat = PF_UNKNOWN;
 
 	{
 		std::vector<char> buffer;
@@ -51,7 +51,7 @@ bool KFreeImageCodec::CodecImpl(IKDataStreamPtr stream, bool forceAlpha, KCodecR
 
 			result.uWidth = FreeImage_GetWidth(fiBitmap);
 			result.uHeight = FreeImage_GetHeight(fiBitmap);
-			result.eFormat = IF_INVALID;
+			result.eFormat = PF_UNKNOWN;
 
 			// Copy Form OGRE
 			switch (imageType)
@@ -98,19 +98,19 @@ bool KFreeImageCodec::CodecImpl(IKDataStreamPtr stream, bool forceAlpha, KCodecR
 				switch (bpp)
 				{
 				case 24:
-					result.eFormat = IF_R8G8B8;
+					result.eFormat = PF_R8G8B8_UNORM;
 					break;
 				case 32:
-					result.eFormat = IF_R8G8B8A8;
+					result.eFormat = PF_R8G8B8A8_UNORM;
 					break;
 				case 8:
-					//result.eFormat = IF_R8;
+					//result.eFormat = PF_R8_UNORM;
 					//break;
 				case 16:
-					//result.eFormat = IF_R8G8;
+					//result.eFormat = PF_R8G8_UNORM;
 					//break;
 				default:
-					result.eFormat = IF_INVALID;
+					result.eFormat = PF_UNKNOWN;
 					break;
 				}
 				break;
@@ -130,17 +130,17 @@ bool KFreeImageCodec::CodecImpl(IKDataStreamPtr stream, bool forceAlpha, KCodecR
 				imageType = FreeImage_GetImageType(fiBitmap);
 				colourType = FreeImage_GetColorType(fiBitmap);
 
-				result.eFormat = IF_R32_FLOAT;
+				result.eFormat = PF_R32_FLOAT;
 				break;
 			}
 			case FIT_FLOAT:
 			{
-				result.eFormat = IF_R32_FLOAT;
+				result.eFormat = PF_R32_FLOAT;
 				break;
 			}
 			case FIT_RGBF:
 			{
-				result.eFormat = IF_R32G32B32_FLOAT;
+				result.eFormat = PF_R32G32B32_FLOAT;
 				if (forceAlpha)
 				{
 					FIBITMAP* newBitmap = FreeImage_ConvertToRGBAF(fiBitmap);
@@ -151,13 +151,13 @@ bool KFreeImageCodec::CodecImpl(IKDataStreamPtr stream, bool forceAlpha, KCodecR
 					imageType = FreeImage_GetImageType(fiBitmap);
 					colourType = FreeImage_GetColorType(fiBitmap);
 
-					result.eFormat = IF_R32G32B32A32_FLOAT;
+					result.eFormat = PF_R32G32B32A32_FLOAT;
 				}
 				break;
 			}
 			case FIT_RGBAF:
 			{
-				result.eFormat = IF_R32G32B32_FLOAT;
+				result.eFormat = PF_R32G32B32_FLOAT;
 				break;
 			}
 			// keep the compiler happy
@@ -167,7 +167,7 @@ bool KFreeImageCodec::CodecImpl(IKDataStreamPtr stream, bool forceAlpha, KCodecR
 			}
 			}
 
-			if (result.eFormat != IF_INVALID)
+			if (result.eFormat != PF_UNKNOWN)
 			{
 				unsigned char* srcData = FreeImage_GetBits(fiBitmap);
 				assert(srcData);
@@ -223,10 +223,10 @@ bool KFreeImageCodec::Save(const KCodecResult& source, const char* pszFile)
 
 	FREE_IMAGE_FORMAT fif = FreeImage_GetFIFFromFormat(ext.c_str());
 
-	if ((source.eFormat == IF_R8G8B8A8 || source.eFormat == IF_R8G8B8A8_SRGB) && fif != FIF_UNKNOWN && ms_SupportExts.find(ext) != ms_SupportExts.end())
+	if ((source.eFormat == PF_R8G8B8A8_UNORM || source.eFormat == PF_R8G8B8A8_SRGB) && fif != FIF_UNKNOWN && ms_SupportExts.find(ext) != ms_SupportExts.end())
 	{
 		size_t byteSize = 0;
-		ASSERT_RESULT(KImageHelper::GetElementByteSize(source.eFormat, byteSize));
+		ASSERT_RESULT(KPixelFormatHelper::GetElementByteSize(source.eFormat, byteSize));
 		BYTE* bits = source.pData->GetData();
 
 		int bpp = (int)byteSize * 8;

@@ -6,7 +6,7 @@ struct KCodecResult
 {
 	KImageDataPtr pData;
 
-	ImageFormat eFormat;
+	PixelFormat eFormat;
 	size_t uWidth;
 	size_t uHeight;
 	size_t uDepth;
@@ -21,7 +21,7 @@ struct KCodecResult
 	KCodecResult()
 	{
 		pData = nullptr;
-		eFormat = IF_INVALID;
+		eFormat = PF_UNKNOWN;
 		uWidth = 0;
 		uHeight = 0;
 		uDepth = 1;
@@ -51,11 +51,7 @@ namespace KCodec
 	extern bool ASTCHardwareCodec;
 	extern bool BCHardwareCodec;
 
-	extern bool QueryFormatHardwareDecode(ImageFormat format);
-	extern bool BCFormat(ImageFormat format);
-	extern bool ETC1Format(ImageFormat format);
-	extern bool ETC2Format(ImageFormat format);
-	extern bool ASTCFormat(ImageFormat format);
+	extern bool QueryFormatHardwareDecode(PixelFormat format);
 
 	extern bool CreateCodecManager();
 	extern bool DestroyCodecManager();

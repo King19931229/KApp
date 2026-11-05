@@ -125,7 +125,7 @@ uint64_t KGPUScene::ComputeHashByMaterialSubMesh(KSubMeshPtr subMesh, IKMaterial
 			{
 				IKTexturePtr texture = textureBinding->GetTexture(i);
 				texture->WaitForMemory();
-				KHash::HashCombine(hash, !textureBinding->GetIsVirtualTexture(i) && KRenderUtil::IsSRGBFormat(texture->GetTextureFormat()));
+				KHash::HashCombine(hash, !textureBinding->GetIsVirtualTexture(i) && KPixelFormatHelper::IsSRGBFormat(texture->GetTextureFormat()));
 			}
 		}
 		else
@@ -903,7 +903,7 @@ void KGPUScene::RebuildTextureArray()
 			m_TextureArray.textureArrays[arrayIndex]->UnInit();
 			if (creationInfo.textures.size() > 0)
 			{
-				m_TextureArray.textureArrays[arrayIndex]->InitMemoryFrom2DArray("GPUSceneTextureArray_" + std::to_string(arrayIndex), m_TextureArray.dimension[arrayIndex], m_TextureArray.dimension[arrayIndex], (uint32_t)creationInfo.textures.size(), IF_R8G8B8A8, true, false);
+				m_TextureArray.textureArrays[arrayIndex]->InitMemoryFrom2DArray("GPUSceneTextureArray_" + std::to_string(arrayIndex), m_TextureArray.dimension[arrayIndex], m_TextureArray.dimension[arrayIndex], (uint32_t)creationInfo.textures.size(), PF_R8G8B8A8_UNORM, true, false);
 				m_TextureArray.textureArrays[arrayIndex]->InitDevice(false);
 			}
 		}
@@ -1215,7 +1215,7 @@ bool KGPUScene::Init(IKRenderScene* scene, const KCamera* camera)
 
 			KRenderGlobal::SamplerManager.Acquire(desc, m_TextureArray.samplers[arrayIndex]);
 			KRenderGlobal::RenderDevice->CreateTexture(m_TextureArray.textureArrays[arrayIndex]);
-			m_TextureArray.textureArrays[arrayIndex]->InitMemoryFrom2DArray("GPUSceneTextureArray_" + std::to_string(arrayIndex), m_TextureArray.dimension[arrayIndex], m_TextureArray.dimension[arrayIndex], 1, IF_R8G8B8A8, true, false);
+			m_TextureArray.textureArrays[arrayIndex]->InitMemoryFrom2DArray("GPUSceneTextureArray_" + std::to_string(arrayIndex), m_TextureArray.dimension[arrayIndex], m_TextureArray.dimension[arrayIndex], 1, PF_R8G8B8A8_UNORM, true, false);
 			m_TextureArray.textureArrays[arrayIndex]->InitDevice(false);
 		}
 

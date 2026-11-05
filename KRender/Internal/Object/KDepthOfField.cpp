@@ -188,17 +188,17 @@ bool KDepthOfField::Resize(uint32_t width, uint32_t height)
 	m_Height = std::max((uint32_t)(height * m_Ratio), 1U);
 
 	m_CoC->UnInit();
-	m_CoC->InitFromColor(m_Width, m_Height, 1, 1, EF_R8_UNORM);
+	m_CoC->InitFromColor(m_Width, m_Height, 1, 1, PF_R8_UNORM);
 
 	m_Red->UnInit();
-	m_Red->InitFromColor(m_Width, m_Height, 1, 1, EF_R16G16B16A16_FLOAT);
+	m_Red->InitFromColor(m_Width, m_Height, 1, 1, PF_R16G16B16A16_FLOAT);
 	m_Green->UnInit();
-	m_Green->InitFromColor(m_Width, m_Height, 1, 1, EF_R16G16B16A16_FLOAT);
+	m_Green->InitFromColor(m_Width, m_Height, 1, 1, PF_R16G16B16A16_FLOAT);
 	m_Blue->UnInit();
-	m_Blue->InitFromColor(m_Width, m_Height, 1, 1, EF_R16G16B16A16_FLOAT);
+	m_Blue->InitFromColor(m_Width, m_Height, 1, 1, PF_R16G16B16A16_FLOAT);
 
 	m_Final->UnInit();
-	m_Final->InitFromColor(m_InputWidth, m_InputHeight, 1, 1, EF_R8G8B8A8_UNORM);
+	m_Final->InitFromColor(m_InputWidth, m_InputHeight, 1, 1, PF_R8G8B8A8_UNORM);
 
 	m_CoCPass->UnInit();
 	m_CoCPass->SetColorAttachment(0, m_CoC->GetFrameBuffer());

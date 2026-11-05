@@ -29,7 +29,7 @@ protected:
 	float m_Scale;
 	unsigned short m_MsaaCount;
 	size_t m_FrameInFlight;
-	ElementFormat m_Format;
+	PixelFormat m_Format;
 
 	std::string m_VSFile;
 	std::string m_FSFile;
@@ -77,12 +77,12 @@ public:
 
 	bool SetShader(const char* vsFile, const char* fsFile) override;
 	bool SetScale(float scale) override;
-	bool SetFormat(ElementFormat format) override;
+	bool SetFormat(PixelFormat format) override;
 	bool SetMSAA(unsigned short msaaCount) override;
 
 	std::tuple<std::string, std::string> GetShader() override;
 	float GetScale() override;
-	ElementFormat GetFormat() override;
+	PixelFormat GetFormat() override;
 	unsigned short GetMSAA() override;
 
 	bool AddInputConnection(IKPostProcessConnection* conn, int16_t slot) override;

@@ -93,11 +93,11 @@ bool KGBuffer::Resize(uint32_t width, uint32_t height)
 		m_AOTarget->GetFrameBuffer()->SetDebugName("AO");
 
 		EnsureRenderTarget(m_OpaqueColorCopyTarget);
-		ASSERT_RESULT(m_OpaqueColorCopyTarget->InitFromColor(width, height, 1, 1, EF_R16G16B16A16_FLOAT));
+		ASSERT_RESULT(m_OpaqueColorCopyTarget->InitFromColor(width, height, 1, 1, PF_R16G16B16A16_FLOAT));
 		m_OpaqueColorCopyTarget->GetFrameBuffer()->SetDebugName("OpaqueColorCopy");
 
 		EnsureRenderTarget(m_SceneColorTarget);
-		ASSERT_RESULT(m_SceneColorTarget->InitFromColor(width, height, 1, 1, EF_R16G16B16A16_FLOAT));
+		ASSERT_RESULT(m_SceneColorTarget->InitFromColor(width, height, 1, 1, PF_R16G16B16A16_FLOAT));
 		m_SceneColorTarget->GetFrameBuffer()->SetDebugName("SceneColor");
 
 		m_Width = width;

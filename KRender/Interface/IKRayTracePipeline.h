@@ -8,7 +8,7 @@ struct IKRayTracePipeline
 	virtual ~IKRayTracePipeline() {}
 
 	virtual bool SetShaderTable(ShaderType type, const char* szShader) = 0;
-	virtual bool SetStorageImage(ElementFormat format) = 0;
+	virtual bool SetStorageImage(PixelFormat format) = 0;
 
 	virtual bool RecreateFromAS() = 0;
 	virtual bool ResizeImage(uint32_t width, uint32_t height) = 0;

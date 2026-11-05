@@ -95,6 +95,8 @@
     <ClInclude Include="Publish\KHash.h" />
     <ClInclude Include="Publish\KHashString.h" />
     <ClInclude Include="Publish\KImage.h" />
+    <ClInclude Include="Publish\KPixelFormat.h" />
+    <ClInclude Include="Publish\KPixelFormat.inl" />
     <ClInclude Include="Publish\KInput.h" />
     <ClInclude Include="Publish\KList.h" />
     <ClInclude Include="Publish\KLockFreeQueue.h" />

@@ -51,227 +51,227 @@ namespace KVulkanHelper
 		}
 	}
 
-	bool ElementFormatToVkFormat(ElementFormat elementFormat, VkFormat& vkFormat)
+	bool PixelFormatToVkFormat(PixelFormat pixelFormat, VkFormat& vkFormat)
 	{
-		switch (elementFormat)
+		switch (pixelFormat)
 		{
-		case EF_R8G8B8A8_UNORM:
+		case PF_R8G8B8A8_UNORM:
 			vkFormat = VK_FORMAT_R8G8B8A8_UNORM;
 			return true;
-		case EF_R8G8B8A8_SRGB:
+		case PF_R8G8B8A8_SRGB:
 			vkFormat = VK_FORMAT_R8G8B8A8_SRGB;
 			return true;
-		case EF_R8G8B8A8_SNORM:
+		case PF_R8G8B8A8_SNORM:
 			vkFormat = VK_FORMAT_R8G8B8A8_SNORM;
 			return true;
 
-		case EF_R4G4B4A4_UNORM:
+		case PF_R4G4B4A4_UNORM:
 			vkFormat = VK_FORMAT_R4G4B4A4_UNORM_PACK16;
 			return true;
-		case EF_R5G5B5A1_UNORM:
+		case PF_R5G5B5A1_UNORM:
 			vkFormat = VK_FORMAT_R5G5B5A1_UNORM_PACK16;
 			return true;
 
-		case EF_R8G8B8_UNORM:
+		case PF_R8G8B8_UNORM:
 			vkFormat = VK_FORMAT_R8G8B8_UNORM;
 			return true;
-		case EF_R8G8B8_SRGB:
+		case PF_R8G8B8_SRGB:
 			vkFormat = VK_FORMAT_R8G8B8_SRGB;
 			return true;
-		case EF_R8G8_UNORM:
+		case PF_R8G8_UNORM:
 			vkFormat = VK_FORMAT_R8G8_UNORM;
 			return true;
-		case EF_R8_UNORM:
+		case PF_R8_UNORM:
 			vkFormat = VK_FORMAT_R8_UNORM;
 			return true;
 
-		case EF_R16_FLOAT:
+		case PF_R16_FLOAT:
 			vkFormat = VK_FORMAT_R16_SFLOAT;
 			return true;
-		case EF_R16G16_FLOAT:
+		case PF_R16G16_FLOAT:
 			vkFormat = VK_FORMAT_R16G16_SFLOAT;
 			return true;
-		case EF_R16G16B16_FLOAT:
+		case PF_R16G16B16_FLOAT:
 			vkFormat = VK_FORMAT_R16G16B16_SFLOAT;
 			return true;
-		case EF_R16G16B16A16_FLOAT:
+		case PF_R16G16B16A16_FLOAT:
 			vkFormat = VK_FORMAT_R16G16B16A16_SFLOAT;
 			return true;
 
-		case EF_R32_FLOAT:
+		case PF_R32_FLOAT:
 			vkFormat = VK_FORMAT_R32_SFLOAT;
 			return true;
-		case EF_R32G32_FLOAT:
+		case PF_R32G32_FLOAT:
 			vkFormat = VK_FORMAT_R32G32_SFLOAT;
 			return true;
-		case EF_R32G32B32_FLOAT:
+		case PF_R32G32B32_FLOAT:
 			vkFormat = VK_FORMAT_R32G32B32_SFLOAT;
 			return true;
-		case EF_R32G32B32A32_FLOAT:
+		case PF_R32G32B32A32_FLOAT:
 			vkFormat = VK_FORMAT_R32G32B32A32_SFLOAT;
 			return true;
 
-		case EF_R16_UINT:
+		case PF_R16_UINT:
 			vkFormat = VK_FORMAT_R16_UINT;
 			return true;
-		case EF_R32_UINT:
+		case PF_R32_UINT:
 			vkFormat = VK_FORMAT_R32_UINT;
 			return true;
-		case EF_R32G32B32A32_UINT:
+		case PF_R32G32B32A32_UINT:
 			vkFormat = VK_FORMAT_R32G32B32A32_UINT;
 			return true;
 
-		case EF_R32_INT:
+		case PF_R32_INT:
 			vkFormat = VK_FORMAT_R32_SINT;
 			return true;
-		case EF_R32G32B32A32_INT:
+		case PF_R32G32B32A32_INT:
 			vkFormat = VK_FORMAT_R32G32B32A32_SINT;
 			return true;
 
-		case EF_ETC1_R8G8B8_UNORM:
+		case PF_ETC1_R8G8B8_UNORM:
 			vkFormat = VK_FORMAT_ETC2_R8G8B8_UNORM_BLOCK;
 			return true;
-		case EF_ETC2_R8G8B8_UNORM:
+		case PF_ETC2_R8G8B8_UNORM:
 			vkFormat = VK_FORMAT_ETC2_R8G8B8_UNORM_BLOCK;
 			return true;
-		case EF_ETC2_R8G8B8A1_UNORM:
+		case PF_ETC2_R8G8B8A1_UNORM:
 			vkFormat = VK_FORMAT_ETC2_R8G8B8A1_UNORM_BLOCK;
 			return true;
-		case EF_ETC2_R8G8B8A8_UNORM:
+		case PF_ETC2_R8G8B8A8_UNORM:
 			vkFormat = VK_FORMAT_ETC2_R8G8B8A8_UNORM_BLOCK;
 			return true;
 
-		case EF_BC1_RGB_UNORM:
+		case PF_BC1_RGB_UNORM:
 			vkFormat = VK_FORMAT_BC1_RGB_UNORM_BLOCK;
 			return true;
-		case EF_BC1_RGB_SRGB:
+		case PF_BC1_RGB_SRGB:
 			vkFormat = VK_FORMAT_BC1_RGB_SRGB_BLOCK;
 			return true;
-		case EF_BC1_RGBA_UNORM:
+		case PF_BC1_RGBA_UNORM:
 			vkFormat = VK_FORMAT_BC1_RGBA_UNORM_BLOCK;
 			return true;
-		case EF_BC1_RGBA_SRGB:
+		case PF_BC1_RGBA_SRGB:
 			vkFormat = VK_FORMAT_BC1_RGBA_SRGB_BLOCK;
 			return true;
-		case EF_BC2_UNORM:
+		case PF_BC2_UNORM:
 			vkFormat = VK_FORMAT_BC2_UNORM_BLOCK;
 			return true;
-		case EF_BC2_SRGB:
+		case PF_BC2_SRGB:
 			vkFormat = VK_FORMAT_BC2_SRGB_BLOCK;
 			return true;
-		case EF_BC3_UNORM:
+		case PF_BC3_UNORM:
 			vkFormat = VK_FORMAT_BC3_UNORM_BLOCK;
 			return true;
-		case EF_BC3_SRGB:
+		case PF_BC3_SRGB:
 			vkFormat = VK_FORMAT_BC3_SRGB_BLOCK;
 			return true;
-		case EF_BC4_UNORM:
+		case PF_BC4_UNORM:
 			vkFormat = VK_FORMAT_BC4_UNORM_BLOCK;
 			return true;
-		case EF_BC4_SNORM:
+		case PF_BC4_SNORM:
 			vkFormat = VK_FORMAT_BC4_SNORM_BLOCK;
 			return true;
-		case EF_BC5_UNORM:
+		case PF_BC5_UNORM:
 			vkFormat = VK_FORMAT_BC5_UNORM_BLOCK;
 			return true;
-		case EF_BC5_SNORM:
+		case PF_BC5_SNORM:
 			vkFormat = VK_FORMAT_BC5_SNORM_BLOCK;
 			return true;
-		case EF_BC6H_UFLOAT:
+		case PF_BC6H_UFLOAT:
 			vkFormat = VK_FORMAT_BC6H_UFLOAT_BLOCK;
 			return true;
-		case EF_BC6H_SFLOAT:
+		case PF_BC6H_SFLOAT:
 			vkFormat = VK_FORMAT_BC6H_SFLOAT_BLOCK;
 			return true;
-		case EF_BC7_UNORM:
+		case PF_BC7_UNORM:
 			vkFormat = VK_FORMAT_BC7_UNORM_BLOCK;
 			return true;
-		case EF_BC7_SRGB:
+		case PF_BC7_SRGB:
 			vkFormat = VK_FORMAT_BC7_SRGB_BLOCK;
 			return true;
 
-		case EF_ASTC_4x4_UNORM:
+		case PF_ASTC_4x4_UNORM:
 			vkFormat = VK_FORMAT_ASTC_4x4_UNORM_BLOCK;
 			return true;
-		case EF_ASTC_4x4_SRGB:
+		case PF_ASTC_4x4_SRGB:
 			vkFormat = VK_FORMAT_ASTC_4x4_SRGB_BLOCK;
 			return true;
-		case EF_ASTC_5x4_UNORM:
+		case PF_ASTC_5x4_UNORM:
 			vkFormat = VK_FORMAT_ASTC_5x4_UNORM_BLOCK;
 			return true;
-		case EF_ASTC_5x4_SRGB:
+		case PF_ASTC_5x4_SRGB:
 			vkFormat = VK_FORMAT_ASTC_5x4_SRGB_BLOCK;
 			return true;
-		case EF_ASTC_5x5_UNORM:
+		case PF_ASTC_5x5_UNORM:
 			vkFormat = VK_FORMAT_ASTC_5x5_UNORM_BLOCK;
 			return true;
-		case EF_ASTC_5x5_SRGB:
+		case PF_ASTC_5x5_SRGB:
 			vkFormat = VK_FORMAT_ASTC_5x5_SRGB_BLOCK;
 			return true;
-		case EF_ASTC_6x5_UNORM:
+		case PF_ASTC_6x5_UNORM:
 			vkFormat = VK_FORMAT_ASTC_6x5_UNORM_BLOCK;
 			return true;
-		case EF_ASTC_6x5_SRGB:
+		case PF_ASTC_6x5_SRGB:
 			vkFormat = VK_FORMAT_ASTC_6x5_SRGB_BLOCK;
 			return true;
-		case EF_ASTC_6x6_UNORM:
+		case PF_ASTC_6x6_UNORM:
 			vkFormat = VK_FORMAT_ASTC_6x6_UNORM_BLOCK;
 			return true;
-		case EF_ASTC_6x6_SRGB:
+		case PF_ASTC_6x6_SRGB:
 			vkFormat = VK_FORMAT_ASTC_6x6_SRGB_BLOCK;
 			return true;
-		case EF_ASTC_8x5_UNORM:
+		case PF_ASTC_8x5_UNORM:
 			vkFormat = VK_FORMAT_ASTC_8x5_UNORM_BLOCK;
 			return true;
-		case EF_ASTC_8x5_SRGB:
+		case PF_ASTC_8x5_SRGB:
 			vkFormat = VK_FORMAT_ASTC_8x5_SRGB_BLOCK;
 			return true;
-		case EF_ASTC_8x6_UNORM:
+		case PF_ASTC_8x6_UNORM:
 			vkFormat = VK_FORMAT_ASTC_8x6_UNORM_BLOCK;
 			return true;
-		case EF_ASTC_8x6_SRGB:
+		case PF_ASTC_8x6_SRGB:
 			vkFormat = VK_FORMAT_ASTC_8x6_SRGB_BLOCK;
 			return true;
-		case EF_ASTC_8x8_UNORM:
+		case PF_ASTC_8x8_UNORM:
 			vkFormat = VK_FORMAT_ASTC_8x8_UNORM_BLOCK;
 			return true;
-		case EF_ASTC_8x8_SRGB:
+		case PF_ASTC_8x8_SRGB:
 			vkFormat = VK_FORMAT_ASTC_8x8_SRGB_BLOCK;
 			return true;
-		case EF_ASTC_10x5_UNORM:
+		case PF_ASTC_10x5_UNORM:
 			vkFormat = VK_FORMAT_ASTC_10x5_UNORM_BLOCK;
 			return true;
-		case EF_ASTC_10x5_SRGB:
+		case PF_ASTC_10x5_SRGB:
 			vkFormat = VK_FORMAT_ASTC_10x5_SRGB_BLOCK;
 			return true;
-		case EF_ASTC_10x6_UNORM:
+		case PF_ASTC_10x6_UNORM:
 			vkFormat = VK_FORMAT_ASTC_10x6_UNORM_BLOCK;
 			return true;
-		case EF_ASTC_10x6_SRGB:
+		case PF_ASTC_10x6_SRGB:
 			vkFormat = VK_FORMAT_ASTC_10x6_SRGB_BLOCK;
 			return true;
-		case EF_ASTC_10x8_UNORM:
+		case PF_ASTC_10x8_UNORM:
 			vkFormat = VK_FORMAT_ASTC_10x8_UNORM_BLOCK;
 			return true;
-		case EF_ASTC_10x8_SRGB:
+		case PF_ASTC_10x8_SRGB:
 			vkFormat = VK_FORMAT_ASTC_10x8_SRGB_BLOCK;
 			return true;
-		case EF_ASTC_10x10_UNORM:
+		case PF_ASTC_10x10_UNORM:
 			vkFormat = VK_FORMAT_ASTC_10x10_UNORM_BLOCK;
 			return true;
-		case EF_ASTC_10x10_SRGB:
+		case PF_ASTC_10x10_SRGB:
 			vkFormat = VK_FORMAT_ASTC_10x10_SRGB_BLOCK;
 			return true;
-		case EF_ASTC_12x10_UNORM:
+		case PF_ASTC_12x10_UNORM:
 			vkFormat = VK_FORMAT_ASTC_12x10_UNORM_BLOCK;
 			return true;
-		case EF_ASTC_12x10_SRGB:
+		case PF_ASTC_12x10_SRGB:
 			vkFormat = VK_FORMAT_ASTC_12x10_SRGB_BLOCK;
 			return true;
-		case EF_ASTC_12x12_UNORM:
+		case PF_ASTC_12x12_UNORM:
 			vkFormat = VK_FORMAT_ASTC_12x12_UNORM_BLOCK;
 			return true;
-		case EF_ASTC_12x12_SRGB:
+		case PF_ASTC_12x12_SRGB:
 			vkFormat = VK_FORMAT_ASTC_12x12_SRGB_BLOCK;
 			return true;
 
@@ -778,7 +778,7 @@ namespace KVulkanHelper
 			{
 				VkVertexInputAttributeDescription attributeDescription = {};
 				VkFormat vkFormat = VK_FORMAT_UNDEFINED;
-				ElementFormatToVkFormat(semanticDetail.elementFormat, vkFormat);
+				PixelFormatToVkFormat(semanticDetail.pixelFormat, vkFormat);
 
 				attributeDescription.binding = static_cast<uint32_t>(idx);
 				// 语意枚举值即为绑定位置

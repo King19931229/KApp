@@ -51,24 +51,24 @@ bool KRenderCore::InitPostProcess()
 	size_t width = 0, height = 0;
 	m_MainWindow->GetSize(width, height);
 
-	KRenderGlobal::PostProcessManager.Init(width, height, 1, EF_R16G16B16A16_FLOAT, KRenderGlobal::NumFramesInFlight);
+	KRenderGlobal::PostProcessManager.Init(width, height, 1, PF_R16G16B16A16_FLOAT, KRenderGlobal::NumFramesInFlight);
 #if 0
 	auto startPoint = KRenderGlobal::PostProcessManager.GetStartPointPass();
 
 	auto pass = KRenderGlobal::PostProcessManager.CreatePass();
 	pass->CastPass()->SetShader("postprocess/screenquad.vert", "postprocess/postprocess.frag");
 	pass->CastPass()->SetScale(1.0f);
-	pass->CastPass()->SetFormat(EF_R8G8B8A8_UNORM);
+	pass->CastPass()->SetFormat(PF_R8G8B8A8_UNORM);
 
 	auto pass2 = KRenderGlobal::PostProcessManager.CreatePass();
 	pass2->CastPass()->SetShader("postprocess/screenquad.vert", "postprocess/postprocess2.frag");
 	pass2->CastPass()->SetScale(1.0f);
-	pass2->CastPass()->SetFormat(EF_R8G8B8A8_UNORM);
+	pass2->CastPass()->SetFormat(PF_R8G8B8A8_UNORM);
 
 	auto pass3 = KRenderGlobal::PostProcessManager.CreatePass();
 	pass3->CastPass()->SetShader("postprocess/screenquad.vert", "postprocess/postprocess3.frag");
 	pass3->CastPass()->SetScale(1.0f);
-	pass3->CastPass()->SetFormat(EF_R8G8B8A8_UNORM);
+	pass3->CastPass()->SetFormat(PF_R8G8B8A8_UNORM);
 
 	KRenderGlobal::PostProcessManager.CreateConnection(startPoint, 0, pass, 0);
 	KRenderGlobal::PostProcessManager.CreateConnection(startPoint, 0, pass2, 0);

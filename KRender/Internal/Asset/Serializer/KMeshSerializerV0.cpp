@@ -271,12 +271,12 @@ bool KMeshSerializerV0::ReadVertexElementData(IKDataStreamPtr& stream, VertexFor
 		if (it != detail.semanticDetails.cend())
 		{
 			const auto& semanticDetail = *it;
-			ElementFormat eleFormat = semanticDetail.elementFormat;
+			PixelFormat eleFormat = semanticDetail.pixelFormat;
 			size_t eleOffset = semanticDetail.offset;
 
 			for (size_t i = 0; i < vertexDataCount; ++i)
 			{
-				if (eleFormat == EF_R32G32B32_FLOAT)
+				if (eleFormat == PF_R32G32B32_FLOAT)
 				{
 					const glm::vec3* posData = reinterpret_cast<const glm::vec3*>(vertexDatas.data() + i * vertexDataSize + eleOffset);
 					bound = bound.Merge(*posData);

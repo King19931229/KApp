@@ -24,7 +24,7 @@ protected:
 
 	KEPropertyWidget* m_Widget;
 
-	KEPropertyComboView<ElementFormat>::BasePtr m_FormatView;
+	KEPropertyComboView<PixelFormat>::BasePtr m_FormatView;
 	KEPropertyLineEditView<float>::BasePtr m_ScaleView;
 	KEPropertySliderView<int>::BasePtr m_MSAAView;
 	KEPropertyLineEditView<std::string, 2>::BasePtr m_ShaderView;

@@ -129,7 +129,7 @@ void KDeferredRenderer::RemoveCallFunc(DeferredRenderStage stage, RenderPassCall
 void KDeferredRenderer::RecreateRenderPass(uint32_t width, uint32_t height)
 {
 	m_FinalTarget->UnInit();
-	m_FinalTarget->InitFromColor(width, height, 1, 1, EF_R16G16B16A16_FLOAT);
+	m_FinalTarget->InitFromColor(width, height, 1, 1, PF_R16G16B16A16_FLOAT);
 	m_FinalTarget->GetFrameBuffer()->SetDebugName("FinalTarget");
 
 	auto EnsureRenderPass = [](IKRenderPassPtr& renderPass)

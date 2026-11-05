@@ -77,7 +77,7 @@ protected:
 	// Allocate Parameters
 	uint32_t m_Width;
 	uint32_t m_Height;
-	ElementFormat m_Format;
+	PixelFormat m_Format;
 	unsigned short m_MsaaCount;
 	bool m_Depth;
 	bool m_Stencil;
@@ -93,7 +93,7 @@ public:
 	bool Release(IKRenderDevice* device) override;
 	bool Destroy(IKRenderDevice* device) override;
 
-	bool CreateAsColor(IKRenderDevice* device, uint32_t width, uint32_t height, uint32_t msaa, ElementFormat format);
+	bool CreateAsColor(IKRenderDevice* device, uint32_t width, uint32_t height, uint32_t msaa, PixelFormat format);
 	bool CreateAsDepthStencil(IKRenderDevice* device, uint32_t width, uint32_t height, uint32_t msaa, bool bStencil);
 	bool CreateFromImportTarget(IKRenderDevice* device, IKRenderTargetPtr target);
 

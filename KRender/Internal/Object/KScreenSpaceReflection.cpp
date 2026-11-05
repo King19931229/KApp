@@ -343,54 +343,54 @@ bool KScreenSpaceReflection::Resize(uint32_t width, uint32_t height)
 	}
 
 	m_HitResultTarget->UnInit();
-	m_HitResultTarget->InitFromColor(m_Width, m_Height, 1, 1, EF_R16G16B16A16_FLOAT);
+	m_HitResultTarget->InitFromColor(m_Width, m_Height, 1, 1, PF_R16G16B16A16_FLOAT);
 	m_HitResultTarget->GetFrameBuffer()->SetDebugName("SSR_HitResultTarget");
 
 	m_HitMaskTarget->UnInit();
-	m_HitMaskTarget->InitFromColor(m_Width, m_Height, 1, 1, EF_R8_UNORM);
+	m_HitMaskTarget->InitFromColor(m_Width, m_Height, 1, 1, PF_R8_UNORM);
 	m_HitMaskTarget->GetFrameBuffer()->SetDebugName("SSR_HitMaskTarget");
 
 	for (uint32_t i = 0; i < 2; ++i)
 	{
 		m_TemporalTarget[i]->UnInit();
-		m_TemporalTarget[i]->InitFromColor(m_FullWidth, m_FullHeight, 1, 1, EF_R16G16B16A16_FLOAT);
+		m_TemporalTarget[i]->InitFromColor(m_FullWidth, m_FullHeight, 1, 1, PF_R16G16B16A16_FLOAT);
 		m_TemporalTarget[i]->GetFrameBuffer()->SetDebugName(("SSR_TemporalTarget_" + std::to_string(i)).c_str());
 
 		m_TemporalSquaredTarget[i]->UnInit();
-		m_TemporalSquaredTarget[i]->InitFromColor(m_FullWidth, m_FullHeight, 1, 1, EF_R16G16B16A16_FLOAT);
+		m_TemporalSquaredTarget[i]->InitFromColor(m_FullWidth, m_FullHeight, 1, 1, PF_R16G16B16A16_FLOAT);
 		m_TemporalSquaredTarget[i]->GetFrameBuffer()->SetDebugName(("SSR_TemporalSquaredTarget_" + std::to_string(i)).c_str());
 
 		m_TemporalTsppTarget[i]->UnInit();
-		m_TemporalTsppTarget[i]->InitFromColor(m_FullWidth, m_FullHeight, 1, 1, EF_R8_UNORM);
+		m_TemporalTsppTarget[i]->InitFromColor(m_FullWidth, m_FullHeight, 1, 1, PF_R8_UNORM);
 		m_TemporalTsppTarget[i]->GetFrameBuffer()->SetDebugName(("SSR_TemporalTsppTarget_" + std::to_string(i)).c_str());
 
 		m_BlurTarget[i]->UnInit();
-		m_BlurTarget[i]->InitFromColor(m_FullWidth, m_FullHeight, 1, 1, EF_R16G16B16A16_FLOAT);
+		m_BlurTarget[i]->InitFromColor(m_FullWidth, m_FullHeight, 1, 1, PF_R16G16B16A16_FLOAT);
 		m_BlurTarget[i]->GetFrameBuffer()->SetDebugName(("SSR_BlurTarget_" + std::to_string(i)).c_str());
 	}
 
 	m_HistoryNormalDepthTarget->UnInit();
-	m_HistoryNormalDepthTarget->InitFromColor(m_FullWidth, m_FullHeight, 1, 1, EF_R16G16B16A16_FLOAT);
+	m_HistoryNormalDepthTarget->InitFromColor(m_FullWidth, m_FullHeight, 1, 1, PF_R16G16B16A16_FLOAT);
 	m_HistoryNormalDepthTarget->GetFrameBuffer()->SetDebugName("SSR_HistoryNormalDepthTarget");
 
 	m_FinalTarget->UnInit();
-	m_FinalTarget->InitFromColor(m_FullWidth, m_FullHeight, 1, 1, EF_R16G16B16A16_FLOAT);
+	m_FinalTarget->InitFromColor(m_FullWidth, m_FullHeight, 1, 1, PF_R16G16B16A16_FLOAT);
 	m_FinalTarget->GetFrameBuffer()->SetDebugName("SSR_FinalTarget");
 
 	m_FinalSquaredTarget->UnInit();
-	m_FinalSquaredTarget->InitFromColor(m_FullWidth, m_FullHeight, 1, 1, EF_R16G16B16A16_FLOAT);
+	m_FinalSquaredTarget->InitFromColor(m_FullWidth, m_FullHeight, 1, 1, PF_R16G16B16A16_FLOAT);
 	m_FinalSquaredTarget->GetFrameBuffer()->SetDebugName("SSR_FinalSquaredTarget");
 
 	m_FinalTsppTarget->UnInit();
-	m_FinalTsppTarget->InitFromColor(m_FullWidth, m_FullHeight, 1, 1, EF_R8_UNORM);
+	m_FinalTsppTarget->InitFromColor(m_FullWidth, m_FullHeight, 1, 1, PF_R8_UNORM);
 	m_FinalTsppTarget->GetFrameBuffer()->SetDebugName("SSR_FinalTsppTarget");
 
 	m_ComposeTarget->UnInit();
-	m_ComposeTarget->InitFromColor(m_FullWidth, m_FullHeight, 1, 1, EF_R16G16B16A16_FLOAT);
+	m_ComposeTarget->InitFromColor(m_FullWidth, m_FullHeight, 1, 1, PF_R16G16B16A16_FLOAT);
 	m_ComposeTarget->GetFrameBuffer()->SetDebugName("SSR_ComposeTarget");
 
 	m_VarianceTarget->UnInit();
-	m_VarianceTarget->InitFromColor(m_FullWidth, m_FullHeight, 1, 1, EF_R16G16B16A16_FLOAT);
+	m_VarianceTarget->InitFromColor(m_FullWidth, m_FullHeight, 1, 1, PF_R16G16B16A16_FLOAT);
 	m_VarianceTarget->GetFrameBuffer()->SetDebugName("SSR_VarianceTarget");
 
 	m_ReflectionPass->UnInit();

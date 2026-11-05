@@ -30,7 +30,7 @@ void KVulkanComputePipeline::BindSampler(uint32_t location, IKFrameBufferPtr tar
 	newBinding.image.images = { target };
 	newBinding.image.samplers = { sampler };
 	newBinding.image.imageDescriptors = { {} };
-	newBinding.image.format = EF_UNKNOWN;
+	newBinding.image.format = PF_UNKNOWN;
 	newBinding.flags = COMPUTE_RESOURCE_IN;
 	newBinding.dynamicWrite = dynamicWrite;
 	newBinding.type = BindingInfo::SAMPLER;
@@ -43,20 +43,20 @@ void KVulkanComputePipeline::BindSamplers(uint32_t location, const std::vector<I
 	newBinding.image.images = targets;
 	newBinding.image.samplers = samplers;
 	newBinding.image.imageDescriptors.resize(targets.size());
-	newBinding.image.format = EF_UNKNOWN;
+	newBinding.image.format = PF_UNKNOWN;
 	newBinding.flags = COMPUTE_RESOURCE_IN;
 	newBinding.dynamicWrite = dynamicWrite;
 	newBinding.type = BindingInfo::SAMPLER;
 	m_Bindings[location] = newBinding;
 }
 
-void KVulkanComputePipeline::BindStorageImage(uint32_t location, IKFrameBufferPtr target, ElementFormat format, ComputeResourceFlags flags, uint32_t mipmap, bool dynamicWrite)
+void KVulkanComputePipeline::BindStorageImage(uint32_t location, IKFrameBufferPtr target, PixelFormat format, ComputeResourceFlags flags, uint32_t mipmap, bool dynamicWrite)
 {
 	BindingInfo newBinding;
 	newBinding.image.images = { target };
 	newBinding.image.samplers = {};
 	newBinding.image.imageDescriptors = { {} };
-	newBinding.image.format = EF_UNKNOWN;
+	newBinding.image.format = PF_UNKNOWN;
 	newBinding.image.mipmap = mipmap;
 	newBinding.image.format = format;
 	newBinding.flags = flags;
@@ -65,13 +65,13 @@ void KVulkanComputePipeline::BindStorageImage(uint32_t location, IKFrameBufferPt
 	m_Bindings[location] = newBinding;
 }
 
-void KVulkanComputePipeline::BindStorageImages(uint32_t location, const std::vector<IKFrameBufferPtr>& targets, ElementFormat format, ComputeResourceFlags flags, uint32_t mipmap, bool dynamicWrite)
+void KVulkanComputePipeline::BindStorageImages(uint32_t location, const std::vector<IKFrameBufferPtr>& targets, PixelFormat format, ComputeResourceFlags flags, uint32_t mipmap, bool dynamicWrite)
 {
 	BindingInfo newBinding;
 	newBinding.image.images = targets;
 	newBinding.image.samplers = {};
 	newBinding.image.imageDescriptors.resize(targets.size());
-	newBinding.image.format = EF_UNKNOWN;
+	newBinding.image.format = PF_UNKNOWN;
 	newBinding.image.mipmap = mipmap;
 	newBinding.image.format = format;
 	newBinding.flags = flags;
@@ -143,7 +143,7 @@ VkWriteDescriptorSet KVulkanComputePipeline::PopulateImageWrite(BindingInfo& bin
 			image.imageDescriptors[i] =
 			{
 				vulkanSampler->GetVkSampler(),
-				(image.format == EF_UNKNOWN) ? vulkanFrameBuffer->GetImageView() : vulkanFrameBuffer->GetReinterpretImageView(image.format),
+				(image.format == PF_UNKNOWN) ? vulkanFrameBuffer->GetImageView() : vulkanFrameBuffer->GetReinterpretImageView(image.format),
 				vulkanFrameBuffer->GetImageLayout()
 			};
 		}
@@ -152,7 +152,7 @@ VkWriteDescriptorSet KVulkanComputePipeline::PopulateImageWrite(BindingInfo& bin
 			image.imageDescriptors[i] =
 			{
 				VK_NULL_HANDLE,
-				image.format == EF_UNKNOWN ? vulkanFrameBuffer->GetMipmapImageView(image.mipmap, 1) : vulkanFrameBuffer->GetMipmapReinterpretImageView(image.format, image.mipmap, 1),
+				image.format == PF_UNKNOWN ? vulkanFrameBuffer->GetMipmapImageView(image.mipmap, 1) : vulkanFrameBuffer->GetMipmapReinterpretImageView(image.format, image.mipmap, 1),
 				vulkanFrameBuffer->GetImageLayout()
 			};
 		}

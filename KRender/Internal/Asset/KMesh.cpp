@@ -230,11 +230,11 @@ bool KMesh::InitFromImportResult(const KMeshRawData& result, const std::vector<V
 			if (it != detail.semanticDetails.cend())
 			{
 				const auto& semanticDetail = *it;
-				ElementFormat eleFormat = semanticDetail.elementFormat;
+				PixelFormat eleFormat = semanticDetail.pixelFormat;
 				size_t eleOffset = semanticDetail.offset;
 				for (uint32_t i = 0; i < result.vertexCount; ++i)
 				{
-					if (eleFormat == EF_R32G32B32_FLOAT)
+					if (eleFormat == PF_R32G32B32_FLOAT)
 					{
 						const glm::vec3& position = *reinterpret_cast<const glm::vec3*>(dataSource.data() + i * detail.vertexSize + eleOffset);
 						m_VertexData.bound = m_VertexData.bound.Merge(position);

@@ -166,7 +166,7 @@ bool KVirtualTexture::Init(const std::string& path, uint32_t tileNum, uint32_t v
 	m_Ext = ".png";
 
 	KRenderGlobal::RenderDevice->CreateTexture(m_TableTexture);
-	m_TableTexture->InitMemoryFromData(nullptr, m_Path + "_PageTable", tileNum, tileNum, 1, IF_R8G8B8A8, false, true, false);
+	m_TableTexture->InitMemoryFromData(nullptr, m_Path + "_PageTable", tileNum, tileNum, 1, PF_R8G8B8A8_UNORM, false, true, false);
 	m_TableTexture->InitDevice(false);
 
 	m_TableInfo.resize(tileNum * tileNum);

@@ -61,7 +61,7 @@ size_t KShaderMap::CalcHash(const VertexFormat* formats, size_t count, const KTe
 				if (index != INDEX_NONE && !textureBinding->IsVirtual(i))
 				{
 					IKTexturePtr texture = textureBinding->GetTexture(i);
-					macrosToEnable[index] = KRenderUtil::IsSRGBFormat(texture->GetTextureFormat());
+					macrosToEnable[index] = KPixelFormatHelper::IsSRGBFormat(texture->GetTextureFormat());
 				}
 
 				if (textureBinding->IsVirtual(i))

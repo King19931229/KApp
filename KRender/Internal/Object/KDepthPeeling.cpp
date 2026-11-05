@@ -153,7 +153,7 @@ bool KDepthPeeling::Resize(uint32_t width, uint32_t height)
 	{
 		m_PeelingTarget->UnInit();
 	}
-	m_PeelingTarget->InitFromColor(m_Width, m_Height, 1, 1, EF_R16G16B16A16_FLOAT);
+	m_PeelingTarget->InitFromColor(m_Width, m_Height, 1, 1, PF_R16G16B16A16_FLOAT);
 	m_PeelingTarget->GetFrameBuffer()->SetDebugName("PeelingTarget");
 
 	for (uint32_t i = 0; i < 2; ++i)

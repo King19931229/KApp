@@ -4,227 +4,13 @@
 #include <algorithm>
 #include <cmath>
 
-static bool ImageFormatToElementFormat(ImageFormat imageForamt, ElementFormat& elementFormat)
-{
-	switch (imageForamt)
-	{
-	case IF_R8G8B8A8:
-		elementFormat = EF_R8G8B8A8_UNORM;
-		return true;
-	case IF_R8G8B8:
-		elementFormat = EF_R8G8B8_UNORM;
-		return true;
-	case IF_R8G8:
-		elementFormat = EF_R8G8_UNORM;
-		return true;
-	case IF_R8:
-		elementFormat = EF_R8_UNORM;
-		return true;
-
-	case IF_R16_FLOAT:
-		elementFormat = EF_R16_FLOAT;
-		return true;
-	case IF_R16G16_FLOAT:
-		elementFormat = EF_R16G16_FLOAT;
-		return true;
-	case IF_R16G16B16_FLOAT:
-		elementFormat = EF_R16G16B16_FLOAT;
-		return true;
-	case IF_R16G16B16A16_FLOAT:
-		elementFormat = EF_R16G16B16A16_FLOAT;
-		return true;
-
-	case IF_R32_FLOAT:
-		elementFormat = EF_R32_FLOAT;
-		return true;
-	case IF_R32G32_FLOAT:
-		elementFormat = EF_R32G32_FLOAT;
-		return true;
-	case IF_R32G32B32_FLOAT:
-		elementFormat = EF_R32G32B32_FLOAT;
-		return true;
-	case IF_R32G32B32A32_FLOAT:
-		elementFormat = EF_R32G32B32A32_FLOAT;
-		return true;
-
-	case IF_R16_UINT:
-		elementFormat = EF_R16_UINT;
-		return true;
-
-	case IF_R32_UINT:
-		elementFormat = EF_R32_UINT;
-		return true;
-
-	case IF_ETC1_RGB8:
-		elementFormat = EF_ETC1_R8G8B8_UNORM;
-		return true;
-	case IF_ETC2_RGB8:
-		elementFormat = EF_ETC2_R8G8B8_UNORM;
-		return true;		
-	case IF_ETC2_RGB8A8:
-		elementFormat = EF_ETC2_R8G8B8A8_UNORM;
-		return true;
-	case IF_ETC2_RGB8A1:
-		elementFormat = EF_ETC2_R8G8B8A1_UNORM;
-		return true;
-
-	case IF_DXT1:
-		// https://en.wikipedia.org/wiki/S3_Texture_Compression#DXT1
-		elementFormat = EF_BC1_RGBA_UNORM;
-		return true;
-	case IF_DXT2:
-		elementFormat = EF_BC2_UNORM;
-		return true;
-	case IF_DXT3:
-		elementFormat = EF_BC2_UNORM;
-		return true;
-	case IF_DXT4:
-		elementFormat = EF_BC3_UNORM;
-		return true;
-	case IF_DXT5:
-		elementFormat = EF_BC3_UNORM;
-		return true;
-	case IF_BC4_UNORM:
-		elementFormat = EF_BC4_UNORM;
-		return true;
-	case IF_BC4_SNORM:
-		elementFormat = EF_BC4_SNORM;
-		return true;
-	case IF_BC5_UNORM:
-		elementFormat = EF_BC5_UNORM;
-		return true;
-	case IF_BC5_SNORM:
-		elementFormat = EF_BC5_SNORM;
-		return true;
-	case IF_BC6H_UF16:
-		elementFormat = EF_BC6H_UFLOAT;
-		return true;
-	case IF_BC6H_SF16:
-		elementFormat = EF_BC6H_SFLOAT;
-		return true;
-	case IF_BC7_UNORM:
-		elementFormat = EF_BC7_UNORM;
-		return true;
-	case IF_BC7_UNORM_SRGB:
-		elementFormat = EF_BC7_SRGB;
-		return true;
-
-	case IF_ASTC_4x4_UNORM:
-		elementFormat = EF_ASTC_4x4_UNORM;
-		return true;
-	case IF_ASTC_4x4_SRGB:
-		elementFormat = EF_ASTC_4x4_SRGB;
-		return true;
-	case IF_ASTC_5x4_UNORM:
-		elementFormat = EF_ASTC_5x4_UNORM;
-		return true;
-	case IF_ASTC_5x4_SRGB:
-		elementFormat = EF_ASTC_5x4_SRGB;
-		return true;
-	case IF_ASTC_5x5_UNORM:
-		elementFormat = EF_ASTC_5x5_UNORM;
-		return true;
-	case IF_ASTC_5x5_SRGB:
-		elementFormat = EF_ASTC_5x5_SRGB;
-		return true;
-	case IF_ASTC_6x5_UNORM:
-		elementFormat = EF_ASTC_6x5_UNORM;
-		return true;
-	case IF_ASTC_6x5_SRGB:
-		elementFormat = EF_ASTC_6x5_SRGB;
-		return true;
-	case IF_ASTC_6x6_UNORM:
-		elementFormat = EF_ASTC_6x6_UNORM;
-		return true;
-	case IF_ASTC_6x6_SRGB:
-		elementFormat = EF_ASTC_6x6_SRGB;
-		return true;
-	case IF_ASTC_8x5_UNORM:
-		elementFormat = EF_ASTC_8x5_UNORM;
-		return true;
-	case IF_ASTC_8x5_SRGB:
-		elementFormat = EF_ASTC_8x5_SRGB;
-		return true;
-	case IF_ASTC_8x6_UNORM:
-		elementFormat = EF_ASTC_8x6_UNORM;
-		return true;
-	case IF_ASTC_8x6_SRGB:
-		elementFormat = EF_ASTC_8x6_SRGB;
-		return true;
-	case IF_ASTC_8x8_UNORM:
-		elementFormat = EF_ASTC_8x8_UNORM;
-		return true;
-	case IF_ASTC_8x8_SRGB:
-		elementFormat = EF_ASTC_8x8_SRGB;
-		return true;
-	case IF_ASTC_10x5_UNORM:
-		elementFormat = EF_ASTC_10x5_UNORM;
-		return true;
-	case IF_ASTC_10x5_SRGB:
-		elementFormat = EF_ASTC_10x5_SRGB;
-		return true;
-	case IF_ASTC_10x6_UNORM:
-		elementFormat = EF_ASTC_10x6_UNORM;
-		return true;
-	case IF_ASTC_10x6_SRGB:
-		elementFormat = EF_ASTC_10x6_SRGB;
-		return true;
-	case IF_ASTC_10x8_UNORM:
-		elementFormat = EF_ASTC_10x8_UNORM;
-		return true;
-	case IF_ASTC_10x8_SRGB:
-		elementFormat = EF_ASTC_10x8_SRGB;
-		return true;
-	case IF_ASTC_10x10_UNORM:
-		elementFormat = EF_ASTC_10x10_UNORM;
-		return true;
-	case IF_ASTC_10x10_SRGB:
-		elementFormat = EF_ASTC_10x10_SRGB;
-		return true;
-	case IF_ASTC_12x10_UNORM:
-		elementFormat = EF_ASTC_12x10_UNORM;
-		return true;
-	case IF_ASTC_12x10_SRGB:
-		elementFormat = EF_ASTC_12x10_SRGB;
-		return true;
-	case IF_ASTC_12x12_UNORM:
-		elementFormat = EF_ASTC_12x12_UNORM;
-		return true;
-	case IF_ASTC_12x12_SRGB:
-		elementFormat = EF_ASTC_12x12_SRGB;
-		return true;
-
-	case IF_DXT1_SRGB:
-		elementFormat = EF_BC1_RGBA_SRGB;
-		return true;
-	case IF_DXT3_SRGB:
-		elementFormat = EF_BC2_SRGB;
-		return true;
-	case IF_DXT5_SRGB:
-		elementFormat = EF_BC3_SRGB;
-		return true;
-	case IF_R8G8B8_SRGB:
-		elementFormat = EF_R8G8B8_SRGB;
-		return true;
-	case IF_R8G8B8A8_SRGB:
-		elementFormat = EF_R8G8B8A8_SRGB;
-		return true;
-
-	case IF_COUNT:
-	default:
-		assert(false && "unsupport format");
-		elementFormat = EF_UNKNOWN;
-		return false;
-	}
-}
-
 KTextureBase::KTextureBase()
 	: m_Width(0),
 	m_Height(0),
 	m_Depth(0),
 	m_Slice(0),
 	m_Mipmaps(0),
-	m_Format(EF_UNKNOWN),
+	m_Format(PF_UNKNOWN),
 	m_TextureType(TT_UNKNOWN),
 	m_bGenerateMipmap(false),
 	m_ResourceState(RS_UNLOADED)
@@ -239,15 +25,15 @@ KTextureBase::~KTextureBase()
 
 bool KTextureBase::InitProperty(bool generateMipmap)
 {
-	if (!KImageHelper::IsValid(m_ImageData.eFormat)
+	if (!KPixelFormatHelper::IsValid(m_ImageData.eFormat)
 		|| !m_ImageData.uWidth || !m_ImageData.uHeight || !m_ImageData.uDepth
 		|| !m_ImageData.uSlice || !m_ImageData.uMipmap)
 	{
-		m_Format = EF_UNKNOWN;
+		m_Format = PF_UNKNOWN;
 		return false;
 	}
-	if (!ImageFormatToElementFormat(m_ImageData.eFormat, m_Format)) return false;
-	m_ImageData.bCompressed = KImageHelper::IsCompressed(m_ImageData.eFormat);
+	m_Format = m_ImageData.eFormat;
+	m_ImageData.bCompressed = KPixelFormatHelper::IsCompressed(m_Format);
 	m_Width = m_ImageData.uWidth;
 	m_Height = m_ImageData.uHeight;
 	m_Depth = m_ImageData.uDepth;
@@ -354,14 +140,14 @@ bool KTextureBase::InitMemoryFromFile(const std::string& filePath, bool bGenerat
 	}
 }
 
-bool KTextureBase::InitMemoryFromData(const void* pRawData, const std::string& name, size_t width, size_t height, size_t depth, ImageFormat format, bool cubeMap, bool bGenerateMipmap, bool async)
+bool KTextureBase::InitMemoryFromData(const void* pRawData, const std::string& name, size_t width, size_t height, size_t depth, PixelFormat format, bool cubeMap, bool bGenerateMipmap, bool async)
 {
 	ReleaseMemory();
 
 	const size_t faceCount = cubeMap ? 6 : 1;
 	size_t imageSize = 0;
-	if (KImageHelper::IsCompressed(format)
-		|| !KImageHelper::GetByteSize(format, 1, faceCount, width, height, depth, imageSize))
+	if (KPixelFormatHelper::IsCompressed(format)
+		|| !KPixelFormatHelper::GetByteSize(format, 1, faceCount, width, height, depth, imageSize))
 	{
 		return false;
 	}
@@ -421,15 +207,15 @@ bool KTextureBase::InitMemoryFromData(const void* pRawData, const std::string& n
 	}
 }
 
-bool KTextureBase::InitMemoryFrom2DArray(const std::string& name, size_t width, size_t height, size_t slices, ImageFormat format, bool bGenerateMipmap, bool async)
+bool KTextureBase::InitMemoryFrom2DArray(const std::string& name, size_t width, size_t height, size_t slices, PixelFormat format, bool bGenerateMipmap, bool async)
 {
 	ReleaseMemory();
 
 	auto loadImpl = [=]()->bool
 	{
 		size_t imageSize = 0;
-		if (!KImageHelper::IsCompressed(format)
-			&& KImageHelper::GetByteSize(format, 1, slices, width, height, 1, imageSize))
+		if (!KPixelFormatHelper::IsCompressed(format)
+			&& KPixelFormatHelper::GetByteSize(format, 1, slices, width, height, 1, imageSize))
 		{
 			KImageDataPtr pImageData = KImageDataPtr(KNEW KImageData(imageSize));
 			memset(pImageData->GetData(), 0, pImageData->GetSize());

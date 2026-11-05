@@ -11,7 +11,7 @@ KPostProcessPass::KPostProcessPass(KPostProcessManager* manager, size_t frameInF
 	m_Scale(1),
 	m_MsaaCount(1),
 	m_FrameInFlight(frameInFlight),
-	m_Format(EF_R8G8B8A8_UNORM),
+	m_Format(PF_R8G8B8A8_UNORM),
 	m_Stage(stage),
 	m_bInit(false)
 {
@@ -29,7 +29,7 @@ KPostProcessPass::KPostProcessPass(KPostProcessManager* manager, size_t frameInF
 	m_Scale(1),
 	m_MsaaCount(1),
 	m_FrameInFlight(frameInFlight),
-	m_Format(EF_R8G8B8A8_UNORM),
+	m_Format(PF_R8G8B8A8_UNORM),
 	m_Stage(stage),
 	m_bInit(false),
 	m_ID(id)
@@ -71,7 +71,7 @@ bool KPostProcessPass::SetScale(float scale)
 	return true;
 }
 
-bool KPostProcessPass::SetFormat(ElementFormat format)
+bool KPostProcessPass::SetFormat(PixelFormat format)
 {
 	m_Format = format;
 	return true;
@@ -93,7 +93,7 @@ float KPostProcessPass::GetScale()
 	return m_Scale;
 }
 
-ElementFormat KPostProcessPass::GetFormat()
+PixelFormat KPostProcessPass::GetFormat()
 {
 	return m_Format;
 }
@@ -302,7 +302,7 @@ bool KPostProcessPass::Load(IKJsonValuePtr& object)
 		m_Stage = (PostProcessStage)object->GetMember(msStageKey)->GetInt();
 
 		m_Scale = object->GetMember(msScaleKey)->GetFloat();
-		m_Format = (ElementFormat)object->GetMember(msFormatKey)->GetInt();
+		m_Format = (PixelFormat)object->GetMember(msFormatKey)->GetInt();
 		m_MsaaCount = object->GetMember(msMSAAKey)->GetInt();
 		m_VSFile = object->GetMember(msVSKey)->GetString();
 		m_FSFile = object->GetMember(msFSKey)->GetString();

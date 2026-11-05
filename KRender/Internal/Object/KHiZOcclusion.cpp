@@ -106,10 +106,10 @@ bool KHiZOcclusion::Init()
 		KRenderGlobal::RenderDevice->CreateRenderTarget(m_ResultTargets[frameIdx]);
 		KRenderGlobal::RenderDevice->CreateRenderTarget(m_ResultReadbackTargets[frameIdx]);
 
-		m_PositionTargets[frameIdx]->InitFromColor(OCCLUSION_TARGRT_DIMENSION, OCCLUSION_TARGRT_DIMENSION, 1, 1, EF_R32G32B32A32_FLOAT);
-		m_ExtentTargets[frameIdx]->InitFromColor(OCCLUSION_TARGRT_DIMENSION, OCCLUSION_TARGRT_DIMENSION, 1, 1, EF_R32G32B32A32_FLOAT);
-		m_ResultTargets[frameIdx]->InitFromColor(OCCLUSION_TARGRT_DIMENSION, OCCLUSION_TARGRT_DIMENSION, 1, 1, EF_R8_UNORM);
-		m_ResultReadbackTargets[frameIdx]->InitFromReadback(OCCLUSION_TARGRT_DIMENSION, OCCLUSION_TARGRT_DIMENSION, 1, 1, EF_R8_UNORM);
+		m_PositionTargets[frameIdx]->InitFromColor(OCCLUSION_TARGRT_DIMENSION, OCCLUSION_TARGRT_DIMENSION, 1, 1, PF_R32G32B32A32_FLOAT);
+		m_ExtentTargets[frameIdx]->InitFromColor(OCCLUSION_TARGRT_DIMENSION, OCCLUSION_TARGRT_DIMENSION, 1, 1, PF_R32G32B32A32_FLOAT);
+		m_ResultTargets[frameIdx]->InitFromColor(OCCLUSION_TARGRT_DIMENSION, OCCLUSION_TARGRT_DIMENSION, 1, 1, PF_R8_UNORM);
+		m_ResultReadbackTargets[frameIdx]->InitFromReadback(OCCLUSION_TARGRT_DIMENSION, OCCLUSION_TARGRT_DIMENSION, 1, 1, PF_R8_UNORM);
 
 		KRenderGlobal::RenderDevice->CreatePipeline(m_PreparePipelines[frameIdx]);
 		KRenderGlobal::RenderDevice->CreatePipeline(m_ExecutePipelines[frameIdx]);
@@ -318,8 +318,8 @@ void KHiZOcclusion::PushCandidatesInformation(KRHICommandList& commandList)
 		extentDatas[y * OCCLUSION_TARGRT_DIMENSION + x] = glm::vec4(candidates[idx].extent, 1);
 	}
 
-	m_TempPositionTextures[frameIdx]->InitMemoryFromData(posDatas.data(), "HiZOCTempPos", dimensionX, dimensionY, 1, IF_R32G32B32A32_FLOAT, false, false, false);
-	m_TempExtentTextures[frameIdx]->InitMemoryFromData(extentDatas.data(), "HiZOCTempExtent", dimensionX, dimensionY, 1, IF_R32G32B32A32_FLOAT, false, false, false);
+	m_TempPositionTextures[frameIdx]->InitMemoryFromData(posDatas.data(), "HiZOCTempPos", dimensionX, dimensionY, 1, PF_R32G32B32A32_FLOAT, false, false, false);
+	m_TempExtentTextures[frameIdx]->InitMemoryFromData(extentDatas.data(), "HiZOCTempExtent", dimensionX, dimensionY, 1, PF_R32G32B32A32_FLOAT, false, false, false);
 	m_TempPositionTextures[frameIdx]->InitDevice(false);
 	m_TempExtentTextures[frameIdx]->InitDevice(false);
 

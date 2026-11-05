@@ -67,7 +67,7 @@ KFrameGraphRenderTarget::KFrameGraphRenderTarget()
 	: KFrameGraphResource(FrameGraphResourceType::RENDER_TARGET),
 	m_RenderTarget(nullptr),
 	m_TargetType(FrameGraphRenderTargetType::UNKNOWN_TARGET),
-	m_Format(EF_R8G8B8A8_UNORM),
+	m_Format(PF_R8G8B8A8_UNORM),
 	m_Width(0),
 	m_Height(0),
 	m_MsaaCount(1),
@@ -92,7 +92,7 @@ bool KFrameGraphRenderTarget::ResetParameters()
 	return true;
 }
 
-bool KFrameGraphRenderTarget::CreateAsColor(IKRenderDevice* device, uint32_t width, uint32_t height, uint32_t msaa, ElementFormat format)
+bool KFrameGraphRenderTarget::CreateAsColor(IKRenderDevice* device, uint32_t width, uint32_t height, uint32_t msaa, PixelFormat format)
 {
 	Destroy(device);
 	ResetParameters();

@@ -126,7 +126,7 @@ bool KTextureManager::Acquire(const char* path, KTextureRef& ref, bool async)
 	return false;
 }
 
-bool KTextureManager::Acquire(const char* name, const void* pRawData, size_t dataLen, size_t width, size_t height, size_t depth, ImageFormat format, bool cubeMap, bool bGenerateMipmap, KTextureRef& ref, bool async)
+bool KTextureManager::Acquire(const char* name, const void* pRawData, size_t dataLen, size_t width, size_t height, size_t depth, PixelFormat format, bool cubeMap, bool bGenerateMipmap, KTextureRef& ref, bool async)
 {
 	if (pRawData)
 	{

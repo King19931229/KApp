@@ -80,12 +80,12 @@ struct IKPostProcessPass : public IKPostProcessNode
 
 	virtual bool SetShader(const char* vsFile, const char* fsFile) = 0;
 	virtual bool SetScale(float scale) = 0;
-	virtual bool SetFormat(ElementFormat format) = 0;
+	virtual bool SetFormat(PixelFormat format) = 0;
 	virtual bool SetMSAA(unsigned short msaaCount) = 0;
 
 	virtual std::tuple<std::string, std::string> GetShader() = 0; // first vs. second fs.
 	virtual float GetScale() = 0;
-	virtual ElementFormat GetFormat() = 0;
+	virtual PixelFormat GetFormat() = 0;
 	virtual unsigned short GetMSAA() = 0;
 };
 

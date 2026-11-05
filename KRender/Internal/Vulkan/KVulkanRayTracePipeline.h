@@ -87,7 +87,7 @@ protected:
 	ShaderInfo m_RayGenShader;
 	ShaderInfo m_MissShader;
 
-	ElementFormat m_Format;
+	PixelFormat m_Format;
 	uint32_t m_Width;
 	uint32_t m_Height;
 
@@ -115,7 +115,7 @@ public:
 	~KVulkanRayTracePipeline();
 
 	virtual bool SetShaderTable(ShaderType type, const char* szShader);
-	virtual bool SetStorageImage(ElementFormat format);
+	virtual bool SetStorageImage(PixelFormat format);
 
 	virtual bool RecreateFromAS();
 	virtual bool ResizeImage(uint32_t width, uint32_t height);

@@ -46,7 +46,7 @@ KPostProcessManager::~KPostProcessManager()
 
 bool KPostProcessManager::Init(size_t width, size_t height,
 							   unsigned short massCount,
-							   ElementFormat startFormat,
+							   PixelFormat startFormat,
 							   size_t frameInFlight)
 {
 	UnInit();

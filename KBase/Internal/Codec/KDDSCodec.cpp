@@ -326,53 +326,53 @@ bool KDDSCodec::UnInit()
 	return false;
 }
 
-ImageFormat KDDSCodec::ConvertFourCCFormat(uint32_t fourcc) const
+PixelFormat KDDSCodec::ConvertFourCCFormat(uint32_t fourcc) const
 {
 	// convert dxt pixel format
 	switch (fourcc)
 	{
 	case FOURCC('D', 'X', 'T', '1'):
-		return IF_DXT1;
+		return PF_BC1_RGBA_UNORM;
 	case FOURCC('D', 'X', 'T', '2'):
-		return IF_DXT2;
+		return PF_BC2_UNORM;
 	case FOURCC('D', 'X', 'T', '3'):
-		return IF_DXT3;
+		return PF_BC2_UNORM;
 	case FOURCC('D', 'X', 'T', '4'):
-		return IF_DXT4;
+		return PF_BC3_UNORM;
 	case FOURCC('D', 'X', 'T', '5'):
-		return IF_DXT5;
+		return PF_BC3_UNORM;
 	case FOURCC('A', 'T', 'I', '1'):
 	case FOURCC('B', 'C', '4', 'U'):
-		return IF_BC4_UNORM;
+		return PF_BC4_UNORM;
 	case FOURCC('B', 'C', '4', 'S'):
-		return IF_BC4_SNORM;
+		return PF_BC4_SNORM;
 	case FOURCC('A', 'T', 'I', '2'):
 	case FOURCC('B', 'C', '5', 'U'):
-		return IF_BC5_UNORM;
+		return PF_BC5_UNORM;
 	case FOURCC('B', 'C', '5', 'S'):
-		return IF_BC5_SNORM;
+		return PF_BC5_SNORM;
 	case D3DFMT_R16F:
-		return IF_R16_FLOAT;
+		return PF_R16_FLOAT;
 	case D3DFMT_G16R16F:
-		return IF_R16G16_FLOAT;
+		return PF_R16G16_FLOAT;
 	case D3DFMT_A16B16G16R16F:
-		return IF_R16G16B16A16_FLOAT;
+		return PF_R16G16B16A16_FLOAT;
 	case D3DFMT_R32F:
-		return IF_R32_FLOAT;
+		return PF_R32_FLOAT;
 	case D3DFMT_G32R32F:
-		return IF_R32G32_FLOAT;
+		return PF_R32G32_FLOAT;
 	case D3DFMT_A32B32G32R32F:
-		return IF_R32G32B32A32_FLOAT;
+		return PF_R32G32B32A32_FLOAT;
 		// We could support 3Dc here, but only ATI cards support it, not nVidia
 	default:
 		assert(false && "unknown ccformat");
-		return IF_INVALID;
+		return PF_UNKNOWN;
 	};
 }
 
-ImageFormat KDDSCodec::SearchImageFormat(uint32_t rgbBits, uint32_t rMask, uint32_t gMask, uint32_t bMask, uint32_t aMask) const
+PixelFormat KDDSCodec::SearchPixelFormat(uint32_t rgbBits, uint32_t rMask, uint32_t gMask, uint32_t bMask, uint32_t aMask) const
 {
-	return IF_INVALID;
+	return PF_UNKNOWN;
 }
 
 void KDDSCodec::UnpackR5G6B5Colour(const void* src, ColourValue *pCol) const
@@ -398,7 +398,7 @@ void KDDSCodec::UnpackR5G6B5Colour(const void* src, ColourValue *pCol) const
 	pCol->a = 1.0f;
 }
 
-void KDDSCodec::UnpackDXTColour(ImageFormat format, const DXTColourBlock &block,
+void KDDSCodec::UnpackDXTColour(PixelFormat format, const DXTColourBlock &block,
 	ColourValue *pCol) const
 {
 	// Note - we assume all values have already been endian swapped
@@ -406,7 +406,7 @@ void KDDSCodec::UnpackDXTColour(ImageFormat format, const DXTColourBlock &block,
 	// Colour lookup table
 	ColourValue derivedColours[4];
 
-	const bool isBC1 = format == IF_DXT1 || format == IF_DXT1_SRGB;
+	const bool isBC1 = format == PF_BC1_RGBA_UNORM || format == PF_BC1_RGBA_SRGB;
 	if (isBC1 && block.colour_0 <= block.colour_1)
 	{
 		// 1-bit alpha
@@ -590,7 +590,7 @@ bool KDDSCodec::CodecImpl(IKDataStreamPtr stream, bool forceAlpha, KCodecResult&
 		result.uDepth = header.depth;
 	}
 
-	ImageFormat sourceFormat = IF_INVALID;
+	PixelFormat sourceFormat = PF_UNKNOWN;
 
 	if (header.pixelFormat.flags & DDPF_FOURCC)
 	{
@@ -646,95 +646,95 @@ bool KDDSCodec::CodecImpl(IKDataStreamPtr stream, bool forceAlpha, KCodecResult&
 			{
 			case DXGI_FORMAT_BC1_TYPELESS:
 			case DXGI_FORMAT_BC1_UNORM:
-				sourceFormat = IF_DXT1;
+				sourceFormat = PF_BC1_RGBA_UNORM;
 				break;
 			case DXGI_FORMAT_BC1_UNORM_SRGB:
-				sourceFormat = IF_DXT1_SRGB;
+				sourceFormat = PF_BC1_RGBA_SRGB;
 				break;
 
 			case DXGI_FORMAT_BC2_TYPELESS:
 			case DXGI_FORMAT_BC2_UNORM:
-				sourceFormat = IF_DXT3;
+				sourceFormat = PF_BC2_UNORM;
 				break;
 			case DXGI_FORMAT_BC2_UNORM_SRGB:
-				sourceFormat = IF_DXT3_SRGB;
+				sourceFormat = PF_BC2_SRGB;
 				break;
 
 			case DXGI_FORMAT_BC3_TYPELESS:
 			case DXGI_FORMAT_BC3_UNORM:
-				sourceFormat = IF_DXT5;
+				sourceFormat = PF_BC3_UNORM;
 				break;
 			case DXGI_FORMAT_BC3_UNORM_SRGB:
-				sourceFormat = IF_DXT5_SRGB;
+				sourceFormat = PF_BC3_SRGB;
 				break;
 
 			case DXGI_FORMAT_BC4_TYPELESS:
 			case DXGI_FORMAT_BC4_UNORM:
-				sourceFormat = IF_BC4_UNORM;
+				sourceFormat = PF_BC4_UNORM;
 				break;
 
 			case DXGI_FORMAT_BC4_SNORM:
-				sourceFormat = IF_BC4_SNORM;
+				sourceFormat = PF_BC4_SNORM;
 				break;
 
 			case DXGI_FORMAT_BC5_TYPELESS:
 			case DXGI_FORMAT_BC5_UNORM:
-				sourceFormat = IF_BC5_UNORM;
+				sourceFormat = PF_BC5_UNORM;
 				break;
 
 			case DXGI_FORMAT_BC5_SNORM:
-				sourceFormat = IF_BC5_SNORM;
+				sourceFormat = PF_BC5_SNORM;
 				break;
 
 			case DXGI_FORMAT_BC6H_TYPELESS:
 			case DXGI_FORMAT_BC6H_UF16:
-				sourceFormat = IF_BC6H_UF16;
+				sourceFormat = PF_BC6H_UFLOAT;
 				break;
 
 			case DXGI_FORMAT_BC6H_SF16:
-				sourceFormat = IF_BC6H_SF16;
+				sourceFormat = PF_BC6H_SFLOAT;
 				break;
 
 			case DXGI_FORMAT_BC7_TYPELESS:
 			case DXGI_FORMAT_BC7_UNORM:
-				sourceFormat = IF_BC7_UNORM;
+				sourceFormat = PF_BC7_UNORM;
 				break;
 
 			case DXGI_FORMAT_BC7_UNORM_SRGB:
-				sourceFormat = IF_BC7_UNORM_SRGB;
+				sourceFormat = PF_BC7_SRGB;
 				break;
 
 			case DXGI_FORMAT_R16G16B16A16_TYPELESS:
 			case DXGI_FORMAT_R16G16B16A16_FLOAT:
-				sourceFormat = IF_R16G16B16A16_FLOAT;
+				sourceFormat = PF_R16G16B16A16_FLOAT;
 				break;
 
 			case DXGI_FORMAT_R32G32_TYPELESS:
 			case DXGI_FORMAT_R32G32_FLOAT:
-				sourceFormat = IF_R32G32_FLOAT;
+				sourceFormat = PF_R32G32_FLOAT;
 				break;
 
 			case DXGI_FORMAT_R16G16_TYPELESS:
 			case DXGI_FORMAT_R16G16_FLOAT:
-				sourceFormat = IF_R16G16_FLOAT;
+				sourceFormat = PF_R16G16_FLOAT;
 				break;
 
 			case DXGI_FORMAT_R32_TYPELESS:
 			case DXGI_FORMAT_R32_FLOAT:
-				sourceFormat = IF_R32_FLOAT;
+				sourceFormat = PF_R32_FLOAT;
 				break;
 
 			case DXGI_FORMAT_R16_TYPELESS:
 			case DXGI_FORMAT_R16_FLOAT:
-				sourceFormat = IF_R16_FLOAT;
+				sourceFormat = PF_R16_FLOAT;
 				break;
 
 			case DXGI_FORMAT_R8G8B8A8_TYPELESS:
 			case DXGI_FORMAT_R8G8B8A8_UNORM:
-				sourceFormat = IF_R8G8B8A8;
+				sourceFormat = PF_R8G8B8A8_UNORM;
 				break;
 			case DXGI_FORMAT_R8G8B8A8_UNORM_SRGB:
-				sourceFormat = IF_R8G8B8A8_SRGB;
+				sourceFormat = PF_R8G8B8A8_SRGB;
 				break;
 
 			default:
@@ -749,18 +749,18 @@ bool KDDSCodec::CodecImpl(IKDataStreamPtr stream, bool forceAlpha, KCodecResult&
 	}
 	else
 	{
-		sourceFormat = SearchImageFormat(header.pixelFormat.rgbBits,
+		sourceFormat = SearchPixelFormat(header.pixelFormat.rgbBits,
 			header.pixelFormat.redMask, header.pixelFormat.greenMask,
 			header.pixelFormat.blueMask,
 			header.pixelFormat.flags & DDPF_ALPHAPIXELS ?
 			header.pixelFormat.alphaMask : 0);
 	}
 
-	if (!KImageHelper::IsValid(sourceFormat)) return false;
-	const bool isCompress = KImageHelper::IsCompressed(sourceFormat);
-	const bool isSRGB = KImageHelper::IsSRGBFormat(sourceFormat);
-	const ImageFormat rgbFormat = isSRGB ? IF_R8G8B8_SRGB : IF_R8G8B8;
-	const ImageFormat rgbaFormat = isSRGB ? IF_R8G8B8A8_SRGB : IF_R8G8B8A8;
+	if (!KPixelFormatHelper::IsValid(sourceFormat)) return false;
+	const bool isCompress = KPixelFormatHelper::IsCompressed(sourceFormat);
+	const bool isSRGB = KPixelFormatHelper::IsSRGBFormat(sourceFormat);
+	const PixelFormat rgbFormat = isSRGB ? PF_R8G8B8_SRGB : PF_R8G8B8_UNORM;
+	const PixelFormat rgbaFormat = isSRGB ? PF_R8G8B8A8_SRGB : PF_R8G8B8A8_UNORM;
 	if (isCompress)
 	{
 		if (!KCodec::BCHardwareCodec || result.uMipmap == 1/* || result.b3DTexture*/)
@@ -770,8 +770,8 @@ bool KDDSCodec::CodecImpl(IKDataStreamPtr stream, bool forceAlpha, KCodecResult&
 			// Convert format
 			switch (sourceFormat)
 			{
-			case IF_DXT1:
-			case IF_DXT1_SRGB:
+			case PF_BC1_RGBA_UNORM:
+			case PF_BC1_RGBA_SRGB:
 				// source can be either 565 or 5551 depending on whether alpha present
 				// unfortunately you have to read a block to figure out which
 				// Note that we upgrade to 32-bit pixel formats here, even
@@ -796,12 +796,10 @@ bool KDDSCodec::CodecImpl(IKDataStreamPtr stream, bool forceAlpha, KCodecResult&
 				}
 				result.bCompressed = false;
 				break;
-			case IF_DXT2:
-			case IF_DXT3:
-			case IF_DXT3_SRGB:
-			case IF_DXT4:
-			case IF_DXT5:
-			case IF_DXT5_SRGB:
+			case PF_BC2_UNORM:
+			case PF_BC2_SRGB:
+			case PF_BC3_UNORM:
+			case PF_BC3_SRGB:
 				// full alpha present, formats vary only in encoding
 				result.eFormat = rgbaFormat;
 				result.bCompressed = false;
@@ -837,7 +835,7 @@ bool KDDSCodec::CodecImpl(IKDataStreamPtr stream, bool forceAlpha, KCodecResult&
 	}
 
 	size_t imageSize = 0;
-	if (!KImageHelper::GetByteSize(result.eFormat,
+	if (!KPixelFormatHelper::GetByteSize(result.eFormat,
 		result.uMipmap,
 		numFaces,
 		result.uWidth,
@@ -873,7 +871,7 @@ bool KDDSCodec::CodecImpl(IKDataStreamPtr stream, bool forceAlpha, KCodecResult&
 				if (decompressDXT)
 				{
 					size_t elementByteSize = 0;
-					ASSERT_RESULT(KImageHelper::GetElementByteSize(result.eFormat, elementByteSize));
+					ASSERT_RESULT(KPixelFormatHelper::GetElementByteSize(result.eFormat, elementByteSize));
 					unsigned char* destination = static_cast<unsigned char*>(dataPtr);
 					for (size_t z = 0; z < depth; ++z)
 					{
@@ -882,14 +880,14 @@ bool KDDSCodec::CodecImpl(IKDataStreamPtr stream, bool forceAlpha, KCodecResult&
 							for (size_t x = 0; x < width; x += 4)
 							{
 								ColourValue colours[16] = {};
-								if (sourceFormat == IF_DXT2 || sourceFormat == IF_DXT3 || sourceFormat == IF_DXT3_SRGB)
+								if (sourceFormat == PF_BC2_UNORM || sourceFormat == PF_BC2_SRGB)
 								{
 									DXTExplicitAlphaBlock alpha;
 									stream->Read(&alpha, sizeof(alpha));
 									FlipEndian(alpha.alphaRow, sizeof(uint16_t), 4);
 									UnpackDXTAlpha(alpha, colours);
 								}
-								else if (sourceFormat == IF_DXT4 || sourceFormat == IF_DXT5 || sourceFormat == IF_DXT5_SRGB)
+								else if (sourceFormat == PF_BC3_UNORM || sourceFormat == PF_BC3_SRGB)
 								{
 									DXTInterpolatedAlphaBlock alpha;
 									stream->Read(&alpha, sizeof(alpha));
@@ -921,7 +919,7 @@ bool KDDSCodec::CodecImpl(IKDataStreamPtr stream, bool forceAlpha, KCodecResult&
 						}
 					}
 					size_t decodedSize = 0;
-					ASSERT_RESULT(KImageHelper::GetByteSize(result.eFormat, width, height, depth, decodedSize));
+					ASSERT_RESULT(KPixelFormatHelper::GetByteSize(result.eFormat, width, height, depth, decodedSize));
 					dataPtr = destination + decodedSize;
 				}
 				else
@@ -929,7 +927,7 @@ bool KDDSCodec::CodecImpl(IKDataStreamPtr stream, bool forceAlpha, KCodecResult&
 					// load directly
 					// DDS format lies! sizeOrPitch is not always set for DXT!!						
 					size_t dxtSize = 0;
-					ASSERT_RESULT(KImageHelper::GetByteSize(result.eFormat, width, height, depth, dxtSize));
+					ASSERT_RESULT(KPixelFormatHelper::GetByteSize(result.eFormat, width, height, depth, dxtSize));
 					stream->Read(dataPtr, dxtSize);
 					dataPtr = static_cast<void*>(static_cast<unsigned char*>(dataPtr) + dxtSize);
 				}
@@ -938,7 +936,7 @@ bool KDDSCodec::CodecImpl(IKDataStreamPtr stream, bool forceAlpha, KCodecResult&
 			{
 				// Get the byte size of the dest format element
 				size_t elementByteSize = 0;
-				ASSERT_RESULT(KImageHelper::GetElementByteSize(result.eFormat, elementByteSize));
+				ASSERT_RESULT(KPixelFormatHelper::GetElementByteSize(result.eFormat, elementByteSize));
 				size_t dstPitch = width * elementByteSize;
 
 				// Final data - trim incoming pitch

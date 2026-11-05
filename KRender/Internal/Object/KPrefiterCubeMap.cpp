@@ -67,7 +67,7 @@ bool KPrefilerCubeMap::Init(uint32_t width, uint32_t height, size_t mipmaps, con
 
 	renderDevice->CreateRenderTarget(m_IntegrateBRDFTarget);
 	renderDevice->CreateRenderPass(m_IntegrateBRDFPass);
-	m_IntegrateBRDFTarget->InitFromColor(512, 512, 1, 1, EF_R16G16_FLOAT);
+	m_IntegrateBRDFTarget->InitFromColor(512, 512, 1, 1, PF_R16G16_FLOAT);
 	m_IntegrateBRDFPass->SetColorAttachment(0, m_IntegrateBRDFTarget->GetFrameBuffer());
 	m_IntegrateBRDFPass->SetClearColor(0, { 0.0f, 0.0f, 0.0f, 0.0f });
 	m_IntegrateBRDFPass->Init();
@@ -81,7 +81,7 @@ bool KPrefilerCubeMap::Init(uint32_t width, uint32_t height, size_t mipmaps, con
 	renderDevice->CreateStorageBuffer(m_SHCoffBuffer);
 
 	renderDevice->CreateTexture(m_SHConstructCubeMap);
-	m_SHConstructCubeMap->InitMemoryFromData(nullptr, "SHConstruct", m_SrcCubeMap->GetWidth(), m_SrcCubeMap->GetHeight(), m_SrcCubeMap->GetDepth(), IF_R16G16B16A16_FLOAT, true, false, false);
+	m_SHConstructCubeMap->InitMemoryFromData(nullptr, "SHConstruct", m_SrcCubeMap->GetWidth(), m_SrcCubeMap->GetHeight(), m_SrcCubeMap->GetDepth(), PF_R16G16B16A16_FLOAT, true, false, false);
 	m_SHConstructCubeMap->InitDevice(false);
 
 	AllocateTempResource(renderDevice, width, height, mipmaps);
@@ -272,11 +272,11 @@ bool KPrefilerCubeMap::AllocateTempResource(IKRenderDevice* renderDevice, uint32
 	m_SHCoffBuffer->InitDevice(false, false);
 
 	m_SHProductPipeline->BindStorageBuffer(SH_BINDING_COEFFICIENT, m_SHCoffBuffer, COMPUTE_RESOURCE_OUT, true);
-	m_SHProductPipeline->BindStorageImage(SH_BINDING_CUBEMAP, m_SrcCubeMap->GetFrameBuffer(), EF_R16G16B16A16_FLOAT, COMPUTE_RESOURCE_IN, 0, true);
+	m_SHProductPipeline->BindStorageImage(SH_BINDING_CUBEMAP, m_SrcCubeMap->GetFrameBuffer(), PF_R16G16B16A16_FLOAT, COMPUTE_RESOURCE_IN, 0, true);
 	m_SHProductPipeline->Init("pbr/sh_product.comp", KShaderCompileEnvironment(), KRenderGlobal::EnableAsyncShaderCompile);
 
 	m_SHConstructPipeline->BindStorageBuffer(SH_BINDING_COEFFICIENT, m_SHCoffBuffer, COMPUTE_RESOURCE_IN, true);
-	m_SHConstructPipeline->BindStorageImage(SH_BINDING_CUBEMAP, m_SHConstructCubeMap->GetFrameBuffer(), EF_R16G16B16A16_FLOAT, COMPUTE_RESOURCE_OUT, 0, true);
+	m_SHConstructPipeline->BindStorageImage(SH_BINDING_CUBEMAP, m_SHConstructCubeMap->GetFrameBuffer(), PF_R16G16B16A16_FLOAT, COMPUTE_RESOURCE_OUT, 0, true);
 	m_SHConstructPipeline->Init("pbr/sh_construct.comp", KShaderCompileEnvironment(), KRenderGlobal::EnableAsyncShaderCompile);
 
 	return true;

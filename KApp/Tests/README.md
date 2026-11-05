@@ -7,4 +7,4 @@ msbuild KApp/Tests/KPixelFormatTests.vcxproj /p:Configuration=Release /p:Platfor
 & KApp/Tests/bin/Release/KPixelFormatTests.exe
 ```
 
-The standalone executable tests pixel sizes, compression blocks, mip chains, volume/cube/array sizes, overflow rejection, DDS hardware passthrough and software decoding, and saving RGBA8 sRGB images. It generates DDS samples in memory and removes its temporary PNG after a successful save.
+The standalone executable tests pixel sizes, compression blocks, mip chains, volume/cube/array sizes, overflow rejection, format names, saved resource values, DDS hardware passthrough and software decoding, and saving RGBA8 sRGB images. It generates DDS samples in memory and removes its temporary PNG after a successful save.

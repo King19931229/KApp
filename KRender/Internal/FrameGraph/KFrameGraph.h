@@ -30,7 +30,7 @@ public:
 		uint32_t width;
 		uint32_t height;
 		uint32_t msaaCount;
-		ElementFormat format;
+		PixelFormat format;
 		bool bDepth;
 		bool bStencil;
 
@@ -39,7 +39,7 @@ public:
 			width = 0;
 			height = 0;
 			msaaCount = 1;
-			format = EF_UNKNOWN;
+			format = PF_UNKNOWN;
 			bDepth = false;
 			bStencil = false;
 		}

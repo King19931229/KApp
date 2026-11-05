@@ -91,7 +91,7 @@ bool KVirtualTextureManager::Init(uint32_t tileSize, uint32_t tileDimension, uin
 	m_PendingSourceTextures.resize(frameNum);
 
 	KRenderGlobal::RenderDevice->CreateRenderTarget(m_PhysicalContentTarget);
-	m_PhysicalContentTarget->InitFromColor(m_SizeWithPadding, m_SizeWithPadding, 1, m_NumMips, EF_R8G8B8A8_UNORM);
+	m_PhysicalContentTarget->InitFromColor(m_SizeWithPadding, m_SizeWithPadding, 1, m_NumMips, PF_R8G8B8A8_UNORM);
 	m_PhysicalContentTarget->GetFrameBuffer()->SetDebugName("VirtualTexturePhysicalContent");
 
 	KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "shading/quad.vert", m_QuadVS, KRenderGlobal::EnableAsyncShaderCompile);
@@ -168,7 +168,7 @@ bool KVirtualTextureManager::Init(uint32_t tileSize, uint32_t tileDimension, uin
 	standaloneCountFeedbackEnv.parentEnv = &m_CompileEnv;
 
 	m_StandaloneCountFeedbackResultPipeline->BindStorageBuffer(VIRTUAL_TEXTURE_BINDING_FEEDBACK_RESULT, m_FeedbackResultBuffer, COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, true);
-	m_StandaloneCountFeedbackResultPipeline->BindStorageImage(VIRTUAL_TEXTURE_BINDING_FEEDBACK_INPUT, m_FeedbackTarget->GetFrameBuffer(), EF_R8G8B8A8_UNORM, COMPUTE_RESOURCE_IN, 0, true);
+	m_StandaloneCountFeedbackResultPipeline->BindStorageImage(VIRTUAL_TEXTURE_BINDING_FEEDBACK_INPUT, m_FeedbackTarget->GetFrameBuffer(), PF_R8G8B8A8_UNORM, COMPUTE_RESOURCE_IN, 0, true);
 	m_StandaloneCountFeedbackResultPipeline->BindStorageBuffer(VIRTUAL_TEXTURE_BINDING_TEXTURE_DESCRIPTION, m_VirtualTextrueDescriptionBuffer, COMPUTE_RESOURCE_IN, true);
 	m_StandaloneCountFeedbackResultPipeline->BindUniformBuffer(VIRTUAL_TEXTURE_BINDING_CONSTANT, KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_VIRTUAL_TEXTURE_CONSTANT));
 	m_StandaloneCountFeedbackResultPipeline->Init("virtualtexture/count_feedback.comp", standaloneCountFeedbackEnv, KRenderGlobal::EnableAsyncShaderCompile);
@@ -747,9 +747,9 @@ void KVirtualTextureManager::Resize(uint32_t width, uint32_t height)
 		uint32_t width = (m_Width + m_VirtualTextureFeedbackRatio - 1) / m_VirtualTextureFeedbackRatio;
 		uint32_t height = (m_Height + m_VirtualTextureFeedbackRatio - 1) / m_VirtualTextureFeedbackRatio;
 
-		m_FeedbackTarget->InitFromColor(width, height, 1, 1, EF_R8G8B8A8_UNORM);
+		m_FeedbackTarget->InitFromColor(width, height, 1, 1, PF_R8G8B8A8_UNORM);
 		m_FeedbackDepth->InitFromDepthStencil(width, height, 1, false);
-		m_ResultReadbackTarget->InitFromReadback(width, height, 1, 1, EF_R8G8B8A8_UNORM);
+		m_ResultReadbackTarget->InitFromReadback(width, height, 1, 1, PF_R8G8B8A8_UNORM);
 
 		m_FeedbackPass->SetColorAttachment(0, m_FeedbackTarget->GetFrameBuffer());
 		m_FeedbackPass->SetClearColor(0, { 1,1,1,1 });

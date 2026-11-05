@@ -43,11 +43,11 @@ protected:
 	struct StorageImageBindingInfo
 	{
 		std::vector<IKFrameBufferPtr> images;
-		ElementFormat format;
+		PixelFormat format;
 
 		StorageImageBindingInfo()
 		{
-			format = EF_UNKNOWN;
+			format = PF_UNKNOWN;
 		}
 	};
 
@@ -131,13 +131,13 @@ public:
 	virtual bool SetConstantBuffer(unsigned int location, ShaderTypes shaderTypes, IKUniformBufferPtr buffer);
 
 	virtual bool SetSampler(unsigned int location, IKFrameBufferPtr image, IKSamplerPtr sampler, bool dynimicWrite = false);
-	virtual bool SetStorageImage(unsigned int location, IKFrameBufferPtr image, ElementFormat format);
+	virtual bool SetStorageImage(unsigned int location, IKFrameBufferPtr image, PixelFormat format);
 
 	virtual bool SetStorageBuffer(unsigned int location, ShaderTypes shaderTypes, IKStorageBufferPtr buffer);
 
 	virtual bool SetSamplers(unsigned int location, const std::vector<IKFrameBufferPtr>& images, const std::vector<IKSamplerPtr>& samplers, bool dynimicWrite = false);
 	virtual bool SetSamplerMipmap(unsigned int location, IKFrameBufferPtr image, IKSamplerPtr sampler, uint32_t startMip, uint32_t mipNum, bool dynimicWrite = false);
-	virtual bool SetStorageImages(unsigned int location, const std::vector<IKFrameBufferPtr>& images, ElementFormat format);
+	virtual bool SetStorageImages(unsigned int location, const std::vector<IKFrameBufferPtr>& images, PixelFormat format);
 
 	virtual bool CreateConstantBlock(ShaderTypes shaderTypes, uint32_t size);
 	virtual bool DestroyConstantBlock();

@@ -1,5 +1,5 @@
 #include "KEGraphNodeTestModel.h"
-#include "KRender/Publish/KEnumString.h"
+#include "KBase/Publish/KPixelFormat.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QLabel>
@@ -18,9 +18,9 @@ KEGraphNodeTestModel::KEGraphNodeTestModel()
 		lineLayout->addWidget(label);
 		lineLayout->addWidget(combo);
 
-		for (uint32_t f = 0; f < EF_COUNT; ++f)
+		for (uint32_t f = 0; f < PF_COUNT; ++f)
 		{
-			combo->addItem(KEnumString::ElementForamtToString(ElementFormat(f)));
+			combo->addItem(KPixelFormatHelper::ToString(PixelFormat(f)));
 		}
 
 		layout->addLayout(lineLayout);

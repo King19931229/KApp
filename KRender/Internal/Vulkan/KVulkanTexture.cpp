@@ -105,7 +105,7 @@ bool KVulkanTexture::InitDevice(bool async)
 		m_TextureFormat = VK_FORMAT_UNDEFINED;
 
 		ASSERT_RESULT(KVulkanHelper::TextureTypeToVkImageType(m_TextureType, imageType, imageViewType));
-		ASSERT_RESULT(KVulkanHelper::ElementFormatToVkFormat(m_Format, m_TextureFormat));
+		ASSERT_RESULT(KVulkanHelper::PixelFormatToVkFormat(m_Format, m_TextureFormat));
 
 		if (m_ImageData.pData && m_ImageData.pData->GetSize() > 0)
 		{

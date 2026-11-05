@@ -174,7 +174,7 @@ KCodecResult KGLTFLoader::GetCodecResult(tinygltf::Image& gltfimage)
 
 	KCodecResult result;
 
-	result.eFormat = IF_R8G8B8A8;
+	result.eFormat = PF_R8G8B8A8_UNORM;
 	result.uWidth = gltfimage.width;
 	result.uHeight = gltfimage.height;
 	result.uDepth = 1;

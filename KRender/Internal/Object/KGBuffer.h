@@ -17,21 +17,21 @@ enum GBufferTarget
 struct KGBufferDescription
 {
 	GBufferTarget target;
-	ElementFormat format;
+	PixelFormat format;
 	const char* description;
 };
 
 constexpr KGBufferDescription GBufferDescription[GBUFFER_TARGET_COUNT]
 {
-	{ GBUFFER_TARGET0, EF_R16G16B16A16_FLOAT, "xyz:world_normal w:depth" },
-	{ GBUFFER_TARGET1, EF_R16G16_FLOAT, "xy:motion" },
-	{ GBUFFER_TARGET2, EF_R8G8B8A8_UNORM, "xyz:base_color w:ao" },
-	{ GBUFFER_TARGET3, EF_R8G8_UNORM, "x:metal y:roughness zw:idle" },
-	{ GBUFFER_TARGET4, EF_R8G8B8A8_UNORM, "xyz:emissive w:idle" },
+	{ GBUFFER_TARGET0, PF_R16G16B16A16_FLOAT, "xyz:world_normal w:depth" },
+	{ GBUFFER_TARGET1, PF_R16G16_FLOAT, "xy:motion" },
+	{ GBUFFER_TARGET2, PF_R8G8B8A8_UNORM, "xyz:base_color w:ao" },
+	{ GBUFFER_TARGET3, PF_R8G8_UNORM, "x:metal y:roughness zw:idle" },
+	{ GBUFFER_TARGET4, PF_R8G8B8A8_UNORM, "xyz:emissive w:idle" },
 };
 
-constexpr ElementFormat AOFormat = EF_R8_UNORM;//EF_R8G8B8A8_UNORM;
-constexpr ElementFormat VirtualTextureFeedbackFormat = EF_R8G8B8A8_UNORM;//EF_R8G8B8A8_UNORM;
+constexpr PixelFormat AOFormat = PF_R8_UNORM;//PF_R8G8B8A8_UNORM;
+constexpr PixelFormat VirtualTextureFeedbackFormat = PF_R8G8B8A8_UNORM;//PF_R8G8B8A8_UNORM;
 
 class KGBuffer
 {

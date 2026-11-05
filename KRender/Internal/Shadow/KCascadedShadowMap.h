@@ -89,7 +89,7 @@ class KCascadedShadowMap
 public:
 	static constexpr uint32_t SHADOW_MAP_MAX_CASCADED = 4;
 protected:
-	static constexpr ElementFormat RECEIVER_TARGET_FORMAT = EF_R8_UNORM;
+	static constexpr PixelFormat RECEIVER_TARGET_FORMAT = PF_R8_UNORM;
 	static constexpr char* RENDER_STAGE_NAME[2] = { "CSM_Static", "CSM_Dynamic" };
 	const KCamera* m_MainCamera;
 

@@ -457,7 +457,7 @@ VkImageView KVulkanFrameBuffer::GetMipmapImageView(uint32_t startMip, uint32_t n
 	return vkImageView;
 }
 
-VkImageView KVulkanFrameBuffer::GetMipmapReinterpretImageView(ElementFormat format, uint32_t startMip, uint32_t numMip)
+VkImageView KVulkanFrameBuffer::GetMipmapReinterpretImageView(PixelFormat format, uint32_t startMip, uint32_t numMip)
 {
 	VkImageView imageView = VK_NULL_HANDEL;
 
@@ -473,7 +473,7 @@ VkImageView KVulkanFrameBuffer::GetMipmapReinterpretImageView(ElementFormat form
 	else
 	{
 		VkFormat vkFormat = VK_FORMAT_UNDEFINED;
-		ASSERT_RESULT(KVulkanHelper::ElementFormatToVkFormat(format, vkFormat));
+		ASSERT_RESULT(KVulkanHelper::PixelFormatToVkFormat(format, vkFormat));
 
 		KVulkanInitializer::CreateVkImageView(m_Image, m_ImageViewType, vkFormat, VK_IMAGE_ASPECT_COLOR_BIT, startMip, numMip, 0, (m_ImageViewType == VK_IMAGE_VIEW_TYPE_CUBE) ? 6 : 1, imageView);
 		m_ReinterpretImageView.insert({ key , imageView });
@@ -482,7 +482,7 @@ VkImageView KVulkanFrameBuffer::GetMipmapReinterpretImageView(ElementFormat form
 	return imageView;
 }
 
-VkImageView KVulkanFrameBuffer::GetReinterpretImageView(ElementFormat format)
+VkImageView KVulkanFrameBuffer::GetReinterpretImageView(PixelFormat format)
 {
 	return GetMipmapReinterpretImageView(format, 0, m_Mipmaps);
 }

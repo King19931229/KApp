@@ -18,9 +18,9 @@ void SDF()
 		output.uHeight = (output.uHeight + grap - 1) / grap;
 
 		size_t destImageSize = 0;
-		KImageHelper::GetByteSize(output.eFormat, output.uWidth, output.uHeight, output.uDepth, destImageSize);
+		KPixelFormatHelper::GetByteSize(output.eFormat, output.uWidth, output.uHeight, output.uDepth, destImageSize);
 		size_t elementSize = 0;
-		KImageHelper::GetElementByteSize(input.eFormat, elementSize);
+		KPixelFormatHelper::GetElementByteSize(input.eFormat, elementSize);
 
 		unsigned char* sourceImage = input.pData->GetData();
 		size_t soucePitch = elementSize * input.uWidth;
@@ -274,7 +274,7 @@ int main()
 		if (codec->Codec("C:/Users/Admin/Desktop/example.jpg", true, input))
 		{
 			size_t elementSize = 0;
-			KImageHelper::GetElementByteSize(input.eFormat, elementSize);
+			KPixelFormatHelper::GetElementByteSize(input.eFormat, elementSize);
 
 			unsigned char* sourceImage = input.pData->GetData();
 			size_t soucePitch = elementSize * input.uWidth;
@@ -299,7 +299,7 @@ int main()
 
 			size_t destPitch = elementSize * output.uWidth;
 			size_t destImageSize = 0;
-			KImageHelper::GetByteSize(output.eFormat, output.uWidth, output.uHeight, output.uDepth, destImageSize);
+			KPixelFormatHelper::GetByteSize(output.eFormat, output.uWidth, output.uHeight, output.uDepth, destImageSize);
 
 			output.pData = KImageDataPtr(KNEW KImageData(destImageSize));
 			output.pData->GetSubImageInfo().push_back(KSubImageInfo());
@@ -588,14 +588,14 @@ int main()
 		if (codec)
 		{
 			KCodecResult output;
-			output.eFormat = IF_R8G8B8A8;
+			output.eFormat = PF_R8G8B8A8_UNORM;
 			output.uWidth = 2 * radius + 1;
 			output.uHeight = 2 * radius + 1;
 
 			size_t destImageSize = 0;
-			KImageHelper::GetByteSize(output.eFormat, output.uWidth, output.uHeight, output.uDepth, destImageSize);
+			KPixelFormatHelper::GetByteSize(output.eFormat, output.uWidth, output.uHeight, output.uDepth, destImageSize);
 			size_t elementSize = 0;
-			KImageHelper::GetElementByteSize(output.eFormat, elementSize);
+			KPixelFormatHelper::GetElementByteSize(output.eFormat, elementSize);
 
 			size_t destPitch = elementSize * output.uWidth;
 

@@ -21,7 +21,7 @@ namespace KVulkanHelper
 	bool FindMemoryType(VkPhysicalDevice physicalDevice, uint32_t typeFilter, VkMemoryPropertyFlags properties, uint32_t& idx);
 
 	bool TextureTypeToVkImageType(TextureType textureType, VkImageType& imageType, VkImageViewType& imageViewType);
-	bool ElementFormatToVkFormat(ElementFormat elementFormat, VkFormat& vkFormat);
+	bool PixelFormatToVkFormat(PixelFormat pixelFormat, VkFormat& vkFormat);
 
 	bool AddressModeToVkSamplerAddressMode(AddressMode addressMode, VkSamplerAddressMode& vkAddressMode);
 	bool FilterModeToVkFilter(FilterMode filterMode, VkFilter& vkFilterkMode);

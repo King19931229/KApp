@@ -279,9 +279,6 @@
     <ClInclude Include="Interface\IKPostProcess.h">
       <Filter>Interface</Filter>
     </ClInclude>
-    <ClInclude Include="Publish\KEnumString.h">
-      <Filter>Publish</Filter>
-    </ClInclude>
     <ClInclude Include="Internal\PostProcess\KPostProcessTexture.h">
       <Filter>Internal\PostProcess</Filter>
     </ClInclude>

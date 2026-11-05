@@ -14,7 +14,7 @@
 
 KVulkanRayTracePipeline::KVulkanRayTracePipeline()
 	: m_StorageRT(nullptr)
-	, m_Format(EF_R8G8B8A8_UNORM)
+	, m_Format(PF_R8G8B8A8_UNORM)
 	, m_Width(0)
 	, m_Height(0)
 	, m_Inited(false)
@@ -451,7 +451,7 @@ bool KVulkanRayTracePipeline::SetShaderTable(ShaderType type, const char* szShad
 	return true;
 }
 
-bool KVulkanRayTracePipeline::SetStorageImage(ElementFormat format)
+bool KVulkanRayTracePipeline::SetStorageImage(PixelFormat format)
 {
 	m_Format = format;
 	return true;

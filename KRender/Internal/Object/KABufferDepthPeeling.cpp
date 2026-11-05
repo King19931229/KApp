@@ -29,7 +29,7 @@ bool KABufferDepthPeeling::Init(uint32_t width, uint32_t height, uint32_t depth)
 	m_ResetLinkNextPipeline->Init("depthpeeling/reset_link_next.comp", KShaderCompileEnvironment(), KRenderGlobal::EnableAsyncShaderCompile);
 
 	KRenderGlobal::RenderDevice->CreateComputePipeline(m_ResetLinkHeaderPipeline);
-	m_ResetLinkHeaderPipeline->BindStorageImage(ABUFFER_BINDING_LINK_HEADER, m_LinkHeaderTarget->GetFrameBuffer(), EF_R32_UINT, COMPUTE_RESOURCE_OUT, 0, true);
+	m_ResetLinkHeaderPipeline->BindStorageImage(ABUFFER_BINDING_LINK_HEADER, m_LinkHeaderTarget->GetFrameBuffer(), PF_R32_UINT, COMPUTE_RESOURCE_OUT, 0, true);
 	m_ResetLinkHeaderPipeline->BindDynamicUniformBuffer(ABUFFER_BINDING_OBJECT);
 	m_ResetLinkHeaderPipeline->Init("depthpeeling/reset_link_header.comp", KShaderCompileEnvironment(), KRenderGlobal::EnableAsyncShaderCompile);
 
@@ -53,7 +53,7 @@ bool KABufferDepthPeeling::Init(uint32_t width, uint32_t height, uint32_t depth)
 		pipeline->SetColorWrite(true, true, true, true);
 		pipeline->SetDepthFunc(CF_LESS_OR_EQUAL, true, true);
 
-		pipeline->SetStorageImage(ABUFFER_BINDING_LINK_HEADER, m_LinkHeaderTarget->GetFrameBuffer(), EF_R32_UINT);
+		pipeline->SetStorageImage(ABUFFER_BINDING_LINK_HEADER, m_LinkHeaderTarget->GetFrameBuffer(), PF_R32_UINT);
 		pipeline->SetStorageBuffer(ABUFFER_BINDING_LINK_NEXT, ST_FRAGMENT, m_LinkNextBuffer);
 		pipeline->SetStorageBuffer(ABUFFER_BINDING_LINK_RESULT, ST_FRAGMENT, m_LinkResultBuffer);
 		pipeline->SetStorageBuffer(ABUFFER_BINDING_LINK_DEPTH, ST_FRAGMENT, m_LinkDepthBuffer);
@@ -110,7 +110,7 @@ bool KABufferDepthPeeling::Resize(uint32_t width, uint32_t height)
 	m_MaxElementCount = m_Width * m_Height * m_Depth;
 
 	m_LinkHeaderTarget->UnInit();
-	m_LinkHeaderTarget->InitFromStorage(m_Width, m_Height, 1, EF_R32_UINT);
+	m_LinkHeaderTarget->InitFromStorage(m_Width, m_Height, 1, PF_R32_UINT);
 	m_LinkHeaderTarget->GetFrameBuffer()->SetDebugName("ABufferLinkHeader");
 
 	m_LinkNextBuffer->UnInit();

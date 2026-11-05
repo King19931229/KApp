@@ -94,7 +94,7 @@ public:
 	inline VkImageLayout GetImageLayout() const { return m_ImageLayout; }
 	inline uint32_t GetUniqueID() const { return m_UniqueID; }
 
-	VkImageView GetReinterpretImageView(ElementFormat format);
+	VkImageView GetReinterpretImageView(PixelFormat format);
 	VkImageView GetMipmapImageView(uint32_t startMip, uint32_t numMip);
-	VkImageView GetMipmapReinterpretImageView(ElementFormat format, uint32_t startMip, uint32_t numMip);
+	VkImageView GetMipmapReinterpretImageView(PixelFormat format, uint32_t startMip, uint32_t numMip);
 };

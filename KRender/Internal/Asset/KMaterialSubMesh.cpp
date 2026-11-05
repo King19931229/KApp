@@ -310,10 +310,10 @@ bool KMaterialSubMesh::CreateVoxelPipeline()
 			IKUniformBufferPtr voxelBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_VOXEL);
 			pipeline->SetConstantBuffer(CBT_VOXEL, ST_VERTEX | ST_GEOMETRY | ST_FRAGMENT, voxelBuffer);
 
-			pipeline->SetStorageImage(SHADER_BINDING_TEXTURE3, KRenderGlobal::Voxilzer.GetVoxelAlbedo(), EF_R32_UINT);
-			pipeline->SetStorageImage(SHADER_BINDING_TEXTURE4, KRenderGlobal::Voxilzer.GetVoxelNormal(), EF_R32_UINT);
-			pipeline->SetStorageImage(SHADER_BINDING_TEXTURE5, KRenderGlobal::Voxilzer.GetVoxelEmissive(), EF_R32_UINT);
-			pipeline->SetStorageImage(SHADER_BINDING_TEXTURE6, KRenderGlobal::Voxilzer.GetStaticFlag(), EF_UNKNOWN);
+			pipeline->SetStorageImage(SHADER_BINDING_TEXTURE3, KRenderGlobal::Voxilzer.GetVoxelAlbedo(), PF_R32_UINT);
+			pipeline->SetStorageImage(SHADER_BINDING_TEXTURE4, KRenderGlobal::Voxilzer.GetVoxelNormal(), PF_R32_UINT);
+			pipeline->SetStorageImage(SHADER_BINDING_TEXTURE5, KRenderGlobal::Voxilzer.GetVoxelEmissive(), PF_R32_UINT);
+			pipeline->SetStorageImage(SHADER_BINDING_TEXTURE6, KRenderGlobal::Voxilzer.GetStaticFlag(), PF_UNKNOWN);
 		}
 		else if (stage == RENDER_STAGE_SPARSE_VOXEL)
 		{
@@ -327,7 +327,7 @@ bool KMaterialSubMesh::CreateVoxelPipeline()
 			pipeline->SetStorageBuffer(SHADER_BINDING_TEXTURE3, ST_FRAGMENT, KRenderGlobal::Voxilzer.GetCounterBuffer());
 			pipeline->SetStorageBuffer(SHADER_BINDING_TEXTURE4, ST_FRAGMENT, KRenderGlobal::Voxilzer.GetFragmentlistBuffer());
 			pipeline->SetStorageBuffer(SHADER_BINDING_TEXTURE5, ST_FRAGMENT, KRenderGlobal::Voxilzer.GetCountOnlyBuffer());
-			pipeline->SetStorageImage(SHADER_BINDING_TEXTURE6, KRenderGlobal::Voxilzer.GetStaticFlag(), EF_UNKNOWN);
+			pipeline->SetStorageImage(SHADER_BINDING_TEXTURE6, KRenderGlobal::Voxilzer.GetStaticFlag(), PF_UNKNOWN);
 		}
 		else
 		{
@@ -338,11 +338,11 @@ bool KMaterialSubMesh::CreateVoxelPipeline()
 			IKUniformBufferPtr voxelClipmapBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_VOXEL_CLIPMAP);
 			pipeline->SetConstantBuffer(CBT_VOXEL_CLIPMAP, ST_VERTEX | ST_GEOMETRY | ST_FRAGMENT, voxelClipmapBuffer);
 
-			pipeline->SetStorageImage(SHADER_BINDING_TEXTURE3, KRenderGlobal::ClipmapVoxilzer.GetVoxelAlbedo(), EF_R32_UINT);
-			pipeline->SetStorageImage(SHADER_BINDING_TEXTURE4, KRenderGlobal::ClipmapVoxilzer.GetVoxelNormal(), EF_R32_UINT);
-			pipeline->SetStorageImage(SHADER_BINDING_TEXTURE5, KRenderGlobal::ClipmapVoxilzer.GetVoxelEmissive(), EF_R32_UINT);
-			pipeline->SetStorageImage(SHADER_BINDING_TEXTURE6, KRenderGlobal::ClipmapVoxilzer.GetVoxelVisibility(), EF_UNKNOWN);
-			pipeline->SetStorageImage(SHADER_BINDING_TEXTURE7, KRenderGlobal::ClipmapVoxilzer.GetStaticFlag(), EF_UNKNOWN);
+			pipeline->SetStorageImage(SHADER_BINDING_TEXTURE3, KRenderGlobal::ClipmapVoxilzer.GetVoxelAlbedo(), PF_R32_UINT);
+			pipeline->SetStorageImage(SHADER_BINDING_TEXTURE4, KRenderGlobal::ClipmapVoxilzer.GetVoxelNormal(), PF_R32_UINT);
+			pipeline->SetStorageImage(SHADER_BINDING_TEXTURE5, KRenderGlobal::ClipmapVoxilzer.GetVoxelEmissive(), PF_R32_UINT);
+			pipeline->SetStorageImage(SHADER_BINDING_TEXTURE6, KRenderGlobal::ClipmapVoxilzer.GetVoxelVisibility(), PF_UNKNOWN);
+			pipeline->SetStorageImage(SHADER_BINDING_TEXTURE7, KRenderGlobal::ClipmapVoxilzer.GetStaticFlag(), PF_UNKNOWN);
 		}
 
 		ASSERT_RESULT(pipeline->Init());

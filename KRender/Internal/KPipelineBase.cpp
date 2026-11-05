@@ -271,7 +271,7 @@ bool KPipelineBase::SetSamplerMipmap(unsigned int location, IKFrameBufferPtr ima
 	return false;
 }
 
-bool KPipelineBase::SetStorageImage(unsigned int location, IKFrameBufferPtr image, ElementFormat format)
+bool KPipelineBase::SetStorageImage(unsigned int location, IKFrameBufferPtr image, PixelFormat format)
 {
 	if (image)
 	{
@@ -326,7 +326,7 @@ bool KPipelineBase::SetSamplers(unsigned int location, const std::vector<IKFrame
 	return false;
 }
 
-bool KPipelineBase::SetStorageImages(unsigned int location, const std::vector<IKFrameBufferPtr>& images, ElementFormat format)
+bool KPipelineBase::SetStorageImages(unsigned int location, const std::vector<IKFrameBufferPtr>& images, PixelFormat format)
 {
 	if (images.size() > 0)
 	{

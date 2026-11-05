@@ -46,7 +46,7 @@ protected:
 	{
 		struct
 		{
-			ElementFormat format;
+			PixelFormat format;
 			uint32_t mipmap;
 			std::vector<IKFrameBufferPtr> images;
 			std::vector<IKSamplerPtr> samplers;
@@ -87,7 +87,7 @@ protected:
 
 		BindingInfo()
 		{
-			image.format = EF_UNKNOWN;
+			image.format = PF_UNKNOWN;
 			image.mipmap = 0;
 			image.imageDescriptors = {};
 
@@ -138,12 +138,12 @@ public:
 	~KVulkanComputePipeline();
 
 	virtual void BindSampler(uint32_t location, IKFrameBufferPtr target, IKSamplerPtr sampler, bool dynamicWrite);
-	virtual void BindStorageImage(uint32_t location, IKFrameBufferPtr target, ElementFormat format, ComputeResourceFlags flags, uint32_t mipmap, bool dynamicWrite);
+	virtual void BindStorageImage(uint32_t location, IKFrameBufferPtr target, PixelFormat format, ComputeResourceFlags flags, uint32_t mipmap, bool dynamicWrite);
 	virtual void BindAccelerationStructure(uint32_t location, IKAccelerationStructurePtr as, bool dynamicWrite);
 	virtual void BindUniformBuffer(uint32_t location, IKUniformBufferPtr buffer);
 
 	virtual void BindSamplers(uint32_t location, const std::vector<IKFrameBufferPtr>& targets, const std::vector<IKSamplerPtr>& samplers, bool dynimicWrite);
-	virtual void BindStorageImages(uint32_t location, const std::vector<IKFrameBufferPtr>& targets, ElementFormat format, ComputeResourceFlags flags, uint32_t mipmap, bool dynimicWrite);
+	virtual void BindStorageImages(uint32_t location, const std::vector<IKFrameBufferPtr>& targets, PixelFormat format, ComputeResourceFlags flags, uint32_t mipmap, bool dynimicWrite);
 
 	virtual void BindStorageBuffer(uint32_t location, IKStorageBufferPtr buffer, ComputeResourceFlags flags, bool dynamicWrite);
 

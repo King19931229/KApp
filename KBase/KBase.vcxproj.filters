@@ -70,6 +70,12 @@
     <ClInclude Include="Publish\KImage.h">
       <Filter>Publish</Filter>
     </ClInclude>
+    <ClInclude Include="Publish\KPixelFormat.h">
+      <Filter>Publish</Filter>
+    </ClInclude>
+    <ClInclude Include="Publish\KPixelFormat.inl">
+      <Filter>Publish</Filter>
+    </ClInclude>
     <ClInclude Include="Interface\IKCodec.h">
       <Filter>Interface</Filter>
     </ClInclude>

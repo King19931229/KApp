@@ -10,7 +10,7 @@ class KTextureBase : public IKTexture
 protected:
 	std::string m_Path;
 	KCodecResult m_ImageData;
-	ElementFormat m_Format;
+	PixelFormat m_Format;
 	TextureType m_TextureType;
 	size_t m_Width;
 	size_t m_Height;
@@ -37,8 +37,8 @@ public:
 	virtual ResourceState GetResourceState() = 0;
 
 	virtual bool InitMemoryFromFile(const std::string& filePath, bool bGenerateMipmap, bool async);
-	virtual bool InitMemoryFromData(const void* pRawData, const std::string& name, size_t width, size_t height, size_t depth, ImageFormat format, bool cubeMap, bool bGenerateMipmap, bool async);
-	virtual bool InitMemoryFrom2DArray(const std::string& name, size_t width, size_t height, size_t slices, ImageFormat format, bool bGenerateMipmap, bool async);
+	virtual bool InitMemoryFromData(const void* pRawData, const std::string& name, size_t width, size_t height, size_t depth, PixelFormat format, bool cubeMap, bool bGenerateMipmap, bool async);
+	virtual bool InitMemoryFrom2DArray(const std::string& name, size_t width, size_t height, size_t slices, PixelFormat format, bool bGenerateMipmap, bool async);
 	virtual bool InitDevice(bool async) = 0;
 	virtual bool UnInit();
 
@@ -51,5 +51,5 @@ public:
 	virtual const char* GetPath() { return m_Path.c_str(); }
 
 	virtual TextureType GetTextureType() { return m_TextureType; }
-	virtual ElementFormat GetTextureFormat() { return m_Format; }
+	virtual PixelFormat GetTextureFormat() { return m_Format; }
 };
