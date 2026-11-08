@@ -109,7 +109,6 @@ void KCascadedShadowMap::ExecuteCasterUpdate(KRHICommandList& commandList, std::
 {
 	if (m_StaticShouldUpdate)
 	{
-		m_Statistics[1].Reset();
 		for (uint32_t cascadedIndex = 0; cascadedIndex < (uint32_t)m_StaticCascadeds.size(); ++cascadedIndex)
 		{
 			IKRenderTargetPtr shadowTarget = getCascadedTarget(cascadedIndex, true);
@@ -123,9 +122,9 @@ void KCascadedShadowMap::ExecuteCasterUpdate(KRHICommandList& commandList, std::
 			commandList.BeginDebugMarker("CSM_Static_" + std::to_string(cascadedIndex), glm::vec4(1));
 
 			if (KRenderGlobal::EnableMultithreadRender)
-				commandList.BeginRenderPass(renderPass, SUBPASS_CONTENTS_SECONDARY);
+				commandList.BeginRenderPass(renderPass, SUBPASS_CONTENTS_SECONDARY, m_DrawStatsStages[0]);
 			else
-				commandList.BeginRenderPass(renderPass, SUBPASS_CONTENTS_INLINE);
+				commandList.BeginRenderPass(renderPass, SUBPASS_CONTENTS_INLINE, m_DrawStatsStages[0]);
 
 			if (m_Enable)
 			{
@@ -137,13 +136,11 @@ void KCascadedShadowMap::ExecuteCasterUpdate(KRHICommandList& commandList, std::
 
 			commandList.Transition(shadowTarget->GetFrameBuffer(), PIPELINE_STAGE_LATE_FRAGMENT_TESTS, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 		}
-		KRenderGlobal::Statistics.UpdateRenderStageStatistics(RENDER_STAGE_NAME[0], m_Statistics[1]);
 		m_StaticShouldUpdate = false;
 	}
 
 	// Dynamic object is updated every frame
 	{
-		m_Statistics[0].Reset();
 		for (uint32_t cascadedIndex = 0; cascadedIndex < (uint32_t)m_DynamicCascadeds.size(); ++cascadedIndex)
 		{
 			IKRenderTargetPtr shadowTarget = getCascadedTarget(cascadedIndex, false);
@@ -157,9 +154,9 @@ void KCascadedShadowMap::ExecuteCasterUpdate(KRHICommandList& commandList, std::
 			commandList.BeginDebugMarker("CSM_Dynamic_" + std::to_string(cascadedIndex), glm::vec4(1));
 
 			if (KRenderGlobal::EnableMultithreadRender)
-				commandList.BeginRenderPass(renderPass, SUBPASS_CONTENTS_SECONDARY);
+				commandList.BeginRenderPass(renderPass, SUBPASS_CONTENTS_SECONDARY, m_DrawStatsStages[1]);
 			else
-				commandList.BeginRenderPass(renderPass, SUBPASS_CONTENTS_INLINE);
+				commandList.BeginRenderPass(renderPass, SUBPASS_CONTENTS_INLINE, m_DrawStatsStages[1]);
 
 			if (m_Enable)
 			{
@@ -171,7 +168,6 @@ void KCascadedShadowMap::ExecuteCasterUpdate(KRHICommandList& commandList, std::
 
 			commandList.Transition(shadowTarget->GetFrameBuffer(), PIPELINE_STAGE_LATE_FRAGMENT_TESTS, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 		}
-		KRenderGlobal::Statistics.UpdateRenderStageStatistics(RENDER_STAGE_NAME[0], m_Statistics[0]);
 	}
 }
 
@@ -306,6 +302,9 @@ IKRenderTargetPtr KCascadedShadowMapReceiverPass::GetCombineMask()
 
 void KCascadedShadowMap::ExecuteMaskUpdate(KRHICommandList& commandList, std::function<IKRenderTargetPtr(MaskType)> getMaskTarget)
 {
+	static const auto maskStage = KRenderGlobal::Statistics.RegisterDrawStatsStage("CSM_Mask");
+	KScopedDrawStatsStage statsStage(commandList, maskStage);
+
 	// Static mask update
 	{
 		IKRenderTargetPtr maskTarget = getMaskTarget(STATIC_MASK);
@@ -982,8 +981,8 @@ bool KCascadedShadowMap::Init(const KCamera* camera, uint32_t numCascaded, uint3
 		ASSERT_RESULT(KRenderGlobal::RenderDevice->CreateRenderPass(m_DynamicReceiverPass));
 		ASSERT_RESULT(KRenderGlobal::RenderDevice->CreateRenderPass(m_CombineReceiverPass));
 
-		KRenderGlobal::Statistics.RegisterRenderStage(RENDER_STAGE_NAME[0]);
-		KRenderGlobal::Statistics.RegisterRenderStage(RENDER_STAGE_NAME[1]);
+		m_DrawStatsStages[0] = KRenderGlobal::Statistics.RegisterDrawStatsStage(RENDER_STAGE_NAME[0]);
+		m_DrawStatsStages[1] = KRenderGlobal::Statistics.RegisterDrawStatsStage(RENDER_STAGE_NAME[1]);
 
 		return true;
 	}
@@ -1035,9 +1034,6 @@ bool KCascadedShadowMap::UnInit()
 
 	m_MainCamera = nullptr;
 
-	KRenderGlobal::Statistics.UnRegisterRenderStage(RENDER_STAGE_NAME[0]);
-	KRenderGlobal::Statistics.UnRegisterRenderStage(RENDER_STAGE_NAME[1]);
-
 	return true;
 }
 
@@ -1063,7 +1059,7 @@ bool KCascadedShadowMap::Resize(uint32_t width, uint32_t height)
 	return true;
 }
 
-void KCascadedShadowMap::PopulateRenderCommand(size_t cascadedIndex, bool isStatic, const std::vector<IKEntity*>& litCullRes, std::vector<KRenderCommand>& commands, KRenderStageStatistics& statistics)
+void KCascadedShadowMap::PopulateRenderCommand(size_t cascadedIndex, bool isStatic, const std::vector<IKEntity*>& litCullRes, std::vector<KRenderCommand>& commands)
 {
 	std::vector<KMaterialSubMeshInstance> instances;
 	KRenderUtil::CalculateInstancesByMaterial(litCullRes, instances);
@@ -1113,19 +1109,6 @@ void KCascadedShadowMap::PopulateRenderCommand(size_t cascadedIndex, bool isStat
 					usage.offset = allocResult.offset;
 				}
 				
-				++statistics.drawcalls;
-
-				if (command.indexDraw)
-				{
-					statistics.primtives += command.indexData->indexCount;
-					statistics.faces += command.indexData->indexCount / 3;
-				}
-				else
-				{
-					statistics.primtives += command.vertexData->vertexCount;
-					statistics.faces += command.vertexData->vertexCount / 3;
-				}
-
 				commands.push_back(command);
 			}
 		}
@@ -1155,19 +1138,6 @@ void KCascadedShadowMap::PopulateRenderCommand(size_t cascadedIndex, bool isStat
 					KRenderGlobal::DynamicConstantBufferManager.Alloc(&csmObject, objectUsage);
 
 					command.dynamicConstantUsages.push_back(objectUsage);
-
-					++statistics.drawcalls;
-
-					if (command.indexDraw)
-					{
-						statistics.primtives += command.indexData->indexCount;
-						statistics.faces += command.indexData->indexCount / 3;
-					}
-					else
-					{
-						statistics.primtives += command.vertexData->vertexCount;
-						statistics.faces += command.vertexData->vertexCount / 3;
-					}
 
 					commands.push_back(command);
 				}
@@ -1288,7 +1258,7 @@ bool KCascadedShadowMap::PopulateRenderCommandList(size_t cascadedIndex, bool is
 		}
 
 		FilterRenderComponent(litCullRes, isStatic);
-		PopulateRenderCommand(cascadedIndex, isStatic, litCullRes, commandList, m_Statistics[isStatic]);
+		PopulateRenderCommand(cascadedIndex, isStatic, litCullRes, commandList);
 
 		return true;
 	}

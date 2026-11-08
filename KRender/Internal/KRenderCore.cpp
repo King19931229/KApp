@@ -97,6 +97,7 @@ bool KRenderCore::InitGlobalManager()
 	ASSERT_RESULT(m_Device->QueryProperty(&property));
 
 	KRenderGlobal::RenderDevice = m_Device;
+	KRenderGlobal::Statistics.ResetDrawStatistics();
 	KRenderGlobal::ImmediateCommandList.Init();
 	KRenderGlobal::FrameResourceManager.Init();
 	KRenderGlobal::MeshManager.Init();
@@ -471,7 +472,8 @@ void KRenderCore::Render()
 		return;
 	}
 
-	KRenderGlobal::Renderer.GetRHICommandList().Flush(RHICommandFlush::FlushRHIThread);
+	auto& commandList = KRenderGlobal::Renderer.GetRHICommandList();
+	commandList.Flush(RHICommandFlush::FlushRHIThread);
 
 	IKSwapChain* mainSwapChain = m_MainWindow->GetSwapChain();
 	IKUIOverlay* uiOverlay = m_MainWindow->GetUIOverlay();
@@ -508,6 +510,7 @@ void KRenderCore::Render()
 		return;
 	}
 
+	KRenderGlobal::Statistics.BeginDrawFrame(KRenderGlobal::CurrentFrameNum);
 	Update();
 
 	{
@@ -517,7 +520,7 @@ void KRenderCore::Render()
 		KRenderGlobal::Renderer.Update();
 		if (KRenderGlobal::Renderer.Execute(chainImageIndex))
 		{
-			KRenderGlobal::Renderer.GetRHICommandList().Present(mainSwapChain, [this](IKSwapChain* swapChain, bool needResize)
+			commandList.Present(mainSwapChain, [this](IKSwapChain* swapChain, bool needResize)
 			{
 				m_bSwapChainResized = needResize;
 				++KRenderGlobal::CurrentFrameNum;
@@ -577,7 +580,7 @@ void KRenderCore::Render()
 		}
 
 		bool resized = false;
-		KRenderGlobal::Renderer.GetRHICommandList().Present(secordarySwapChain, [&resized](IKSwapChain* swapChain, bool needResize) { resized = needResize; });
+		commandList.Present(secordarySwapChain, [&resized](IKSwapChain* swapChain, bool needResize) { resized = needResize; });
 		FLUSH_INFLIGHT_RENDER_JOB();
 		if (resized && secondaryUI)
 		{
@@ -586,6 +589,8 @@ void KRenderCore::Render()
 	}
 	KRenderGlobal::Renderer.SetSwapChain(mainSwapChain);
 	KRenderGlobal::Renderer.SetUIOverlay(uiOverlay);
+	// Publish in submission order, after both the main and secondary windows.
+	commandList.AddLowLevelRenderJob([](IKCommandBufferPtr) { KRenderGlobal::Statistics.EndDrawFrame(); });
 }
 
 bool KRenderCore::Tick()
@@ -779,13 +784,12 @@ bool KRenderCore::UpdateFrameTime()
 {
 	KRenderGlobal::Statistics.Update();
 
-	KRenderStatistics statistics;
-	KRenderGlobal::Statistics.GetAllStatistics(statistics);
+	const KRenderFrameStatistics frame = KRenderGlobal::Statistics.GetFrameStatistics();
 
-	auto UpdateWindowFPS = [this, statistics]()
+	auto UpdateWindowFPS = [this, frame]()
 	{
 		char szBuffer[1024] = {};
-		sprintf(szBuffer, "[FPS] %f [FrameTime] %f", statistics.frame.fps, statistics.frame.frametime);
+		sprintf(szBuffer, "[FPS] %f [FrameTime] %f", frame.fps, frame.frametime);
 		m_MainWindow->SetWindowTitle(szBuffer);
 	};
 

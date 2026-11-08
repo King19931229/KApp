@@ -213,6 +213,7 @@ bool KVulkanCommandBuffer::Init(KVulkanCommandPool* pool, CommandBufferLevel lev
 	allocInfo.level = m_CommandLevel;
 	allocInfo.commandBufferCount = 1;
 	m_CommandBuffers.resize(KRenderGlobal::NumFramesInFlight);
+	InitDrawRecordings(m_CommandBuffers.size());
 
 	for (size_t i = 0; i < m_CommandBuffers.size(); ++i)
 	{
@@ -235,6 +236,7 @@ bool KVulkanCommandBuffer::UnInit()
 	}
 
 	m_ParentPools.clear();
+	ReleaseDrawRecordings();
 
 	m_CommandLevel = VK_COMMAND_BUFFER_LEVEL_MAX_ENUM;
 
@@ -270,6 +272,18 @@ VkCommandBuffer KVulkanCommandBuffer::GetVkHandle()
 {
 	assert(KRenderGlobal::CurrentInFlightFrameIndex < m_CommandBuffers.size());
 	return KRenderGlobal::CurrentInFlightFrameIndex < m_CommandBuffers.size() ? m_CommandBuffers[KRenderGlobal::CurrentInFlightFrameIndex] : VK_NULL_HANDEL;
+}
+
+void KVulkanCommandBuffer::Draw(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance)
+{
+	vkCmdDraw(GetVkHandle(), vertexCount, instanceCount, firstVertex, firstInstance);
+	RecordDirectDraw(topology, vertexCount, instanceCount);
+}
+
+void KVulkanCommandBuffer::DrawIndexed(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t vertexOffset, uint32_t firstInstance)
+{
+	vkCmdDrawIndexed(GetVkHandle(), indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
+	RecordDirectDraw(topology, indexCount, instanceCount);
 }
 
 bool KVulkanCommandBuffer::SetViewport(const KViewPortArea& area)
@@ -329,6 +343,7 @@ bool KVulkanCommandBuffer::Render(const KRenderCommand& command)
 		KVULKAN_GRAPHICS_SCOPE(vulkanPipeline);
 
 		VkPipeline pipeline = pipelineHandle->GetVkPipeline();
+		const PrimitiveTopology topology = pipelineHandle->GetPrimitiveTopology();
 		VkPipelineLayout pipelineLayout = vulkanPipeline->GetVkPipelineLayout();
 
 		uint32_t dynamicBufferCount = (uint32_t)command.dynamicConstantUsages.size();
@@ -429,11 +444,11 @@ bool KVulkanCommandBuffer::Render(const KRenderCommand& command)
 					uint32_t instanceCount = static_cast<uint32_t>(instanceUsage.count);
 					if (command.indexDraw)
 					{
-						vkCmdDrawIndexed(commandBuffer, command.indexData->indexCount, instanceCount, command.indexData->indexStart, 0, instanceStart);
+						DrawIndexed(topology, command.indexData->indexCount, instanceCount, command.indexData->indexStart, 0, instanceStart);
 					}
 					else
 					{
-						vkCmdDraw(commandBuffer, command.vertexData->vertexCount, instanceCount, command.vertexData->vertexStart, instanceStart);
+						Draw(topology, command.vertexData->vertexCount, instanceCount, command.vertexData->vertexStart, instanceStart);
 					}
 				}
 			}
@@ -452,7 +467,7 @@ bool KVulkanCommandBuffer::Render(const KRenderCommand& command)
 					}
 					else
 					{
-						vkCmdDrawIndexed(commandBuffer, command.indexData->indexCount, 1, command.indexData->indexStart, 0, 0);
+						DrawIndexed(topology, command.indexData->indexCount, 1, command.indexData->indexStart, 0, 0);
 					}
 				}
 				else
@@ -463,7 +478,7 @@ bool KVulkanCommandBuffer::Render(const KRenderCommand& command)
 					}
 					else
 					{
-						vkCmdDraw(commandBuffer, command.vertexData->vertexCount, 1, command.vertexData->vertexStart, 0);
+						Draw(topology, command.vertexData->vertexCount, 1, command.vertexData->vertexStart, 0);
 					}
 				}
 			}
@@ -480,11 +495,13 @@ bool KVulkanCommandBuffer::Execute(IKCommandBufferPtr buffer)
 	assert(commandBuffer != VK_NULL_HANDLE);
 	assert(m_CommandLevel == VK_COMMAND_BUFFER_LEVEL_PRIMARY);
 
-	VkCommandBuffer handle = ((KVulkanCommandBuffer*)buffer.get())->GetVkHandle();
-	VkCommandBufferLevel level = ((KVulkanCommandBuffer*)buffer.get())->GetVkBufferLevel();
+	auto* secondary = static_cast<KVulkanCommandBuffer*>(buffer.get());
+	VkCommandBuffer handle = secondary->GetVkHandle();
+	VkCommandBufferLevel level = secondary->GetVkBufferLevel();
 	if(handle != VK_NULL_HANDLE && level == VK_COMMAND_BUFFER_LEVEL_SECONDARY)
 	{
 		vkCmdExecuteCommands(commandBuffer, 1, &handle);
+		MergeSecondaryDraws(*secondary);
 		return true;
 	}
 	return false;
@@ -503,12 +520,14 @@ bool KVulkanCommandBuffer::ExecuteAll(KCommandBufferList& commandBuffers)
 			std::vector<VkCommandBuffer> vkCommandBuffers;
 			for (IKCommandBufferPtr buffer : commandBuffers)
 			{
-				VkCommandBuffer handle = ((KVulkanCommandBuffer*)buffer.get())->GetVkHandle();
-				VkCommandBufferLevel level = ((KVulkanCommandBuffer*)buffer.get())->GetVkBufferLevel();
+				auto* secondary = static_cast<KVulkanCommandBuffer*>(buffer.get());
+				VkCommandBuffer handle = secondary->GetVkHandle();
+				VkCommandBufferLevel level = secondary->GetVkBufferLevel();
 				ASSERT_RESULT(handle != VK_NULL_HANDLE && level == VK_COMMAND_BUFFER_LEVEL_SECONDARY);
 				if (handle != VK_NULL_HANDLE && level == VK_COMMAND_BUFFER_LEVEL_SECONDARY)
 				{
 					vkCommandBuffers.push_back(handle);
+					MergeSecondaryDraws(*secondary);
 				}
 			}
 			vkCmdExecuteCommands(commandBuffer, (uint32_t)vkCommandBuffers.size(), vkCommandBuffers.data());
@@ -530,6 +549,7 @@ bool KVulkanCommandBuffer::BeginPrimary()
 		VkCommandBufferBeginInfo beginInfo = {};
 		beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 		beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+		ResetDrawRecording();
 		VK_ASSERT_RESULT(vkBeginCommandBuffer(commandBuffer, &beginInfo));
 		return true;
 	}
@@ -560,6 +580,7 @@ bool KVulkanCommandBuffer::BeginSecondary(IKRenderPassPtr renderPass)
 		beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT | VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT;
 		beginInfo.pInheritanceInfo = &inheritanceInfo;
 
+		ResetDrawRecording();
 		VK_ASSERT_RESULT(vkBeginCommandBuffer(commandBuffer, &beginInfo));
 
 		return true;
@@ -567,7 +588,7 @@ bool KVulkanCommandBuffer::BeginSecondary(IKRenderPassPtr renderPass)
 	return false;
 }
 
-bool KVulkanCommandBuffer::BeginRenderPass(IKRenderPassPtr renderPass, SubpassContents conent)
+bool KVulkanCommandBuffer::BeginRenderPass(IKRenderPassPtr renderPass, SubpassContents content, KDrawStatsStageId statsStage)
 {
 	VkCommandBuffer commandBuffer = GetVkHandle();
 	assert(renderPass);
@@ -595,7 +616,7 @@ bool KVulkanCommandBuffer::BeginRenderPass(IKRenderPassPtr renderPass, SubpassCo
 		renderPassInfo.clearValueCount = (uint32_t)clearValues.size();
 
 		VkSubpassContents subpassContents = VK_SUBPASS_CONTENTS_MAX_ENUM;
-		switch (conent)
+		switch (content)
 		{
 			case SUBPASS_CONTENTS_INLINE:
 				subpassContents = VK_SUBPASS_CONTENTS_INLINE;
@@ -609,6 +630,8 @@ bool KVulkanCommandBuffer::BeginRenderPass(IKRenderPassPtr renderPass, SubpassCo
 		}
 
 		vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, subpassContents);
+
+		BeginRenderPassDrawStats(statsStage);
 
 		return true;
 	}
@@ -672,6 +695,7 @@ bool KVulkanCommandBuffer::EndRenderPass()
 	if(commandBuffer != VK_NULL_HANDLE)
 	{
 		vkCmdEndRenderPass(commandBuffer);
+		EndRenderPassDrawStats();
 		return true;
 	}
 	return false;
@@ -705,6 +729,7 @@ bool KVulkanCommandBuffer::End()
 	assert(commandBuffer != VK_NULL_HANDLE);
 	if(commandBuffer != VK_NULL_HANDLE)
 	{
+		assert(!HasOpenDrawStatsScopes());
 		VK_ASSERT_RESULT(vkEndCommandBuffer(commandBuffer));
 		return true;
 	}
@@ -731,11 +756,16 @@ bool KVulkanCommandBuffer::Flush()
 
 		VK_ASSERT_RESULT(vkCreateFence(KVulkanGlobal::device, &fenceInfo, nullptr, &fence));
 		// Wait for the fence to signal that command buffer has finished executing
-		VK_ASSERT_RESULT(vkQueueSubmit(KVulkanGlobal::graphicsQueues[0], 1, &submitInfo, fence));
-		VK_ASSERT_RESULT(vkWaitForFences(KVulkanGlobal::device, 1, &fence, VK_TRUE, DEFAULT_FENCE_TIMEOUT));
+		const VkResult result = vkQueueSubmit(KVulkanGlobal::graphicsQueues[0], 1, &submitInfo, fence);
+		VK_ASSERT_RESULT(result);
+		if (result == VK_SUCCESS)
+		{
+			ReportSubmittedDraws();
+			VK_ASSERT_RESULT(vkWaitForFences(KVulkanGlobal::device, 1, &fence, VK_TRUE, DEFAULT_FENCE_TIMEOUT));
+		}
 		vkDestroyFence(KVulkanGlobal::device, fence, nullptr);
 
-		return true;
+		return result == VK_SUCCESS;
 	}
 	return false;
 }

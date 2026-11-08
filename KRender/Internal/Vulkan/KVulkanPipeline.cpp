@@ -185,7 +185,7 @@ bool KVulkanPipeline::TrimDescriptionPool()
 
 KVulkanPipelineHandle::KVulkanPipelineHandle()
 	: m_GraphicsPipeline(VK_NULL_HANDLE)
-	, m_PrimitiveTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
+	, m_PrimitiveTopology(PT_TRIANGLE_LIST)
 	, m_ColorWriteMask(VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT)
 	, m_ColorSrcBlendFactor(VK_BLEND_FACTOR_SRC_ALPHA)
 	, m_ColorDstBlendFactor(VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA)
@@ -214,7 +214,7 @@ KVulkanPipelineHandle::~KVulkanPipelineHandle()
 
 bool KVulkanPipelineHandle::InitializeVulkanTerminology(const KPipelineState& state, const KPipelineBinding& binding)
 {
-	ASSERT_RESULT(KVulkanHelper::TopologyToVkPrimitiveTopology(state.topology, m_PrimitiveTopology));
+	m_PrimitiveTopology = state.topology;
 
 	KVulkanHelper::VulkanBindingDetailList bindingDetails;
 	ASSERT_RESULT(KVulkanHelper::PopulateInputBindingDescription(binding.formats.data(), binding.formats.size(), bindingDetails));
@@ -296,7 +296,7 @@ bool KVulkanPipelineHandle::Init(IKPipelineLayout* layout, IKRenderPass* renderP
 	// 配置顶点组装信息
 	VkPipelineInputAssemblyStateCreateInfo inputAssembly = {};
 	inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-	inputAssembly.topology = m_PrimitiveTopology;
+	ASSERT_RESULT(KVulkanHelper::TopologyToVkPrimitiveTopology(m_PrimitiveTopology, inputAssembly.topology));
 	inputAssembly.primitiveRestartEnable = VK_FALSE;
 
 	// 配置视口裁剪

@@ -418,6 +418,9 @@ bool KPostProcessManager::Construct()
 
 bool KPostProcessManager::Execute(unsigned int chainImageIndex, IKSwapChain* swapChain, IKUIOverlay* ui, KRHICommandList& commandList)
 {
+	static const auto postProcessStage = KRenderGlobal::Statistics.RegisterDrawStatsStage("PostProcess");
+	static const auto mainChainStage = KRenderGlobal::Statistics.RegisterDrawStatsStage("MainChain");
+	static const auto uiStage = KRenderGlobal::Statistics.RegisterDrawStatsStage("UI");
 	KPostProcessPass* endPass = nullptr;
 
 	KClearValue clearValue = { { 0,0,0,0 },{ 1, 0 } };
@@ -438,7 +441,7 @@ bool KPostProcessManager::Execute(unsigned int chainImageIndex, IKSwapChain* swa
 			IKRenderPassPtr renderPass = pass->GetRenderPass();
 
 			commandList.BeginDebugMarker("PostProcess", glm::vec4(1));
-			commandList.BeginRenderPass(renderPass, SUBPASS_CONTENTS_INLINE);
+			commandList.BeginRenderPass(renderPass, SUBPASS_CONTENTS_INLINE, postProcessStage);
 			{
 				commandList.SetViewport(renderPass->GetViewPort());
 
@@ -459,7 +462,7 @@ bool KPostProcessManager::Execute(unsigned int chainImageIndex, IKSwapChain* swa
 	{
 		IKRenderPassPtr renderPass = swapChain->GetRenderPass(chainImageIndex);
 		commandList.BeginDebugMarker("MainChain", glm::vec4(1));
-		commandList.BeginRenderPass(renderPass, SUBPASS_CONTENTS_INLINE);
+		commandList.BeginRenderPass(renderPass, SUBPASS_CONTENTS_INLINE, mainChainStage);
 		commandList.SetViewport(renderPass->GetViewPort());
 		KRenderCommand command;
 		if (PopulateRenderCommand(command, endPass->GetScreenDrawPipeline(), renderPass))
@@ -468,6 +471,7 @@ bool KPostProcessManager::Execute(unsigned int chainImageIndex, IKSwapChain* swa
 		}
 		if (ui)
 		{
+			KScopedDrawStatsStage statsStage(commandList, uiStage);
 			ui->Draw(renderPass, commandList);
 		}
 		commandList.EndRenderPass();

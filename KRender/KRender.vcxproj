@@ -89,6 +89,7 @@
     <ClInclude Include="Internal\KConstantDefinition.h" />
     <ClInclude Include="Internal\KConstantGlobal.h" />
     <ClInclude Include="Internal\KDebugConsole.h" />
+    <ClInclude Include="Internal\KCommandBufferBase.h" />
     <ClInclude Include="Internal\KPipelineBase.h" />
     <ClInclude Include="Internal\KRenderCore.h" />
     <ClInclude Include="Internal\KRenderGlobal.h" />
@@ -219,6 +220,7 @@
     <ClCompile Include="Internal\KConstantDefinition.cpp" />
     <ClCompile Include="Internal\KConstantGlobal.cpp" />
     <ClCompile Include="Internal\KDebugConsole.cpp" />
+    <ClCompile Include="Internal\KCommandBufferBase.cpp" />
     <ClCompile Include="Internal\KPipelineBase.cpp" />
     <ClCompile Include="Internal\KRenderCore.cpp" />
     <ClCompile Include="Internal\KRenderDevice.cpp" />

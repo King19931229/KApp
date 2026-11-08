@@ -105,7 +105,22 @@ void KRenderImGui::Run()
 			ImGui::SetNextWindowPos(ImVec2(io.DisplaySize.x * 0.5f, 60), 0, ImVec2(0.5f, 0.0f));
 			ImGui::Begin("Statistics", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse);
 			ImGui::Text("FPS [%f] FrameTime [%f]", statistics.frame.fps, statistics.frame.frametime);
-			ImGui::Text("DrawCall [%d] Face [%d] [Primtives] [%d]", statistics.stage.drawcalls, statistics.stage.faces, statistics.stage.primtives);
+			if (statistics.draw.valid)
+			{
+				const auto& total = statistics.draw.total;
+				ImGui::Text("Direct draws [%llu] Primitives [%llu] Triangles [%llu]",
+					static_cast<unsigned long long>(total.drawCalls), static_cast<unsigned long long>(total.primitives), static_cast<unsigned long long>(total.triangles));
+				if (ImGui::TreeNode("Direct draws by stage"))
+				{
+					for (const auto& stage : statistics.draw.stages)
+					{
+						const auto& counts = stage.counts;
+						ImGui::Text("%s: %llu draws, %llu primitives, %llu triangles", stage.name.c_str(),
+							static_cast<unsigned long long>(counts.drawCalls), static_cast<unsigned long long>(counts.primitives), static_cast<unsigned long long>(counts.triangles));
+					}
+					ImGui::TreePop();
+				}
+			}
 			ImGui::End();
 		}
 

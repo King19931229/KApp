@@ -47,7 +47,9 @@ bool KVulkanUIOverlay::Draw(IKRenderPassPtr renderPass, KRHICommandList& command
 		IKPipelineHandlePtr pipelineHandle = nullptr;
 		if (vulkanPipeline->GetHandle(renderPass, pipelineHandle))
 		{
-			VkPipeline pipeline = ((KVulkanPipelineHandle*)pipelineHandle.get())->GetVkPipeline();
+			auto* vulkanHandle = static_cast<KVulkanPipelineHandle*>(pipelineHandle.get());
+			VkPipeline pipeline = vulkanHandle->GetVkPipeline();
+			const PrimitiveTopology topology = vulkanHandle->GetPrimitiveTopology();
 
 			VkPipelineLayout pipelineLayout = vulkanPipeline->GetVkPipelineLayout();
 			VkDescriptorSet descriptorSet = vulkanPipeline->AllocDescriptorSet(0, nullptr, 0, nullptr, 0);
@@ -79,7 +81,7 @@ bool KVulkanUIOverlay::Draw(IKRenderPassPtr renderPass, KRHICommandList& command
 					scissorRect.extent.width = (uint32_t)(pcmd->ClipRect.z - pcmd->ClipRect.x);
 					scissorRect.extent.height = (uint32_t)(pcmd->ClipRect.w - pcmd->ClipRect.y);
 					vkCmdSetScissor(commandBuffer, 0, 1, &scissorRect);
-					vkCmdDrawIndexed(commandBuffer, pcmd->ElemCount, 1, indexOffset, vertexOffset, 0);
+					vulkanCommandBuffer->DrawIndexed(topology, pcmd->ElemCount, 1, indexOffset, vertexOffset, 0);
 					indexOffset += pcmd->ElemCount;
 				}
 				vertexOffset += cmd_list->VtxBuffer.Size;

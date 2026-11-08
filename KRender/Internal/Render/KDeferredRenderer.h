@@ -12,7 +12,7 @@ public:
 	typedef std::vector<RenderPassCallFuncType*> RenderPassCallFuncList;
 protected:
 	IKRenderPassPtr			m_RenderPass[DRS_STAGE_COUNT];
-	KRenderStageStatistics	m_Statistics[DRS_STAGE_COUNT];
+	KDrawStatsStageId		m_DrawStatsStages[DRS_STAGE_COUNT] = {};
 	RenderPassCallFuncList	m_RenderCallFuncs[DRS_STAGE_COUNT];
 	IKRenderPassPtr			m_EmptyAORenderPass;
 
@@ -35,7 +35,7 @@ protected:
 
 	void BuildMaterialSubMeshInstance(DeferredRenderStage renderStage, const std::vector<IKEntity*>& cullRes, std::vector<KMaterialSubMeshInstance>& instances);
 
-	void PopulateRenderCommand(DeferredRenderStage deferredRenderStage, const std::vector<IKEntity*>& cullRes, KRenderStageStatistics& statistics, KRenderCommandList& renderCommands);
+	void PopulateRenderCommand(DeferredRenderStage deferredRenderStage, const std::vector<IKEntity*>& cullRes, KRenderCommandList& renderCommands);
 	void ExecuteRenderPass(KRHICommandList& commandList, DeferredRenderStage deferredRenderStage, const std::vector<IKEntity*>& cullRes);
 
 	void RecreateRenderPass(uint32_t width, uint32_t heigh);

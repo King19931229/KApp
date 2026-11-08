@@ -70,7 +70,7 @@ void KDeferredRenderer::Init(const KCamera* camera, uint32_t width, uint32_t hei
 
 	for (uint32_t i = 0; i < DRS_STAGE_COUNT; ++i)
 	{
-		KRenderGlobal::Statistics.RegisterRenderStage(GDeferredRenderStageDescription[i].debugMarker);
+		m_DrawStatsStages[i] = KRenderGlobal::Statistics.RegisterDrawStatsStage(GDeferredRenderStageDescription[i].debugMarker);
 	}
 
 	KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "shading/quad.vert", m_QuadVS, KRenderGlobal::EnableAsyncShaderCompile);
@@ -103,7 +103,6 @@ void KDeferredRenderer::UnInit()
 	{
 		SAFE_UNINIT(m_RenderPass[i]);
 		m_RenderCallFuncs[i].clear();
-		KRenderGlobal::Statistics.UnRegisterRenderStage(GDeferredRenderStageDescription[i].debugMarker);
 	}
 	m_Camera = nullptr;
 }
@@ -444,7 +443,7 @@ void KDeferredRenderer::BuildMaterialSubMeshInstance(DeferredRenderStage renderS
 	}
 }
 
-void KDeferredRenderer::PopulateRenderCommand(DeferredRenderStage deferredRenderStage, const std::vector<IKEntity*>& cullRes, KRenderStageStatistics& statistics, KRenderCommandList& renderCommands)
+void KDeferredRenderer::PopulateRenderCommand(DeferredRenderStage deferredRenderStage, const std::vector<IKEntity*>& cullRes, KRenderCommandList& renderCommands)
 {
 	RenderStage renderStage = GDeferredRenderStageDescription[deferredRenderStage].renderStage;
 	RenderStage instanceRenderStage = GDeferredRenderStageDescription[deferredRenderStage].instanceRenderStage;
@@ -502,19 +501,6 @@ void KDeferredRenderer::PopulateRenderCommand(DeferredRenderStage deferredRender
 				usage.offset = allocResult.offset;
 			}
 
-			++statistics.drawcalls;
-
-			if (command.indexDraw)
-			{
-				statistics.primtives += command.indexData->indexCount;
-				statistics.faces += command.indexData->indexCount / 3;
-			}
-			else
-			{
-				statistics.primtives += command.vertexData->vertexCount;
-				statistics.faces += command.vertexData->vertexCount / 3;
-			}
-
 			KRenderUtil::AssignRenderStageBinding(command, instanceRenderStage, m_DebugOption);
 			command.pipeline->GetHandle(m_RenderPass[deferredRenderStage], command.pipelineHandle);
 
@@ -567,19 +553,6 @@ void KDeferredRenderer::PopulateRenderCommand(DeferredRenderStage deferredRender
 
 				command.dynamicConstantUsages.push_back(objectUsage);
 
-				++statistics.drawcalls;
-
-				if (command.indexDraw)
-				{
-					statistics.primtives += command.indexData->indexCount;
-					statistics.faces += command.indexData->indexCount / 3;
-				}
-				else
-				{
-					statistics.primtives += command.vertexData->vertexCount;
-					statistics.faces += command.vertexData->vertexCount / 3;
-				}
-
 				KRenderUtil::AssignRenderStageBinding(command, renderStage, m_DebugOption);
 				command.pipeline->GetHandle(m_RenderPass[deferredRenderStage], command.pipelineHandle);
 
@@ -590,8 +563,6 @@ void KDeferredRenderer::PopulateRenderCommand(DeferredRenderStage deferredRender
 			}
 		}
 	}
-
-	KRenderGlobal::Statistics.UpdateRenderStageStatistics(GDeferredRenderStageDescription[renderStage].debugMarker, statistics);
 }
 
 void KDeferredRenderer::ExecuteRenderPass(KRHICommandList& commandList, DeferredRenderStage deferredRenderStage, const std::vector<IKEntity*>& cullRes)
@@ -601,21 +572,18 @@ void KDeferredRenderer::ExecuteRenderPass(KRHICommandList& commandList, Deferred
 	const char* debugMarker = GDeferredRenderStageDescription[deferredRenderStage].debugMarker;
 	commandList.BeginDebugMarker(debugMarker, glm::vec4(1));
 
-	KRenderStageStatistics& statistics = m_Statistics[deferredRenderStage];
-	statistics.Reset();
-
 	bool allowGPUScene = GDeferredRenderStageDescription[deferredRenderStage].allowGPUScene;
 
 	KRenderCommandList renderCmdList;
 	if (!KRenderGlobal::EnableGPUScene || !allowGPUScene)
 	{
-		PopulateRenderCommand(deferredRenderStage, cullRes, statistics, renderCmdList);
+		PopulateRenderCommand(deferredRenderStage, cullRes, renderCmdList);
 	}
 
 	bool allowMultithread = GDeferredRenderStageDescription[deferredRenderStage].allowMultithread;
 	if (allowMultithread && KRenderGlobal::EnableMultithreadRender)
 	{
-		commandList.BeginRenderPass(renderPass, SUBPASS_CONTENTS_SECONDARY);
+		commandList.BeginRenderPass(renderPass, SUBPASS_CONTENTS_SECONDARY, m_DrawStatsStages[deferredRenderStage]);
 
 		uint32_t threadNum = commandList.GetThreadPoolSize();
 
@@ -663,7 +631,7 @@ void KDeferredRenderer::ExecuteRenderPass(KRHICommandList& commandList, Deferred
 	}
 	else
 	{
-		commandList.BeginRenderPass(renderPass, SUBPASS_CONTENTS_INLINE);
+		commandList.BeginRenderPass(renderPass, SUBPASS_CONTENTS_INLINE, m_DrawStatsStages[deferredRenderStage]);
 		commandList.SetViewport(renderPass->GetViewPort());
 		for (KRenderCommand& command : renderCmdList)
 		{
@@ -698,7 +666,7 @@ void KDeferredRenderer::EmptyAO(KRHICommandList& commandList)
 void KDeferredRenderer::Foreground(KRHICommandList& commandList)
 {
 	commandList.BeginDebugMarker(GDeferredRenderStageDescription[DRS_STATE_FOREGROUND].debugMarker, glm::vec4(1));
-	commandList.BeginRenderPass(m_RenderPass[DRS_STATE_FOREGROUND], SUBPASS_CONTENTS_INLINE);
+	commandList.BeginRenderPass(m_RenderPass[DRS_STATE_FOREGROUND], SUBPASS_CONTENTS_INLINE, m_DrawStatsStages[DRS_STATE_FOREGROUND]);
 	commandList.SetViewport(m_RenderPass[DRS_STATE_FOREGROUND]->GetViewPort());
 
 	std::for_each(m_RenderCallFuncs[DRS_STATE_FOREGROUND].begin(), m_RenderCallFuncs[DRS_STATE_FOREGROUND].end(), [this, &commandList](RenderPassCallFuncType* func)
@@ -713,7 +681,7 @@ void KDeferredRenderer::Foreground(KRHICommandList& commandList)
 void KDeferredRenderer::SkyPass(KRHICommandList& commandList)
 {
 	commandList.BeginDebugMarker(GDeferredRenderStageDescription[DRS_STATE_SKY].debugMarker, glm::vec4(1));
-	commandList.BeginRenderPass(m_RenderPass[DRS_STATE_SKY], SUBPASS_CONTENTS_INLINE);
+	commandList.BeginRenderPass(m_RenderPass[DRS_STATE_SKY], SUBPASS_CONTENTS_INLINE, m_DrawStatsStages[DRS_STATE_SKY]);
 	commandList.SetViewport(m_RenderPass[DRS_STATE_SKY]->GetViewPort());
 
 	KRenderGlobal::SkyBox.Render(m_RenderPass[DRS_STATE_SKY], commandList);
@@ -727,7 +695,7 @@ void KDeferredRenderer::PostProcessResult(KRHICommandList& commandList)
 	commandList.Transition(KRenderGlobal::GBuffer.GetSceneColor()->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 
 	commandList.BeginDebugMarker(GDeferredRenderStageDescription[DRS_STATE_POSTPROCESS_RESULT].debugMarker, glm::vec4(1));
-	commandList.BeginRenderPass(m_RenderPass[DRS_STATE_POSTPROCESS_RESULT], SUBPASS_CONTENTS_INLINE);
+	commandList.BeginRenderPass(m_RenderPass[DRS_STATE_POSTPROCESS_RESULT], SUBPASS_CONTENTS_INLINE, m_DrawStatsStages[DRS_STATE_POSTPROCESS_RESULT]);
 	commandList.SetViewport(m_RenderPass[DRS_STATE_POSTPROCESS_RESULT]->GetViewPort());
 
 	KRenderCommand command;
@@ -769,7 +737,7 @@ void KDeferredRenderer::CopyOpaqueColor(KRHICommandList& commandList)
 		commandList.BeginDebugMarker(GDeferredRenderStageDescription[DRS_STATE_COPY_OPAQUE_COLOR].debugMarker, glm::vec4(1));
 
 		commandList.Transition(KRenderGlobal::GBuffer.GetSceneColor()->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
-		commandList.BeginRenderPass(m_RenderPass[DRS_STATE_COPY_OPAQUE_COLOR], SUBPASS_CONTENTS_INLINE);
+		commandList.BeginRenderPass(m_RenderPass[DRS_STATE_COPY_OPAQUE_COLOR], SUBPASS_CONTENTS_INLINE, m_DrawStatsStages[DRS_STATE_COPY_OPAQUE_COLOR]);
 		commandList.SetViewport(m_RenderPass[DRS_STATE_COPY_OPAQUE_COLOR]->GetViewPort());
 
 		KRenderCommand command;
@@ -790,6 +758,7 @@ void KDeferredRenderer::ForwardTransprant(KRHICommandList& commandList, const st
 {
 	if (KRenderGlobal::EnablePeeling)
 	{
+		KScopedDrawStatsStage statsStage(commandList, m_DrawStatsStages[DRS_STAGE_FORWARD_TRANSPRANT]);
 		if (KRenderGlobal::DepthPeelingMethod == KRenderGlobal::NORMAL_DEPTH_PEELING)
 		{
 			KRenderGlobal::DepthPeeling.Execute(commandList, cullRes);
@@ -809,17 +778,14 @@ void KDeferredRenderer::ForwardTransprant(KRHICommandList& commandList, const st
 void KDeferredRenderer::DebugObject(KRHICommandList& commandList, const std::vector<IKEntity*>& cullRes)
 {
 	commandList.BeginDebugMarker(GDeferredRenderStageDescription[DRS_STATE_DEBUG_OBJECT].debugMarker, glm::vec4(1));
-	commandList.BeginRenderPass(m_RenderPass[DRS_STATE_DEBUG_OBJECT], SUBPASS_CONTENTS_INLINE);
+	commandList.BeginRenderPass(m_RenderPass[DRS_STATE_DEBUG_OBJECT], SUBPASS_CONTENTS_INLINE, m_DrawStatsStages[DRS_STATE_DEBUG_OBJECT]);
 	commandList.SetViewport(m_RenderPass[DRS_STATE_DEBUG_OBJECT]->GetViewPort());
-
-	KRenderStageStatistics& statistics = m_Statistics[DRS_STATE_DEBUG_OBJECT];
-	statistics.Reset();
 
 	std::vector<KRenderCommand> commands;
 	std::vector<glm::vec3> positions;
 	std::vector<size_t> sortedIndices;
 
-	auto BuildCommand = [&statistics, &commands, &sortedIndices, &positions, this](const std::vector<KMaterialSubMeshPtr>& materialSubMeshes, const KConstantDefinition::DEBUG& objectData)
+	auto BuildCommand = [&commands, &sortedIndices, &positions, this](const std::vector<KMaterialSubMeshPtr>& materialSubMeshes, const KConstantDefinition::DEBUG& objectData)
 	{
 		glm::vec3 position = KMath::ExtractPosition(objectData.MODEL.MODEL);
 
@@ -835,18 +801,6 @@ void KDeferredRenderer::DebugObject(KRHICommandList& commandList, const std::vec
 				KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, objectUsage);
 
 				command.dynamicConstantUsages.push_back(objectUsage);
-
-				++statistics.drawcalls;
-				if (command.indexDraw)
-				{
-					statistics.faces += command.indexData->indexCount / 3;
-					statistics.primtives += command.indexData->indexCount;
-				}
-				else
-				{
-					statistics.faces += command.vertexData->vertexCount / 3;
-					statistics.primtives += command.vertexData->vertexCount;
-				}
 
 				command.pipeline->GetHandle(m_RenderPass[DRS_STATE_DEBUG_OBJECT], command.pipelineHandle);
 
@@ -866,18 +820,6 @@ void KDeferredRenderer::DebugObject(KRHICommandList& commandList, const std::vec
 				KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, objectUsage);
 
 				command.dynamicConstantUsages.push_back(objectUsage);
-
-				++statistics.drawcalls;
-				if (command.indexDraw)
-				{
-					statistics.faces += command.indexData->indexCount / 2;
-					statistics.primtives += command.indexData->indexCount;
-				}
-				else
-				{
-					statistics.faces += command.vertexData->vertexCount / 2;
-					statistics.primtives += command.vertexData->vertexCount;
-				}
 
 				command.pipeline->GetHandle(m_RenderPass[DRS_STATE_DEBUG_OBJECT], command.pipelineHandle);
 
@@ -955,8 +897,6 @@ void KDeferredRenderer::DebugObject(KRHICommandList& commandList, const std::vec
 		(*func)(m_RenderPass[DRS_STATE_DEBUG_OBJECT], commandList);
 	});
 
-	KRenderGlobal::Statistics.UpdateRenderStageStatistics(GDeferredRenderStageDescription[DRS_STATE_DEBUG_OBJECT].debugMarker, statistics);
-
 	commandList.EndRenderPass();
 	commandList.EndDebugMarker();
 }
@@ -964,7 +904,7 @@ void KDeferredRenderer::DebugObject(KRHICommandList& commandList, const std::vec
 void KDeferredRenderer::DeferredLighting(KRHICommandList& commandList)
 {
 	commandList.BeginDebugMarker(GDeferredRenderStageDescription[DRS_STAGE_DEFERRED_LIGHTING].debugMarker, glm::vec4(1));
-	commandList.BeginRenderPass(m_RenderPass[DRS_STAGE_DEFERRED_LIGHTING], SUBPASS_CONTENTS_INLINE);
+	commandList.BeginRenderPass(m_RenderPass[DRS_STAGE_DEFERRED_LIGHTING], SUBPASS_CONTENTS_INLINE, m_DrawStatsStages[DRS_STAGE_DEFERRED_LIGHTING]);
 	commandList.SetViewport(m_RenderPass[DRS_STAGE_DEFERRED_LIGHTING]->GetViewPort());
 
 	IKRenderPassPtr renderPass = m_RenderPass[DRS_STAGE_DEFERRED_LIGHTING];
@@ -998,8 +938,9 @@ void KDeferredRenderer::DeferredLighting(KRHICommandList& commandList)
 
 void KDeferredRenderer::DrawFinalResult(IKRenderPassPtr renderPass, KRHICommandList& commandList)
 {
+	static const auto statsStage = KRenderGlobal::Statistics.RegisterDrawStatsStage("DrawFinalResult");
 	commandList.BeginDebugMarker("DrawFinalResult", glm::vec4(1));
-	commandList.BeginRenderPass(renderPass, SUBPASS_CONTENTS_INLINE);
+	commandList.BeginRenderPass(renderPass, SUBPASS_CONTENTS_INLINE, statsStage);
 	commandList.SetViewport(renderPass->GetViewPort());
 
 	KRenderCommand command;

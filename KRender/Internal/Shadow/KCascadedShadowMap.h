@@ -4,7 +4,7 @@
 #include "Interface/IKRenderDevice.h"
 #include "Internal/KVertexDefinition.h"
 #include "Internal/ECS/System/KCullSystem.h"
-#include "Internal/KStatistics.h"
+#include "Interface/IKStatistics.h"
 #include "Internal/FrameGraph/KFrameGraph.h"
 #include "Internal/Render/KRHICommandList.h"
 
@@ -140,7 +140,7 @@ protected:
 	std::vector<Cascade> m_DynamicCascadeds;
 
 	glm::vec3 m_StaticCenter;
-	KRenderStageStatistics m_Statistics[2];
+	KDrawStatsStageId m_DrawStatsStages[2] = {};
 
 	KCascadedShadowMapCasterPassPtr m_CasterPass;
 	KCascadedShadowMapReceiverPassPtr m_ReceiverPass;
@@ -172,7 +172,7 @@ protected:
 	void UpdateCascadesDebug();
 
 	bool GetDebugRenderCommand(KRenderCommandList& commands, bool isStatic);
-	void PopulateRenderCommand(size_t cascadedIndex, bool isStatic, const std::vector<IKEntity*>& litCullRes, std::vector<KRenderCommand>& commands, KRenderStageStatistics& statistics);
+	void PopulateRenderCommand(size_t cascadedIndex, bool isStatic, const std::vector<IKEntity*>& litCullRes, std::vector<KRenderCommand>& commands);
 	void FilterRenderComponent(std::vector<IKEntity*>& in, bool isStatic);
 	bool PopulateRenderCommandList(size_t cascadedIndex, bool isStatic, KRenderCommandList& commandList);
 

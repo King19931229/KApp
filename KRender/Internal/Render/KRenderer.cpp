@@ -153,6 +153,10 @@ void KRenderer::RemoveUnreferenced()
 
 bool KRenderer::Render(uint32_t chainImageIndex)
 {
+	static const auto giStage = KRenderGlobal::Statistics.RegisterDrawStatsStage("GI");
+	static const auto hiZStage = KRenderGlobal::Statistics.RegisterDrawStatsStage("Hi-Z");
+	static const auto postProcessStage = KRenderGlobal::Statistics.RegisterDrawStatsStage("PostProcess");
+
 	UpdateCamera();
 
 	if (m_PrevEnableAsyncCompute != KRenderGlobal::EnableAsyncCompute)
@@ -207,14 +211,19 @@ bool KRenderer::Render(uint32_t chainImageIndex)
 
 		if (KRenderGlobal::GIMethod == KRenderGlobal::SVO_GI)
 		{
+			KScopedDrawStatsStage statsStage(m_RHICommandList, giStage);
 			KRenderGlobal::Voxilzer.UpdateVoxel(m_RHICommandList);
 		}
 		if (KRenderGlobal::GIMethod == KRenderGlobal::CLIPMAP_GI)
 		{
+			KScopedDrawStatsStage statsStage(m_RHICommandList, giStage);
 			KRenderGlobal::ClipmapVoxilzer.UpdateVoxel(m_RHICommandList);
 		}
 
-		KRenderGlobal::HiZOcclusion.Execute(m_RHICommandList, cullRes);
+		{
+			KScopedDrawStatsStage statsStage(m_RHICommandList, hiZStage);
+			KRenderGlobal::HiZOcclusion.Execute(m_RHICommandList, cullRes);
+		}
 
 		m_RHICommandList.SetThreadCommandPools(m_PreGraphics.threadPools);
 		m_RHICommandList.SetMultiThreadPool(&m_RenderJobExecuteThreadPool);
@@ -225,7 +234,10 @@ bool KRenderer::Render(uint32_t chainImageIndex)
 		KRenderGlobal::DeferredRenderer.MainBasePass(m_RHICommandList, cullRes);
 
 		KRenderGlobal::GBuffer.TransitionDepthStencil(m_RHICommandList, m_PreGraphics.queue, m_PreGraphics.queue, PIPELINE_STAGE_EARLY_FRAGMENT_TESTS | PIPELINE_STAGE_LATE_FRAGMENT_TESTS, PIPELINE_STAGE_FRAGMENT_SHADER | PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
-		KRenderGlobal::HiZBuffer.Construct(m_RHICommandList);
+		{
+			KScopedDrawStatsStage statsStage(m_RHICommandList, hiZStage);
+			KRenderGlobal::HiZBuffer.Construct(m_RHICommandList);
+		}
 		KRenderGlobal::VirtualGeometryManager.ExecutePost(m_RHICommandList);
 		KRenderGlobal::GBuffer.TransitionDepthStencil(m_RHICommandList, m_PreGraphics.queue, m_PreGraphics.queue, PIPELINE_STAGE_FRAGMENT_SHADER | PIPELINE_STAGE_COMPUTE_SHADER, PIPELINE_STAGE_EARLY_FRAGMENT_TESTS | PIPELINE_STAGE_LATE_FRAGMENT_TESTS, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT);
 		KRenderGlobal::DeferredRenderer.PostBasePass(m_RHICommandList);
@@ -259,16 +271,24 @@ bool KRenderer::Render(uint32_t chainImageIndex)
 	{
 		if (KRenderGlobal::GIMethod == KRenderGlobal::SVO_GI)
 		{
+			KScopedDrawStatsStage statsStage(m_RHICommandList, giStage);
 			KRenderGlobal::Voxilzer.UpdateFrame(m_RHICommandList);
 		}
 		if (KRenderGlobal::GIMethod == KRenderGlobal::CLIPMAP_GI)
 		{
+			KScopedDrawStatsStage statsStage(m_RHICommandList, giStage);
 			KRenderGlobal::ClipmapVoxilzer.UpdateFrame(m_RHICommandList);
 		}
 		KRenderGlobal::CascadedShadowMap.UpdateMask(m_RHICommandList);
-		KRenderGlobal::VolumetricFog.Execute(m_RHICommandList);
-		KRenderGlobal::HiZBuffer.Construct(m_RHICommandList);
-		KRenderGlobal::ScreenSpaceReflection.Execute(m_RHICommandList);
+		{
+			KScopedDrawStatsStage statsStage(m_RHICommandList, postProcessStage);
+			KRenderGlobal::VolumetricFog.Execute(m_RHICommandList);
+			{
+				KScopedDrawStatsStage hiZStats(m_RHICommandList, hiZStage);
+				KRenderGlobal::HiZBuffer.Construct(m_RHICommandList);
+			}
+			KRenderGlobal::ScreenSpaceReflection.Execute(m_RHICommandList);
+		}
 	}
 	m_RHICommandList.EndRecord();
 	// This branch follows PreGraphics on the same queue and does not wait for AO.
@@ -297,7 +317,10 @@ bool KRenderer::Render(uint32_t chainImageIndex)
 		KRenderGlobal::DeferredRenderer.ForwardTransprant(m_RHICommandList, cullRes);
 
 		//
-		KRenderGlobal::DepthOfField.Execute(m_RHICommandList);
+		{
+			KScopedDrawStatsStage statsStage(m_RHICommandList, postProcessStage);
+			KRenderGlobal::DepthOfField.Execute(m_RHICommandList);
+		}
 		KRenderGlobal::DeferredRenderer.PostProcessResult(m_RHICommandList);
 
 		KRenderGlobal::DeferredRenderer.DebugObject(m_RHICommandList, cullRes);

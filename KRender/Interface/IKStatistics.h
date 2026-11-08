@@ -1,5 +1,11 @@
 #pragma once
 #include "KRender/Interface/IKRenderConfig.h"
+#include <string>
+#include <vector>
+
+using KDrawStatsStageId = uint32_t;
+// Zero means inherit the current stage. "Uncategorized" is reserved for draws with no stage.
+constexpr KDrawStatsStageId K_NO_DRAW_STATS_STAGE = 0;
 
 struct KRenderFrameStatistics
 {
@@ -15,43 +21,46 @@ struct KRenderFrameStatistics
 
 struct KRenderStageStatistics
 {
-	uint32_t faces;
-	uint32_t primtives;
-	uint32_t drawcalls;
+	uint64_t drawCalls = 0;
+	uint64_t primitives = 0;
+	uint64_t triangles = 0;
 
-	KRenderStageStatistics()
+	KRenderStageStatistics& operator+=(const KRenderStageStatistics& other)
 	{
-		Reset();
+		drawCalls += other.drawCalls;
+		primitives += other.primitives;
+		triangles += other.triangles;
+		return *this;
 	}
+};
 
-	void Reset()
-	{
-		faces = 0;
-		primtives = 0;
-		drawcalls = 0;
-	}
+struct KRenderDrawStageStatistics
+{
+	std::string name;
+	KRenderStageStatistics counts;
+};
+
+struct KRenderDrawStatistics
+{
+	uint32_t frameNumber = 0;
+	bool valid = false;
+	KRenderStageStatistics total;
+	// Indexed by KDrawStatsStageId, including the Uncategorized row at index zero.
+	std::vector<KRenderDrawStageStatistics> stages;
 };
 
 struct KRenderStatistics
 {
 	KRenderFrameStatistics frame;
-	KRenderStageStatistics stage;
+	KRenderDrawStatistics draw;
 };
 
 struct IKStatistics
 {
 	virtual ~IKStatistics() {}
 
-	virtual bool RegisterRenderStage(const char* stage) = 0;
-	virtual bool UnRegisterRenderStage(const char* stage) = 0;
-
-	// call once each frame
-	virtual bool UpdateRenderStageStatistics(const char* stage, const KRenderStageStatistics& statistics) = 0;
+	virtual KDrawStatsStageId RegisterDrawStatsStage(const char* name) = 0;
 	virtual void Update() = 0;
-
-	virtual bool GetStageStatistics(const char* stage, KRenderStageStatistics& statistics) = 0;
-	virtual bool GetMaxStageStatistics(const char* stage, KRenderStageStatistics& statistics) = 0;
-	virtual bool GetMinStageStatistics(const char* stage, KRenderStageStatistics& statistics) = 0;
 
 	virtual bool GetAllStatistics(KRenderStatistics& statistics) = 0;
 

@@ -2,31 +2,16 @@
 #include "Interface/IKStatistics.h"
 #include "KBase/Publish/KTimer.h"
 
-#include <string>
-#include <unordered_map>
+#include <mutex>
 
-// TODO
 class KStatistics : public IKStatistics
 {
 protected:
-	struct StageData
-	{
-		KRenderStageStatistics current;
-		KRenderStageStatistics max;
-		KRenderStageStatistics min;
-
-		KTimer timer;
-		KTimer max_min_timer;
-
-		uint32_t num_frames;
-
-		StageData()
-		{
-			num_frames = 0;
-		}
-	};
-	typedef std::unordered_map<std::string, StageData> StageDataMap;
-	StageDataMap m_StageData;
+	mutable std::mutex m_Mutex;
+	KRenderDrawStatistics m_DrawStatistics;
+	std::vector<KRenderStageStatistics> m_PendingDrawStages;
+	uint32_t m_PendingDrawFrame = 0;
+	bool m_DrawFrameActive = false;
 
 	struct FrameData
 	{
@@ -53,18 +38,14 @@ public:
 	KStatistics();
 	~KStatistics();
 
-	virtual bool RegisterRenderStage(const char* stage);
-	virtual bool UnRegisterRenderStage(const char* stage);
+	virtual KDrawStatsStageId RegisterDrawStatsStage(const char* name);
+	void BeginDrawFrame(uint32_t frameNumber);
+	void AccumulateSubmittedDraws(const std::vector<KRenderStageStatistics>& stages);
+	void EndDrawFrame();
+	void ResetDrawStatistics();
 
-	virtual bool ClearAllRenderStages();
-
-	virtual bool UpdateRenderStageStatistics(const char* stage, const KRenderStageStatistics& statistics);
 	virtual void Update();
-
-	virtual bool GetStageStatistics(const char* stage, KRenderStageStatistics& statistics);
-	virtual bool GetMaxStageStatistics(const char* stage, KRenderStageStatistics& statistics);
-	virtual bool GetMinStageStatistics(const char* stage, KRenderStageStatistics& statistics);
-
+	KRenderFrameStatistics GetFrameStatistics() const;
 	virtual bool GetAllStatistics(KRenderStatistics& statistics);
 
 	// time in ms

@@ -16,7 +16,7 @@ protected:
 	// 顶点装配信息
 	std::vector<VkVertexInputBindingDescription> m_BindingDescriptions;
 	std::vector<VkVertexInputAttributeDescription> m_AttributeDescriptions;
-	VkPrimitiveTopology	m_PrimitiveTopology;
+	PrimitiveTopology m_PrimitiveTopology;
 
 	// Alpha混合信息
 	VkColorComponentFlags m_ColorWriteMask;
@@ -63,6 +63,7 @@ public:
 	virtual bool SetDebugName(const char* name);
 
 	inline VkPipeline GetVkPipeline() { return m_GraphicsPipeline; }
+	inline PrimitiveTopology GetPrimitiveTopology() const { return m_PrimitiveTopology; }
 };
 
 class KVulkanPipeline : public KPipelineBase

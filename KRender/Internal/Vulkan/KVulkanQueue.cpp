@@ -221,14 +221,15 @@ bool KVulkanQueue::Submit(IKCommandBufferPtr buffer, std::vector<KSemaphoreWaitI
 		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
 		VkCommandBuffer commandBuffer = VK_NULL_HANDEL;
+		auto* vulkanBuffer = static_cast<KVulkanCommandBuffer*>(buffer.get());
 
 		std::vector<VkPipelineStageFlags> waitStages;
 		std::vector<VkSemaphore> waitSemaphores;
 		std::vector<VkSemaphore> singalSemaphores;
 
-		if (buffer)
+		if (vulkanBuffer)
 		{
-			commandBuffer = ((KVulkanCommandBuffer*)buffer.get())->GetVkHandle();
+			commandBuffer = vulkanBuffer->GetVkHandle();
 			submitInfo.commandBufferCount = 1;
 			submitInfo.pCommandBuffers = &commandBuffer;
 		}
@@ -256,7 +257,16 @@ bool KVulkanQueue::Submit(IKCommandBufferPtr buffer, std::vector<KSemaphoreWaitI
 		submitInfo.pSignalSemaphores = singalSemaphores.data();
 
 		VkFence vkFence = fence ? ((KVulkanFence*)fence.get())->GetVkFence() : VK_NULL_HANDEL;
-		VK_ASSERT_RESULT(vkQueueSubmit(m_vkQueue, 1, &submitInfo, vkFence));
+		const VkResult result = vkQueueSubmit(m_vkQueue, 1, &submitInfo, vkFence);
+		VK_ASSERT_RESULT(result);
+		if (result != VK_SUCCESS)
+		{
+			return false;
+		}
+		if (vulkanBuffer)
+		{
+			vulkanBuffer->ReportSubmittedDraws();
+		}
 
 		return true;
 	}

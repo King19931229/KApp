@@ -1,5 +1,5 @@
 #pragma once
-#include "Interface/IKCommandBuffer.h"
+#include "Internal/KCommandBufferBase.h"
 #include "KVulkanConfig.h"
 
 class KVulkanCommandPool : public IKCommandPool
@@ -34,12 +34,13 @@ public:
 	inline std::vector<VkCommandPool> GetVkHandles() { return m_CommandPools; }
 };
 
-class KVulkanCommandBuffer : public IKCommandBuffer
+class KVulkanCommandBuffer : public KCommandBufferBase
 {
 protected:
 	std::vector<VkCommandBuffer> m_CommandBuffers;
 	std::vector<VkCommandPool> m_ParentPools;
 	VkCommandBufferLevel m_CommandLevel;
+
 public:
 	KVulkanCommandBuffer();
 	virtual ~KVulkanCommandBuffer();
@@ -54,6 +55,8 @@ public:
 	virtual bool SetDepthBias(float depthBiasConstant, float depthBiasClamp, float depthBiasSlope);
 
 	virtual bool Render(const KRenderCommand& command);
+	void Draw(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance);
+	void DrawIndexed(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t vertexOffset, uint32_t firstInstance);
 
 	virtual bool Execute(IKCommandBufferPtr buffer);
 	virtual bool ExecuteAll(KCommandBufferList& commandBuffers);
@@ -64,7 +67,7 @@ public:
 
 	virtual bool Flush();
 
-	virtual bool BeginRenderPass(IKRenderPassPtr renderPass, SubpassContents conent);
+	virtual bool BeginRenderPass(IKRenderPassPtr renderPass, SubpassContents content, KDrawStatsStageId statsStage = K_NO_DRAW_STATS_STAGE);
 
 	virtual bool ClearColor(uint32_t attachment, const KViewPortArea& area, const KClearColor& color);
 	virtual bool ClearDepthStencil(const KViewPortArea& area, const KClearDepthStencil& depthStencil);

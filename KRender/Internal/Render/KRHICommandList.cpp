@@ -86,7 +86,7 @@ void KFlushCmd::Execute(KRHICommandList& commandList)
 
 void KBeginRenderPassCmd::Execute(KRHICommandList& commandList)
 {
-	commandBuffer->BeginRenderPass(renderPass, content);
+	commandBuffer->BeginRenderPass(renderPass, content, statsStage);
 }
 
 void KClearColorCmd::Execute(KRHICommandList& commandList)
@@ -363,9 +363,9 @@ void KRHICommandList::FlushRecordDone()
 	ExecuteOrInsertNextCommand(command);
 }
 
-void KRHICommandList::BeginRenderPass(IKRenderPassPtr renderPass, SubpassContents content)
+void KRHICommandList::BeginRenderPass(IKRenderPassPtr renderPass, SubpassContents content, KDrawStatsStageId statsStage)
 {
-	KRHICommandBasePtr command = KRHICommandBasePtr(KNEW KBeginRenderPassCmd(m_CommandBuffer, renderPass, content));
+	KRHICommandBasePtr command = KRHICommandBasePtr(KNEW KBeginRenderPassCmd(m_CommandBuffer, renderPass, content, statsStage));
 	ExecuteOrInsertNextCommand(command);
 }
 
@@ -487,6 +487,16 @@ void KRHICommandList::AddLowLevelRenderJob(LowLevelRenderJobType job)
 {
 	KRHICommandBasePtr command = KRHICommandBasePtr(KNEW KAddLowLevelRenderJobCmd(m_CommandBuffer, job));
 	ExecuteOrInsertNextCommand(command);
+}
+
+void KRHICommandList::BeginDrawStatsStage(KDrawStatsStageId stage)
+{
+	AddLowLevelRenderJob([stage](IKCommandBufferPtr buffer) { buffer->BeginDrawStatsStage(stage); });
+}
+
+void KRHICommandList::EndDrawStatsStage()
+{
+	AddLowLevelRenderJob([](IKCommandBufferPtr buffer) { buffer->EndDrawStatsStage(); });
 }
 
 void KRHICommandList::QueueSubmit(IKQueuePtr queue, std::vector<KSemaphoreWaitInfo> waits, std::vector<IKSemaphorePtr> singals, IKFencePtr fence)

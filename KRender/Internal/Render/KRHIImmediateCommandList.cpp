@@ -71,9 +71,9 @@ void KRHIImmediateCommandList::EndRecord()
 	m_CommandPool->Reset();
 }
 
-void KRHIImmediateCommandList::BeginRenderPass(IKRenderPassPtr renderPass, SubpassContents content)
+void KRHIImmediateCommandList::BeginRenderPass(IKRenderPassPtr renderPass, SubpassContents content, KDrawStatsStageId statsStage)
 {
-	m_CommandBuffer->BeginRenderPass(renderPass, content);
+	m_CommandBuffer->BeginRenderPass(renderPass, content, statsStage);
 }
 
 void KRHIImmediateCommandList::ClearColor(uint32_t attachment, const KViewPortArea& area, const KClearColor& color)

@@ -197,11 +197,13 @@ RHICOMMAND_DEFINE(KBeginRenderPassCmd)
 	IKCommandBufferPtr commandBuffer;
 	IKRenderPassPtr renderPass;
 	SubpassContents content;
+	KDrawStatsStageId statsStage;
 
-	KBeginRenderPassCmd(IKCommandBufferPtr inCommandBuffer, IKRenderPassPtr inRenderPass, SubpassContents inContent)
+	KBeginRenderPassCmd(IKCommandBufferPtr inCommandBuffer, IKRenderPassPtr inRenderPass, SubpassContents inContent, KDrawStatsStageId inStatsStage)
 		: commandBuffer(inCommandBuffer)
 		, renderPass(inRenderPass)
 		, content(inContent)
+		, statsStage(inStatsStage)
 	{}
 
 	virtual void Execute(KRHICommandList& commandList);
@@ -583,7 +585,7 @@ struct KRHICommandListBase
 	virtual void Render(const KRenderCommand& command) = 0;
 	virtual void BeginRecord() = 0;
 	virtual void EndRecord() = 0;
-	virtual void BeginRenderPass(IKRenderPassPtr renderPass, SubpassContents content) = 0;
+	virtual void BeginRenderPass(IKRenderPassPtr renderPass, SubpassContents content, KDrawStatsStageId statsStage = K_NO_DRAW_STATS_STAGE) = 0;
 	virtual void ClearColor(uint32_t attachment, const KViewPortArea& area, const KClearColor& color) = 0;
 	virtual void ClearDepthStencil(const KViewPortArea& area, const KClearDepthStencil& depthStencil) = 0;
 	virtual void EndRenderPass() = 0;
@@ -626,7 +628,7 @@ public:
 	void BeginRecord();
 	void EndRecord();
 
-	void BeginRenderPass(IKRenderPassPtr renderPass, SubpassContents content);
+	void BeginRenderPass(IKRenderPassPtr renderPass, SubpassContents content, KDrawStatsStageId statsStage = K_NO_DRAW_STATS_STAGE);
 
 	void ClearColor(uint32_t attachment, const KViewPortArea& area, const KClearColor& color);
 	void ClearDepthStencil(const KViewPortArea& area, const KClearDepthStencil& depthStencil);
@@ -711,7 +713,7 @@ public:
 
 	void FlushRecordDone();
 
-	void BeginRenderPass(IKRenderPassPtr renderPass, SubpassContents content);
+	void BeginRenderPass(IKRenderPassPtr renderPass, SubpassContents content, KDrawStatsStageId statsStage = K_NO_DRAW_STATS_STAGE);
 
 	void ClearColor(uint32_t attachment, const KViewPortArea& area, const KClearColor& color);
 	void ClearDepthStencil(const KViewPortArea& area, const KClearDepthStencil& depthStencil);
@@ -742,6 +744,8 @@ public:
 	void SetThreadedRenderJob(uint32_t threadIndex, ThreadRenderJobType job);
 
 	void AddLowLevelRenderJob(LowLevelRenderJobType job);
+	void BeginDrawStatsStage(KDrawStatsStageId stage);
+	void EndDrawStatsStage();
 
 	void QueueSubmit(IKQueuePtr queue, std::vector<KSemaphoreWaitInfo> waits, std::vector<IKSemaphorePtr> singals, IKFencePtr fence);
 
@@ -752,6 +756,23 @@ public:
 	void InternalCurrentThreadedContext(uint32_t threadNum, IKCommandBufferPtr commandBuffer, const std::vector<IKCommandPoolPtr>& threadCommandPools, KRenderJobExecuteThreadPool* threadPool, IKRenderPassPtr renderPass, KRenderCommandList&& renderCmdList);
 	void InternalSetThreadRenderJob(uint32_t threadIndex, ThreadRenderJobType job);
 	void InternalExecuteThreadedCommandBuffer();
+};
+
+class KScopedDrawStatsStage
+{
+	KRHICommandList& m_CommandList;
+
+public:
+	KScopedDrawStatsStage(KRHICommandList& commandList, KDrawStatsStageId stage) : m_CommandList(commandList)
+	{
+		m_CommandList.BeginDrawStatsStage(stage);
+	}
+	~KScopedDrawStatsStage()
+	{
+		m_CommandList.EndDrawStatsStage();
+	}
+	KScopedDrawStatsStage(const KScopedDrawStatsStage&) = delete;
+	KScopedDrawStatsStage& operator=(const KScopedDrawStatsStage&) = delete;
 };
 
 typedef std::function<void(IKRenderPassPtr, KRHICommandList&)> RenderPassCallFuncType;

@@ -2,6 +2,7 @@
 
 #include "IKRenderCommand.h"
 #include "IKRenderPass.h"
+#include "IKStatistics.h"
 
 struct IKCommandPool
 {
@@ -35,12 +36,15 @@ struct IKCommandBuffer
 
 	virtual bool Flush() = 0;
 
-	virtual bool BeginRenderPass(IKRenderPassPtr renderPass, SubpassContents conent) = 0;
+	virtual bool BeginRenderPass(IKRenderPassPtr renderPass, SubpassContents content, KDrawStatsStageId statsStage = K_NO_DRAW_STATS_STAGE) = 0;
 
 	virtual bool ClearColor(uint32_t attachment, const KViewPortArea& area, const KClearColor& color) = 0;
 	virtual bool ClearDepthStencil(const KViewPortArea& area, const KClearDepthStencil& depthStencil) = 0;
 
 	virtual bool EndRenderPass() = 0;
+
+	virtual void BeginDrawStatsStage(KDrawStatsStageId stage) = 0;
+	virtual void EndDrawStatsStage() = 0;
 
 	virtual bool BeginDebugMarker(const std::string& marker, const glm::vec4& color) = 0;
 	virtual bool EndDebugMarker() = 0;
