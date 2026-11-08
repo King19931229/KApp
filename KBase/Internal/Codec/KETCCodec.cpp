@@ -275,7 +275,8 @@ static bool EnsureDecodeData(KCodecResult& result)
 			{
 				size_t imageSize = 0;
 
-				const PixelFormat newFormat = PF_R8G8B8A8_UNORM;
+				const bool srgb = KPixelFormatHelper::IsSRGBFormat(result.eFormat);
+				const PixelFormat newFormat = srgb ? PF_R8G8B8A8_SRGB : PF_R8G8B8A8_UNORM;
 
 				if (!KPixelFormatHelper::GetByteSize(newFormat,
 					result.uMipmap, result.bCubemap ? 6 : 1,
@@ -334,7 +335,7 @@ static bool EnsureDecodeData(KCodecResult& result)
 					return false;
 				}
 
-				static const astcenc_profile profile = ASTCENC_PRF_LDR;
+				const astcenc_profile profile = srgb ? ASTCENC_PRF_LDR_SRGB : ASTCENC_PRF_LDR;
 				static const float quality = ASTCENC_PRE_MEDIUM;
 				static const astcenc_swizzle swizzle{ ASTCENC_SWZ_R, ASTCENC_SWZ_G, ASTCENC_SWZ_B, ASTCENC_SWZ_A };
 
@@ -346,7 +347,7 @@ static bool EnsureDecodeData(KCodecResult& result)
 
 				astcenc_error status = ASTCENC_SUCCESS;
 
-				status = astcenc_config_init(profile, config.block_x, config.block_y, config.block_z, quality, 0, &config);
+				status = astcenc_config_init(profile, config.block_x, config.block_y, config.block_z, quality, ASTCENC_FLG_DECOMPRESS_ONLY, &config);
 				if (status != ASTCENC_SUCCESS)
 				{
 					KG_LOGE(LM_RENDER, "ASTCENC config init failed : %s", astcenc_get_error_string(status));
@@ -364,8 +365,8 @@ static bool EnsureDecodeData(KCodecResult& result)
 				for (size_t level = 0; level < result.uMipmap; ++level)
 				{
 					astcenc_image image;
-					image.dim_x = (unsigned int)oldSubImages[level].uWidth;
-					image.dim_y = (unsigned int)oldSubImages[level].uHeight;
+					image.dim_x = (unsigned int)oldSubImages[level * numFaces].uWidth;
+					image.dim_y = (unsigned int)oldSubImages[level * numFaces].uHeight;
 					image.dim_z = (unsigned int)1;
 					image.data_type = ASTCENC_TYPE_U8;
 
@@ -391,6 +392,7 @@ static bool EnsureDecodeData(KCodecResult& result)
 
 				result.eFormat = newFormat;
 				result.pData = newImage;
+				result.bCompressed = false;
 
 				astcenc_context_free(context);
 
@@ -404,6 +406,33 @@ static bool EnsureDecodeData(KCodecResult& result)
 	{
 		return true;
 	}
+}
+
+static PixelFormat KTX1ASTCFormat(uint32_t glInternalFormat)
+{
+	static const PixelFormat formats[][2] =
+	{
+		{ PF_ASTC_4x4_UNORM, PF_ASTC_4x4_SRGB },
+		{ PF_ASTC_5x4_UNORM, PF_ASTC_5x4_SRGB },
+		{ PF_ASTC_5x5_UNORM, PF_ASTC_5x5_SRGB },
+		{ PF_ASTC_6x5_UNORM, PF_ASTC_6x5_SRGB },
+		{ PF_ASTC_6x6_UNORM, PF_ASTC_6x6_SRGB },
+		{ PF_ASTC_8x5_UNORM, PF_ASTC_8x5_SRGB },
+		{ PF_ASTC_8x6_UNORM, PF_ASTC_8x6_SRGB },
+		{ PF_ASTC_8x8_UNORM, PF_ASTC_8x8_SRGB },
+		{ PF_ASTC_10x5_UNORM, PF_ASTC_10x5_SRGB },
+		{ PF_ASTC_10x6_UNORM, PF_ASTC_10x6_SRGB },
+		{ PF_ASTC_10x8_UNORM, PF_ASTC_10x8_SRGB },
+		{ PF_ASTC_10x10_UNORM, PF_ASTC_10x10_SRGB },
+		{ PF_ASTC_12x10_UNORM, PF_ASTC_12x10_SRGB },
+		{ PF_ASTC_12x12_UNORM, PF_ASTC_12x12_SRGB }
+	};
+	// GL_KHR_texture_compression_astc_ldr defines two contiguous ranges.
+	if (glInternalFormat >= 0x93B0 && glInternalFormat <= 0x93BD)
+		return formats[glInternalFormat - 0x93B0][0];
+	if (glInternalFormat >= 0x93D0 && glInternalFormat <= 0x93DD)
+		return formats[glInternalFormat - 0x93D0][1];
+	return PF_UNKNOWN;
 }
 
 static bool DecodeKTX1(const IKDataStreamPtr& stream, KTXHeader& header, KCodecResult& result)
@@ -455,7 +484,12 @@ static bool DecodeKTX1(const IKDataStreamPtr& stream, KTXHeader& header, KCodecR
 			break;
 
 		default:
-			assert(false && "unknown format");
+			result.eFormat = KTX1ASTCFormat(header.glInternalFormat);
+			if (result.eFormat == PF_UNKNOWN)
+			{
+				KG_LOGE(LM_RENDER, "Unsupported KTX1 format: 0x%X", header.glInternalFormat);
+				return false;
+			}
 			break;
 	}
 

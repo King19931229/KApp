@@ -73,12 +73,11 @@ protected:
 
 		bool operator<(const Vertex& rhs) const
 		{
-			const float eps = 1e-6f;
-			float dot = 0;
+			int order = 0;
 #define COMPARE_AND_RETURN(member)\
-			dot = glm::dot(member - rhs.member, member - rhs.member);\
-			if (dot > eps)\
-				return memcmp(&member, &rhs.member, sizeof(member)) < 0;
+			order = memcmp(&member, &rhs.member, sizeof(member));\
+			if (order != 0)\
+				return order < 0;
 
 			COMPARE_AND_RETURN(pos);
 			COMPARE_AND_RETURN(normal);

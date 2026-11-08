@@ -868,38 +868,40 @@ void KGLTFLoader::LoadNode(Node* parent, const tinygltf::Node& node, uint32_t no
 				uint32_t iterateCount = hasIndices ? indexCount : vertexCount;
 				indices.reserve(iterateCount);
 
-				for (uint32_t i = 0; i < iterateCount; ++i)
+				auto VertexAt = [&](uint32_t i) -> const Vertex&
 				{
-					const Vertex& vertex = hasIndices ? vertexBuffer[indexBuffer[indexStart + i]] : vertexBuffer[vertexStart + i];
-
+					return hasIndices ? vertexBuffer[indexBuffer[indexStart + i]] : vertexBuffer[vertexStart + i];
+				};
+				auto GetVertexIndex = [&](const Vertex& vertex)
+				{
 					auto it = vertex_to_index.find(vertex);
 					if (it != vertex_to_index.end())
-					{
-						indices.push_back(it->second);
-					}
-					else
-					{
-						indices.push_back(vertexStart + (uint32_t)vertices.size());
-						vertices.push_back(vertex);
-						vertex_to_index[vertex] = indices[i];
-					}
-				}
+						return it->second;
+					const uint32_t index = vertexStart + static_cast<uint32_t>(vertices.size());
+					vertices.push_back(vertex);
+					vertex_to_index.emplace(vertex, index);
+					return index;
+				};
 
+				// Skip collapsed triangles before building the remapped vertex buffer.
 				for (uint32_t i = 0; (i + 3) <= iterateCount; i += 3)
 				{
-					uint32_t idx0 = indices[i];
-					uint32_t idx1 = indices[i + 1];
-					uint32_t idx2 = indices[i + 2];
-					if (idx0 == idx1 || idx0 == idx2 || idx1 == idx2)
-					{
-						exit(0);
-					}
+					const Vertex& v0 = VertexAt(i);
+					const Vertex& v1 = VertexAt(i + 1);
+					const Vertex& v2 = VertexAt(i + 2);
+					if (v0.pos == v1.pos || v0.pos == v2.pos || v1.pos == v2.pos)
+						continue;
+					indices.push_back(GetVertexIndex(v0));
+					indices.push_back(GetVertexIndex(v1));
+					indices.push_back(GetVertexIndex(v2));
 				}
 
 				loaderInfo.vertexPos -= vertexCount;
 				loaderInfo.indexPos -= indexCount;
+				if (indices.empty())
+					continue;
 
-				indexCount = iterateCount;
+				indexCount = static_cast<uint32_t>(indices.size());
 				vertexCount = (uint32_t)vertices.size();
 
 				if (loaderInfo.vertexPos + vertices.size() > loaderInfo.vertexBuffer.size())
@@ -1482,6 +1484,11 @@ bool KGLTFLoader::Import(const char* pszFile, const KAssetImportOption& importOp
 		{
 			const tinygltf::Node node = gltfModel.nodes[scene.nodes[i]];
 			LoadNode(nullptr, node, scene.nodes[i], gltfModel, loaderInfo, 1.0f);
+		}
+		if (loaderInfo.vertexPos == 0)
+		{
+			KLog::Logger->Log(LL_ERROR, "No geometry in gltf file [%s]", pszFile);
+			return false;
 		}
 
 		if (gltfModel.animations.size() > 0)

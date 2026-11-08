@@ -125,4 +125,5 @@ public:
 	virtual IKGizmoPtr GetGizmo() { return m_Gizmo; }
 	virtual KCamera* GetCamera() { return &m_Camera; }
 	virtual IKCameraMoveController* GetCameraController() { return &m_CameraMoveController; }
+	void CollectUnusedResources() override;
 };

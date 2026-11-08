@@ -17,7 +17,23 @@
 #include "KBase/Publish/Mesh/KMeshSimplification.h"
 #include "KBase/Publish/Mesh/KVirtualGeometryBuilder.h"
 #include "KBase/Publish/Mesh/KMeshProcessor.h"
+#include "KBase/Interface/Task/IKTaskGraph.h"
 #include "imgui.h"
+#include <algorithm>
+#include <atomic>
+#include <cctype>
+#include <cmath>
+#ifdef _WIN32
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <Windows.h>
+#undef near
+#undef far
+#else
+#include <dirent.h>
+#include <sys/stat.h>
+#endif
 
 void InitQEM(IKEnginePtr engine)
 {
@@ -447,12 +463,314 @@ void InitQEM(IKEnginePtr engine)
 #endif
 	if (engine->GetRenderCore()->IsInit())
 	{
-		InitModel();
+	//	InitModel();
 	}
 	else
 	{
 		engine->GetRenderCore()->RegisterInitCallback(&InitModel);
 	}
+}
+
+namespace
+{
+	constexpr char ExampleSceneDirectory[] = "Models/scenes";
+	constexpr float ExampleSceneSize = 1000.0f;
+	constexpr int NoScene = -1;
+	constexpr int StartupScene = -2;
+
+	void CollectExampleScenes(const std::string& directory, const std::string& relativeDirectory,
+		std::vector<std::string>& scenes)
+	{
+		auto visit = [&](const char* entryName, bool isDirectory, bool isFile)
+		{
+			const std::string name(entryName);
+			if (name == "." || name == "..")
+				return;
+			const std::string relativePath = relativeDirectory.empty() ? name : relativeDirectory + "/" + name;
+			if (isDirectory)
+			{
+				CollectExampleScenes(directory + "/" + name, relativePath, scenes);
+			}
+			else if (isFile)
+			{
+				const size_t dot = name.find_last_of('.');
+				if (dot == std::string::npos || dot == 0)
+					return;
+				std::string ext = name.substr(dot);
+				std::transform(ext.begin(), ext.end(), ext.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+				if (ext == ".gltf" || ext == ".glb")
+					scenes.push_back(relativePath);
+			}
+		};
+
+#ifdef _WIN32
+		WIN32_FIND_DATAA entry;
+		HANDLE search = FindFirstFileA((directory + "/*").c_str(), &entry);
+		if (search == INVALID_HANDLE_VALUE)
+			return;
+		do
+		{
+			const bool isDirectory = (entry.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0;
+			const bool isLink = (entry.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) != 0;
+			visit(entry.cFileName, isDirectory && !isLink, !isDirectory);
+		} while (FindNextFileA(search, &entry));
+		FindClose(search);
+#else
+		DIR* search = opendir(directory.c_str());
+		if (!search)
+			return;
+		while (dirent* entry = readdir(search))
+		{
+			const std::string fullPath = directory + "/" + entry->d_name;
+			struct stat status;
+			if (lstat(fullPath.c_str(), &status) != 0)
+				continue;
+			const bool isDirectory = S_ISDIR(status.st_mode);
+			bool isFile = S_ISREG(status.st_mode);
+			if (S_ISLNK(status.st_mode))
+				isFile = stat(fullPath.c_str(), &status) == 0 && S_ISREG(status.st_mode);
+			visit(entry->d_name, isDirectory, isFile);
+		}
+		closedir(search);
+#endif
+	}
+
+	std::vector<std::string> FindExampleScenes()
+	{
+		std::vector<std::string> scenes;
+		IKFileSystemPtr resources = KFileSystem::Manager->GetFileSystem(FSD_RESOURCE);
+		KFileSystemPtrList sources;
+		if (resources)
+		{
+			if (resources->GetType() == FST_MULTI)
+				resources->GetAllSubFileSystem(sources);
+			else
+				sources.push_back(resources);
+		}
+		for (const IKFileSystemPtr& source : sources)
+		{
+			std::string fullPath;
+			if (source->GetType() == FST_NATIVE && source->FullPath(ExampleSceneDirectory, fullPath))
+				CollectExampleScenes(fullPath, "", scenes);
+		}
+		std::sort(scenes.begin(), scenes.end());
+		scenes.erase(std::unique(scenes.begin(), scenes.end()), scenes.end());
+		return scenes;
+	}
+
+	void ReleaseSceneEntity(IKEntityPtr& entity)
+	{
+		entity->UnRegisterAllComponent();
+		KECS::EntityManager->ReleaseEntity(entity);
+	}
+
+	void UnloadScene(IKScene& scene)
+	{
+		while (!scene.GetEntities().empty())
+		{
+			IKEntityPtr entity = *scene.GetEntities().begin();
+			scene.Remove(entity);
+			ReleaseSceneEntity(entity);
+		}
+		scene.DestroyTerrain();
+	}
+
+	void FrameScene(IKRenderCore& renderCore, const KAABBBox& bound)
+	{
+		KCamera* camera = renderCore.GetCamera();
+		const glm::vec3 center = bound.GetCenter();
+		const float radius = std::max(0.1f, glm::length(bound.GetExtend()) * 0.5f);
+		const float halfFov = camera->GetFov() * 0.5f;
+		const float halfHorizontalFov = std::atan(std::tan(halfFov) * camera->GetAspect());
+		const float distance = 1.15f * radius / std::sin(std::min(halfFov, halfHorizontalFov));
+		const glm::vec3 eye = center + distance * glm::normalize(glm::vec3(1.0f, 0.6f, 1.5f));
+		camera->SetPerspective(camera->GetFov(), camera->GetAspect(), radius * 0.01f, distance + radius * 8.0f);
+		camera->SetViewMatrix(glm::lookAt(eye, center, glm::vec3(0, 1, 0)));
+		renderCore.GetCameraController()->SetSpeed(radius / 150.0f);
+	}
+
+	bool GetSceneBound(const IKScene& scene, KAABBBox& bound)
+	{
+		bound.SetNull();
+		for (const IKEntityPtr& entity : scene.GetEntities())
+		{
+			KAABBBox entityBound;
+			if (entity->GetBound(entityBound) && !entityBound.IsNull())
+				bound = bound.Merge(entityBound);
+		}
+		return !bound.IsNull();
+	}
+
+	bool ScaleScene(IKScene& scene, float ratio, KAABBBox& bound)
+	{
+		if (!std::isfinite(ratio) || ratio <= 0.0f || !GetSceneBound(scene, bound))
+			return false;
+		if (ratio == 1.0f)
+			return true;
+		const glm::vec3 center = bound.GetCenter();
+		const glm::mat4 scale = glm::translate(glm::mat4(1), center) *
+			glm::scale(glm::mat4(1), glm::vec3(ratio)) * glm::translate(glm::mat4(1), -center);
+		for (const IKEntityPtr& entity : scene.GetEntities())
+		{
+			IKTransformComponent* transform = nullptr;
+			if (entity->GetComponent(CT_TRANSFORM, &transform))
+				transform->SetFinal(scale * transform->GetFinal());
+		}
+		return GetSceneBound(scene, bound);
+	}
+
+	bool LoadExampleScene(IKEngine& engine, const std::string& relativePath)
+	{
+		IKEntityPtr entity = KECS::EntityManager->CreateEntity();
+		IKRenderComponent* render = nullptr;
+		IKTransformComponent* transform = nullptr;
+		KAABBBox bound;
+		if (entity->RegisterComponent(CT_TRANSFORM, &transform) && entity->RegisterComponent(CT_RENDER, &render) &&
+			render->InitAsAsset(std::string(ExampleSceneDirectory) + "/" + relativePath, false) &&
+			render->GetLocalBound(bound) && !bound.IsNull())
+		{
+			entity->SetName(relativePath);
+			const glm::vec3 extent = bound.GetExtend();
+			const float longestEdge = std::max({ extent.x, extent.y, extent.z });
+			const float scale = longestEdge > 0.0f ? ExampleSceneSize / longestEdge : 0.0f;
+			if (longestEdge > 0.0f && std::isfinite(scale) && scale > 0.0f)
+			{
+				// Center the entire glTF scene and fit its longest edge to engine units.
+				transform->SetFinal(glm::scale(glm::mat4(1), glm::vec3(scale)) *
+					glm::translate(glm::mat4(1), -bound.GetCenter()));
+				bound = bound.Transform(transform->GetFinal());
+				if (engine.GetScene()->Add(entity))
+				{
+					FrameScene(*engine.GetRenderCore(), bound);
+					return true;
+				}
+				engine.GetScene()->Remove(entity);
+			}
+		}
+		ReleaseSceneEntity(entity);
+		return false;
+	}
+
+	class ExampleScenePicker
+	{
+		IKEngine& m_Engine;
+		const std::vector<std::string> m_Scenes;
+		int m_CurrentScene;
+		int m_FailedScene = NoScene;
+		float m_SceneScale = 1.0f;
+		float m_LastRequestedScale = 1.0f;
+		float m_AppliedScale = 1.0f; // Game thread only.
+		bool m_FrameRequested = false;
+		std::atomic<bool> m_SwitchPending{ false };
+		std::atomic<bool> m_ScaleUpdatePending{ false };
+
+		void RequestScene(int index)
+		{
+			m_SwitchPending.store(true);
+			m_SceneScale = m_LastRequestedScale = 1.0f;
+			m_FrameRequested = false;
+			// ImGui runs on the render thread; the game thread owns scene entities.
+			GetTaskGraphManager()->CreateAndDispatch(IKTaskWorkPtr(new KLambdaTaskWork([this, index]()
+			{
+				m_Engine.Wait();
+				UnloadScene(*m_Engine.GetScene());
+				m_Engine.GetRenderCore()->CollectUnusedResources();
+				const bool loaded = index == NoScene || LoadExampleScene(m_Engine, m_Scenes[index]);
+				m_CurrentScene = loaded ? index : NoScene;
+				m_FailedScene = loaded ? NoScene : index;
+				m_AppliedScale = 1.0f;
+				m_SwitchPending.store(false);
+			})), NamedThread::GAME_THREAD, {});
+		}
+
+		void RequestScale(float scale, bool frameScene)
+		{
+			if (!std::isfinite(scale) || scale <= 0.0f)
+				return;
+			m_LastRequestedScale = scale;
+			m_FrameRequested = false;
+			m_ScaleUpdatePending.store(true);
+			GetTaskGraphManager()->CreateAndDispatch(IKTaskWorkPtr(new KLambdaTaskWork([this, scale, frameScene]()
+			{
+				m_Engine.Wait();
+				KAABBBox bound;
+				if (ScaleScene(*m_Engine.GetScene(), scale / m_AppliedScale, bound))
+				{
+					m_AppliedScale = scale;
+					if (frameScene)
+						FrameScene(*m_Engine.GetRenderCore(), bound);
+				}
+				m_ScaleUpdatePending.store(false);
+			})), NamedThread::GAME_THREAD, {});
+		}
+	public:
+		ExampleScenePicker(IKEngine& engine, bool startupSceneLoaded)
+			: m_Engine(engine), m_Scenes(FindExampleScenes()), m_CurrentScene(startupSceneLoaded ? StartupScene : NoScene)
+		{
+		}
+
+		void Draw()
+		{
+			ImGui::SetNextWindowPos(ImVec2(16, 48), ImGuiCond_FirstUseEver);
+			if (ImGui::Begin("Vulkan Example Scenes", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
+			{
+				if (m_SwitchPending.load())
+				{
+					ImGui::TextUnformatted("Updating scene...");
+				}
+				else
+				{
+					const char* current = m_CurrentScene >= 0 ? m_Scenes[m_CurrentScene].c_str() :
+						(m_CurrentScene == StartupScene ? "Startup scene" : "None");
+					int requested = m_CurrentScene;
+					ImGui::SetNextItemWidth(300.0f);
+					if (ImGui::BeginCombo("Scene", current, ImGuiComboFlags_HeightLarge))
+					{
+						if (ImGui::Selectable("None", m_CurrentScene == NoScene))
+							requested = NoScene;
+						for (int i = 0; i < static_cast<int>(m_Scenes.size()); ++i)
+						{
+							const bool selected = i == m_CurrentScene;
+							if (ImGui::Selectable(m_Scenes[i].c_str(), selected))
+								requested = i;
+							if (selected)
+								ImGui::SetItemDefaultFocus();
+						}
+						ImGui::EndCombo();
+					}
+					if (m_Scenes.empty())
+						ImGui::TextUnformatted("No glTF scenes in Models/scenes.");
+					if (m_FailedScene != NoScene)
+						ImGui::TextColored(ImVec4(1.0f, 0.45f, 0.35f, 1.0f), "Could not load %s", m_Scenes[m_FailedScene].c_str());
+					float requestedScale = m_SceneScale;
+					bool frameScene = false;
+					if (m_CurrentScene >= 0)
+					{
+						ImGui::SetNextItemWidth(240.0f);
+						if (ImGui::DragFloat("Scale", &requestedScale, 0.01f, 0.01f, 100.0f, "%.3fx"))
+							requestedScale = std::max(0.01f, std::min(100.0f, requestedScale));
+						if (ImGui::Button("Reset scale"))
+						{
+							requestedScale = 1.0f;
+							frameScene = true;
+						}
+						ImGui::SameLine();
+						frameScene |= ImGui::Button("Frame scene");
+					}
+					if (requested != m_CurrentScene)
+						RequestScene(requested);
+					else if (m_CurrentScene >= 0)
+					{
+						m_SceneScale = requestedScale;
+						m_FrameRequested |= frameScene;
+						if (!m_ScaleUpdatePending.load() && (m_SceneScale != m_LastRequestedScale || m_FrameRequested))
+							RequestScale(m_SceneScale, m_FrameRequested);
+					}
+				}
+			}
+			ImGui::End();
+		}
+	};
 }
 
 int main()
@@ -482,16 +800,21 @@ int main()
 	options.window.type = KEngineOptions::WindowInitializeInformation::TYPE_DEFAULT;
 
 	engine->Init(std::move(window), options);
-	//InitQEM(engine);
+	InitQEM(engine);
+	bool startupSceneLoaded = false;
 	IKDataStreamPtr stream = GetDataStream(IT_FILEHANDLE);
 	if (stream->Open("D:/KApp/scene.txt", IM_READ))
 	{
 		char scene[1024] = {};
 		stream->ReadLine(scene, ARRAY_SIZE(scene));
-		engine->GetScene()->Load(scene);
+		startupSceneLoaded = engine->GetScene()->Load(scene);
 	}
 	stream->Close();
 	stream = nullptr;
+
+	ExampleScenePicker scenePicker(*engine, startupSceneLoaded);
+	KRenderCoreUIRenderCallback sceneUI = [&scenePicker]() { scenePicker.Draw(); };
+	engine->GetRenderCore()->RegisterUIRenderCallback(&sceneUI);
 #if 0
 	{
 		KMeshRawData userData;
@@ -606,6 +929,8 @@ int main()
 	}
 
 	engine->Loop();
+	engine->Wait();
+	engine->GetRenderCore()->UnRegisterUIRenderCallback(&sceneUI);
 
 	if (SECORDARY_WINDOW)
 	{

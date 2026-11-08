@@ -46,6 +46,8 @@ struct IKRenderCore
 	virtual IKGizmoPtr GetGizmo() = 0;
 	virtual KCamera* GetCamera() = 0;
 	virtual IKCameraMoveController* GetCameraController() = 0;
+	// Call after Wait() and after releasing the scene's references.
+	virtual void CollectUnusedResources() = 0;
 };
 typedef std::unique_ptr<IKRenderCore> IKRenderCorePtr;
 

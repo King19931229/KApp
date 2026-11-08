@@ -642,6 +642,15 @@ bool KRenderCore::Wait()
 	return false;
 }
 
+void KRenderCore::CollectUnusedResources()
+{
+	ENQUEUE_RENDER_COMMAND(KRenderCore_CollectUnusedResources)([]()
+	{
+		KRenderGlobal::Renderer.RemoveUnreferenced();
+	});
+	FLUSH_RENDER_COMMAND();
+}
+
 bool KRenderCore::RegisterSecordaryWindow(IKRenderWindowPtr& window)
 {
 	if (!IsInRenderThread())

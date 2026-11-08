@@ -114,7 +114,6 @@ protected:
 
 	bool UpdateCamera();
 	bool UpdateGlobal();
-	void RemoveUnreferenced();
 
 	bool SwitchAsyncCompute(bool enableAsyncCompute);
 	bool ResetThreadNum(uint32_t threadNum);
@@ -140,6 +139,7 @@ public:
 	KRHICommandList& GetRHICommandList() { return m_RHICommandList; }
 
 	bool Update();
+	void RemoveUnreferenced();
 	bool Render(uint32_t chainImageIndex);
 	bool Execute(uint32_t chainImageIndex);
 

@@ -176,7 +176,7 @@ KClipmapVoxilzer::KClipmapVoxilzer()
 	, m_ClipLevelCount(3)
 	, m_BaseVoxelSize(16.0f)
 	, m_ScreenRatio(1.0f)
-	, m_Enable(false)
+	, m_Enable(true)
 	, m_InjectFirstBounce(true)
 	, m_VoxelDrawEnable(false)
 	, m_VoxelDebugVoxelize(false)
@@ -454,7 +454,10 @@ void KClipmapVoxilzer::UpdateInternal(KRHICommandList& commandList)
 	{
 		commandList.BeginDebugMarker("InitializeRadiance", glm::vec4(1));
 		ClearUpdateRegion(commandList);
+		// Voxelization reads and writes the storage images cleared by compute.
+		commandList.PipelineMemoryBarrier(PIPELINE_STAGE_COMPUTE_SHADER, PIPELINE_STAGE_FRAGMENT_SHADER);
 		VoxelizeStaticScene(commandList);
+		commandList.PipelineMemoryBarrier(PIPELINE_STAGE_FRAGMENT_SHADER, PIPELINE_STAGE_COMPUTE_SHADER);
 		DownSampleVisibility(commandList);
 
 		UpdateRadiance(commandList);
@@ -471,6 +474,10 @@ void KClipmapVoxilzer::UpdateInternal(KRHICommandList& commandList)
 		WrapBorder(commandList);
 		commandList.EndDebugMarker();
 	}
+
+	// Cone tracing and debug voxel drawing consume the computed volumes.
+	commandList.PipelineMemoryBarrier(PIPELINE_STAGE_COMPUTE_SHADER,
+		PIPELINE_STAGE_VERTEX_SHADER | PIPELINE_STAGE_GEOMETRY_SHADER | PIPELINE_STAGE_FRAGMENT_SHADER);
 }
 
 glm::ivec3 KClipmapVoxilzer::ComputeMovementByCamera(uint32_t levelIdx)
@@ -995,7 +1002,7 @@ void KClipmapVoxilzer::SetupVoxelPipeline()
 	m_ClearRegionPipeline->BindStorageImage(VOXEL_CLIPMAP_BINDING_NORMAL, m_VoxelNormal->GetFrameBuffer(), PF_UNKNOWN, COMPUTE_RESOURCE_OUT, 0, false);
 	m_ClearRegionPipeline->BindStorageImage(VOXEL_CLIPMAP_BINDING_EMISSION, m_VoxelEmissive->GetFrameBuffer(), PF_UNKNOWN, COMPUTE_RESOURCE_OUT, 0, false);
 	m_ClearRegionPipeline->BindStorageImage(VOXEL_CLIPMAP_BINDING_STATIC_FLAG, m_StaticFlag->GetFrameBuffer(), PF_UNKNOWN, COMPUTE_RESOURCE_OUT, 0, false);
-	m_ClearRegionPipeline->BindStorageImage(VOXEL_CLIPMAP_BINDING_VISIBILITY, m_VoxelVisibility->GetFrameBuffer(), PF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, false);
+	m_ClearRegionPipeline->BindStorageImage(VOXEL_CLIPMAP_BINDING_VISIBILITY, m_VoxelVisibility->GetFrameBuffer(), PF_UNKNOWN, COMPUTE_RESOURCE_OUT, 0, false);
 
 	m_ClearRegionPipeline->BindUniformBuffer(SHADER_BINDING_VOXEL_CLIPMAP, voxelBuffer);
 	m_ClearRegionPipeline->BindDynamicUniformBuffer(SHADER_BINDING_OBJECT);
