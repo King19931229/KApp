@@ -472,7 +472,7 @@ void KVulkanSwapChain::PresentQueue(bool& needResize)
 	presentInfo.pImageIndices = &m_CurrentImageIndex;
 
 	presentInfo.pResults = nullptr;
-	vkResult = vkQueuePresentKHR(m_PresentQueue, &presentInfo);
+	vkResult = KVulkanGlobal::QueuePresent(m_PresentQueue, &presentInfo);
 
 #if 0
 	/*

@@ -14,6 +14,7 @@ protected:
 	AnonymousTextureMap m_AnonymousTextures;
 	VirutalTextureMap m_VirtualTextures;
 	KTextureRef m_ErrorTexture;
+	KTextureRef m_WhiteTexture;
 public:
 	KTextureManager();
 	~KTextureManager();
@@ -27,4 +28,5 @@ public:
 	bool Acquire(const char* name, const void* pRawData, size_t dataLen, size_t width, size_t height, size_t depth, PixelFormat format, bool cubeMap, bool bGenerateMipmap, KTextureRef& ref, bool async);
 
 	bool GetErrorTexture(KTextureRef& ref);
+	bool GetWhiteTexture(KTextureRef& ref);
 };

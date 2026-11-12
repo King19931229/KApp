@@ -2,7 +2,7 @@
 #include <assert.h>
 
 KECommandInvoker::KECommandInvoker()
-	: m_CurrentPos(m_HistoryCommands.end())
+	: m_CurrentPos(m_HistoryCommands.end()), m_bLock(false)
 {
 	assert(m_HistoryCommands.empty());
 }

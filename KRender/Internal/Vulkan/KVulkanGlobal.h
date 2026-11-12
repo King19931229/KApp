@@ -30,6 +30,10 @@ namespace KVulkanGlobal
 
 	extern VkQueue presentQueue;
 
+	VkResult QueueSubmit(VkQueue queue, uint32_t submitCount, const VkSubmitInfo* submits, VkFence fence);
+	VkResult QueuePresent(VkQueue queue, const VkPresentInfoKHR* presentInfo);
+	VkResult DeviceWaitIdle(VkDevice device);
+
 	extern VkPhysicalDeviceProperties deviceProperties;
 	extern VkPhysicalDeviceFeatures deviceFeatures;
 

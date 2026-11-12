@@ -1,6 +1,16 @@
 #include "KEEntityCommand.h"
 #include "Entity/KEEntityManipulator.h"
 #include "KEditorGlobal.h"
+#include "KBase/Interface/Component/IKTransformComponent.h"
+
+static void RestoreEntity(KEEntityPtr entity)
+{
+	entity->createInfo.allocatedName = entity->soul->GetName();
+	entity->soul->SetName(entity->createInfo.name);
+	entity->soul->SetTransform(entity->createInfo.transform);
+	IKTransformComponent* transform = nullptr;
+	if (entity->soul->GetComponent(CT_TRANSFORM, &transform)) transform->SetStatic(entity->createInfo.isStatic);
+}
 
 KEEntitySceneJoinCommand::KEEntitySceneJoinCommand(KEEntityPtr entity, IKScene* scene, KEEntityManipulator* manipulator)
 	: KEEntityGroupCommandBase(entity, scene),
@@ -32,8 +42,7 @@ void KEEntitySceneJoinCommand::Execute()
 			entity->createInfo.path,
 			entity->soul))
 		{
-			entity->soul->SetTransform(entity->createInfo.transform);
-			m_Scene->Add(entity->soul);
+			RestoreEntity(entity);
 			m_Manipulator->AddEditorEntity(entity);
 		}
 	});
@@ -43,11 +52,7 @@ void KEEntitySceneJoinCommand::Undo()
 {
 	BackwardExecute([this](KEEntityPtr entity)
 	{
-		if (KEditorGlobal::ResourcePorter.UnInitEntity(entity->soul))
-		{
-			m_Scene->Remove(entity->soul);
-			m_Manipulator->RemoveEditorEntity(entity->soul->GetID());
-		}
+		m_Manipulator->RemoveEditorEntity(entity->soul->GetID());
 	});
 }
 
@@ -77,11 +82,7 @@ void KEEntitySceneEraseCommand::Execute()
 {
 	ForwardExecute([this](KEEntityPtr entity)
 	{
-		if (KEditorGlobal::ResourcePorter.UnInitEntity(entity->soul))
-		{
-			m_Scene->Remove(entity->soul);
-			m_Manipulator->RemoveEditorEntity(entity->soul->GetID());
-		}
+		m_Manipulator->RemoveEditorEntity(entity->soul->GetID());
 	});
 }
 
@@ -93,8 +94,7 @@ void KEEntitySceneEraseCommand::Undo()
 			entity->createInfo.path,
 			entity->soul))
 		{
-			entity->soul->SetTransform(entity->createInfo.transform);
-			m_Scene->Add(entity->soul);
+			RestoreEntity(entity);
 			m_Manipulator->AddEditorEntity(entity);
 		}
 	});
@@ -130,11 +130,6 @@ void KEEntitySceneTransformCommand::Execute()
 		info.entity->createInfo.transform = info.currentTransform;
 		info.entity->soul->SetTransform(info.currentTransform);
 
-		KReflectionObjectBase* reflection = nullptr;
-		info.entity->soul->QueryReflection(&reflection);
-		ASSERT_RESULT(reflection);
-		KEditorGlobal::ReflectionManager.NotifyToProperty(reflection);
-
 		m_Scene->Transform(info.entity->soul);
 		// 更新一下Gizmo的位置
 		m_Manipulator->UpdateGizmoTransform();
@@ -149,11 +144,6 @@ void KEEntitySceneTransformCommand::Undo()
 		KEEntityInfo& info = *it;
 		info.entity->createInfo.transform = info.previousTransform;
 		info.entity->soul->SetTransform(info.previousTransform);
-
-		KReflectionObjectBase* reflection = nullptr;
-		info.entity->soul->QueryReflection(&reflection);
-		ASSERT_RESULT(reflection);
-		KEditorGlobal::ReflectionManager.NotifyToProperty(reflection);
 
 		m_Scene->Transform(info.entity->soul);
 		// 更新一下Gizmo的位置

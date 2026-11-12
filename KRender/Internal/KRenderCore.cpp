@@ -87,6 +87,10 @@ bool KRenderCore::InitPostProcess()
 
 bool KRenderCore::UnInitPostProcess()
 {
+	if (m_EditorTexture && m_MainWindow->GetUIOverlay()) m_MainWindow->GetUIOverlay()->UnregisterTexture(m_EditorTexture);
+	m_EditorTexture = 0;
+	m_EditorFramebuffer.reset();
+	m_EditorRenderWidth = m_EditorRenderHeight = 0;
 	KRenderGlobal::PostProcessManager.UnInit();
 	return true;
 }
@@ -213,7 +217,7 @@ bool KRenderCore::InitController()
 	};
 
 #if defined(_WIN32)
-	m_MainWindow->RegisterKeyboardCallback(&m_KeyCallback);
+	if (!KRenderGlobal::InEditor) m_MainWindow->RegisterKeyboardCallback(&m_KeyCallback);
 #endif
 	return true;
 }
@@ -232,6 +236,7 @@ bool KRenderCore::UnInitUISwapChain()
 
 bool KRenderCore::UnInitController()
 {
+	if (!KRenderGlobal::InEditor) m_MainWindow->UnRegisterKeyboardCallback(&m_KeyCallback);
 	m_CameraMoveController.UnInit();
 	m_UIController.UnInit();
 	m_GizmoContoller.UnInit();
@@ -458,10 +463,13 @@ void KRenderCore::Update()
 {
 	UpdateFrameTime();
 	UpdateUIOverlay();
-	UpdateController();
-	UpdateGizmo();
+	if (!KRenderGlobal::InEditor)
+	{
+		UpdateController();
+		UpdateGizmo();
+	}
 
-	bool enableCameraControl = !GRenderImGui.WantCaptureInput();
+	bool enableCameraControl = KRenderGlobal::InEditor ? m_EditorViewport.focused : !GRenderImGui.WantCaptureInput();
 	m_CameraMoveController.SetEnable(enableCameraControl);
 }
 
@@ -485,12 +493,29 @@ void KRenderCore::Render()
 
 	if (m_bSwapChainResized)
 	{
-		KRenderGlobal::Renderer.OnSwapChainRecreate(mainSwapChain->GetWidth(), mainSwapChain->GetHeight());
+		if (!KRenderGlobal::InEditor)
+		{
+			KRenderGlobal::Renderer.OnSwapChainRecreate(mainSwapChain->GetWidth(), mainSwapChain->GetHeight());
+		}
 		if (uiOverlay)
 		{
 			uiOverlay->Resize(mainSwapChain->GetWidth(), mainSwapChain->GetHeight());
 		}
 		m_bSwapChainResized = false;
+	}
+
+	const uint32_t editorWidth = static_cast<uint32_t>(m_EditorViewport.width);
+	const uint32_t editorHeight = static_cast<uint32_t>(m_EditorViewport.height);
+	if (KRenderGlobal::InEditor && editorWidth && editorHeight &&
+		(editorWidth != m_EditorRenderWidth || editorHeight != m_EditorRenderHeight))
+	{
+		FLUSH_INFLIGHT_RENDER_JOB();
+		if (m_EditorTexture) uiOverlay->UnregisterTexture(m_EditorTexture);
+		m_EditorTexture = 0;
+		m_EditorFramebuffer.reset();
+		KRenderGlobal::Renderer.OnSwapChainRecreate(editorWidth, editorHeight);
+		m_EditorRenderWidth = editorWidth;
+		m_EditorRenderHeight = editorHeight;
 	}
 
 	mainSwapChain->WaitForInFlightFrame();
@@ -608,6 +633,11 @@ bool KRenderCore::Tick()
 
 		if (m_MainWindow->Tick())
 		{
+			if (KRenderGlobal::InEditor)
+			{
+				UpdateController();
+				UpdateGizmo();
+			}
 			if (KECS::EntityManager)
 			{
 				KECS::EntityManager->ViewAllEntity([dt](IKEntityPtr entity) { entity->Tick(dt); });
@@ -773,6 +803,25 @@ bool KRenderCore::UnRegistertAllUIRenderCallback()
 IKRenderScene* KRenderCore::GetRenderScene()
 {
 	return &KRenderGlobal::Scene;
+}
+
+void KRenderCore::SetEditorViewport(const KEditorViewport& viewport)
+{
+	m_EditorViewport = viewport;
+	if (m_MainWindow) m_MainWindow->SetEditorViewport(viewport);
+}
+
+uint64_t KRenderCore::GetEditorViewportTexture()
+{
+	IKFrameBufferPtr framebuffer = KRenderGlobal::PostProcessManager.GetFinalFrameBuffer();
+	if (framebuffer != m_EditorFramebuffer)
+	{
+		IKUIOverlay* ui = m_MainWindow->GetUIOverlay();
+		if (m_EditorTexture) ui->UnregisterTexture(m_EditorTexture);
+		m_EditorFramebuffer = framebuffer;
+		m_EditorTexture = framebuffer ? ui->RegisterTexture(framebuffer) : 0;
+	}
+	return m_EditorTexture;
 }
 
 IKRenderer* KRenderCore::GetRenderer()

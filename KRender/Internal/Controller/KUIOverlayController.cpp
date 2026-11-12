@@ -67,8 +67,11 @@ bool KUIOverlayController::Init(IKUIOverlay* ui, IKRenderWindow* window)
 		};
 
 #if defined(_WIN32)
-		m_Window->RegisterMouseCallback(&m_MouseCallback);
-		m_Window->RegisterScrollCallback(&m_ScrollCallback);
+		if (m_Window->GetType() != RENDER_WINDOW_GLFW)
+		{
+			m_Window->RegisterMouseCallback(&m_MouseCallback);
+			m_Window->RegisterScrollCallback(&m_ScrollCallback);
+		}
 #elif defined(__ANDROID__)
 		m_Window->RegisterTouchCallback(&m_TouchCallback);
 #endif
@@ -83,7 +86,11 @@ bool KUIOverlayController::UnInit()
 	if (m_UIOverlay && m_Window)
 	{
 #if defined(_WIN32)
-		m_Window->UnRegisterMouseCallback(&m_MouseCallback);
+		if (m_Window->GetType() != RENDER_WINDOW_GLFW)
+		{
+			m_Window->UnRegisterMouseCallback(&m_MouseCallback);
+			m_Window->UnRegisterScrollCallback(&m_ScrollCallback);
+		}
 #elif defined(__ANDROID__)
 		m_Window->UnRegisterTouchCallback(&m_TouchCallback);
 #endif

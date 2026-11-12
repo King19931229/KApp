@@ -3,6 +3,7 @@
 #include "Interface/IKRenderDevice.h"
 #include "Interface/IKRenderer.h"
 #include "Interface/IKSwapChain.h"
+#include "Interface/IKRenderWindow.h"
 
 #include "KRender/Internal/KDebugConsole.h"
 
@@ -60,6 +61,10 @@ protected:
 	bool m_bInit;
 	std::atomic_bool m_bTickShouldEnd;
 	bool m_bSwapChainResized;
+	KEditorViewport m_EditorViewport;
+	uint32_t m_EditorRenderWidth = 0, m_EditorRenderHeight = 0;
+	uint64_t m_EditorTexture = 0;
+	IKFrameBufferPtr m_EditorFramebuffer;
 
 	bool InitPostProcess();
 	bool UnInitPostProcess();
@@ -125,5 +130,7 @@ public:
 	virtual IKGizmoPtr GetGizmo() { return m_Gizmo; }
 	virtual KCamera* GetCamera() { return &m_Camera; }
 	virtual IKCameraMoveController* GetCameraController() { return &m_CameraMoveController; }
+	void SetEditorViewport(const KEditorViewport& viewport) override;
+	uint64_t GetEditorViewportTexture() override;
 	void CollectUnusedResources() override;
 };

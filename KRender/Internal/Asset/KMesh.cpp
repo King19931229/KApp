@@ -474,6 +474,7 @@ bool KMesh::InitFromUtility(const KDebugUtilityInfo& info)
 		subMesh->InitDebug(info.primtive, &m_VertexData, &indexData, bound);
 	}
 
+	m_Type = MRT_DEBUG_UTILITY;
 	UpdateTriangleMesh();
 
 	return true;

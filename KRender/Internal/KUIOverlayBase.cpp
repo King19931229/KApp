@@ -5,6 +5,7 @@
 #include "Interface/IKBuffer.h"
 #include "Interface/IKTexture.h"
 #include "Interface/IKSampler.h"
+#include "Interface/IKRenderWindow.h"
 #include "KBase/Interface/IKFileSystem.h"
 
 #include "Internal/KRenderGlobal.h"
@@ -57,6 +58,18 @@ void KUIOverlayBase::InitImgui()
 	// Init ImGui
 	m_UIContext = ImGui::CreateContext();
 	ImGui::SetCurrentContext((ImGuiContext*)m_UIContext);
+	ImGuiIO& io = ImGui::GetIO();
+#ifdef _WIN32
+	if (KRenderGlobal::MainWindow) ImGui::GetMainViewport()->PlatformHandleRaw = KRenderGlobal::MainWindow->GetHWND();
+#endif
+	io.BackendFlags |= ImGuiBackendFlags_RendererHasVtxOffset;
+	if (KRenderGlobal::InEditor)
+	{
+		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+		io.IniFilename = "keditor-imgui.ini";
+		ImGui::StyleColorsDark();
+		return;
+	}
 	// Color scheme
 	ImGuiStyle& style = ImGui::GetStyle();
 	style.Colors[ImGuiCol_TitleBg] = ImVec4(1.0f, 0.0f, 0.0f, 1.0f);
@@ -110,6 +123,7 @@ bool KUIOverlayBase::Init()
 	InitImgui();
 	PrepareResources();
 	PreparePipeline();
+	m_LastFrameTime = std::chrono::steady_clock::now();
 	if (previousContext) ImGui::SetCurrentContext(previousContext);
 
 	return true;
@@ -117,6 +131,11 @@ bool KUIOverlayBase::Init()
 
 bool KUIOverlayBase::UnInit()
 {
+	m_Textures.clear();
+	{
+		std::lock_guard<std::mutex> lock(m_InputMutex);
+		m_InputEvents.clear();
+	}
 	UnInitImgui();
 
 	for(IKIndexBufferPtr indexBuffer : m_IndexBuffers)
@@ -171,18 +190,33 @@ void KUIOverlayBase::PrepareResources()
 	if (system && system->Open("Fonts/Roboto-Medium.ttf", IT_MEMORY, ttfDataStream))
 	{
 		size_t ttfDataSize = ttfDataStream->GetSize();
-		char* ttfData = KNEW char[ttfDataSize];
+		char* ttfData = static_cast<char*>(IM_ALLOC(ttfDataSize));
 		// https://github.com/ocornut/imgui/issues/1259
 		if(ttfDataStream->Read(ttfData, ttfDataSize))
 		{
 			io.Fonts->AddFontFromMemoryTTF(ttfData, (int)ttfDataSize, 16.0f);
-			io.Fonts->GetTexDataAsRGBA32(&fontData, &texWidth, &texHeight);
 		}
 		else
 		{
-			KDELETE[] ttfData;
+			IM_FREE(ttfData);
 		}
 	}
+	if (io.Fonts->Fonts.empty())
+	{
+		io.Fonts->AddFontDefault();
+	}
+#ifdef _WIN32
+	ImFileHandle chineseFont = KRenderGlobal::InEditor ? ImFileOpen("C:/Windows/Fonts/msyh.ttc", "rb") : nullptr;
+	if (chineseFont)
+	{
+		ImFileClose(chineseFont);
+		ImFontConfig config;
+		config.MergeMode = true;
+		io.Fonts->AddFontFromFileTTF("C:/Windows/Fonts/msyh.ttc", 16.0f, &config, io.Fonts->GetGlyphRangesChineseFull());
+	}
+#endif
+	io.Fonts->GetTexDataAsRGBA32(&fontData, &texWidth, &texHeight);
+	io.Fonts->SetTexID(0);
 
 	ASSERT_RESULT(m_FontTexture->InitMemoryFromData(fontData, "ImguiFont", (size_t)texWidth, (size_t)texHeight, 1, PF_R8G8B8A8_UNORM, false, false, false));
 	ASSERT_RESULT(m_FontTexture->InitDevice(false));
@@ -220,7 +254,7 @@ bool KUIOverlayBase::Update()
 {
 	unsigned int imageIndex = KRenderGlobal::CurrentInFlightFrameIndex;
 	
-	ImDrawData* imDrawData = &((ImGuiContext*)m_UIContext)->DrawData;
+	ImDrawData* imDrawData = &((ImGuiContext*)m_UIContext)->Viewports[0]->DrawDataP;
 	bool updateCmdBuffers = false;
 
 	if (!imDrawData->Valid)
@@ -283,44 +317,99 @@ bool KUIOverlayBase::Resize(size_t width, size_t height)
 
 bool KUIOverlayBase::SetMousePosition(unsigned int x, unsigned int y)
 {
-	ImGuiIO& io = ((ImGuiContext*)m_UIContext)->IO;
-	io.MousePos = ImVec2((float)x, (float)y);
+	QueueInput(InputEvent::MousePosition, 0, (float)x, (float)y);
 	return true;
 }
 
 bool KUIOverlayBase::SetMouseDown(InputMouseButton button, bool down)
 {
-	ImGuiIO& io = ((ImGuiContext*)m_UIContext)->IO;
+	int index = -1;
 	switch (button)
 	{
 	case INPUT_MOUSE_BUTTON_LEFT:
-		io.MouseDown[0] = down;
+		index = 0;
 		break;
 	case INPUT_MOUSE_BUTTON_RIGHT:
-		io.MouseDown[1] = down;
+		index = 1;
 		break;
 	case INPUT_MOUSE_BUTTON_MIDDLE:
-		io.MouseDown[2] = down;
+		index = 2;
 		break;
 	default:
 		assert(false && "unknown button");
 		return false;
 	}
+	QueueInput(InputEvent::MouseButton, index, down ? 1.0f : 0.0f, 0.0f);
 	return true;
 }
 
 bool KUIOverlayBase::SetMouseScroll(float x, float y)
 {
-	ImGuiIO& io = ((ImGuiContext*)m_UIContext)->IO;
-	float speed = 0.4f;
-	io.MouseWheel += speed * y;
-	io.MouseWheelH += speed * x;
+	QueueInput(InputEvent::MouseScroll, 0, x * 0.4f, y * 0.4f);
 	return true;
+}
+
+void KUIOverlayBase::QueueInput(InputEvent::Type type, int key, float x, float y)
+{
+	std::lock_guard<std::mutex> lock(m_InputMutex);
+	m_InputEvents.emplace_back(type, key, x, y);
+}
+
+bool KUIOverlayBase::SetKey(int key, bool down)
+{
+	QueueInput(InputEvent::Key, key, down ? 1.0f : 0.0f, 0.0f);
+	return true;
+}
+
+bool KUIOverlayBase::SetCharacter(uint32_t character)
+{
+	QueueInput(InputEvent::Character, (int)character, 0.0f, 0.0f);
+	return true;
+}
+
+bool KUIOverlayBase::SetFocus(bool focused)
+{
+	QueueInput(InputEvent::Focus, 0, focused ? 1.0f : 0.0f, 0.0f);
+	return true;
+}
+
+uint64_t KUIOverlayBase::RegisterTexture(IKFrameBufferPtr image, IKSamplerPtr sampler)
+{
+	if (!image) return 0;
+	uint64_t id = m_NextTexture++;
+	m_Textures[id] = { image, sampler ? sampler : m_FontSampler };
+	return id;
+}
+
+bool KUIOverlayBase::UnregisterTexture(uint64_t texture)
+{
+	return m_Textures.erase(texture) != 0;
 }
 
 bool KUIOverlayBase::StartNewFrame()
 {
 	ImGui::SetCurrentContext((ImGuiContext*)m_UIContext);
+	ImGuiIO& io = ImGui::GetIO();
+	std::vector<InputEvent> events;
+	{
+		std::lock_guard<std::mutex> lock(m_InputMutex);
+		events.swap(m_InputEvents);
+	}
+	for (const InputEvent& event : events)
+	{
+		switch (event.type)
+		{
+		case InputEvent::MousePosition: io.AddMousePosEvent(event.x, event.y); break;
+		case InputEvent::MouseButton: io.AddMouseButtonEvent(event.key, event.x != 0.0f); break;
+		case InputEvent::MouseScroll: io.AddMouseWheelEvent(event.x, event.y); break;
+		case InputEvent::Key: io.AddKeyEvent((ImGuiKey)event.key, event.x != 0.0f); break;
+		case InputEvent::Character: io.AddInputCharacter((unsigned int)event.key); break;
+		case InputEvent::Focus: io.AddFocusEvent(event.x != 0.0f); break;
+		}
+	}
+	auto now = std::chrono::steady_clock::now();
+	io.DeltaTime = std::max(0.000001f, std::chrono::duration<float>(now - m_LastFrameTime).count());
+	m_LastFrameTime = now;
 	ImGui::NewFrame();
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0);
 	return true;

@@ -7,11 +7,15 @@
 struct KEEntityCreateInfo
 {
 	std::string path;
+	std::string name;
+	std::string allocatedName;
 	glm::mat4 transform;
+	bool isStatic;
 
 	KEEntityCreateInfo()
 	{
 		transform = glm::mat4(1.0f);
+		isStatic = false;
 	}
 };
 

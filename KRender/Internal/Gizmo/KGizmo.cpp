@@ -29,6 +29,8 @@ GizmoType KGizmo::GetType() const
 
 bool KGizmo::SetType(GizmoType type)
 {
+	if (type == m_CurrentGizmo->GetType()) return true;
+
 	glm::mat4 matrix = m_CurrentGizmo->GetMatrix();
 	bool enter = m_Enter;
 
@@ -86,14 +88,21 @@ bool KGizmo::UnInit()
 
 void KGizmo::Enter()
 {
-	m_CurrentGizmo->Enter();
-	m_Enter = true;
+	if (!m_Enter)
+	{
+		m_CurrentGizmo->Enter();
+		m_Enter = true;
+	}
 }
 
 void KGizmo::Leave()
 {
-	m_CurrentGizmo->Leave();
-	m_Enter = false;
+	if (m_Enter)
+	{
+		if (m_CurrentGizmo->IsTriggered()) m_CurrentGizmo->OnMouseUp(0, 0);
+		m_CurrentGizmo->Leave();
+		m_Enter = false;
+	}
 }
 
 void KGizmo::Update()
@@ -121,6 +130,10 @@ GizmoManipulateMode KGizmo::GetManipulateMode() const
 
 void KGizmo::SetManipulateMode(GizmoManipulateMode mode)
 {
+	if (mode != m_CurrentGizmo->GetManipulateMode() && m_CurrentGizmo->IsTriggered())
+	{
+		m_CurrentGizmo->OnMouseUp(0, 0);
+	}
 	m_TranslateGizmo->SetManipulateMode(mode);
 	m_RotateGizmo->SetManipulateMode(mode);
 	m_ScaleGizmo->SetManipulateMode(mode);
@@ -147,12 +160,12 @@ void KGizmo::SetScreenSize(unsigned int width, unsigned int height)
 
 void KGizmo::OnMouseDown(unsigned int x, unsigned int y)
 {
-	m_CurrentGizmo->OnMouseDown(x, y);
+	if (m_Enter) m_CurrentGizmo->OnMouseDown(x, y);
 }
 
 void KGizmo::OnMouseMove(unsigned int x, unsigned int y)
 {
-	m_CurrentGizmo->OnMouseMove(x, y);
+	if (m_Enter) m_CurrentGizmo->OnMouseMove(x, y);
 }
 
 void KGizmo::OnMouseUp(unsigned int x, unsigned int y)

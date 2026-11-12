@@ -5,9 +5,10 @@
 class KScaleGizmo : public KGizmoBase
 {
 protected:
-	KPlane m_PickPlane;
-	glm::vec3 m_IntersectPos;
 	glm::vec2 m_PickPos;
+	glm::mat4 m_PickTransform;
+	glm::vec3 m_PickScaleVec;
+	glm::vec2 m_PickDirection;
 
 	IKEntityPtr m_OriginEntity;
 

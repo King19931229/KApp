@@ -756,7 +756,7 @@ bool KVulkanCommandBuffer::Flush()
 
 		VK_ASSERT_RESULT(vkCreateFence(KVulkanGlobal::device, &fenceInfo, nullptr, &fence));
 		// Wait for the fence to signal that command buffer has finished executing
-		const VkResult result = vkQueueSubmit(KVulkanGlobal::graphicsQueues[0], 1, &submitInfo, fence);
+		const VkResult result = KVulkanGlobal::QueueSubmit(KVulkanGlobal::graphicsQueues[0], 1, &submitInfo, fence);
 		VK_ASSERT_RESULT(result);
 		if (result == VK_SUCCESS)
 		{

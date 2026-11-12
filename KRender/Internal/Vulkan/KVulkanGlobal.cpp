@@ -1,7 +1,29 @@
 #include "KVulkanGlobal.h"
+#include <mutex>
 
 namespace KVulkanGlobal
 {
+	// Different wrappers can refer to the same VkQueue.
+	static std::mutex queueMutex;
+
+	VkResult QueueSubmit(VkQueue queue, uint32_t submitCount, const VkSubmitInfo* submits, VkFence fence)
+	{
+		std::lock_guard<std::mutex> lock(queueMutex);
+		return vkQueueSubmit(queue, submitCount, submits, fence);
+	}
+
+	VkResult QueuePresent(VkQueue queue, const VkPresentInfoKHR* presentInfo)
+	{
+		std::lock_guard<std::mutex> lock(queueMutex);
+		return vkQueuePresentKHR(queue, presentInfo);
+	}
+
+	VkResult DeviceWaitIdle(VkDevice device)
+	{
+		std::lock_guard<std::mutex> lock(queueMutex);
+		return vkDeviceWaitIdle(device);
+	}
+
 	std::vector<uint32_t> resourceSharingFamilyIndices;
 	bool deviceReady = false;
 	bool supportRaytrace = false;

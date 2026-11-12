@@ -1,28 +1,23 @@
 #include "KEEntitySelector.h"
 #include "KEditorGlobal.h"
-#include "Widget/KESceneItemWidget.h"
 
 KEEntitySelector::KEEntitySelector()
-	: m_SceneItemWidget(nullptr)
 {
 }
 
 KEEntitySelector::~KEEntitySelector()
 {
-	assert(m_SceneItemWidget == nullptr);
 	assert(m_SelectEntites.empty());
 }
 
-bool KEEntitySelector::Init(KESceneItemWidget* sceneItemWidget)
+bool KEEntitySelector::Init()
 {
-	m_SceneItemWidget = sceneItemWidget;
 	m_SelectEntites.clear();
 	return true;
 }
 
 bool KEEntitySelector::UnInit()
 {
-	m_SceneItemWidget = nullptr;
 	m_SelectEntites.clear();
 	return true;
 }
@@ -35,15 +30,6 @@ bool KEEntitySelector::Add(KEEntityPtr entity)
 		if (it == m_SelectEntites.end())
 		{
 			m_SelectEntites.insert(std::make_pair(entity->soul->GetID(), entity));
-
-			if (m_SceneItemWidget)
-			{
-				m_SceneItemWidget->Select(entity, true);
-			}
-
-			KReflectionObjectBase* reflection = nullptr;
-			entity->soul->QueryReflection(&reflection);
-			KEditorGlobal::ReflectionManager.Add(reflection);
 
 			KEditorGlobal::EntityManipulator.UpdateGizmoTransform();
 			return true;
@@ -66,17 +52,7 @@ bool KEEntitySelector::Remove(IKEntity::IDType id)
 	auto it = m_SelectEntites.find(id);
 	if (it != m_SelectEntites.end())
 	{
-		KEEntityPtr entity = it->second;
 		m_SelectEntites.erase(it);
-
-		if (m_SceneItemWidget)
-		{
-			m_SceneItemWidget->Select(entity, false);
-		}
-
-		KReflectionObjectBase* reflection = nullptr;
-		entity->soul->QueryReflection(&reflection);
-		KEditorGlobal::ReflectionManager.Remove(reflection);
 
 		KEditorGlobal::EntityManipulator.UpdateGizmoTransform();
 		return true;
@@ -111,10 +87,7 @@ bool KEEntitySelector::Empty()
 
 bool KEEntitySelector::Clear()
 {
-	if (m_SceneItemWidget)
-	{
-		m_SceneItemWidget->ClearSelection();
-	}
 	m_SelectEntites.clear();
+	KEditorGlobal::EntityManipulator.UpdateGizmoTransform();
 	return true;
 }

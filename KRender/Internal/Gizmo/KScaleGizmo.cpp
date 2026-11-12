@@ -1,10 +1,14 @@
 #include "KScaleGizmo.h"
 #include "Internal/KRenderGlobal.h"
 #include "KBase/Publish/KPlane.h"
+#include "KBase/Publish/KMath.h"
 #include "KBase/Interface/IKLog.h"
 
 KScaleGizmo::KScaleGizmo()
 	: KGizmoBase(),
+	m_PickTransform(1.0f),
+	m_PickScaleVec(0.0f),
+	m_PickDirection(1.0f, 0.0f),
 	m_OperatorType(ScaleOperator::SCALE_NONE)
 {
 }
@@ -25,6 +29,13 @@ constexpr float AXIS_RADIUS = 0.025f;
 constexpr float CUBE_HALF_EXTEND = 0.045f;
 
 constexpr float PLANE_SIZE = 0.5f;
+
+static bool IsAxisHit(float along, float across)
+{
+	return along >= 0.0f &&
+		((along < AXIS_LENGTH && fabs(across) < AXIS_RADIUS) ||
+		(along >= AXIS_LENGTH - CUBE_HALF_EXTEND && along <= AXIS_LENGTH + CUBE_HALF_EXTEND && fabs(across) <= CUBE_HALF_EXTEND));
+}
 constexpr float INNER_PLANE_SIZE = PLANE_SIZE * 0.4f;
 
 static const glm::vec4 X_AXIS_COLOR = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);
@@ -186,12 +197,12 @@ KScaleGizmo::ScaleOperator KScaleGizmo::GetOperatorType(unsigned int x, unsigned
 					//KLog::Logger->Log(LL_DEBUG, "pick xyz plane");
 					return ScaleOperator::SCALE_XYZ;
 				}
-				if (fabs(normalizePos.x) < AXIS_RADIUS && normalizePos.y < AXIS_LENGTH && normalizePos.y >= 0)
+				if (IsAxisHit(normalizePos.y, normalizePos.x))
 				{
 					//KLog::Logger->Log(LL_DEBUG, "pick y axis");
 					return ScaleOperator::SCALE_Y;
 				}
-				else if (fabs(normalizePos.y) < AXIS_RADIUS && normalizePos.x < AXIS_LENGTH && normalizePos.x >= 0)
+				else if (IsAxisHit(normalizePos.x, normalizePos.y))
 				{
 					//KLog::Logger->Log(LL_DEBUG, "pick x axis");
 					return ScaleOperator::SCALE_X;
@@ -216,12 +227,12 @@ KScaleGizmo::ScaleOperator KScaleGizmo::GetOperatorType(unsigned int x, unsigned
 					//KLog::Logger->Log(LL_DEBUG, "pick xyz plane");
 					return ScaleOperator::SCALE_XYZ;
 				}
-				else if (fabs(normalizePos.y) < AXIS_RADIUS && normalizePos.z < AXIS_LENGTH && normalizePos.z >= 0.0f)
+				else if (IsAxisHit(normalizePos.z, normalizePos.y))
 				{
 					//KLog::Logger->Log(LL_DEBUG, "pick z axis");
 					return ScaleOperator::SCALE_Z;
 				}
-				else if (fabs(normalizePos.z) < AXIS_RADIUS && normalizePos.y < AXIS_LENGTH && normalizePos.y >= 0.0f)
+				else if (IsAxisHit(normalizePos.y, normalizePos.z))
 				{
 					//KLog::Logger->Log(LL_DEBUG, "pick y axis");
 					return ScaleOperator::SCALE_Y;
@@ -246,12 +257,12 @@ KScaleGizmo::ScaleOperator KScaleGizmo::GetOperatorType(unsigned int x, unsigned
 					//KLog::Logger->Log(LL_DEBUG, "pick xyz plane");
 					return ScaleOperator::SCALE_XYZ;
 				}
-				else if (fabs(normalizePos.x) < AXIS_RADIUS && normalizePos.z < AXIS_LENGTH && normalizePos.z >= 0.0f)
+				else if (IsAxisHit(normalizePos.z, normalizePos.x))
 				{
 					//KLog::Logger->Log(LL_DEBUG, "pick z axis");
 					return ScaleOperator::SCALE_Z;
 				}
-				else if (fabs(normalizePos.z) < AXIS_RADIUS && normalizePos.x < AXIS_LENGTH && normalizePos.x >= 0.0f)
+				else if (IsAxisHit(normalizePos.x, normalizePos.z))
 				{
 					//KLog::Logger->Log(LL_DEBUG, "pick x axis");
 					return ScaleOperator::SCALE_X;
@@ -282,12 +293,46 @@ glm::vec3 KScaleGizmo::GetScale()
 
 void KScaleGizmo::OnMouseDown(unsigned int x, unsigned int y)
 {
-	m_OperatorType = GetOperatorType(x, y, m_PickPlane, m_IntersectPos);
+	KPlane plane;
+	glm::vec3 intersectPos;
+	m_OperatorType = GetOperatorType(x, y, plane, intersectPos);
+	if (!IsTriggered()) return;
+
 	m_PickPos = glm::vec2(x, y);
-	if (IsTriggered())
+	m_PickTransform = m_Transform;
+	switch (m_OperatorType)
 	{
-		OnTriggerCallback(true);
+	case ScaleOperator::SCALE_X: m_PickScaleVec = glm::vec3(1.0f, 0.0f, 0.0f); break;
+	case ScaleOperator::SCALE_Y: m_PickScaleVec = glm::vec3(0.0f, 1.0f, 0.0f); break;
+	case ScaleOperator::SCALE_Z: m_PickScaleVec = glm::vec3(0.0f, 0.0f, 1.0f); break;
+	case ScaleOperator::SCALE_XY: m_PickScaleVec = glm::vec3(1.0f, 1.0f, 0.0f); break;
+	case ScaleOperator::SCALE_XZ: m_PickScaleVec = glm::vec3(1.0f, 0.0f, 1.0f); break;
+	case ScaleOperator::SCALE_YZ: m_PickScaleVec = glm::vec3(0.0f, 1.0f, 1.0f); break;
+	case ScaleOperator::SCALE_XYZ: m_PickScaleVec = glm::vec3(1.0f); break;
+	default: return;
 	}
+
+	m_PickDirection = glm::vec2(1.0f, 0.0f);
+	if (m_OperatorType != ScaleOperator::SCALE_XYZ)
+	{
+		glm::vec3 worldAxis = GetAxis(GizmoAxis::AXIS_X) * m_PickScaleVec.x +
+			GetAxis(GizmoAxis::AXIS_Y) * m_PickScaleVec.y +
+			GetAxis(GizmoAxis::AXIS_Z) * m_PickScaleVec.z;
+		glm::mat4 viewProjection = m_Camera->GetProjectiveMatrix() * m_Camera->GetViewMatrix();
+		glm::vec4 origin = viewProjection * glm::vec4(TransformPos(), 1.0f);
+		glm::vec4 axis = viewProjection * glm::vec4(worldAxis, 0.0f);
+		// Project the selected axis into screen space at the gizmo origin.
+		glm::vec2 direction = glm::vec2((axis.x * origin.w - origin.x * axis.w) * m_ScreenWidth,
+			(axis.y * origin.w - origin.y * axis.w) * m_ScreenHeight);
+		float length = glm::length(direction);
+		if (fabs(origin.w) < 0.000001f || length < 0.000001f)
+		{
+			m_OperatorType = ScaleOperator::SCALE_NONE;
+			return;
+		}
+		m_PickDirection = direction / length;
+	}
+	OnTriggerCallback(true);
 }
 
 void KScaleGizmo::OnMouseMove(unsigned int x, unsigned int y)
@@ -339,102 +384,20 @@ void KScaleGizmo::OnMouseMove(unsigned int x, unsigned int y)
 	}
 	else
 	{
-		glm::vec3 origin, dir;
-		if (CalcPickRay(x, y, origin, dir))
+		constexpr float SCREEN_DIV_FACTOR = 100.0f;
+		float len = glm::dot(curPickPos - m_PickPos, m_PickDirection) / SCREEN_DIV_FACTOR;
+		glm::vec3 releatedScale = glm::vec3(1.0f) + m_PickScaleVec * len;
+		if (releatedScale.x > 0.0f && releatedScale.y > 0.0f && releatedScale.z > 0.0f)
 		{
-			glm::vec3 transformPos = TransformPos();
-			glm::vec3 intersectPos;
-			if (m_PickPlane.Intersect(origin, dir, intersectPos))
+			glm::vec3 newScale = KMath::ExtractScale(m_PickTransform) * releatedScale;
+			constexpr float zeroExp = 0.0001f;
+			if (fabs(newScale.x) > zeroExp && fabs(newScale.y) > zeroExp && fabs(newScale.z) > zeroExp)
 			{
-				glm::vec3 xAxis = GetAxis(GizmoAxis::AXIS_X);
-				glm::vec3 yAxis = GetAxis(GizmoAxis::AXIS_Y);
-				glm::vec3 zAxis = GetAxis(GizmoAxis::AXIS_Z);
-
-				glm::mat4 rotate = TransformRotate();
-				glm::mat4 translate = glm::translate(glm::mat4(1.0f), transformPos);
-				glm::mat4 scale = glm::scale(glm::mat4(1.0f), TransformScale());
-
-				glm::vec3 scaleVec = glm::vec3(0.0f);
-				glm::vec3 worldScaleVec = glm::vec3(0.0f);
-
-				switch (m_OperatorType)
-				{
-				case KScaleGizmo::ScaleOperator::SCALE_X:
-					scaleVec = glm::vec3(1.0f, 0.0f, 0.0f);
-					worldScaleVec = xAxis;
-					break;
-				case KScaleGizmo::ScaleOperator::SCALE_Y:
-					scaleVec = glm::vec3(0.0f, 1.0f, 0.0f);
-					worldScaleVec = yAxis;
-					break;
-				case KScaleGizmo::ScaleOperator::SCALE_Z:
-					scaleVec = glm::vec3(0.0f, 0.0f, 1.0f);
-					worldScaleVec = zAxis;
-					break;
-				case KScaleGizmo::ScaleOperator::SCALE_XY:
-					scaleVec = glm::vec3(1.0f, 1.0f, 0.0f);
-					worldScaleVec = xAxis + yAxis;
-					break;
-				case KScaleGizmo::ScaleOperator::SCALE_XZ:
-					scaleVec = glm::vec3(1.0f, 0.0f, 1.0f);
-					worldScaleVec = xAxis + zAxis;
-					break;
-				case KScaleGizmo::ScaleOperator::SCALE_YZ:
-					scaleVec = glm::vec3(0.0f, 1.0f, 1.0f);
-					worldScaleVec = yAxis + zAxis;
-					break;
-				case KScaleGizmo::ScaleOperator::SCALE_XYZ:
-					scaleVec = glm::vec3(1.0f, 1.0f, 1.0f);
-					// worldScaleVec = xAxis + yAxis + zAxis;
-					break;
-				case KScaleGizmo::ScaleOperator::SCALE_NONE:
-					break;
-				default:
-					break;
-				}
-
-				glm::mat4 newScale = scale;
-				glm::vec3 releatedScale = glm::vec3(1.0f);
-
-				constexpr float SCREEN_DIV_FACTOR = 100.0f;
-
-				if (m_OperatorType != ScaleOperator::SCALE_XYZ)
-				{
-					float len = glm::distance(m_PickPos, curPickPos);
-					if (glm::dot((intersectPos - m_IntersectPos), worldScaleVec) < 0.0f)
-					{
-						len = -len;
-					}
-					len /= SCREEN_DIV_FACTOR;
-					releatedScale = (glm::vec3(1.0f, 1.0f, 1.0f) - scaleVec) + scaleVec * (1.0f + len);
-				}
-				else
-				{
-					float len = (curPickPos.x - m_PickPos.x);// - (curPickPos.y - m_PickPos.y);
-					len /= SCREEN_DIV_FACTOR;
-					releatedScale = scaleVec * (1.0f + len);
-				}
-
-				if (releatedScale.x > 0.0f && releatedScale.y > 0.0f && releatedScale.z > 0.0f)
-				{
-					newScale = scale * glm::scale(glm::mat4(1.0f), releatedScale);
-
-					constexpr float zeroExp = 0.0001f;
-					if (fabs(newScale[0][0]) > zeroExp &&
-						fabs(newScale[1][1]) > zeroExp &&
-						fabs(newScale[2][2]) > zeroExp)
-					{
-						m_Transform = translate * rotate * newScale;
-						OnTransformCallback(m_Transform);
-					}
-
-					m_IntersectPos = intersectPos;
-				}
+				m_Transform = m_PickTransform * glm::scale(glm::mat4(1.0f), releatedScale);
+				OnTransformCallback(m_Transform);
 			}
 		}
 	}
-
-	m_PickPos = curPickPos;
 }
 
 void KScaleGizmo::OnMouseUp(unsigned int x, unsigned int y)

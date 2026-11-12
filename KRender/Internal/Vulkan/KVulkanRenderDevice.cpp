@@ -1819,7 +1819,7 @@ bool KVulkanRenderDevice::Wait()
 {
 	if (m_Device != VK_NULL_HANDLE)
 	{
-		vkDeviceWaitIdle(m_Device);
+		KVulkanGlobal::DeviceWaitIdle(m_Device);
 		return true;
 	}
 	return false;
@@ -1903,7 +1903,7 @@ bool KVulkanRenderDevice::RecreateSwapChain(IKSwapChain* swapChain)
 			return false;
 		}
 
-		vkDeviceWaitIdle(m_Device);
+		KVulkanGlobal::DeviceWaitIdle(m_Device);
 
 		swapChain->UnInit();
 		swapChain->Init(window);

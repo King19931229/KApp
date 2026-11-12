@@ -1,6 +1,7 @@
 #pragma once
 #include "Interface/IKRenderWindow.h"
 #include <chrono>
+#include <mutex>
 
 #ifndef __ANDROID__
 #include "GLFW/glfw3.h"
@@ -19,6 +20,12 @@ protected:
 	IKSwapChainPtr m_SwapChain;
 	double m_LastMovePos[2];
 	bool m_bPrimary;
+	std::mutex m_ViewportMutex;
+	KEditorViewport m_EditorViewport;
+	bool m_EditorMouseCapture[GLFW_MOUSE_BUTTON_LAST + 1] = {};
+	bool m_EditorKeyCapture[GLFW_KEY_LAST + 1] = {};
+	void WindowToInput(double x, double y, float& localX, float& localY, bool& hovered);
+	bool EditorKeyboardFocused();
 	std::vector<KKeyboardCallbackType*> m_KeyboardCallbacks;
 	std::vector<KMouseCallbackType*> m_MouseCallbacks;
 	std::vector<KScrollCallbackType*> m_ScrollCallbacks;
@@ -31,6 +38,7 @@ protected:
 
 	static void FramebufferResizeCallback(GLFWwindow* handle, int width, int height);
 	static void KeyboardCallback(GLFWwindow* handle, int key, int scancode, int action, int mods);
+	static void CharacterCallback(GLFWwindow* handle, unsigned int character);
 	static void MouseCallback(GLFWwindow* handle, int mouse, int action, int mods);
 	static void ScrollCallback(GLFWwindow* handle, double xoffset, double yoffset);
 	static void FocusCallback(GLFWwindow* handle, int focus);
@@ -67,6 +75,8 @@ public:
 	virtual bool SetPosition(size_t top, size_t left);
 
 	virtual bool GetSize(size_t &width, size_t &height);
+	bool GetInputSize(size_t& width, size_t& height) override;
+	void SetEditorViewport(const KEditorViewport& viewport) override;
 	virtual bool SetSize(size_t width, size_t height);
 
 	virtual bool SetResizable(bool resizable);

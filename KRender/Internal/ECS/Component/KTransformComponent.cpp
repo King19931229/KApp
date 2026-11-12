@@ -1,5 +1,6 @@
 #include "KTransformComponent.h"
 #include "Internal/KRenderThread.h"
+#include "Internal/KRenderGlobal.h"
 
 RTTR_REGISTRATION
 {
@@ -123,10 +124,11 @@ void KTransformComponent::UpdateTransform()
 	glm::mat4 scale = glm::scale(glm::mat4(1.0f), m_Scale);
 	glm::mat4 translate = glm::translate(glm::mat4(1.0f), m_Position);
 
-	m_FinalTransform.MODEL = translate * rotate * scale;
+	glm::mat4 model = translate * rotate * scale;
 
-	if (memcmp(&m_FinalTransform_RenderThread, &m_FinalTransform.MODEL, sizeof(m_FinalTransform_RenderThread)) != 0)
+	if (m_FinalTransform.MODEL != model)
 	{
+		m_FinalTransform.MODEL = model;
 		ENQUEUE_RENDER_COMMAND(KTransformComponent_SyncTransformToRender)([this, transform = m_FinalTransform, pos = m_Position, scl = m_Scale, rot = m_Rotate]()
 		{
 			m_FinalTransform_RenderThread = transform;
@@ -190,7 +192,7 @@ bool KTransformComponent::IsStatic() const
 void KTransformComponent::SetRotateQuat(const glm::quat& rotate) 
 {
 	ASSERT_RESULT(IsInGameThread());
-	if (!m_IsStatic)
+	if (!m_IsStatic || KRenderGlobal::InEditor)
 	{
 		m_Rotate = rotate;
 		UpdateTransform();
@@ -200,7 +202,7 @@ void KTransformComponent::SetRotateQuat(const glm::quat& rotate)
 void KTransformComponent::SetRotateMatrix(const glm::mat3& rotate) 
 {
 	ASSERT_RESULT(IsInGameThread());
-	if (!m_IsStatic)
+	if (!m_IsStatic || KRenderGlobal::InEditor)
 	{
 		m_Rotate = glm::quat_cast(rotate);
 		UpdateTransform();
@@ -210,7 +212,7 @@ void KTransformComponent::SetRotateMatrix(const glm::mat3& rotate)
 void KTransformComponent::SetRotateEularAngles(glm::vec3 eularAngles) 
 {
 	ASSERT_RESULT(IsInGameThread());
-	if (!m_IsStatic)
+	if (!m_IsStatic || KRenderGlobal::InEditor)
 	{
 		m_Rotate = glm::quat(eularAngles * glm::pi<float>() / 180.0f);
 		UpdateTransform();
@@ -220,7 +222,7 @@ void KTransformComponent::SetRotateEularAngles(glm::vec3 eularAngles)
 void KTransformComponent::SetScale(const glm::vec3& scale) 
 {
 	ASSERT_RESULT(IsInGameThread());
-	if (!m_IsStatic)
+	if (!m_IsStatic || KRenderGlobal::InEditor)
 	{
 		m_Scale = scale;
 		UpdateTransform();
@@ -230,7 +232,7 @@ void KTransformComponent::SetScale(const glm::vec3& scale)
 void KTransformComponent::SetPosition(const glm::vec3& position) 
 {
 	ASSERT_RESULT(IsInGameThread());
-	if (!m_IsStatic)
+	if (!m_IsStatic || KRenderGlobal::InEditor)
 	{
 		m_Position = position;
 		UpdateTransform();

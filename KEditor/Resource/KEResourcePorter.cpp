@@ -124,13 +124,13 @@ bool KEResourcePorter::InitEntity(const std::string& path, IKEntityPtr& entity)
 	return false;
 }
 
-bool KEResourcePorter::UnInitEntity(IKEntityPtr& entity)
+bool KEResourcePorter::UnInitEntity(IKEntityPtr& entity, const std::string& allocatedName)
 {
 	if (entity)
 	{
 		IKEnginePtr engine = KEngineGlobal::Engine;
 		engine->Wait();
-		KEditorGlobal::EntityNamePool.FreeName(entity->GetName());
+		KEditorGlobal::EntityNamePool.FreeName(allocatedName);
 		entity->UnRegisterAllComponent();
 		return true;
 	}

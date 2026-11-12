@@ -14,7 +14,6 @@ enum class SelectType
 	SELECT_TYPE_MULTI
 };
 
-class KESceneItemWidget;
 class KEEntityManipulator
 {
 	friend class KEEntitySceneJoinCommand;
@@ -28,7 +27,6 @@ protected:
 	IKRenderWindow* m_Window;
 	const KCamera* m_Camera;
 	IKScene* m_Scene;
-	KESceneItemWidget* m_SceneItemWidget;
 
 	SelectType m_SelectType;
 
@@ -43,6 +41,7 @@ protected:
 	EntityCollectionType m_Entities;
 
 	float m_MouseDownPos[2];
+	bool m_GizmoMouseDown;
 	bool m_Enable;
 
 	void OnKeyboardListen(InputKeyboard key, InputAction action);
@@ -51,18 +50,16 @@ protected:
 	void OnGizmoTrigger(bool trigger);
 
 	KEEntityPtr GetEditorEntity(IKEntity* entity);
-	void OnSelectionDelete();
 
 	void AddEditorEntity(KEEntityPtr editorEntity);
 	void RemoveEditorEntity(IKEntity::IDType id);
 	
 	void WatchEntity(KEEntityPtr editorEntity);
-	void DiscardEntity(KEEntityPtr editorEntity);
 public:
 	KEEntityManipulator();
 	~KEEntityManipulator();
 
-	bool Init(IKGizmoPtr gizmo, IKRenderWindow* window, const KCamera* camera, IKScene* scene, KESceneItemWidget* sceneItemWidget);
+	bool Init(IKGizmoPtr gizmo, IKRenderWindow* window, const KCamera* camera, IKScene* scene);
 	bool UnInit();
 
 	bool Join(IKEntityPtr entity, const std::string& path);
@@ -82,6 +79,7 @@ public:
 	bool SetManipulateMode(GizmoManipulateMode mode);
 
 	KEEntityPtr GetEntity(IKEntity::IDType id);
+	const EntityCollectionType& GetEntities() const { return m_Entities; }
 	KEEntityPtr CloestPickEntity(size_t x, size_t y);
 
 	void UpdateGizmoTransform();

@@ -12,18 +12,22 @@ KTextureManager::~KTextureManager()
 {
 	assert(m_Textures.empty());
 	assert(!m_ErrorTexture);
+	assert(!m_WhiteTexture);
 }
 
 bool KTextureManager::Init()
 {
 	UnInit();
 	ASSERT_RESULT(Acquire("Textures/Error.png", m_ErrorTexture, false));
+	const uint32_t white = 0xffffffff;
+	ASSERT_RESULT(Acquire("White", &white, sizeof(white), 1, 1, 1, PF_R8G8B8A8_UNORM, false, false, m_WhiteTexture, false));
 	return true;
 }
 
 bool KTextureManager::UnInit()
 {
 	m_ErrorTexture.Release();
+	m_WhiteTexture.Release();
 
 	for(auto it = m_Textures.begin(), itEnd = m_Textures.end(); it != itEnd; ++it)
 	{
@@ -175,4 +179,11 @@ bool KTextureManager::GetErrorTexture(KTextureRef& ref)
 		return true;
 	}
 	return false;
+}
+
+bool KTextureManager::GetWhiteTexture(KTextureRef& ref)
+{
+	if (!m_WhiteTexture) return false;
+	ref = m_WhiteTexture;
+	return true;
 }

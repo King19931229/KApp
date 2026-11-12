@@ -27,6 +27,13 @@ constexpr float ARROW_RADIUS = 0.045f;
 
 constexpr float PLANE_SIZE = 0.5f;
 
+static bool IsAxisHit(float along, float across)
+{
+	return along >= 0.0f &&
+		((along < AXIS_LENGTH && fabs(across) < AXIS_RADIUS) ||
+		(along >= AXIS_LENGTH && along <= AXIS_LENGTH + ARROW_LENGTH && fabs(across) <= ARROW_RADIUS));
+}
+
 static const glm::vec4 X_AXIS_COLOR = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);
 static const glm::vec4 Y_AXIS_COLOR = glm::vec4(0.0f, 1.0f, 0.0f, 1.0f);
 static const glm::vec4 Z_AXIS_COLOR = glm::vec4(0.0f, 0.0f, 1.0f, 1.0f);
@@ -178,12 +185,12 @@ KMoveGizmo::MoveOperator KMoveGizmo::GetOperatorType(unsigned int x, unsigned in
 			glm::vec3 normalizePos = (intersectPos - transformPos) / m_ScreenScaleFactor;
 			normalizePos = glm::vec3(glm::dot(normalizePos, xAxis), glm::dot(normalizePos, yAxis), glm::dot(normalizePos, zAxis));
 			{
-				if (fabs(normalizePos.x) < AXIS_RADIUS && normalizePos.y < AXIS_LENGTH && normalizePos.y >= 0)
+				if (IsAxisHit(normalizePos.y, normalizePos.x))
 				{
 					//KLog::Logger->Log(LL_DEBUG, "pick y axis");
 					return MoveOperator::MOVE_Y;
 				}
-				else if (fabs(normalizePos.y) < AXIS_RADIUS && normalizePos.x < AXIS_LENGTH && normalizePos.x >= 0)
+				else if (IsAxisHit(normalizePos.x, normalizePos.y))
 				{
 					//KLog::Logger->Log(LL_DEBUG, "pick x axis");
 					return MoveOperator::MOVE_X;
@@ -203,12 +210,12 @@ KMoveGizmo::MoveOperator KMoveGizmo::GetOperatorType(unsigned int x, unsigned in
 			glm::vec3 normalizePos = (intersectPos - transformPos) / m_ScreenScaleFactor;
 			normalizePos = glm::vec3(glm::dot(normalizePos, xAxis), glm::dot(normalizePos, yAxis), glm::dot(normalizePos, zAxis));
 			{
-				if (fabs(normalizePos.y) < AXIS_RADIUS && normalizePos.z < AXIS_LENGTH && normalizePos.z >= 0.0f)
+				if (IsAxisHit(normalizePos.z, normalizePos.y))
 				{
 					//KLog::Logger->Log(LL_DEBUG, "pick z axis");
 					return MoveOperator::MOVE_Z;
 				}
-				else if (fabs(normalizePos.z) < AXIS_RADIUS && normalizePos.y < AXIS_LENGTH && normalizePos.y >= 0.0f)
+				else if (IsAxisHit(normalizePos.y, normalizePos.z))
 				{
 					//KLog::Logger->Log(LL_DEBUG, "pick y axis");
 					return MoveOperator::MOVE_Y;
@@ -228,12 +235,12 @@ KMoveGizmo::MoveOperator KMoveGizmo::GetOperatorType(unsigned int x, unsigned in
 			glm::vec3 normalizePos = (intersectPos - transformPos) / m_ScreenScaleFactor;
 			normalizePos = glm::vec3(glm::dot(normalizePos, xAxis), glm::dot(normalizePos, yAxis), glm::dot(normalizePos, zAxis));
 			{
-				if (fabs(normalizePos.x) < AXIS_RADIUS && normalizePos.z < AXIS_LENGTH && normalizePos.z >= 0.0f)
+				if (IsAxisHit(normalizePos.z, normalizePos.x))
 				{
 					//KLog::Logger->Log(LL_DEBUG, "pick z axis");
 					return MoveOperator::MOVE_Z;
 				}
-				else if (fabs(normalizePos.z) < AXIS_RADIUS && normalizePos.x < AXIS_LENGTH && normalizePos.x >= 0.0f)
+				else if (IsAxisHit(normalizePos.x, normalizePos.z))
 				{
 					//KLog::Logger->Log(LL_DEBUG, "pick x axis");
 					return MoveOperator::MOVE_X;

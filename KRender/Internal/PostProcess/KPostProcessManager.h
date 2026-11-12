@@ -62,6 +62,7 @@ public:
 		size_t frameInFlight);
 	bool UnInit();
 	bool Resize(size_t width, size_t height);
+	IKFrameBufferPtr GetFinalFrameBuffer();
 
 	bool Save(const char* jsonFile);
 	bool Load(const char* jsonFile);

@@ -257,7 +257,7 @@ bool KVulkanQueue::Submit(IKCommandBufferPtr buffer, std::vector<KSemaphoreWaitI
 		submitInfo.pSignalSemaphores = singalSemaphores.data();
 
 		VkFence vkFence = fence ? ((KVulkanFence*)fence.get())->GetVkFence() : VK_NULL_HANDEL;
-		const VkResult result = vkQueueSubmit(m_vkQueue, 1, &submitInfo, vkFence);
+		const VkResult result = KVulkanGlobal::QueueSubmit(m_vkQueue, 1, &submitInfo, vkFence);
 		VK_ASSERT_RESULT(result);
 		if (result != VK_SUCCESS)
 		{

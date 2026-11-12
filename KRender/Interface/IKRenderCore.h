@@ -10,6 +10,7 @@
 typedef std::function<void()> KRenderCoreInitCallback;
 typedef std::function<void()> KRenderCoreUIRenderCallback;
 typedef std::function<void(IKRenderWindowPtr& window)> KRenderCoreWindowInit;
+struct KEditorViewport;
 
 struct IKRenderCore
 {
@@ -46,6 +47,8 @@ struct IKRenderCore
 	virtual IKGizmoPtr GetGizmo() = 0;
 	virtual KCamera* GetCamera() = 0;
 	virtual IKCameraMoveController* GetCameraController() = 0;
+	virtual void SetEditorViewport(const KEditorViewport& viewport) = 0;
+	virtual uint64_t GetEditorViewportTexture() = 0;
 	// Call after Wait() and after releasing the scene's references.
 	virtual void CollectUnusedResources() = 0;
 };

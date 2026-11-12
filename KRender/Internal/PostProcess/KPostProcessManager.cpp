@@ -234,6 +234,19 @@ bool KPostProcessManager::Resize(size_t width, size_t height)
 	return true;
 }
 
+IKFrameBufferPtr KPostProcessManager::GetFinalFrameBuffer()
+{
+	KPostProcessPass* endPass = nullptr;
+	if (m_StartPointPass)
+	{
+		IterPostProcessGraph([&](IKPostProcessNode* node)
+		{
+			if (node->GetType() == PPNT_PASS) endPass = static_cast<KPostProcessPass*>(node);
+		});
+	}
+	return endPass && endPass->GetRenderTarget() ? endPass->GetRenderTarget()->GetFrameBuffer() : nullptr;
+}
+
 const char* KPostProcessManager::msTypeKey = "type";
 const char* KPostProcessManager::msIDKey = "id";
 const char* KPostProcessManager::msStartPointKey = "start_point";
@@ -465,7 +478,7 @@ bool KPostProcessManager::Execute(unsigned int chainImageIndex, IKSwapChain* swa
 		commandList.BeginRenderPass(renderPass, SUBPASS_CONTENTS_INLINE, mainChainStage);
 		commandList.SetViewport(renderPass->GetViewPort());
 		KRenderCommand command;
-		if (PopulateRenderCommand(command, endPass->GetScreenDrawPipeline(), renderPass))
+		if (!KRenderGlobal::InEditor && PopulateRenderCommand(command, endPass->GetScreenDrawPipeline(), renderPass))
 		{
 			commandList.Render(command);
 		}

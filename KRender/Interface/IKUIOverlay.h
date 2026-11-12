@@ -27,6 +27,12 @@ struct IKUIOverlay
 	virtual bool SetMousePosition(unsigned int x, unsigned int y) = 0;
 	virtual bool SetMouseDown(InputMouseButton button, bool down) = 0;
 	virtual bool SetMouseScroll(float x, float y) = 0;
+	virtual bool SetKey(int key, bool down) = 0;
+	virtual bool SetCharacter(uint32_t character) = 0;
+	virtual bool SetFocus(bool focused) = 0;
+
+	virtual uint64_t RegisterTexture(IKFrameBufferPtr image, IKSamplerPtr sampler = nullptr) = 0;
+	virtual bool UnregisterTexture(uint64_t texture) = 0;
 
 	virtual bool StartNewFrame() = 0;
 	virtual bool EndNewFrame() = 0;

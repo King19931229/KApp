@@ -70,12 +70,12 @@ bool KGizmoController::Init(IKGizmoPtr gizmo, IKCameraCubePtr cameraCube, KCamer
 		{
 			if(m_Enable)
 			{
-				if (action == INPUT_ACTION_PRESS)
+				if (mouse == INPUT_MOUSE_BUTTON_LEFT && action == INPUT_ACTION_PRESS)
 				{
 					m_Gizmo->OnMouseDown((unsigned int) xPos, (unsigned int) yPos);
 					m_CameraCube->OnMouseDown((unsigned int)xPos, (unsigned int)yPos);
 				}
-				if (action == INPUT_ACTION_RELEASE)
+				if (mouse == INPUT_MOUSE_BUTTON_LEFT && action == INPUT_ACTION_RELEASE)
 				{
 					m_Gizmo->OnMouseUp((unsigned int) xPos, (unsigned int) yPos);
 					m_CameraCube->OnMouseUp((unsigned int)xPos, (unsigned int)yPos);
@@ -119,7 +119,7 @@ bool KGizmoController::Update(float dt)
 {
 	size_t width = 0;
 	size_t height = 0;
-	m_Window->GetSize(width, height);
+	m_Window->GetInputSize(width, height);
 
 	m_Gizmo->SetScreenSize((unsigned int)width, (unsigned int)height);
 	m_CameraCube->SetScreenSize((unsigned int)width, (unsigned int)height);

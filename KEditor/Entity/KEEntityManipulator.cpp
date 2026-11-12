@@ -1,7 +1,6 @@
 #include "KEEntityManipulator.h"
 #include "KEEntityCommand.h"
 #include "KEditorGlobal.h"
-#include "Widget/KESceneItemWidget.h"
 
 #include "KBase/Interface/Component/IKTransformComponent.h"
 #include "KBase/Interface/Component/IKRenderComponent.h"
@@ -16,7 +15,8 @@ KEEntityManipulator::KEEntityManipulator()
 	m_Scene(nullptr),
 	m_SelectType(SelectType::SELECT_TYPE_SINGLE),
 	m_Enable(false),
-	m_PreviousTransform(glm::mat4(1.0f))
+	m_PreviousTransform(glm::mat4(1.0f)),
+	m_GizmoMouseDown(false)
 {
 	m_MouseDownPos[0] = 0.0f;
 	m_MouseDownPos[1] = 0.0f;
@@ -27,7 +27,7 @@ KEEntityManipulator::~KEEntityManipulator()
 	assert(!m_Gizmo);
 }
 
-bool KEEntityManipulator::Init(IKGizmoPtr gizmo, IKRenderWindow* window, const KCamera* camera, IKScene* scene, KESceneItemWidget* sceneItemWidget)
+bool KEEntityManipulator::Init(IKGizmoPtr gizmo, IKRenderWindow* window, const KCamera* camera, IKScene* scene)
 {
 	if (gizmo && window && camera && scene)
 	{
@@ -35,7 +35,6 @@ bool KEEntityManipulator::Init(IKGizmoPtr gizmo, IKRenderWindow* window, const K
 		m_Window = window;
 		m_Camera = camera;
 		m_Scene = scene;
-		m_SceneItemWidget = sceneItemWidget;
 
 		m_KeyboardCallback = [this](InputKeyboard key, InputAction action)
 		{
@@ -82,10 +81,10 @@ bool KEEntityManipulator::UnInit()
 
 	KEditorGlobal::EntitySelector.Clear();
 	m_Entities.clear();
+	m_GizmoMouseDown = false;
 
 	m_Camera = nullptr;
 	m_Scene = nullptr;
-	m_SceneItemWidget = nullptr;
 
 	return true;
 }
@@ -107,20 +106,7 @@ void KEEntityManipulator::WatchEntity(KEEntityPtr editorEntity)
 		editorEntity->soul->QueryReflection(&reflection);
 		ASSERT_RESULT(reflection);
 
-		m_SceneItemWidget->Add(editorEntity);
 		m_Entities[editorEntity->soul->GetID()] = editorEntity;
-	}
-}
-
-void KEEntityManipulator::DiscardEntity(KEEntityPtr editorEntity)
-{
-	if (editorEntity)
-	{
-		KReflectionObjectBase* reflection = nullptr;
-		editorEntity->soul->QueryReflection(&reflection);
-		ASSERT_RESULT(reflection);
-
-		KEditorGlobal::ReflectionManager.NotifyToProperty(reflection);
 	}
 }
 
@@ -131,11 +117,13 @@ void KEEntityManipulator::RemoveEditorEntity(IKEntity::IDType id)
 	if (it != m_Entities.end())
 	{
 		KEEntityPtr editorEntity = it->second;
-		DiscardEntity(editorEntity);
-
-		KEditorGlobal::ResourcePorter.UnInitEntity(editorEntity->soul);
+		editorEntity->createInfo.name = editorEntity->soul->GetName();
+		editorEntity->soul->GetTransform(editorEntity->createInfo.transform);
+		IKTransformComponent* transform = nullptr;
+		if (editorEntity->soul->GetComponent(CT_TRANSFORM, &transform)) editorEntity->createInfo.isStatic = transform->IsStatic();
 		m_Scene->Remove(editorEntity->soul);
-		m_SceneItemWidget->Remove(editorEntity);
+		KEditorGlobal::ResourcePorter.UnInitEntity(editorEntity->soul, editorEntity->createInfo.allocatedName);
+		editorEntity->createInfo.allocatedName.clear();
 		m_Entities.erase(it);
 	}
 }
@@ -148,6 +136,10 @@ bool KEEntityManipulator::Join(IKEntityPtr entity, const std::string& path)
 		editorEntity->soul = entity;
 
 		editorEntity->createInfo.path = path;
+		editorEntity->createInfo.name = entity->GetName();
+		editorEntity->createInfo.allocatedName = entity->GetName();
+		IKTransformComponent* transformComponent = nullptr;
+		if (entity->GetComponent(CT_TRANSFORM, &transformComponent)) editorEntity->createInfo.isStatic = transformComponent->IsStatic();
 
 		glm::mat4 transform = glm::mat4(1.0f);
 		ASSERT_RESULT(entity->GetTransform(transform));
@@ -197,15 +189,11 @@ bool KEEntityManipulator::Erase(const std::vector<KEEntityPtr>& entites)
 
 bool KEEntityManipulator::Load(const char* filename)
 {
-	for (auto& pair : m_Entities)
-	{
-		KEEntityPtr editorEntity = pair.second;
-		DiscardEntity(editorEntity);
-	}
 	KEditorGlobal::EntitySelector.Clear();
+	m_Scene->Clear();
+	for (const auto& entry : m_Entities) KEditorGlobal::EntityNamePool.FreeName(entry.second->createInfo.allocatedName);
 	m_Entities.clear();
 
-	m_SceneItemWidget->Clear();
 	KEditorGlobal::CommandInvoker.Clear();
 
 	KECommandPtr command = KECommandPtr(KNEW KEEntitySceneJoinCommand(m_Scene, this));
@@ -225,6 +213,9 @@ bool KEEntityManipulator::Load(const char* filename)
 					editorEntity->soul = entity;
 
 					editorEntity->createInfo.path = path;
+					editorEntity->createInfo.name = entity->GetName();
+					IKTransformComponent* transformComponent = nullptr;
+					if (entity->GetComponent(CT_TRANSFORM, &transformComponent)) editorEntity->createInfo.isStatic = transformComponent->IsStatic();
 
 					glm::mat4 transform = glm::mat4(1.0f);
 					ASSERT_RESULT(entity->GetTransform(transform));
@@ -260,20 +251,6 @@ KEEntityPtr KEEntityManipulator::GetEditorEntity(IKEntity* entity)
 	return nullptr;
 }
 
-void KEEntityManipulator::OnSelectionDelete()
-{
-	std::vector<KEEntityPtr> removeEntity;
-	{
-		const auto& selections = KEditorGlobal::EntitySelector.GetSelection();
-		removeEntity.reserve(selections.size());
-		for (auto& pair : selections)
-		{
-			removeEntity.push_back(pair.second);
-		}
-	}
-	Erase(removeEntity);
-}
-
 void KEEntityManipulator::OnKeyboardListen(InputKeyboard key, InputAction action)
 {
 	if (key == INPUT_KEY_CTRL)
@@ -285,13 +262,6 @@ void KEEntityManipulator::OnKeyboardListen(InputKeyboard key, InputAction action
 		else
 		{
 			m_SelectType = SelectType::SELECT_TYPE_SINGLE;
-		}
-	}
-	if (key == INPUT_KEY_DELETE)
-	{
-		if (action == INPUT_ACTION_PRESS)
-		{
-			OnSelectionDelete();
 		}
 	}
 }
@@ -307,19 +277,22 @@ void KEEntityManipulator::OnMouseListen(InputMouseButton key, InputAction action
 		}
 		else if (action == INPUT_ACTION_RELEASE)
 		{
-			if (m_Gizmo->IsTriggered())
+			if (m_GizmoMouseDown)
 			{
+				m_GizmoMouseDown = false;
 				return;
 			}
 			// 点击操作
-			if (x == m_MouseDownPos[0] && y == m_MouseDownPos[1])
+			float dx = x - m_MouseDownPos[0];
+			float dy = y - m_MouseDownPos[1];
+			if (dx * dx + dy * dy <= 9.0f)
 			{
 				IKEntity* entity = nullptr;
 				KEEntityPtr editorEntity;
 
 				size_t width = 0;
 				size_t height = 0;
-				m_Window->GetSize(width, height);
+				m_Window->GetInputSize(width, height);
 
 				if (m_SelectType == SelectType::SELECT_TYPE_SINGLE)
 				{
@@ -355,14 +328,6 @@ void KEEntityManipulator::OnMouseListen(InputMouseButton key, InputAction action
 		}
 	}
 
-	if (KEditorGlobal::EntitySelector.Empty())
-	{
-		m_Gizmo->Leave();
-	}
-	else
-	{
-		m_Gizmo->Enter();
-	}
 }
 
 void KEEntityManipulator::OnGizmoTransformChange(const glm::mat4& transform)
@@ -423,11 +388,6 @@ void KEEntityManipulator::OnGizmoTransformChange(const glm::mat4& transform)
 				}
 				// 覆盖初始位置 保证Undo Redo正确
 				editorEntity->soul->GetTransform(editorEntity->createInfo.transform);
-				// 暂时先用这种方法更新属性面板
-				KReflectionObjectBase* reflection = nullptr;
-				editorEntity->soul->QueryReflection(&reflection);
-				ASSERT_RESULT(reflection);
-				KEditorGlobal::ReflectionManager.NotifyToProperty(reflection);
 			}
 		}
 	}
@@ -437,10 +397,15 @@ void KEEntityManipulator::OnGizmoTransformChange(const glm::mat4& transform)
 
 void KEEntityManipulator::UpdateGizmoTransform()
 {
+	if (!m_Gizmo) return;
 	const auto& selections = KEditorGlobal::EntitySelector.GetSelection();
 
 	if (selections.empty())
+	{
+		m_Gizmo->Leave();
 		return;
+	}
+	m_Gizmo->Enter();
 
 	if (selections.size() > 1)
 	{
@@ -469,7 +434,7 @@ void KEEntityManipulator::UpdateGizmoTransform()
 		IKTransformComponent* transformComponent = nullptr;
 		if (entity->soul->GetComponent(CT_TRANSFORM, &transformComponent))
 		{
-			m_Gizmo->SetMatrix(transformComponent->GetFinal_RenderThread());
+			m_Gizmo->SetMatrix(transformComponent->GetFinal_GameThread());
 		}
 	}
 
@@ -482,6 +447,7 @@ void KEEntityManipulator::OnGizmoTrigger(bool trigger)
 
 	if (trigger)
 	{
+		m_GizmoMouseDown = true;
 		for (auto& pair : selections)
 		{
 			KEEntityPtr editorEntity = pair.second;
@@ -491,15 +457,19 @@ void KEEntityManipulator::OnGizmoTrigger(bool trigger)
 	else if(!selections.empty())
 	{
 		KECommandPtr command = KECommandPtr(KNEW KEEntitySceneTransformCommand(m_Scene, this));
+		bool changed = false;
 		for (auto& pair : selections)
 		{
 			KEEntityPtr editorEntity = pair.second;
 			editorEntity->soul->GetTransform(editorEntity->transformInfo.current);
 
-			// 创建Transform Command
-			command->Cast<KEEntitySceneTransformCommand>()->Append(editorEntity, editorEntity->transformInfo.previous, editorEntity->transformInfo.current);
+			if (editorEntity->transformInfo.previous != editorEntity->transformInfo.current)
+			{
+				command->Cast<KEEntitySceneTransformCommand>()->Append(editorEntity, editorEntity->transformInfo.previous, editorEntity->transformInfo.current);
+				changed = true;
+			}
 		}
-		KEditorGlobal::CommandInvoker.Push(command);
+		if (changed) KEditorGlobal::CommandInvoker.Push(command);
 	}
 }
 
@@ -575,7 +545,7 @@ KEEntityPtr KEEntityManipulator::CloestPickEntity(size_t x, size_t y)
 
 		size_t width = 0;
 		size_t height = 0;
-		m_Window->GetSize(width, height);
+		m_Window->GetInputSize(width, height);
 
 		if (m_Scene->CloestPick(*m_Camera, x, y,
 			width, height, entity) && (editorEntity = GetEditorEntity(entity)))

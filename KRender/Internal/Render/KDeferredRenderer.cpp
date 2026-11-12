@@ -837,7 +837,8 @@ void KDeferredRenderer::DebugObject(KRHICommandList& commandList, const std::vec
 	{
 		KRenderComponent* render = nullptr;
 		KTransformComponent* transform = nullptr;
-		if (entity->GetComponent(CT_RENDER, &render) && entity->GetComponent(CT_TRANSFORM, &transform))
+		if (entity->GetComponent(CT_RENDER, &render) && entity->GetComponent(CT_TRANSFORM, &transform) &&
+			(!render->IsUtility() || render->GetUtilityColor().a > 0.0f))
 		{
 			const std::vector<KMaterialSubMeshPtr>& materialSubMeshes = render->GetMaterialSubMeshs();
 

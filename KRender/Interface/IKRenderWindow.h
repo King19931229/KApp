@@ -23,6 +23,12 @@ enum RenderWindowType
 	RENDER_WINDOW_EXTERNAL
 };
 
+struct KEditorViewport
+{
+	float x = 0, y = 0, width = 0, height = 0;
+	bool hovered = false, focused = false;
+};
+
 struct IKRenderWindow
 {
 	virtual ~IKRenderWindow() {}
@@ -52,6 +58,8 @@ struct IKRenderWindow
 	virtual bool SetPosition(size_t top, size_t left) = 0;
 
 	virtual bool GetSize(size_t &width, size_t &height) = 0;
+	virtual bool GetInputSize(size_t& width, size_t& height) { return GetSize(width, height); }
+	virtual void SetEditorViewport(const KEditorViewport& viewport) {}
 	virtual bool SetSize(size_t width, size_t height) = 0;
 
 	virtual bool SetResizable(bool resizable) = 0;

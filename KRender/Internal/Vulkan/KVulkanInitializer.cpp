@@ -915,7 +915,7 @@ namespace KVulkanInitializer
 
 		VK_ASSERT_RESULT(vkCreateFence(KVulkanGlobal::device, &fenceInfo, nullptr, &fence));
 		// Wait for the fence to signal that command buffer has finished executing
-		VK_ASSERT_RESULT(vkQueueSubmit(queue, 1, &submitInfo, fence));
+		VK_ASSERT_RESULT(KVulkanGlobal::QueueSubmit(queue, 1, &submitInfo, fence));
 		VK_ASSERT_RESULT(vkWaitForFences(KVulkanGlobal::device, 1, &fence, VK_TRUE, DEFAULT_FENCE_TIMEOUT));
 		vkDestroyFence(KVulkanGlobal::device, fence, nullptr);
 

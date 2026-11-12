@@ -5,6 +5,7 @@
 #include "Internal/KVertexDefinition.h"
 #include "Internal/ECS/System/KCullSystem.h"
 #include "Interface/IKStatistics.h"
+#include "Interface/IKRenderScene.h"
 #include "Internal/FrameGraph/KFrameGraph.h"
 #include "Internal/Render/KRHICommandList.h"
 
@@ -166,6 +167,7 @@ protected:
 	bool m_MinimizeShadowDraw;
 
 	bool m_StaticShouldUpdate;
+	EntityObserverFunc m_OnSceneChanged;
 
 	void UpdateDynamicCascades();
 	void UpdateStaticCascades();

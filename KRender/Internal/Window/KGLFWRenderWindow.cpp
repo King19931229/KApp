@@ -6,6 +6,7 @@
 #include "KBase/Publish/KTemplate.h"
 #include "Internal/KRenderGlobal.h"
 #include "Internal/KRenderThread.h"
+#include "imgui.h"
 
 #ifdef _WIN32
 #define NOMINMAX
@@ -40,6 +41,65 @@ RenderWindowType KGLFWRenderWindow::GetType()
 }
 
 #ifndef __ANDROID__
+static ImGuiKey GLFWKeyToImGuiKey(int key)
+{
+	if (key >= GLFW_KEY_A && key <= GLFW_KEY_Z) return (ImGuiKey)(ImGuiKey_A + key - GLFW_KEY_A);
+	if (key >= GLFW_KEY_0 && key <= GLFW_KEY_9) return (ImGuiKey)(ImGuiKey_0 + key - GLFW_KEY_0);
+	if (key >= GLFW_KEY_F1 && key <= GLFW_KEY_F24) return (ImGuiKey)(ImGuiKey_F1 + key - GLFW_KEY_F1);
+	if (key >= GLFW_KEY_KP_0 && key <= GLFW_KEY_KP_9) return (ImGuiKey)(ImGuiKey_Keypad0 + key - GLFW_KEY_KP_0);
+	switch (key)
+	{
+	case GLFW_KEY_TAB: return ImGuiKey_Tab;
+	case GLFW_KEY_LEFT: return ImGuiKey_LeftArrow;
+	case GLFW_KEY_RIGHT: return ImGuiKey_RightArrow;
+	case GLFW_KEY_UP: return ImGuiKey_UpArrow;
+	case GLFW_KEY_DOWN: return ImGuiKey_DownArrow;
+	case GLFW_KEY_PAGE_UP: return ImGuiKey_PageUp;
+	case GLFW_KEY_PAGE_DOWN: return ImGuiKey_PageDown;
+	case GLFW_KEY_HOME: return ImGuiKey_Home;
+	case GLFW_KEY_END: return ImGuiKey_End;
+	case GLFW_KEY_INSERT: return ImGuiKey_Insert;
+	case GLFW_KEY_DELETE: return ImGuiKey_Delete;
+	case GLFW_KEY_BACKSPACE: return ImGuiKey_Backspace;
+	case GLFW_KEY_SPACE: return ImGuiKey_Space;
+	case GLFW_KEY_ENTER: return ImGuiKey_Enter;
+	case GLFW_KEY_ESCAPE: return ImGuiKey_Escape;
+	case GLFW_KEY_APOSTROPHE: return ImGuiKey_Apostrophe;
+	case GLFW_KEY_COMMA: return ImGuiKey_Comma;
+	case GLFW_KEY_MINUS: return ImGuiKey_Minus;
+	case GLFW_KEY_PERIOD: return ImGuiKey_Period;
+	case GLFW_KEY_SLASH: return ImGuiKey_Slash;
+	case GLFW_KEY_SEMICOLON: return ImGuiKey_Semicolon;
+	case GLFW_KEY_EQUAL: return ImGuiKey_Equal;
+	case GLFW_KEY_LEFT_BRACKET: return ImGuiKey_LeftBracket;
+	case GLFW_KEY_BACKSLASH: return ImGuiKey_Backslash;
+	case GLFW_KEY_RIGHT_BRACKET: return ImGuiKey_RightBracket;
+	case GLFW_KEY_GRAVE_ACCENT: return ImGuiKey_GraveAccent;
+	case GLFW_KEY_CAPS_LOCK: return ImGuiKey_CapsLock;
+	case GLFW_KEY_SCROLL_LOCK: return ImGuiKey_ScrollLock;
+	case GLFW_KEY_NUM_LOCK: return ImGuiKey_NumLock;
+	case GLFW_KEY_PRINT_SCREEN: return ImGuiKey_PrintScreen;
+	case GLFW_KEY_PAUSE: return ImGuiKey_Pause;
+	case GLFW_KEY_KP_DECIMAL: return ImGuiKey_KeypadDecimal;
+	case GLFW_KEY_KP_DIVIDE: return ImGuiKey_KeypadDivide;
+	case GLFW_KEY_KP_MULTIPLY: return ImGuiKey_KeypadMultiply;
+	case GLFW_KEY_KP_SUBTRACT: return ImGuiKey_KeypadSubtract;
+	case GLFW_KEY_KP_ADD: return ImGuiKey_KeypadAdd;
+	case GLFW_KEY_KP_ENTER: return ImGuiKey_KeypadEnter;
+	case GLFW_KEY_KP_EQUAL: return ImGuiKey_KeypadEqual;
+	case GLFW_KEY_LEFT_SHIFT: return ImGuiKey_LeftShift;
+	case GLFW_KEY_LEFT_CONTROL: return ImGuiKey_LeftCtrl;
+	case GLFW_KEY_LEFT_ALT: return ImGuiKey_LeftAlt;
+	case GLFW_KEY_LEFT_SUPER: return ImGuiKey_LeftSuper;
+	case GLFW_KEY_RIGHT_SHIFT: return ImGuiKey_RightShift;
+	case GLFW_KEY_RIGHT_CONTROL: return ImGuiKey_RightCtrl;
+	case GLFW_KEY_RIGHT_ALT: return ImGuiKey_RightAlt;
+	case GLFW_KEY_RIGHT_SUPER: return ImGuiKey_RightSuper;
+	case GLFW_KEY_MENU: return ImGuiKey_Menu;
+	default: return ImGuiKey_None;
+	}
+}
+
 void KGLFWRenderWindow::FramebufferResizeCallback(GLFWwindow* handle, int width, int height)
 {
 	KGLFWRenderWindow* window = (KGLFWRenderWindow*)glfwGetWindowUserPointer(handle);
@@ -167,7 +227,24 @@ bool KGLFWRenderWindow::GLFWActionToInputAction(int action, InputAction& inputAc
 void KGLFWRenderWindow::KeyboardCallback(GLFWwindow* handle, int key, int scancode, int action, int mods)
 {
 	KGLFWRenderWindow* window = (KGLFWRenderWindow*)glfwGetWindowUserPointer(handle);
-	if (window && window->m_Device && !window->m_KeyboardCallbacks.empty())
+	if (window && window->m_UIOverlay && action != GLFW_REPEAT)
+	{
+		IKUIOverlay* ui = window->m_UIOverlay.get();
+		ui->SetKey(ImGuiMod_Ctrl, (mods & GLFW_MOD_CONTROL) != 0);
+		ui->SetKey(ImGuiMod_Shift, (mods & GLFW_MOD_SHIFT) != 0);
+		ui->SetKey(ImGuiMod_Alt, (mods & GLFW_MOD_ALT) != 0);
+		ui->SetKey(ImGuiMod_Super, (mods & GLFW_MOD_SUPER) != 0);
+		ImGuiKey imguiKey = GLFWKeyToImGuiKey(key);
+		if (imguiKey != ImGuiKey_None) ui->SetKey(imguiKey, action == GLFW_PRESS);
+	}
+	bool sendToScene = true;
+	if (window && KRenderGlobal::InEditor && key >= 0 && key <= GLFW_KEY_LAST)
+	{
+		if (action == GLFW_PRESS) window->m_EditorKeyCapture[key] = key == GLFW_KEY_LEFT_CONTROL || key == GLFW_KEY_RIGHT_CONTROL || window->EditorKeyboardFocused();
+		sendToScene = window->m_EditorKeyCapture[key];
+		if (action == GLFW_RELEASE) window->m_EditorKeyCapture[key] = false;
+	}
+	if (window && sendToScene && window->m_Device && !window->m_KeyboardCallbacks.empty())
 	{
 		InputKeyboard keyboard;
 		InputAction inputAction;
@@ -185,16 +262,41 @@ void KGLFWRenderWindow::KeyboardCallback(GLFWwindow* handle, int key, int scanco
 	}
 }
 
+void KGLFWRenderWindow::CharacterCallback(GLFWwindow* handle, unsigned int character)
+{
+	KGLFWRenderWindow* window = (KGLFWRenderWindow*)glfwGetWindowUserPointer(handle);
+	if (window && window->m_UIOverlay) window->m_UIOverlay->SetCharacter(character);
+}
+
 void KGLFWRenderWindow::MouseCallback(GLFWwindow* handle, int mouse, int action, int mods)
 {
 	KGLFWRenderWindow* window = (KGLFWRenderWindow*)glfwGetWindowUserPointer(handle);
-	if (window && window->m_Device && !window->m_MouseCallbacks.empty())
+	if (!window) return;
+	if (action == GLFW_PRESS || action == GLFW_RELEASE) window->OnMouseMove();
+	double xpos = 0, ypos = 0;
+	glfwGetCursorPos(window->m_Window, &xpos, &ypos);
+	float inputX = 0, inputY = 0;
+	bool hovered = false;
+	window->WindowToInput(xpos, ypos, inputX, inputY, hovered);
+	InputMouseButton mouseButton;
+	if (window->m_UIOverlay && GLFWMouseButtonToInputMouseButton(mouse, mouseButton))
 	{
-		InputMouseButton mouseButton;
+		int width = 0, height = 0, framebufferWidth = 0, framebufferHeight = 0;
+		glfwGetWindowSize(handle, &width, &height);
+		glfwGetFramebufferSize(handle, &framebufferWidth, &framebufferHeight);
+		window->m_UIOverlay->SetMousePosition((unsigned int)std::max(0.0, xpos * framebufferWidth / std::max(width, 1)), (unsigned int)std::max(0.0, ypos * framebufferHeight / std::max(height, 1)));
+		window->m_UIOverlay->SetMouseDown(mouseButton, action == GLFW_PRESS);
+	}
+	bool sendToScene = true;
+	if (KRenderGlobal::InEditor && mouse >= 0 && mouse <= GLFW_MOUSE_BUTTON_LAST)
+	{
+		if (action == GLFW_PRESS) window->m_EditorMouseCapture[mouse] = hovered;
+		sendToScene = window->m_EditorMouseCapture[mouse];
+		if (action == GLFW_RELEASE) window->m_EditorMouseCapture[mouse] = false;
+	}
+	if (sendToScene && window->m_Device && !window->m_MouseCallbacks.empty())
+	{
 		InputAction inputAction;
-
-		double xpos = 0, ypos = 0;
-		glfwGetCursorPos(window->m_Window, &xpos, &ypos);
 
 		if (GLFWMouseButtonToInputMouseButton(mouse, mouseButton) && GLFWActionToInputAction(action, inputAction))
 		{
@@ -203,7 +305,7 @@ void KGLFWRenderWindow::MouseCallback(GLFWwindow* handle, int mouse, int action,
 				it != itEnd; ++it)
 			{
 				KMouseCallbackType& callback = (*(*it));
-				callback(mouseButton, inputAction, (float)xpos, (float)ypos);
+				callback(mouseButton, inputAction, inputX, inputY);
 			}
 		}
 	}
@@ -212,7 +314,14 @@ void KGLFWRenderWindow::MouseCallback(GLFWwindow* handle, int mouse, int action,
 void KGLFWRenderWindow::ScrollCallback(GLFWwindow* handle, double xoffset, double yoffset)
 {
 	KGLFWRenderWindow* window = (KGLFWRenderWindow*)glfwGetWindowUserPointer(handle);
-	if (window && window->m_Device && !window->m_ScrollCallbacks.empty())
+	if (!window) return;
+	if (window->m_UIOverlay) window->m_UIOverlay->SetMouseScroll((float)xoffset, (float)yoffset);
+	double x = 0, y = 0;
+	glfwGetCursorPos(handle, &x, &y);
+	float localX, localY;
+	bool hovered;
+	window->WindowToInput(x, y, localX, localY, hovered);
+	if ((!KRenderGlobal::InEditor || hovered) && window->m_Device && !window->m_ScrollCallbacks.empty())
 	{
 		for (auto it = window->m_ScrollCallbacks.begin(),
 			itEnd = window->m_ScrollCallbacks.end();
@@ -228,6 +337,18 @@ void KGLFWRenderWindow::FocusCallback(GLFWwindow* handle, int focus)
 {
 	KGLFWRenderWindow* window = (KGLFWRenderWindow*)glfwGetWindowUserPointer(handle);
 	bool gainFocus = focus == GLFW_TRUE;
+	if (window && window->m_UIOverlay) window->m_UIOverlay->SetFocus(gainFocus);
+	if (window && KRenderGlobal::InEditor && !gainFocus)
+	{
+		for (int key = 0; key <= GLFW_KEY_LAST; ++key)
+		{
+			if (window->m_EditorKeyCapture[key]) KeyboardCallback(handle, key, 0, GLFW_RELEASE, 0);
+		}
+		for (int button = 0; button <= GLFW_MOUSE_BUTTON_LAST; ++button)
+		{
+			if (window->m_EditorMouseCapture[button]) MouseCallback(handle, button, GLFW_RELEASE, 0);
+		}
+	}
 	if (window && window->m_Device && !window->m_FocusCallbacks.empty())
 	{
 		for (auto it = window->m_FocusCallbacks.begin(),
@@ -242,7 +363,7 @@ void KGLFWRenderWindow::FocusCallback(GLFWwindow* handle, int focus)
 
 void KGLFWRenderWindow::OnMouseMove()
 {
-	if (!m_MouseCallbacks.empty())
+	if (m_UIOverlay || !m_MouseCallbacks.empty())
 	{
 		double xpos = 0, ypos = 0;
 		glfwGetCursorPos(m_Window, &xpos, &ypos);
@@ -250,17 +371,51 @@ void KGLFWRenderWindow::OnMouseMove()
 		constexpr float exp = 0.001f;
 		if (fabs(xpos - m_LastMovePos[0]) > exp || fabs(ypos - m_LastMovePos[1]) > exp)
 		{
+			int width = 0, height = 0, framebufferWidth = 0, framebufferHeight = 0;
+			glfwGetWindowSize(m_Window, &width, &height);
+			glfwGetFramebufferSize(m_Window, &framebufferWidth, &framebufferHeight);
+			if (m_UIOverlay) m_UIOverlay->SetMousePosition((unsigned int)std::max(0.0, xpos * framebufferWidth / std::max(width, 1)), (unsigned int)std::max(0.0, ypos * framebufferHeight / std::max(height, 1)));
+			float inputX, inputY;
+			bool hovered;
+			WindowToInput(xpos, ypos, inputX, inputY, hovered);
+			bool captured = std::any_of(std::begin(m_EditorMouseCapture), std::end(m_EditorMouseCapture), [](bool value) { return value; });
+			if (!KRenderGlobal::InEditor || hovered || captured)
 			for (auto it = m_MouseCallbacks.begin(), itEnd = m_MouseCallbacks.end();
 				it != itEnd; ++it)
 			{
 				KMouseCallbackType& callback = (*(*it));
-				callback(INPUT_MOUSE_BUTTON_NONE, INPUT_ACTION_REPEAT, (float)xpos, (float)ypos);
+				callback(INPUT_MOUSE_BUTTON_NONE, INPUT_ACTION_REPEAT, inputX, inputY);
 			}
 
 			m_LastMovePos[0] = xpos;
 			m_LastMovePos[1] = ypos;
 		}
 	}
+}
+
+void KGLFWRenderWindow::WindowToInput(double x, double y, float& localX, float& localY, bool& hovered)
+{
+	int width = 0, height = 0, framebufferWidth = 0, framebufferHeight = 0;
+	glfwGetWindowSize(m_Window, &width, &height);
+	glfwGetFramebufferSize(m_Window, &framebufferWidth, &framebufferHeight);
+	localX = (float)(x * framebufferWidth / std::max(width, 1));
+	localY = (float)(y * framebufferHeight / std::max(height, 1));
+	hovered = true;
+	if (KRenderGlobal::InEditor)
+	{
+		std::lock_guard<std::mutex> lock(m_ViewportMutex);
+		localX -= m_EditorViewport.x;
+		localY -= m_EditorViewport.y;
+		hovered = m_EditorViewport.hovered && localX >= 0 && localY >= 0 && localX < m_EditorViewport.width && localY < m_EditorViewport.height;
+		localX = std::max(0.0f, std::min(localX, std::max(0.0f, m_EditorViewport.width - 1)));
+		localY = std::max(0.0f, std::min(localY, std::max(0.0f, m_EditorViewport.height - 1)));
+	}
+}
+
+bool KGLFWRenderWindow::EditorKeyboardFocused()
+{
+	std::lock_guard<std::mutex> lock(m_ViewportMutex);
+	return m_EditorViewport.focused;
 }
 #endif
 
@@ -285,10 +440,10 @@ bool KGLFWRenderWindow::Init(size_t top, size_t left, size_t width, size_t heigh
 		if (m_Window)
 		{
 			glfwSetWindowUserPointer(m_Window, this);
-			if (resizable)
 			{
 				glfwSetFramebufferSizeCallback(m_Window, FramebufferResizeCallback);
 				glfwSetKeyCallback(m_Window, KeyboardCallback);
+				glfwSetCharCallback(m_Window, CharacterCallback);
 				glfwSetMouseButtonCallback(m_Window, MouseCallback);
 				glfwSetScrollCallback(m_Window, ScrollCallback);
 				glfwSetWindowFocusCallback(m_Window, FocusCallback);
@@ -469,6 +624,19 @@ bool KGLFWRenderWindow::Tick()
 			return false;
 		}
 		glfwPollEvents();
+		if (KRenderGlobal::InEditor && !EditorKeyboardFocused())
+		{
+			for (int key = 0; key <= GLFW_KEY_LAST; ++key)
+			{
+				if (key == GLFW_KEY_LEFT_CONTROL || key == GLFW_KEY_RIGHT_CONTROL) continue;
+				InputKeyboard keyboard;
+				if (m_EditorKeyCapture[key] && GLFWKeyToInputKeyboard(key, keyboard))
+				{
+					for (auto callback : m_KeyboardCallbacks) (*callback)(keyboard, INPUT_ACTION_RELEASE);
+				}
+				m_EditorKeyCapture[key] = false;
+			}
+		}
 		OnMouseMove();
 		return true;
 	}
@@ -520,6 +688,31 @@ bool KGLFWRenderWindow::GetSize(size_t &width, size_t &height)
 	}
 #endif
 	return false;
+}
+
+bool KGLFWRenderWindow::GetInputSize(size_t& width, size_t& height)
+{
+#ifndef __ANDROID__
+	if (KRenderGlobal::InEditor)
+	{
+		std::lock_guard<std::mutex> lock(m_ViewportMutex);
+		if (m_EditorViewport.width > 0 && m_EditorViewport.height > 0)
+		{
+			width = (size_t)m_EditorViewport.width;
+			height = (size_t)m_EditorViewport.height;
+			return true;
+		}
+	}
+#endif
+	return GetSize(width, height);
+}
+
+void KGLFWRenderWindow::SetEditorViewport(const KEditorViewport& viewport)
+{
+#ifndef __ANDROID__
+	std::lock_guard<std::mutex> lock(m_ViewportMutex);
+	m_EditorViewport = viewport;
+#endif
 }
 
 bool KGLFWRenderWindow::SetSize(size_t width, size_t height)

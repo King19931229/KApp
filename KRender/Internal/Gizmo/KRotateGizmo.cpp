@@ -125,6 +125,7 @@ bool KRotateGizmo::Init(const KCamera* camera)
 
 	m_RotateEntity->RegisterComponent(CT_RENDER, &renderComponent);
 	renderComponent->InitAsDebugUtility(KDebugUtility::CreateArc({ glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f), RADIUS, 0.0f }));
+	renderComponent->SetUtilityColor(EMTPY_COLOR);
 
 	m_RotateEntity->RegisterComponent(CT_TRANSFORM);
 
@@ -197,9 +198,13 @@ void KRotateGizmo::OnMouseMove(unsigned int x, unsigned int y)
 			{
 				glm::vec3 v1 = m_IntersectPos - transformPos;
 				glm::vec3 v2 = intersectPos - transformPos;
+				float len1 = glm::length(v1);
+				float len2 = glm::length(v2);
+				float minLength = glm::max(0.000001f, fabs(m_ScreenScaleFactor) * 0.001f);
+				if (len1 < minLength || len2 < minLength) return;
 				glm::vec3 v3 = glm::cross(v1, v2);
 
-				float cosTheta = glm::dot(v1, v2) / (glm::length(v1) * glm::length(v2));
+				float cosTheta = glm::dot(v1, v2) / (len1 * len2);
 				cosTheta = glm::clamp(cosTheta, -1.0f, 1.0f);
 
 				float theta = acosf(cosTheta);
@@ -215,6 +220,7 @@ void KRotateGizmo::OnMouseMove(unsigned int x, unsigned int y)
 				if (m_RotateEntity && m_RotateEntity->GetComponent(CT_RENDER, &renderComponent))
 				{
 					renderComponent->InitAsDebugUtility(KDebugUtility::CreateArc({ v1, m_PickPlane.GetNormal(), RADIUS, theta }));
+					KRenderGlobal::Scene.Transform(m_RotateEntity.get());
 				}
 
 				//KLog::Logger->Log(LL_DEBUG, "%f", theta);

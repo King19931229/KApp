@@ -113,7 +113,7 @@ bool KCameraMoveController::Init(KCamera* camera, IKRenderWindow* window, IKGizm
 					size_t width = 0;
 					size_t height = 0;
 
-					m_Window->GetSize(width, height);
+					m_Window->GetInputSize(width, height);
 
 					if (m_MouseDown[INPUT_MOUSE_BUTTON_RIGHT])
 					{
@@ -219,7 +219,7 @@ bool KCameraMoveController::Init(KCamera* camera, IKRenderWindow* window, IKGizm
 
 					size_t width = 0;
 					size_t height = 0;
-					m_Window->GetSize(width, height);
+					m_Window->GetInputSize(width, height);
 
 					if (abs(dx) > 0.0001f)
 					{
@@ -268,6 +268,7 @@ bool KCameraMoveController::Init(KCamera* camera, IKRenderWindow* window, IKGizm
 
 		m_GizmoTriggerCallback = [this](bool triggered)
 		{
+			if (triggered) m_MouseDown[INPUT_MOUSE_BUTTON_LEFT] = false;
 			m_GizmoTriggered = triggered;
 		};
 
@@ -329,7 +330,7 @@ bool KCameraMoveController::Update(float dt)
 
 		size_t width = 0;
 		size_t height = 0;
-		m_Window->GetSize(width, height);
+		m_Window->GetInputSize(width, height);
 		m_Camera->SetPerspective(glm::radians(45.0f), (width ? width : 1) / (float)(height ? height : 1), m_Camera->GetNear(), m_Camera->GetFar());
 
 		return true;

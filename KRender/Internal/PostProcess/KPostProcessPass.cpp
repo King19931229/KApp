@@ -153,7 +153,7 @@ bool KPostProcessPass::Init()
 					assert(inputData.node == this);
 					assert(inputData.slot == slot);
 
-					size_t location = inputData.slot;
+					size_t location = SHADER_BINDING_TEXTURE0 + inputData.slot;
 					IKSamplerPtr sampler = m_Mgr->m_Sampler;
 
 					if (outputType == PPNT_TEXTURE)
@@ -374,7 +374,7 @@ bool KPostProcessPass::GetOutputConnection(std::unordered_set<IKPostProcessConne
 
 bool KPostProcessPass::GetInputConnection(IKPostProcessConnection*& conn, int16_t slot)
 {
-	if (slot < PostProcessPort::MAX_INPUT_SLOT_COUNT && slot >= 0 && conn)
+	if (slot < PostProcessPort::MAX_INPUT_SLOT_COUNT && slot >= 0)
 	{
 		conn = m_InputConnection[slot];
 		return true;

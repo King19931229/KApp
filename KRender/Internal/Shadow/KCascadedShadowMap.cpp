@@ -8,6 +8,7 @@
 #include "Internal/Render/KRenderUtil.h"
 #include "Internal/KRenderThreadPool.h"
 #include "KBase/Interface/IKLog.h"
+#include "KBase/Interface/Component/IKTransformComponent.h"
 
 KCascadedShadowMapCasterPass::KCascadedShadowMapCasterPass(KCascadedShadowMap& master)
 	: KFrameGraphPass("CascadedShadowMapCaster"),
@@ -457,6 +458,14 @@ KCascadedShadowMap::KCascadedShadowMap()
 	m_ShadowCamera.SetPosition(glm::vec3(0.0f, 1000.0f, 0.0f));
 	m_ShadowCamera.LookAt(glm::vec3(0.0f, 0.0f, 600.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 	m_ShadowCamera.SetOrtho(2000.0f, 2000.0f, -1000.0f, 1000.0f);
+	m_OnSceneChanged = [this](EntitySceneOp op, IKEntity* entity)
+	{
+		IKTransformComponent* transform = nullptr;
+		if (entity->GetComponent(CT_TRANSFORM, &transform) && transform->IsStatic())
+		{
+			m_StaticShouldUpdate = true;
+		}
+	};
 }
 
 KCascadedShadowMap::~KCascadedShadowMap()
@@ -984,6 +993,7 @@ bool KCascadedShadowMap::Init(const KCamera* camera, uint32_t numCascaded, uint3
 		m_DrawStatsStages[0] = KRenderGlobal::Statistics.RegisterDrawStatsStage(RENDER_STAGE_NAME[0]);
 		m_DrawStatsStages[1] = KRenderGlobal::Statistics.RegisterDrawStatsStage(RENDER_STAGE_NAME[1]);
 
+		KRenderGlobal::Scene.RegisterEntityObserver(&m_OnSceneChanged);
 		return true;
 	}
 	return false;
@@ -991,6 +1001,7 @@ bool KCascadedShadowMap::Init(const KCamera* camera, uint32_t numCascaded, uint3
 
 bool KCascadedShadowMap::UnInit()
 {
+	KRenderGlobal::Scene.UnRegisterEntityObserver(&m_OnSceneChanged);
 	for (Cascade& cascaded : m_StaticCascadeds)
 	{
 		SAFE_UNINIT(cascaded.debugPipeline);

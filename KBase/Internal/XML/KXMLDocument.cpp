@@ -3,6 +3,30 @@
 #include "KXMLElement.h"
 #include <fstream>
 #include <strstream>
+#ifdef _WIN32
+#define NOMINMAX
+#include <Windows.h>
+
+static FILE* OpenXMLFile(const char* fileName, const wchar_t* mode)
+{
+	if (!fileName) return nullptr;
+	UINT codePage = CP_UTF8;
+	DWORD flags = MB_ERR_INVALID_CHARS;
+	int length = MultiByteToWideChar(codePage, flags, fileName, -1, nullptr, 0);
+	if (!length)
+	{
+		codePage = CP_ACP;
+		flags = 0;
+		length = MultiByteToWideChar(codePage, flags, fileName, -1, nullptr, 0);
+	}
+	if (!length) return nullptr;
+	std::wstring path(length, L'\0');
+	MultiByteToWideChar(codePage, flags, fileName, -1, &path[0], length);
+	FILE* file = nullptr;
+	_wfopen_s(&file, path.c_str(), mode);
+	return file;
+}
+#endif
 
 EXPORT_DLL IKXMLDocumentPtr GetXMLDocument()
 {
@@ -21,12 +45,26 @@ KXMLDocument::~KXMLDocument()
 
 bool KXMLDocument::SaveFile(const char* fileName)
 {
+#ifdef _WIN32
+	FILE* file = OpenXMLFile(fileName, L"wb");
+	if (!file) return false;
+	bool ret = (tinyxml2::XML_SUCCESS == m_Document->SaveFile(file, false));
+	return fclose(file) == 0 && ret;
+#else
 	bool ret = (tinyxml2::XML_SUCCESS == m_Document->SaveFile(fileName, false));
 	return ret;
+#endif
 }
 
 bool KXMLDocument::ParseFromFile(const char* fileName)
 {
+#ifdef _WIN32
+	FILE* file = OpenXMLFile(fileName, L"rb");
+	if (!file) return false;
+	bool ret = (tinyxml2::XML_SUCCESS == m_Document->LoadFile(file));
+	fclose(file);
+	return ret;
+#else
 	std::string str;
 
 	std::ifstream infile(fileName, std::ios::trunc);
@@ -47,6 +85,7 @@ bool KXMLDocument::ParseFromFile(const char* fileName)
 	{
 		return false;
 	}
+#endif
 }
 
 bool KXMLDocument::ParseFromString(const char* text)

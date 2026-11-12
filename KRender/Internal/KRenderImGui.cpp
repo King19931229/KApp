@@ -101,6 +101,7 @@ void KRenderImGui::Run()
 		KRenderGlobal::Statistics.GetAllStatistics(statistics);
 
 		// Stat
+		if (!KRenderGlobal::InEditor)
 		{
 			ImGui::SetNextWindowPos(ImVec2(io.DisplaySize.x * 0.5f, 60), 0, ImVec2(0.5f, 0.0f));
 			ImGui::Begin("Statistics", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse);

@@ -405,6 +405,7 @@ bool KMaterialSubMesh::CreateFixedPipeline(RenderStage stage, IKPipelinePtr& pip
 		pipeline->SetPolygonMode(PM_LINE);
 		pipeline->SetColorWrite(true, true, true, true);
 		pipeline->SetColorBlend(BF_SRC_ALPHA, BF_ONE_MINUS_SRC_ALPHA, BO_ADD);
+		pipeline->SetAlphaBlend(BF_ONE, BF_ONE_MINUS_SRC_ALPHA, BO_ADD);
 		pipeline->SetDepthFunc(CF_ALWAYS, false, true);
 
 		pipeline->SetDepthBiasEnable(false);
@@ -431,6 +432,7 @@ bool KMaterialSubMesh::CreateFixedPipeline(RenderStage stage, IKPipelinePtr& pip
 		pipeline->SetPolygonMode(PM_FILL);
 		pipeline->SetColorWrite(true, true, true, true);
 		pipeline->SetColorBlend(BF_SRC_ALPHA, BF_ONE_MINUS_SRC_ALPHA, BO_ADD);
+		pipeline->SetAlphaBlend(BF_ONE, BF_ONE_MINUS_SRC_ALPHA, BO_ADD);
 		pipeline->SetDepthFunc(CF_ALWAYS, false, true);
 
 		pipeline->SetDepthBiasEnable(false);
@@ -471,6 +473,8 @@ bool KMaterialSubMesh::GetRenderCommand(RenderStage stage, KRenderCommand& comma
 
 		if (!m_PipelinesPreqReady[stage])
 		{
+			const bool voxelStage = stage >= RENDER_STAGE_VOXEL && stage <= RENDER_STAGE_CLIPMAP_VOXEL;
+			bool voxelDiffuseBound = false;
 			if (textureBinding)
 			{
 				bool hasVirtualTexture = false;
@@ -488,6 +492,7 @@ bool KMaterialSubMesh::GetRenderCommand(RenderStage stage, KRenderCommand& comma
 					{
 						uint32_t binding = SHADER_BINDING_TEXTURE0 + i;
 						pipeline->SetSampler(binding, texture->GetFrameBuffer(), sampler, true);
+						if (voxelStage && i == MTS_DIFFUSE) voxelDiffuseBound = true;
 					}
 				}
 
@@ -503,6 +508,13 @@ bool KMaterialSubMesh::GetRenderCommand(RenderStage stage, KRenderCommand& comma
 					pipeline->SetStorageBuffer(SHADER_BINDING_VIRTUAL_TEXTURE_DESCRIPTION, ST_FRAGMENT, KRenderGlobal::VirtualTextureManager.GetVirtualTextrueDescriptionBuffer());
 					pipeline->SetStorageBuffer(SHADER_BINDING_VIRTUAL_TEXTURE_FEEDBACK_RESULT, ST_FRAGMENT, KRenderGlobal::VirtualTextureManager.GetVirtualTextureFeedbackBuffer());
 				}
+			}
+			if (voxelStage && !voxelDiffuseBound)
+			{
+				KTextureRef white;
+				KSamplerRef sampler;
+				if (KRenderGlobal::TextureManager.GetWhiteTexture(white) && KRenderGlobal::SamplerManager.GetErrorSampler(sampler))
+					pipeline->SetSampler(SHADER_BINDING_TEXTURE0, white->GetFrameBuffer(), sampler.Get(), true);
 			}
 			m_PipelinesPreqReady[stage] = true;
 		}
