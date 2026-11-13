@@ -12,7 +12,7 @@ KDynamicConstantBufferManager::~KDynamicConstantBufferManager()
 	ASSERT_RESULT(m_ConstantBlocks.empty());
 }
 
-bool KDynamicConstantBufferManager::Init(size_t alignment, size_t blockSize)
+bool KDynamicConstantBufferManager::Init(uint64_t alignment, uint32_t blockSize)
 {
 	UnInit();
 
@@ -45,23 +45,25 @@ bool KDynamicConstantBufferManager::UnInit()
 
 bool KDynamicConstantBufferManager::Alloc(const void* data, KDynamicConstantBufferUsage& usage)
 {
-	size_t alignment = (usage.range + m_Alignment - 1) & ~(m_Alignment - 1);
-	if (InternalAlloc(alignment, KRenderGlobal::CurrentInFlightFrameIndex, KRenderGlobal::CurrentFrameNum, usage.buffer, usage.offset))
+	if (usage.range > m_BlockSize) return false;
+	uint64_t alignment = (usage.range + m_Alignment - 1) & ~(m_Alignment - 1);
+	if (alignment > m_BlockSize) return false;
+	if (InternalAlloc(static_cast<uint32_t>(alignment), KRenderGlobal::CurrentInFlightFrameIndex, KRenderGlobal::CurrentFrameNum, usage.buffer, usage.offset))
 	{
 		std::lock_guard<decltype(m_Lock)> lockGuard(m_Lock);
 		ASSERT_RESULT(data);
 		void* pBufferData = nullptr;
 		ASSERT_RESULT(usage.buffer->Map(&pBufferData));
-		memcpy(POINTER_OFFSET(pBufferData, usage.offset), data, usage.range);
+		memcpy(POINTER_OFFSET(pBufferData, usage.offset), data, static_cast<size_t>(usage.range));
 		ASSERT_RESULT(usage.buffer->UnMap());
 		return true;
 	}
 	return false;
 }
 
-bool KDynamicConstantBufferManager::InternalAlloc(size_t size,
-	size_t frameIndex, size_t frameNum,
-	IKUniformBufferPtr& buffer, size_t& offset)
+bool KDynamicConstantBufferManager::InternalAlloc(uint32_t size,
+	uint32_t frameIndex, uint32_t frameNum,
+	IKUniformBufferPtr& buffer, uint32_t& offset)
 {
 	ASSERT_RESULT(size <= m_BlockSize);
 
@@ -89,7 +91,7 @@ bool KDynamicConstantBufferManager::InternalAlloc(size_t size,
 
 		for (ConstantBlock& block : frameBlock.blocks)
 		{
-			if (block.useSize + size <= m_BlockSize)
+			if (size <= m_BlockSize - block.useSize)
 			{
 				buffer = block.buffer;
 				offset = block.useSize;

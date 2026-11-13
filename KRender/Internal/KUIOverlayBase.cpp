@@ -274,7 +274,7 @@ bool KUIOverlayBase::Update()
 	return true;
 }
 
-bool KUIOverlayBase::Resize(size_t width, size_t height)
+bool KUIOverlayBase::Resize(uint32_t width, uint32_t height)
 {
 	ImGuiIO& io = ((ImGuiContext*)m_UIContext)->IO;
 	io.DisplaySize = ImVec2((float)(width), (float)(height));

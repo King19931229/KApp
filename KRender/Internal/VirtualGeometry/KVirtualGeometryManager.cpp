@@ -1,4 +1,5 @@
 #include "KVirtualGeometryManager.h"
+#include "KBase/Publish/KInteger.h"
 #include "KVirtualGeometryScene.h"
 #include "Internal/KRenderGlobal.h"
 #include "KBase/Publish/KMath.h"
@@ -14,8 +15,9 @@ KVirtualGeometryStorageBuffer::~KVirtualGeometryStorageBuffer()
 	assert(!m_Buffer);
 }
 
-bool KVirtualGeometryStorageBuffer::Init(const char* name, size_t initialSize)
+bool KVirtualGeometryStorageBuffer::Init(const char* name, uint64_t initialSize)
 {
+	if (initialSize > std::vector<unsigned char>().max_size()) return false;
 	UnInit();
 	m_Name = name;
 	KRenderGlobal::RenderDevice->CreateStorageBuffer(m_Buffer);
@@ -32,23 +34,24 @@ bool KVirtualGeometryStorageBuffer::UnInit()
 	return true;
 }
 
-bool KVirtualGeometryStorageBuffer::Remove(size_t offset, size_t size)
+bool KVirtualGeometryStorageBuffer::Remove(uint64_t offset, uint64_t size)
 {
 	if (m_Buffer == nullptr)
 	{
 		return false;
 	}
 
-	if (offset + size <= m_Size)
+	if (offset <= m_Size && size <= m_Size - offset)
 	{
 		void* pMapped = nullptr;
 
 		std::vector<unsigned char> bufferData;
 
-		bufferData.resize(m_Size);
+		if (m_Size > bufferData.max_size()) return false;
+		bufferData.resize(static_cast<size_t>(m_Size));
 		m_Buffer->Read(bufferData.data(), 0, m_Size);
 
-		size_t newBufferSize = std::max((size_t)1, KMath::SmallestPowerOf2GreaterEqualThan(m_Size - size));
+		uint64_t newBufferSize = std::max((uint64_t)1, KMath::SmallestPowerOf2GreaterEqualThan(m_Size - size));
 
 		if (newBufferSize < m_Buffer->GetBufferSize())
 		{
@@ -59,8 +62,8 @@ bool KVirtualGeometryStorageBuffer::Remove(size_t offset, size_t size)
 		}
 
 		m_Buffer->Map(&pMapped, MA_WRITE_DISCARD);
-		memcpy(POINTER_OFFSET(pMapped, 0), bufferData.data(), offset);
-		memcpy(POINTER_OFFSET(pMapped, offset), bufferData.data() + offset + size, m_Size - size - offset);
+		memcpy(POINTER_OFFSET(pMapped, 0), bufferData.data(), static_cast<size_t>(offset));
+		memcpy(POINTER_OFFSET(pMapped, offset), bufferData.data() + static_cast<size_t>(offset + size), static_cast<size_t>(m_Size - size - offset));
 		m_Buffer->UnMap();
 
 		m_Size -= size;
@@ -73,14 +76,14 @@ bool KVirtualGeometryStorageBuffer::Remove(size_t offset, size_t size)
 	}
 }
 
-bool KVirtualGeometryStorageBuffer::Modify(size_t offset, size_t size, void* pData)
+bool KVirtualGeometryStorageBuffer::Modify(uint64_t offset, uint64_t size, void* pData)
 {
 	if (m_Buffer == nullptr)
 	{
 		return false;
 	}
 
-	if (offset + size <= m_Size)
+	if (offset <= m_Size && size <= m_Size - offset)
 	{
 		return m_Buffer->Write(pData, offset, size);
 	}
@@ -90,14 +93,16 @@ bool KVirtualGeometryStorageBuffer::Modify(size_t offset, size_t size, void* pDa
 	}
 }
 
-bool KVirtualGeometryStorageBuffer::Append(size_t size, void* pData)
+bool KVirtualGeometryStorageBuffer::Append(uint64_t size, void* pData)
 {
 	if (m_Buffer == nullptr)
 	{
 		return false;
 	}
 
-	size_t newBufferSize = std::max((size_t)1, KMath::SmallestPowerOf2GreaterEqualThan(m_Size + size));
+	if (size > UINT64_MAX - m_Size || m_Size + size > (UINT64_C(1) << 63) || !KInteger::FitsMemorySize(m_Size + size)) return false;
+	uint64_t newBufferSize = std::max((uint64_t)1, KMath::SmallestPowerOf2GreaterEqualThan(m_Size + size));
+	if (!KInteger::FitsMemorySize(newBufferSize) || newBufferSize > std::vector<unsigned char>().max_size()) return false;
 
 	if (newBufferSize > m_Buffer->GetBufferSize())
 	{
@@ -106,7 +111,8 @@ bool KVirtualGeometryStorageBuffer::Append(size_t size, void* pData)
 		std::vector<unsigned char> bufferData;
 		if (m_Size > 0)
 		{
-			bufferData.resize(m_Size);
+			if (m_Size > bufferData.max_size()) return false;
+			bufferData.resize(static_cast<size_t>(m_Size));
 			m_Buffer->Read(bufferData.data(), 0, m_Size);
 		}
 

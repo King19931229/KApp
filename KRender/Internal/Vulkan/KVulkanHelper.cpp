@@ -746,7 +746,7 @@ namespace KVulkanHelper
 		}
 	}
 
-	bool PopulateInputBindingDescription(const VertexFormat* pData, size_t uCount, VulkanBindingDetailList& detailList)
+	bool PopulateInputBindingDescription(const VertexFormat* pData, uint32_t uCount, VulkanBindingDetailList& detailList)
 	{
 		using KVertexDefinition::VertexDetail;
 		using KVertexDefinition::VertexSemanticDetail;

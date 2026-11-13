@@ -61,8 +61,8 @@ bool KCameraPreviewController::Init(KCamera* camera, IKRenderWindow* window)
 					float deltaX = xPos - m_MousePos[0];
 					float deltaY = yPos - m_MousePos[1];
 
-					size_t width = 0;
-					size_t height = 0;
+					uint32_t width = 0;
+					uint32_t height = 0;
 
 					m_Window->GetSize(width, height);
 
@@ -129,8 +129,8 @@ void KCameraPreviewController::Update()
 	if (m_Camera)
 	{
 		m_Camera->SetPosition(m_PreviewCenter - m_Camera->GetForward() * m_PreviewDistance);
-		size_t width = 0;
-		size_t height = 0;
+		uint32_t width = 0;
+		uint32_t height = 0;
 		m_Window->GetSize(width, height);
 		m_Camera->SetPerspective(glm::radians(45.0f), width / (float)height, m_Camera->GetNear(), m_Camera->GetFar());
 	}

@@ -1,4 +1,5 @@
 #include "KOcclusionBox.h"
+#include "KBase/Publish/KInteger.h"
 
 #include "Interface/IKRenderDevice.h"
 #include "Interface/IKRenderTarget.h"
@@ -592,7 +593,8 @@ bool KOcclusionBox::Render(IKCommandBufferPtr commandBuffer, IKRenderPassPtr ren
 
 							std::vector<KInstanceBufferManager::AllocResultBlock> allocRes;
 							ASSERT_RESULT(KRenderGlobal::InstanceBufferManager.GetVertexSize() == sizeof(transforms[0]));
-							ASSERT_RESULT(KRenderGlobal::InstanceBufferManager.Alloc(transforms.size(), transforms.data(), allocRes));
+							if (!KInteger::FitsUInt32(transforms.size())) return false;
+							ASSERT_RESULT(KRenderGlobal::InstanceBufferManager.Alloc(static_cast<uint32_t>(transforms.size()), transforms.data(), allocRes));
 
 							command.instanceDraw = true;
 							command.instanceUsages.resize(allocRes.size());

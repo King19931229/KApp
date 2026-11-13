@@ -239,7 +239,7 @@ VkDescriptorSet KVulkanComputePipeline::AllocDescriptorSet(VkDescriptorPool pool
 	return set;
 }
 
-VkDescriptorSet KVulkanComputePipeline::Alloc(size_t frameIndex, size_t frameNum)
+VkDescriptorSet KVulkanComputePipeline::Alloc(uint32_t frameIndex, uint32_t frameNum)
 {
 	if(frameIndex < m_Descriptors.size())
 	{

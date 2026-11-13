@@ -40,7 +40,7 @@ protected:
 	void RefreshPropertyView();
 
 	void InitAsTextureBinding(IKMaterial* material, IKMaterialTextureBinding* textureBinding);
-	void InitAsTextureBindingSlot(IKMaterial* material, IKMaterialTextureBinding* textureBinding, size_t slot);
+	void InitAsTextureBindingSlot(IKMaterial* material, IKMaterialTextureBinding* textureBinding, uint32_t slot);
 	void InitAsParameter(IKMaterial* material, IKMaterialParameter* shaderParameter, bool vsShader);
 	void InitAsParameterValue(IKMaterial* material, IKMaterialValue* value);
 	void InitAsBlendMode(IKMaterial* material);

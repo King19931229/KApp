@@ -18,7 +18,7 @@ public:
 	virtual bool InitFromReadback(uint32_t width, uint32_t height, uint32_t depth, uint32_t mipmaps, PixelFormat format);
 	virtual bool UnInit();
 
-	virtual bool GetSize(size_t& width, size_t& height);
+	virtual bool GetSize(uint32_t& width, uint32_t& height);
 	virtual IKFrameBufferPtr GetFrameBuffer();
 
 	VkExtent2D GetExtend();

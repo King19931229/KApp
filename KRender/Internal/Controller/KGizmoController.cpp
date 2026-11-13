@@ -117,8 +117,8 @@ bool KGizmoController::UnInit()
 
 bool KGizmoController::Update(float dt)
 {
-	size_t width = 0;
-	size_t height = 0;
+	uint32_t width = 0;
+	uint32_t height = 0;
 	m_Window->GetSize(width, height);
 
 	m_Gizmo->SetScreenSize((unsigned int)width, (unsigned int)height);

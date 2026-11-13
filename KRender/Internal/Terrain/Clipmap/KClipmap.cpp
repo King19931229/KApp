@@ -1,4 +1,5 @@
 #include "KClipmap.h"
+#include "KBase/Publish/KInteger.h"
 #include "KBase/Interface/IKLog.h"
 #include "KBase/Interface/Task/IKAsyncTask.h"
 #include "KBase/Publish/KMath.h"
@@ -21,13 +22,14 @@ KClipmapFootprint::~KClipmapFootprint()
 
 void KClipmapFootprint::CreateData(const std::vector<glm::vec2>& verts, const std::vector<uint16_t>& idxs)
 {
+	if (!KInteger::FitsUInt32(verts.size()) || !KInteger::FitsUInt32(idxs.size())) return;
 	KRenderGlobal::RenderDevice->CreateVertexBuffer(m_VertexBuffer);
 	KRenderGlobal::RenderDevice->CreateIndexBuffer(m_IndexBuffer);
 
-	m_VertexBuffer->InitMemory(verts.size(), sizeof(glm::vec2), verts.data());
+	m_VertexBuffer->InitMemory(static_cast<uint32_t>(verts.size()), sizeof(glm::vec2), verts.data());
 	m_VertexBuffer->InitDevice(false);
 
-	m_IndexBuffer->InitMemory(IT_16, idxs.size(), idxs.data());
+	m_IndexBuffer->InitMemory(IT_16, static_cast<uint32_t>(idxs.size()), idxs.data());
 	m_IndexBuffer->InitDevice(false);
 
 	m_VertexData.vertexBuffers = { m_VertexBuffer };

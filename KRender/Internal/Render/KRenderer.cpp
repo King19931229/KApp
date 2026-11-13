@@ -766,7 +766,7 @@ bool KRenderer::Execute(uint32_t chainImageIndex)
 	bool previousCameraOutdate = m_CameraOutdate;
 	glm::mat4 previousViewProj = m_CameraOutdate ? glm::mat4(1.0f) : m_PrevViewProj;
 
-	size_t windowWidth = 0, windowHeight = 0;
+	uint32_t windowWidth = 0, windowHeight = 0;
 	bool drawable = window->GetSize(windowWidth, windowHeight) && windowWidth && windowHeight;
 	if (drawable)
 	{

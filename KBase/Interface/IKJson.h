@@ -1,4 +1,5 @@
 #pragma once
+#include <cstdint>
 #include "KBase/Publish/KConfig.h"
 #include "KBase/Interface/IKDataStream.h"
 #include <string>
@@ -12,8 +13,8 @@ struct IKJsonValue
 {
 	virtual ~IKJsonValue() {}
 
-	virtual size_t Size() = 0;
-	virtual IKJsonValuePtr GetArrayElement(size_t index) = 0;
+	virtual uint32_t Size() = 0;
+	virtual IKJsonValuePtr GetArrayElement(uint32_t index) = 0;
 
 	virtual bool IsArray() = 0;
 	virtual bool IsBool() = 0;

@@ -16,9 +16,9 @@ struct KRenderDeviceProperties
 	bool raytraceSupport;
 	bool meshShaderSupport;
 	bool debugMarkerSupport;
-	size_t uniformBufferMaxRange;
-	size_t uniformBufferOffsetAlignment;
-	size_t storageBufferOffsetAlignment;
+	uint32_t uniformBufferMaxRange;
+	uint64_t uniformBufferOffsetAlignment;
+	uint64_t storageBufferOffsetAlignment;
 
 	KRenderDeviceProperties()
 	{

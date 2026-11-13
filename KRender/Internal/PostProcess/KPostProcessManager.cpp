@@ -44,10 +44,10 @@ KPostProcessManager::~KPostProcessManager()
 	assert(m_StartPointPass == nullptr);
 }
 
-bool KPostProcessManager::Init(size_t width, size_t height,
+bool KPostProcessManager::Init(uint32_t width, uint32_t height,
 							   unsigned short massCount,
 							   PixelFormat startFormat,
-							   size_t frameInFlight)
+							   uint32_t frameInFlight)
 {
 	UnInit();
 
@@ -224,7 +224,7 @@ void KPostProcessManager::IterPostProcessGraph(std::function<void(IKPostProcessN
 	}
 }
 
-bool KPostProcessManager::Resize(size_t width, size_t height)
+bool KPostProcessManager::Resize(uint32_t width, uint32_t height)
 {
 	m_Width = width;
 	m_Height = height;
@@ -305,7 +305,7 @@ bool KPostProcessManager::Load(const char* jsonFile)
 			auto startID = jsonDoc->GetMember(msStartPointKey)->GetString();
 
 			auto nodes = jsonDoc->GetMember(msNodesKey);
-			for (size_t i = 0, count = nodes->Size(); i < count; ++i)
+			for (uint32_t i = 0, count = nodes->Size(); i < count; ++i)
 			{
 				auto node_json = nodes->GetArrayElement(i);
 
@@ -341,7 +341,7 @@ bool KPostProcessManager::Load(const char* jsonFile)
 			}
 
 			auto connections = jsonDoc->GetMember(msConnectionsKey);
-			for (size_t i = 0, count = connections->Size(); i < count; ++i)
+			for (uint32_t i = 0, count = connections->Size(); i < count; ++i)
 			{
 				auto conn_json = connections->GetArrayElement(i);
 				IKPostProcessConnectionPtr conn = IKPostProcessConnectionPtr(KNEW KPostProcessConnection(this /* id will be overwrited */));

@@ -113,7 +113,7 @@ public:
 		}
 	}
 
-	void Wait(size_t idx)
+	void Wait(uint32_t idx)
 	{
 		assert(idx < m_Threads.size());
 		if(idx < m_Threads.size())

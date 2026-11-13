@@ -502,8 +502,8 @@ bool KVirtualGeometryScene::UpdateInstanceData(KRHICommandList& commandList)
 		globalData.misc2.y = (uint32_t)m_BinningMaterials.size();
 		globalData.misc2.z = KRenderGlobal::VirtualGeometryManager.GetUseConeCull();
 
-		size_t sceneWidth = 0;
-		size_t sceneHeight = 0;
+		uint32_t sceneWidth = 0;
+		uint32_t sceneHeight = 0;
 		KRenderGlobal::GBuffer.GetSceneColor()->GetSize(sceneWidth, sceneHeight);
 		globalData.misc.z = m_Camera ? (sceneHeight / m_Camera->GetHeight()) : 1.0f;
 

@@ -13,5 +13,5 @@ struct IKRenderTarget
 
 	virtual bool UnInit() = 0;
 	virtual IKFrameBufferPtr GetFrameBuffer() = 0;
-	virtual bool GetSize(size_t& width, size_t& height) = 0;
+	virtual bool GetSize(uint32_t& width, uint32_t& height) = 0;
 };

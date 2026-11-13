@@ -189,7 +189,7 @@ VkDescriptorSet KVulkanDescriptorPool::AllocDescriptorSet(VkDescriptorPool pool)
 	return newSet;
 }
 
-VkDescriptorPool KVulkanDescriptorPool::CreateDescriptorPool(size_t maxCount)
+VkDescriptorPool KVulkanDescriptorPool::CreateDescriptorPool(uint32_t maxCount)
 {
 	VkDescriptorPoolSize storagePoolSize = {};
 	storagePoolSize.type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
@@ -266,9 +266,9 @@ do\
 }\
 while(false);
 
-VkDescriptorSet KVulkanDescriptorPool::Alloc(size_t frameIndex, size_t currentFrame, IKPipeline* pipeline,
-	const KDynamicConstantBufferUsage** ppConstantUsage, size_t dynamicBufferUsageCount,
-	const KStorageBufferUsage** ppStorageUsage, size_t storageBufferUsageCount)
+VkDescriptorSet KVulkanDescriptorPool::Alloc(uint32_t frameIndex, uint32_t currentFrame, IKPipeline* pipeline,
+	const KDynamicConstantBufferUsage** ppConstantUsage, uint32_t dynamicBufferUsageCount,
+	const KStorageBufferUsage** ppStorageUsage, uint32_t storageBufferUsageCount)
 {
 	KVulkanPipeline* vulkanPipeline = static_cast<KVulkanPipeline*>(pipeline);
 
@@ -614,7 +614,7 @@ size_t KVulkanDescriptorPool::HashCombine(const VkWriteDescriptorSet& write, siz
 	return hash;
 }
 
-bool KVulkanDescriptorPool::Trim(size_t frameIndex, size_t currentFrame)
+bool KVulkanDescriptorPool::Trim(uint32_t frameIndex, uint32_t currentFrame)
 {
 	if (frameIndex >= m_Descriptors.size())
 	{
@@ -668,7 +668,7 @@ bool KVulkanDescriptorPool::Trim(size_t frameIndex, size_t currentFrame)
 	return true;
 }
 
-KVulkanDescriptorPoolAllocatedSetPtr KVulkanDescriptorPool::InternalAlloc(size_t frameIndex, size_t currentFrame)
+KVulkanDescriptorPoolAllocatedSetPtr KVulkanDescriptorPool::InternalAlloc(uint32_t frameIndex, uint32_t currentFrame)
 {
 	ASSERT_RESULT(m_Layout != VK_NULL_HANDLE);
 

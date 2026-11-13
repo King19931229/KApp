@@ -937,9 +937,9 @@ bool KVulkanRenderDevice::CreateLogicalDevice()
 
 		// 记录其它设备属性
 		{
-			m_Properties.uniformBufferMaxRange = (size_t)m_PhysicalDevice.deviceProperties.limits.maxUniformBufferRange;
-			m_Properties.uniformBufferOffsetAlignment = (size_t)m_PhysicalDevice.deviceProperties.limits.minUniformBufferOffsetAlignment;
-			m_Properties.storageBufferOffsetAlignment = (size_t)m_PhysicalDevice.deviceProperties.limits.minStorageBufferOffsetAlignment;
+			m_Properties.uniformBufferMaxRange = (uint32_t)m_PhysicalDevice.deviceProperties.limits.maxUniformBufferRange;
+			m_Properties.uniformBufferOffsetAlignment = (uint64_t)m_PhysicalDevice.deviceProperties.limits.minUniformBufferOffsetAlignment;
+			m_Properties.storageBufferOffsetAlignment = (uint64_t)m_PhysicalDevice.deviceProperties.limits.minStorageBufferOffsetAlignment;
 		}
 
 		// 组装支持扩展

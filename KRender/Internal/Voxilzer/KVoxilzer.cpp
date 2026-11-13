@@ -938,7 +938,8 @@ void KVoxilzer::CheckOctreeData()
 {
 	static_assert(sizeof(glm::uvec4) == OCTREE_DATA_SIZE, "Check data size");
 	std::vector<glm::uvec4> datas;
-	datas.resize(m_OctreeDataBuffer->GetBufferSize() / OCTREE_DATA_SIZE);
+	if (m_OctreeDataBuffer->GetBufferSize() / OCTREE_DATA_SIZE > datas.max_size()) return;
+	datas.resize(static_cast<size_t>(m_OctreeDataBuffer->GetBufferSize() / OCTREE_DATA_SIZE));
 
 	m_OctreeDataBuffer->Read(datas.data());
 
@@ -1005,20 +1006,20 @@ void KVoxilzer::BuildOctree(KRHICommandListBase& commandList)
 	if (octreeNodeNum > preOctreeNodeNum)
 	{
 		m_OctreeBuffer->UnInit();
-		m_OctreeBuffer->InitMemory(octreeNodeNum * OCTREE_NODE_SIZE, nullptr);
+		m_OctreeBuffer->InitMemory(uint64_t(octreeNodeNum) * OCTREE_NODE_SIZE, nullptr);
 		m_OctreeBuffer->InitDevice(false, false);
 		m_OctreeBuffer->SetDebugName("SVO_OctreeBuffer");
 
 #ifdef USE_OCTREE_MIPMAP_BUFFER
 		m_OctreeMipmapDataBuffer->UnInit();
-		m_OctreeMipmapDataBuffer->InitMemory(octreeNodeNum * OCTREE_MIPMAP_DATA_SIZE, nullptr);
+		m_OctreeMipmapDataBuffer->InitMemory(uint64_t(octreeNodeNum) * OCTREE_MIPMAP_DATA_SIZE, nullptr);
 		m_OctreeMipmapDataBuffer->InitDevice(false);
 		m_OctreeMipmapDataBuffer->SetDebugName("SVO_OctreeMipmapDataBuffer");
 #endif
 	}
 
 	m_OctreeDataBuffer->UnInit();
-	m_OctreeDataBuffer->InitMemory(fragmentCount * OCTREE_DATA_SIZE, nullptr);
+	m_OctreeDataBuffer->InitMemory(uint64_t(fragmentCount) * OCTREE_DATA_SIZE, nullptr);
 	m_OctreeDataBuffer->InitDevice(false, false);
 	m_OctreeDataBuffer->SetDebugName("SVO_OctreeDataBuffer");
 
@@ -1066,26 +1067,29 @@ void KVoxilzer::ShrinkOctree()
 {
 	std::vector<char> buffers;
 
-	buffers.resize(m_OctreeBuffer->GetBufferSize());
+	if (m_OctreeBuffer->GetBufferSize() > buffers.max_size()) return;
+	buffers.resize(static_cast<size_t>(m_OctreeBuffer->GetBufferSize()));
 	m_OctreeBuffer->Read(buffers.data());
 	m_OctreeBuffer->UnInit();
-	m_OctreeBuffer->InitMemory(m_OctreeNonLeafCount * OCTREE_NODE_SIZE, buffers.data());
+	m_OctreeBuffer->InitMemory(uint64_t(m_OctreeNonLeafCount) * OCTREE_NODE_SIZE, buffers.data());
 	m_OctreeBuffer->InitDevice(false, false);
 	m_OctreeBuffer->SetDebugName("SVO_OctreeBuffer");
 
 #ifdef USE_OCTREE_MIPMAP_BUFFER
-	buffers.resize(m_OctreeMipmapDataBuffer->GetBufferSize());
+	if (m_OctreeMipmapDataBuffer->GetBufferSize() > buffers.max_size()) return;
+	buffers.resize(static_cast<size_t>(m_OctreeMipmapDataBuffer->GetBufferSize()));
 	m_OctreeMipmapDataBuffer->Read(buffers.data());
 	m_OctreeMipmapDataBuffer->UnInit();
-	m_OctreeMipmapDataBuffer->InitMemory(m_OctreeNonLeafCount * OCTREE_MIPMAP_DATA_SIZE, buffers.data());
+	m_OctreeMipmapDataBuffer->InitMemory(uint64_t(m_OctreeNonLeafCount) * OCTREE_MIPMAP_DATA_SIZE, buffers.data());
 	m_OctreeMipmapDataBuffer->InitDevice(false);
 	m_OctreeMipmapDataBuffer->SetDebugName("SVO_OctreeMipmapDataBuffer");
 #endif
 
-	buffers.resize(m_OctreeDataBuffer->GetBufferSize());
+	if (m_OctreeDataBuffer->GetBufferSize() > buffers.max_size()) return;
+	buffers.resize(static_cast<size_t>(m_OctreeDataBuffer->GetBufferSize()));
 	m_OctreeDataBuffer->Read(buffers.data());
 	m_OctreeDataBuffer->UnInit();
-	m_OctreeDataBuffer->InitMemory(m_OctreeLeafCount * OCTREE_DATA_SIZE, buffers.data());
+	m_OctreeDataBuffer->InitMemory(uint64_t(m_OctreeLeafCount) * OCTREE_DATA_SIZE, buffers.data());
 	m_OctreeDataBuffer->InitDevice(false, false);
 	m_OctreeDataBuffer->SetDebugName("SVO_OctreeDataBuffer");
 }

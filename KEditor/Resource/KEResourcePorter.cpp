@@ -198,7 +198,7 @@ bool KEResourcePorter::ModelDrop(const KCamera* camera, const std::string& path)
 	return false;
 }
 
-bool KEResourcePorter::MaterialDrop(size_t x, size_t y, const std::string& path)
+bool KEResourcePorter::MaterialDrop(int32_t x, int32_t y, const std::string& path)
 {
 	KEEntityPtr editorEntity = KEditorGlobal::EntityManipulator.CloestPickEntity(x, y);
 	if (editorEntity)

@@ -213,7 +213,7 @@ bool KVulkanCommandBuffer::Init(KVulkanCommandPool* pool, CommandBufferLevel lev
 	allocInfo.level = m_CommandLevel;
 	allocInfo.commandBufferCount = 1;
 	m_CommandBuffers.resize(KRenderGlobal::NumFramesInFlight);
-	InitDrawRecordings(m_CommandBuffers.size());
+	InitDrawRecordings(static_cast<uint32_t>(m_CommandBuffers.size()));
 
 	for (size_t i = 0; i < m_CommandBuffers.size(); ++i)
 	{

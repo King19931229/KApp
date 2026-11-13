@@ -1,4 +1,5 @@
 #include "KCascadedShadowMap.h"
+#include "KBase/Publish/KInteger.h"
 #include "Interface/IKCommandBuffer.h"
 #include "Interface/IKPipeline.h"
 #include "Interface/IKTexture.h"
@@ -87,7 +88,7 @@ bool KCascadedShadowMapCasterPass::Setup(KFrameGraphBuilder& builder)
 	return true;
 }
 
-IKRenderTargetPtr KCascadedShadowMapCasterPass::GetStaticTarget(size_t cascadedIndex)
+IKRenderTargetPtr KCascadedShadowMapCasterPass::GetStaticTarget(uint32_t cascadedIndex)
 {
 	if (cascadedIndex < m_StaticTargetIDs.size())
 	{
@@ -96,7 +97,7 @@ IKRenderTargetPtr KCascadedShadowMapCasterPass::GetStaticTarget(size_t cascadedI
 	return nullptr;
 }
 
-IKRenderTargetPtr KCascadedShadowMapCasterPass::GetDynamicTarget(size_t cascadedIndex)
+IKRenderTargetPtr KCascadedShadowMapCasterPass::GetDynamicTarget(uint32_t cascadedIndex)
 {
 	if (cascadedIndex < m_DynamicTargetIDs.size())
 	{
@@ -238,7 +239,7 @@ bool KCascadedShadowMapReceiverPass::Init()
 {
 	UnInit();
 	IKRenderWindow* window = KRenderGlobal::RenderDevice->GetMainWindow();
-	size_t w = 0, h = 0;
+	uint32_t w = 0, h = 0;
 	if (window && window->GetSize(w, h))
 	{
 		Recreate((uint32_t)w, (uint32_t)h);
@@ -881,7 +882,7 @@ bool KCascadedShadowMap::Init(const KCamera* camera, uint32_t numCascaded, uint3
 		// KRenderGlobal::FrameGraph.Compile();
 
 		IKRenderWindow* window = KRenderGlobal::RenderDevice->GetMainWindow();
-		size_t w = 0, h = 0;
+		uint32_t w = 0, h = 0;
 		if (window && window->GetSize(w, h))
 		{
 			Resize((uint32_t)w, (uint32_t)h);
@@ -1044,7 +1045,7 @@ bool KCascadedShadowMap::Resize(uint32_t width, uint32_t height)
 	SAFE_UNINIT(m_CombineReceiverTarget);
 
 	IKRenderWindow* window = KRenderGlobal::RenderDevice->GetMainWindow();
-	size_t w = 0, h = 0;
+	uint32_t w = 0, h = 0;
 
 	KRenderGlobal::RenderDevice->CreateRenderTarget(m_StaticReceiverTarget);
 	KRenderGlobal::RenderDevice->CreateRenderTarget(m_DynamicReceiverTarget);
@@ -1059,7 +1060,7 @@ bool KCascadedShadowMap::Resize(uint32_t width, uint32_t height)
 	return true;
 }
 
-void KCascadedShadowMap::PopulateRenderCommand(size_t cascadedIndex, bool isStatic, const std::vector<IKEntity*>& litCullRes, std::vector<KRenderCommand>& commands)
+void KCascadedShadowMap::PopulateRenderCommand(uint32_t cascadedIndex, bool isStatic, const std::vector<IKEntity*>& litCullRes, std::vector<KRenderCommand>& commands)
 {
 	std::vector<KMaterialSubMeshInstance> instances;
 	KRenderUtil::CalculateInstancesByMaterial(litCullRes, instances);
@@ -1094,7 +1095,8 @@ void KCascadedShadowMap::PopulateRenderCommand(size_t cascadedIndex, bool isStat
 
 				std::vector<KInstanceBufferManager::AllocResultBlock> allocRes;
 				ASSERT_RESULT(KRenderGlobal::InstanceBufferManager.GetVertexSize() == sizeof(instances[0]));
-				ASSERT_RESULT(KRenderGlobal::InstanceBufferManager.Alloc(instances.size(), instances.data(), allocRes));
+				if (!KInteger::FitsUInt32(instances.size())) continue;
+				ASSERT_RESULT(KRenderGlobal::InstanceBufferManager.Alloc(static_cast<uint32_t>(instances.size()), instances.data(), allocRes));
 
 				command.instanceDraw = true;
 				command.instanceUsages.resize(allocRes.size());
@@ -1167,7 +1169,7 @@ void KCascadedShadowMap::FilterRenderComponent(std::vector<IKEntity*>& in, bool 
 	in = std::move(out);
 }
 
-bool KCascadedShadowMap::PopulateRenderCommandList(size_t cascadedIndex, bool isStatic, KRenderCommandList& commandList)
+bool KCascadedShadowMap::PopulateRenderCommandList(uint32_t cascadedIndex, bool isStatic, KRenderCommandList& commandList)
 {
 	Cascade* cascadeds = isStatic ? m_StaticCascadeds.data() : m_DynamicCascadeds.data();
 	size_t numCascaded = isStatic ? m_StaticCascadeds.size() : m_DynamicCascadeds.size();
@@ -1265,7 +1267,7 @@ bool KCascadedShadowMap::PopulateRenderCommandList(size_t cascadedIndex, bool is
 	return false;
 }
 
-bool KCascadedShadowMap::UpdateRT(KRHICommandList& commandList, IKRenderPassPtr renderPass, size_t cascadedIndex, bool isStatic)
+bool KCascadedShadowMap::UpdateRT(KRHICommandList& commandList, IKRenderPassPtr renderPass, uint32_t cascadedIndex, bool isStatic)
 {
 	Cascade* cascadeds = isStatic ? m_StaticCascadeds.data() : m_DynamicCascadeds.data();
 	size_t numCascaded = isStatic ? m_StaticCascadeds.size() : m_DynamicCascadeds.size();
@@ -1454,7 +1456,7 @@ bool KCascadedShadowMap::GetDebugRenderCommand(KRenderCommandList& commands, boo
 	size_t numCascaded = isStatic ? m_StaticCascadeds.size() : m_DynamicCascadeds.size();
 	Cascade* cascadeds = isStatic ? m_StaticCascadeds.data() : m_DynamicCascadeds.data();
 
-	for (size_t cascadedIndex = 0; cascadedIndex < numCascaded; ++cascadedIndex)
+	for (uint32_t cascadedIndex = 0; cascadedIndex < numCascaded; ++cascadedIndex)
 	{
 		IKRenderTargetPtr shadowTarget = isStatic ? m_CasterPass->GetStaticTarget(cascadedIndex) : m_CasterPass->GetDynamicTarget(cascadedIndex);
 		Cascade& cascaded = cascadeds[cascadedIndex];
@@ -1521,7 +1523,7 @@ bool KCascadedShadowMap::DebugRender(IKRenderPassPtr renderPass, std::vector<IKC
 	return false;
 }
 
-IKRenderTargetPtr KCascadedShadowMap::GetShadowMapTarget(size_t cascadedIndex, bool isStatic)
+IKRenderTargetPtr KCascadedShadowMap::GetShadowMapTarget(uint32_t cascadedIndex, bool isStatic)
 {
 	if (m_CasterPass)
 	{

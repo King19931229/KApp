@@ -9,13 +9,13 @@ class KVulkanStageBuffer
 protected:
 	VkBuffer m_vkBuffer;
 	KVulkanHeapAllocator::AllocInfo m_AllocInfo;
-	uint32_t m_BufferSize;
+	uint64_t m_BufferSize;
 	bool m_Mapping;
 public:
 	KVulkanStageBuffer();
 	~KVulkanStageBuffer();
 
-	bool Init(uint32_t bufferSize);
+	bool Init(uint64_t bufferSize);
 	bool UnInit();
 
 	bool Map(void** ppData);
@@ -34,7 +34,7 @@ protected:
 	VkBufferUsageFlags m_Usages;
 	KVulkanStageBuffer m_StageBuffer;
 	std::string m_DebugName;
-	uint32_t m_BufferSize;
+	uint64_t m_BufferSize;
 	uint32_t m_UniqueID;
 	bool m_bHostVisible;
 	bool m_Mapping;
@@ -45,7 +45,7 @@ public:
 	KVulkanBuffer();
 	~KVulkanBuffer();
 
-	bool InitDevice(VkBufferUsageFlags usages, const void* pData, uint32_t bufferSize, bool hostVisible);
+	bool InitDevice(VkBufferUsageFlags usages, const void* pData, uint64_t bufferSize, bool hostVisible);
 	bool UnInit();
 
 	bool SetDebugName(const char* pName);
@@ -53,9 +53,9 @@ public:
 	bool Map(void** ppData, MapAccess access = MA_READ_WRITE);
 	bool UnMap();
 	bool Write(const void* pData);
-	bool Write(const void* pData, size_t offset, size_t size);
+	bool Write(const void* pData, uint64_t offset, uint64_t size);
 	bool Read(void* pData);
-	bool Read(void* pData, size_t offset, size_t size);
+	bool Read(void* pData, uint64_t offset, uint64_t size);
 
 	inline bool IsHostVisible() const { return m_bHostVisible; }
 	inline VkBuffer GetVulkanHandle() { return m_vkBuffer; }
@@ -82,9 +82,9 @@ public:
 	virtual bool Map(void** ppData, MapAccess access = MA_READ_WRITE);
 	virtual bool UnMap();
 	virtual bool Write(const void* pData);
-	virtual bool Write(const void* pData, size_t offset, size_t size);
+	virtual bool Write(const void* pData, uint64_t offset, uint64_t size);
 	virtual bool Read(void* pData);
-	virtual bool Read(void* pData, size_t offset, size_t size);
+	virtual bool Read(void* pData, uint64_t offset, uint64_t size);
 
 	virtual bool CopyFrom(IKVertexBufferPtr pSource);
 	virtual bool CopyTo(IKVertexBufferPtr pDest);
@@ -111,9 +111,9 @@ public:
 	virtual bool Map(void** ppData, MapAccess access = MA_READ_WRITE);
 	virtual bool UnMap();
 	virtual bool Write(const void* pData);
-	virtual bool Write(const void* pData, size_t offset, size_t size);
+	virtual bool Write(const void* pData, uint64_t offset, uint64_t size);
 	virtual bool Read(void* pData);
-	virtual bool Read(void* pData, size_t offset, size_t size);
+	virtual bool Read(void* pData, uint64_t offset, uint64_t size);
 
 	virtual bool IsHostVisible() const;
 
@@ -144,9 +144,9 @@ public:
 	virtual bool Map(void** ppData, MapAccess access = MA_READ_WRITE);
 	virtual bool UnMap();
 	virtual bool Write(const void* pData);
-	virtual bool Write(const void* pData, size_t offset, size_t size);
+	virtual bool Write(const void* pData, uint64_t offset, uint64_t size);
 	virtual bool Read(void* pData);
-	virtual bool Read(void* pData, size_t offset, size_t size);
+	virtual bool Read(void* pData, uint64_t offset, uint64_t size);
 
 	virtual bool CopyFrom(IKStorageBufferPtr pSource);
 	virtual bool CopyTo(IKStorageBufferPtr pDest);
@@ -172,9 +172,9 @@ public:
 	virtual bool Map(void** ppData, MapAccess access = MA_READ_WRITE);
 	virtual bool UnMap();
 	virtual bool Write(const void* pData);
-	virtual bool Write(const void* pData, size_t offset, size_t size);
+	virtual bool Write(const void* pData, uint64_t offset, uint64_t size);
 	virtual bool Read(void* pData);
-	virtual bool Read(void* pData, size_t offset, size_t size);
+	virtual bool Read(void* pData, uint64_t offset, uint64_t size);
 
 	virtual bool Reference(void **ppData);
 

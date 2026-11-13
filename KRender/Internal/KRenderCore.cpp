@@ -48,7 +48,7 @@ KRenderCore::~KRenderCore()
 
 bool KRenderCore::InitPostProcess()
 {
-	size_t width = 0, height = 0;
+	uint32_t width = 0, height = 0;
 	m_MainWindow->GetSize(width, height);
 
 	KRenderGlobal::PostProcessManager.Init(width, height, 1, PF_R16G16B16A16_FLOAT, KRenderGlobal::NumFramesInFlight);
@@ -141,7 +141,7 @@ bool KRenderCore::UnInitGlobalManager()
 
 bool KRenderCore::InitRenderer()
 {
-	size_t width = 0, height = 0;
+	uint32_t width = 0, height = 0;
 	m_MainWindow->GetSize(width, height);
 
 	m_CameraCube = CreateCameraCube();
@@ -538,7 +538,7 @@ void KRenderCore::Render()
 	for (IKRenderWindow* window : m_SecordaryWindows)
 	{
 		IKSwapChain* secordarySwapChain = window->GetSwapChain();
-		size_t width = 0, height = 0;
+		uint32_t width = 0, height = 0;
 		if (!secordarySwapChain || window->IsMinimized() || !window->GetSize(width, height) || !width || !height)
 		{
 			continue;

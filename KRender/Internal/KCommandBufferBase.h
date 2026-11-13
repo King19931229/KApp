@@ -17,7 +17,7 @@ class KCommandBufferBase : public IKCommandBuffer
 	DrawRecording& GetDrawRecording();
 
 protected:
-	void InitDrawRecordings(size_t count) { m_DrawRecordings.resize(count); }
+	void InitDrawRecordings(uint32_t count) { m_DrawRecordings.resize(count); }
 	void ReleaseDrawRecordings() { m_DrawRecordings.clear(); }
 	void ResetDrawRecording();
 	void BeginRenderPassDrawStats(KDrawStatsStageId stage);

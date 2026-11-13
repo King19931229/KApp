@@ -8,7 +8,8 @@ struct KEngineOptions
 	struct WindowInitializeInformation
 	{
 		// default
-		size_t top, left, width, height;
+		int32_t top, left;
+		uint32_t width, height;
 		bool resizable;
 		// android
 		android_app* app;

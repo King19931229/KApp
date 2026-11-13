@@ -35,7 +35,7 @@ public:
 
 	virtual bool Init();
 	virtual bool UnInit();
-	virtual bool Resize(size_t width, size_t height);
+	virtual bool Resize(uint32_t width, uint32_t height);
 	virtual bool Update();
 	virtual bool Draw(IKRenderPassPtr renderPass, KRHICommandList& commandList) = 0;
 

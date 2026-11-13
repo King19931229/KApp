@@ -98,9 +98,9 @@ public:
 	virtual SwapChainAcquireResult AcquireNextImage(uint32_t& imageIndex);
 	virtual void PresentQueue(bool& needResize);
 
-	inline VkImage GetImage(size_t imageIndex) { return (imageIndex >= m_SwapChainImages.size()) ? VK_NULL_HANDLE : m_SwapChainImages[imageIndex]; }
-	inline VkImageView GetImageView(size_t imageIndex) { return (imageIndex >= m_SwapChainImageViews.size()) ? VK_NULL_HANDLE : m_SwapChainImageViews[imageIndex]; }
-	inline size_t GetImageCount() { return m_SwapChainImages.size(); }
+	inline VkImage GetImage(uint32_t imageIndex) { return (imageIndex >= m_SwapChainImages.size()) ? VK_NULL_HANDLE : m_SwapChainImages[imageIndex]; }
+	inline VkImageView GetImageView(uint32_t imageIndex) { return (imageIndex >= m_SwapChainImageViews.size()) ? VK_NULL_HANDLE : m_SwapChainImageViews[imageIndex]; }
+	inline uint32_t GetImageCount() { return static_cast<uint32_t>(m_SwapChainImages.size()); }
 	inline VkExtent2D GetExtent() { return m_Extend; }
 	inline VkFormat GetImageFormat() { return m_SurfaceFormat.format; }
 };

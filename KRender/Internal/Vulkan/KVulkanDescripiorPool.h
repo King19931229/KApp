@@ -32,8 +32,8 @@ protected:
 	{
 		VkDescriptorPool pool;
 		std::vector<KVulkanDescriptorPoolAllocatedSetPtr> sets;
-		size_t useCount;
-		size_t maxCount;
+		uint32_t useCount;
+		uint32_t maxCount;
 
 		DescriptorSetBlock()
 		{
@@ -46,7 +46,7 @@ protected:
 	struct DescriptorSetBlockList
 	{
 		std::vector<DescriptorSetBlock> blocks;
-		size_t currentFrame;
+		uint32_t currentFrame;
 
 		DescriptorSetBlockList()
 		{
@@ -67,8 +67,8 @@ protected:
 	std::vector<VkWriteDescriptorSet> m_DescriptorStaticWriteInfo;
 	std::vector<VkWriteDescriptorSet> m_DescriptorDynamicWriteInfo;
 
-	size_t m_CurrentFrame;
-	size_t m_BlockSize;
+	uint32_t m_CurrentFrame;
+	uint32_t m_BlockSize;
 
 	uint32_t m_ImageCount;
 	uint32_t m_StorageImageCount;
@@ -83,10 +83,10 @@ protected:
 	std::string m_Name;
 
 	VkDescriptorSet AllocDescriptorSet(VkDescriptorPool pool);
-	VkDescriptorPool CreateDescriptorPool(size_t maxCount);
+	VkDescriptorPool CreateDescriptorPool(uint32_t maxCount);
 
 	size_t HashCombine(const VkWriteDescriptorSet& write, size_t currentHash);
-	KVulkanDescriptorPoolAllocatedSetPtr InternalAlloc(size_t frameIndex, size_t currentFrame);
+	KVulkanDescriptorPoolAllocatedSetPtr InternalAlloc(uint32_t frameIndex, uint32_t currentFrame);
 
 	void Move(KVulkanDescriptorPool&& rhs);
 public:
@@ -104,12 +104,12 @@ public:
 		const std::vector<VkWriteDescriptorSet>& writeInfo);
 	bool UnInit();
 
-	bool Trim(size_t frameIndex, size_t currentFrame);
+	bool Trim(uint32_t frameIndex, uint32_t currentFrame);
 
 	inline void SetDebugName(const std::string& name) { m_Name = name; }
 	inline const std::string& GetDebugName() { return m_Name; }
 
-	VkDescriptorSet Alloc(size_t frameIndex, size_t currentFrame, IKPipeline* pipeline,
-		const KDynamicConstantBufferUsage** ppConstantUsage, size_t dynamicBufferUsageCount,
-		const KStorageBufferUsage** ppStorageUsage, size_t storageBufferUsageCount);
+	VkDescriptorSet Alloc(uint32_t frameIndex, uint32_t currentFrame, IKPipeline* pipeline,
+		const KDynamicConstantBufferUsage** ppConstantUsage, uint32_t dynamicBufferUsageCount,
+		const KStorageBufferUsage** ppStorageUsage, uint32_t storageBufferUsageCount);
 };

@@ -110,8 +110,8 @@ bool KCameraMoveController::Init(KCamera* camera, IKRenderWindow* window, IKGizm
 					float deltaX = xPos - m_MousePos[0];
 					float deltaY = yPos - m_MousePos[1];
 
-					size_t width = 0;
-					size_t height = 0;
+					uint32_t width = 0;
+					uint32_t height = 0;
 
 					m_Window->GetSize(width, height);
 
@@ -217,8 +217,8 @@ bool KCameraMoveController::Init(KCamera* camera, IKRenderWindow* window, IKGizm
 					float dx = std::get<0>(touchPositions[0]) - m_TouchPos[0][0];
 					float dy = std::get<1>(touchPositions[0]) - m_TouchPos[0][1];
 
-					size_t width = 0;
-					size_t height = 0;
+					uint32_t width = 0;
+					uint32_t height = 0;
 					m_Window->GetSize(width, height);
 
 					if (abs(dx) > 0.0001f)
@@ -327,8 +327,8 @@ bool KCameraMoveController::Update(float dt)
 		if (m_Move[2])
 			m_Camera->MoveForward(dt * moveSpeed * m_Move[2]);
 
-		size_t width = 0;
-		size_t height = 0;
+		uint32_t width = 0;
+		uint32_t height = 0;
 		m_Window->GetSize(width, height);
 		m_Camera->SetPerspective(glm::radians(45.0f), (width ? width : 1) / (float)(height ? height : 1), m_Camera->GetNear(), m_Camera->GetFar());
 

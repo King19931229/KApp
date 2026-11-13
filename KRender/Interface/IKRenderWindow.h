@@ -10,7 +10,7 @@ typedef std::function<void(InputMouseButton key, InputAction action, float x, fl
 typedef std::function<void(float x, float y)> KScrollCallbackType;
 typedef std::function<void(const std::vector<std::tuple<float, float>>& touchPositions, InputAction action)> KTouchCallbackType;
 typedef std::function<void(bool)> KFocusCallbackType;
-typedef std::function<void(size_t width, size_t height)> KResizeCallbackType;
+typedef std::function<void(uint32_t width, uint32_t height)> KResizeCallbackType;
 
 // 安卓专用
 struct ANativeWindow;
@@ -29,7 +29,7 @@ struct IKRenderWindow
 
 	virtual RenderWindowType GetType() = 0;
 
-	virtual bool Init(size_t top, size_t left, size_t width, size_t height, bool resizable, bool primary) = 0;
+	virtual bool Init(int32_t top, int32_t left, uint32_t width, uint32_t height, bool resizable, bool primary) = 0;
 	virtual bool Init(android_app* app) = 0;
 	virtual bool Init(void* HWND, bool primary) = 0;
 	virtual bool UnInit() = 0;
@@ -48,11 +48,11 @@ struct IKRenderWindow
 
 	virtual bool IsMinimized() = 0;
 
-	virtual bool GetPosition(size_t &top, size_t &left) = 0;
-	virtual bool SetPosition(size_t top, size_t left) = 0;
+	virtual bool GetPosition(int32_t &top, int32_t &left) = 0;
+	virtual bool SetPosition(int32_t top, int32_t left) = 0;
 
-	virtual bool GetSize(size_t &width, size_t &height) = 0;
-	virtual bool SetSize(size_t width, size_t height) = 0;
+	virtual bool GetSize(uint32_t &width, uint32_t &height) = 0;
+	virtual bool SetSize(uint32_t width, uint32_t height) = 0;
 
 	virtual bool SetResizable(bool resizable) = 0;
 	virtual bool IsResizable() = 0;

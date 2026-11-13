@@ -29,7 +29,7 @@ KEntity::KEntity()
 	ZERO_ARRAY_MEMORY(m_Components);
 }
 
-KEntity::KEntity(size_t id)
+KEntity::KEntity(IKEntity::IDType id)
 	: m_Id(id),
 	m_Name("Unnamed")
 {

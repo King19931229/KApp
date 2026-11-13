@@ -1,4 +1,5 @@
 #include "KMeshSerializerV0.h"
+#include "KBase/Publish/KInteger.h"
 #include "KBase/Publish/KStringUtil.h"
 #include "KBase/Publish/KFileTool.h"
 
@@ -129,6 +130,7 @@ bool KMeshSerializerV0::ReadString(IKDataStreamPtr& stream, std::string& value)
 
 bool KMeshSerializerV0::WriteString(IKDataStreamPtr& stream, const std::string& value)
 {
+	if (!KInteger::FitsUInt32(value.length())) return false;
 	uint32_t len = static_cast<uint32_t>(value.length());
 	ACTION_ON_FAILURE(stream->Write(&len, sizeof(len)), return false);
 	if(len > 0)
@@ -250,7 +252,9 @@ bool KMeshSerializerV0::ReadVertexElementData(IKDataStreamPtr& stream, VertexFor
 
 	format = (VertexFormat)vertexFormat;
 
-	vertexDatas.resize(vertexDataCount * vertexDataSize);
+	const uint64_t byteSize = uint64_t(vertexDataCount) * vertexDataSize;
+	if (!KInteger::FitsMemorySize(byteSize) || byteSize > vertexDatas.max_size()) return false;
+	vertexDatas.resize(static_cast<size_t>(byteSize));
 	ACTION_ON_FAILURE(stream->Read(vertexDatas.data(), vertexDatas.size()), return false);
 
 	ASSERT_RESULT(m_Device != nullptr);
@@ -506,6 +510,7 @@ bool KMeshSerializerV0::WriteVertexData(IKDataStreamPtr& stream, const KVertexDa
 	uint32_t flag = MSE_VERTEX_DATA;
 	uint32_t vertexStart = vertexData.vertexStart;
 	uint32_t vertexCount = vertexData.vertexCount;
+	if (!KInteger::FitsUInt32(vertexData.vertexBuffers.size())) return false;
 	uint32_t vertexElementCount = static_cast<uint32_t>(vertexData.vertexBuffers.size());
 	
 	ACTION_ON_FAILURE(stream->Write(&flag, sizeof(flag)), return false);
@@ -533,7 +538,9 @@ bool KMeshSerializerV0::WriteVertexElementData(IKDataStreamPtr& stream, const Ve
 	uint32_t vertexDataSize = static_cast<uint32_t>(vertexBuffer->GetVertexSize());
 	std::vector<char> vertexData;
 
-	ASSERT_RESULT(vertexDataCount * vertexDataSize == vertexBuffer->GetBufferSize());
+	const uint64_t byteSize = uint64_t(vertexDataCount) * vertexDataSize;
+	if (!KInteger::FitsMemorySize(byteSize) || byteSize > vertexData.max_size()) return false;
+	ASSERT_RESULT(byteSize == vertexBuffer->GetBufferSize());
 
 	flag = MSE_VERTEX_ELEMENT;
 	ACTION_ON_FAILURE(stream->Write(&flag, sizeof(flag)), return false);
@@ -545,7 +552,7 @@ bool KMeshSerializerV0::WriteVertexElementData(IKDataStreamPtr& stream, const Ve
 	flag = MSE_VERTEX_BUFFER;
 	ACTION_ON_FAILURE(stream->Write(&flag, sizeof(flag)), return false);
 
-	vertexData.resize(vertexDataCount * vertexDataSize);
+	vertexData.resize(static_cast<size_t>(byteSize));
 	ASSERT_RESULT(vertexBuffer->Read(vertexData.data()));
 
 	ACTION_ON_FAILURE(stream->Write(&vertexDataCount, sizeof(vertexDataCount)), return false);
@@ -558,6 +565,7 @@ bool KMeshSerializerV0::WriteVertexElementData(IKDataStreamPtr& stream, const Ve
 bool KMeshSerializerV0::WriteIndexData(IKDataStreamPtr& stream, const std::vector<KIndexData>& indexsDatas)
 {
 	uint32_t flag = MSE_INDEX_DATA;
+	if (!KInteger::FitsUInt32(indexsDatas.size())) return false;
 	uint32_t indexElementCount = static_cast<uint32_t>(indexsDatas.size());
 
 	ACTION_ON_FAILURE(stream->Write(&flag, sizeof(flag)), return false);
@@ -580,6 +588,7 @@ bool KMeshSerializerV0::WriteIndexElementData(IKDataStreamPtr& stream, const KIn
 	uint32_t indexStart = indexData.indexStart;
 	uint32_t indexCount = indexData.indexCount;
 	bool is16Format = indexData.indexBuffer->GetIndexType() == IT_16;
+	if (!KInteger::FitsUInt32(indexData.indexBuffer->GetBufferSize())) return false;
 	uint32_t indexBufferSize = static_cast<uint32_t>(indexData.indexBuffer->GetBufferSize());
 
 	std::vector<char> indexDatas;
@@ -601,6 +610,7 @@ bool KMeshSerializerV0::WriteIndexElementData(IKDataStreamPtr& stream, const KIn
 bool KMeshSerializerV0::WriteDrawData(IKDataStreamPtr& stream, const std::vector<DrawElementInfo>& drawInfos)
 {
 	uint32_t flag = MSE_DRAW_ELEMENT_DATA;
+	if (!KInteger::FitsUInt32(drawInfos.size())) return false;
 	uint32_t drawElementCount = static_cast<uint32_t>(drawInfos.size());
 
 	ACTION_ON_FAILURE(stream->Write(&flag, sizeof(flag)), return false);

@@ -133,7 +133,7 @@ bool KVulkanSwapChain::CreateSwapChain()
 	uint32_t windowHeight = 0;
 
 	{
-		size_t width = 0, height = 0;
+		uint32_t width = 0, height = 0;
 		m_pWindow->GetSize(width, height);
 		windowWidth = (uint32_t)width;
 		windowHeight = (uint32_t)height;

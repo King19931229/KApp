@@ -145,6 +145,7 @@ MeshTextureAddress KGLTFLoader::GetTextureAddress(int32_t addressMode)
 
 KCodecResult KGLTFLoader::GetCodecResult(tinygltf::Image& gltfimage)
 {
+	if (gltfimage.width < 0 || gltfimage.height < 0) return KCodecResult();
 	std::vector<unsigned char> bufferData;
 
 	size_t bufferSize = 0;
@@ -175,8 +176,8 @@ KCodecResult KGLTFLoader::GetCodecResult(tinygltf::Image& gltfimage)
 	KCodecResult result;
 
 	result.eFormat = PF_R8G8B8A8_UNORM;
-	result.uWidth = gltfimage.width;
-	result.uHeight = gltfimage.height;
+	result.uWidth = static_cast<uint32_t>(gltfimage.width);
+	result.uHeight = static_cast<uint32_t>(gltfimage.height);
 	result.uDepth = 1;
 	result.uMipmap = 1;
 
@@ -192,8 +193,8 @@ KCodecResult KGLTFLoader::GetCodecResult(tinygltf::Image& gltfimage)
 	subImageInfo.uMipmapIndex = 0;;
 	subImageInfo.uOffset = 0;
 	subImageInfo.uSize = bufferData.size();
-	subImageInfo.uWidth = gltfimage.width;
-	subImageInfo.uHeight = gltfimage.height;
+	subImageInfo.uWidth = static_cast<uint32_t>(gltfimage.width);
+	subImageInfo.uHeight = static_cast<uint32_t>(gltfimage.height);
 
 	result.pData->GetSubImageInfo().push_back(subImageInfo);
 
@@ -531,13 +532,13 @@ bool KGLTFLoader::LoadModel(const char* pszFile, tinygltf::Model& gltfModel)
 	return fileLoaded;
 }
 
-void KGLTFLoader::GetNodeProps(const tinygltf::Node& node, const tinygltf::Model& model, size_t& vertexCount, size_t& indexCount)
+bool KGLTFLoader::GetNodeProps(const tinygltf::Node& node, const tinygltf::Model& model, uint32_t& vertexCount, uint32_t& indexCount)
 {
 	if (node.children.size() > 0)
 	{
 		for (size_t i = 0; i < node.children.size(); i++)
 		{
-			GetNodeProps(model.nodes[node.children[i]], model, vertexCount, indexCount);
+			if (!GetNodeProps(model.nodes[node.children[i]], model, vertexCount, indexCount)) return false;
 		}
 	}
 	if (node.mesh > -1)
@@ -546,13 +547,18 @@ void KGLTFLoader::GetNodeProps(const tinygltf::Node& node, const tinygltf::Model
 		for (size_t i = 0; i < mesh.primitives.size(); i++)
 		{
 			const auto& primitive = mesh.primitives[i];
-			vertexCount += model.accessors[primitive.attributes.find("POSITION")->second].count;
+			const uint64_t vertices = model.accessors[primitive.attributes.find("POSITION")->second].count;
+			if (vertices > UINT32_MAX - vertexCount) return false;
+			vertexCount += static_cast<uint32_t>(vertices);
 			if (primitive.indices > -1)
 			{
-				indexCount += model.accessors[primitive.indices].count;
+				const uint64_t indices = model.accessors[primitive.indices].count;
+				if (indices > UINT32_MAX - indexCount) return false;
+				indexCount += static_cast<uint32_t>(indices);
 			}
 		}
 	}
+	return true;
 }
 
 void KGLTFLoader::LoadNode(Node* parent, const tinygltf::Node& node, uint32_t nodeIndex, const tinygltf::Model& model, MeshLoad& loaderInfo, float globalscale)
@@ -1466,15 +1472,15 @@ bool KGLTFLoader::Import(const char* pszFile, const KAssetImportOption& importOp
 		LoadTextures(gltfModel);
 		LoadMaterials(gltfModel);
 
-		size_t vertexCount = 0;
-		size_t indexCount = 0;
+		uint32_t vertexCount = 0;
+		uint32_t indexCount = 0;
 
 		const tinygltf::Scene& scene = gltfModel.scenes[gltfModel.defaultScene > -1 ? gltfModel.defaultScene : 0];
 
 		// Get vertex and index buffer sizes up-front
 		for (size_t i = 0; i < scene.nodes.size(); i++)
 		{
-			GetNodeProps(gltfModel.nodes[scene.nodes[i]], gltfModel, vertexCount, indexCount);
+			if (!GetNodeProps(gltfModel.nodes[scene.nodes[i]], gltfModel, vertexCount, indexCount)) return false;
 		}
 
 		loaderInfo.vertexBuffer.resize(vertexCount);

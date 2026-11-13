@@ -857,11 +857,11 @@ bool KDDSCodec::CodecImpl(IKDataStreamPtr stream, bool forceAlpha, KCodecResult&
 	// all mips for a face, then each face
 	for (uint16_t face = 0; face < numFaces; ++face)
 	{
-		size_t width = result.uWidth;
-		size_t height = result.uHeight;
-		size_t depth = result.uDepth;
+		uint32_t width = result.uWidth;
+		uint32_t height = result.uHeight;
+		uint32_t depth = result.uDepth;
 
-		for (size_t mip = 0; mip < result.uMipmap; ++mip)
+		for (uint32_t mip = 0; mip < result.uMipmap; ++mip)
 		{
 			void* dataPtrBegin = dataPtr;
 
@@ -901,8 +901,8 @@ bool KDDSCodec::CodecImpl(IKDataStreamPtr stream, bool forceAlpha, KCodecResult&
 								FlipEndian(&(colour.colour_1), sizeof(uint16_t), 1);
 								UnpackDXTColour(sourceFormat, colour, colours);
 
-								const size_t blockWidth = std::min(width - x, size_t(4));
-								const size_t blockHeight = std::min(height - y, size_t(4));
+								const size_t blockWidth = std::min(size_t(width) - x, size_t(4));
+								const size_t blockHeight = std::min(size_t(height) - y, size_t(4));
 								for (size_t by = 0; by < blockHeight; ++by)
 								{
 									for (size_t bx = 0; bx < blockWidth; ++bx)

@@ -29,8 +29,8 @@ public:
 	bool Setup(KFrameGraphBuilder& builder) override;
 	bool Execute(KFrameGraphExecutor& executor) override;
 
-	IKRenderTargetPtr GetStaticTarget(size_t cascadedIndex);
-	IKRenderTargetPtr GetDynamicTarget(size_t cascadedIndex);
+	IKRenderTargetPtr GetStaticTarget(uint32_t cascadedIndex);
+	IKRenderTargetPtr GetDynamicTarget(uint32_t cascadedIndex);
 	const std::vector<KFrameGraphID>& GetAllTargetID() const { return m_AllTargetIDs; }
 };
 typedef std::shared_ptr<KCascadedShadowMapCasterPass> KCascadedShadowMapCasterPassPtr;
@@ -172,13 +172,13 @@ protected:
 	void UpdateCascadesDebug();
 
 	bool GetDebugRenderCommand(KRenderCommandList& commands, bool isStatic);
-	void PopulateRenderCommand(size_t cascadedIndex, bool isStatic, const std::vector<IKEntity*>& litCullRes, std::vector<KRenderCommand>& commands);
+	void PopulateRenderCommand(uint32_t cascadedIndex, bool isStatic, const std::vector<IKEntity*>& litCullRes, std::vector<KRenderCommand>& commands);
 	void FilterRenderComponent(std::vector<IKEntity*>& in, bool isStatic);
-	bool PopulateRenderCommandList(size_t cascadedIndex, bool isStatic, KRenderCommandList& commandList);
+	bool PopulateRenderCommandList(uint32_t cascadedIndex, bool isStatic, KRenderCommandList& commandList);
 
 	bool UpdatePipelineFromRTChanged();
 
-	bool UpdateRT(KRHICommandList& commandList, IKRenderPassPtr renderPass, size_t cascadedIndex, bool isStatic);
+	bool UpdateRT(KRHICommandList& commandList, IKRenderPassPtr renderPass, uint32_t cascadedIndex, bool isStatic);
 	bool UpdateMask(KRHICommandList& commandList, bool isStatic);
 	bool CombineMask(KRHICommandList& commandList);
 
@@ -212,14 +212,14 @@ public:
 
 	bool DebugRender(IKRenderPassPtr renderPass, std::vector<IKCommandBufferPtr>& buffers);
 
-	IKRenderTargetPtr GetShadowMapTarget(size_t cascadedIndex, bool isStatic);
+	IKRenderTargetPtr GetShadowMapTarget(uint32_t cascadedIndex, bool isStatic);
 
-	inline size_t GetNumCascaded() const { return m_DynamicCascadeds.size(); }
+	inline uint32_t GetNumCascaded() const { return static_cast<uint32_t>(m_DynamicCascadeds.size()); }
 	inline IKSamplerPtr GetSampler() { return m_ShadowSampler; }
 	KCamera& GetCamera() { return m_ShadowCamera; }
 
-	inline float& GetDepthBiasConstant(size_t index) { return m_DepthBiasConstant[index]; }
-	inline float& GetDepthBiasSlope(size_t index) { return m_DepthBiasSlope[index]; }
+	inline float& GetDepthBiasConstant(uint32_t index) { return m_DepthBiasConstant[index]; }
+	inline float& GetDepthBiasSlope(uint32_t index) { return m_DepthBiasSlope[index]; }
 
 	inline float& GetShadowRange() { return m_ShadowRange; }
 	inline float& GetSplitLambda() { return m_SplitLambda; }

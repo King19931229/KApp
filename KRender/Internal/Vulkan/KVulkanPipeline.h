@@ -102,6 +102,6 @@ public:
 	inline VkPipelineLayout GetVkPipelineLayout() { return m_PipelineLayout; }
 
 	VkDescriptorSet AllocDescriptorSet(uint32_t threadIndex,
-		const KDynamicConstantBufferUsage** ppConstantUsage, size_t dynamicBufferUsageCount,
-		const KStorageBufferUsage** ppStorageUsage, size_t storageBufferUsageCount);
+		const KDynamicConstantBufferUsage** ppConstantUsage, uint32_t dynamicBufferUsageCount,
+		const KStorageBufferUsage** ppStorageUsage, uint32_t storageBufferUsageCount);
 };

@@ -1,4 +1,5 @@
 #pragma once
+#include <cstdint>
 #include "KBase/Interface/Component/IKComponentBase.h"
 #include "KBase/Interface/Component/IKComponentManager.h"
 #include "KBase/Interface/IKXML.h"
@@ -12,8 +13,8 @@ struct IKEntity
 public:
 	virtual ~IKEntity() {}
 
-	typedef size_t IDType;
-	virtual size_t GetID() const = 0;
+	typedef uint64_t IDType;
+	virtual IDType GetID() const = 0;
 
 	virtual const std::string& GetName() const = 0;
 	virtual void SetName(const std::string& name) = 0;

@@ -51,7 +51,7 @@ namespace KVulkanHelper
 
 	bool ImageLayoutToVkImageLayout(ImageLayout layout, VkImageLayout& vkImageLayout);
 
-	bool PopulateInputBindingDescription(const VertexFormat* pData, size_t uCount, VulkanBindingDetailList& list);
+	bool PopulateInputBindingDescription(const VertexFormat* pData, uint32_t uCount, VulkanBindingDetailList& list);
 
 	bool IsFormatSupported(VkPhysicalDevice physicalDevice, VkFormat format, VkImageTiling tiling, VkFormatFeatureFlags features);
 	bool FindSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features, VkFormat& vkFormat);

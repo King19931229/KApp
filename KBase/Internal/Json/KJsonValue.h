@@ -22,8 +22,8 @@ public:
 	KJsonValue(rapidjson::Value& value, rapidjson::Document::AllocatorType& alloc);
 	virtual ~KJsonValue();
 
-	virtual size_t Size();
-	virtual IKJsonValuePtr GetArrayElement(size_t index);
+	virtual uint32_t Size();
+	virtual IKJsonValuePtr GetArrayElement(uint32_t index);
 
 	virtual bool IsArray();
 	virtual bool IsBool();

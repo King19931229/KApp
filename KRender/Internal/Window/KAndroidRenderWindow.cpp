@@ -31,7 +31,7 @@ RenderWindowType KAndroidRenderWindow::GetType()
 	return RENDER_WINDOW_ANDROID_NATIVE;
 }
 
-bool KAndroidRenderWindow::Init(size_t top, size_t left, size_t width, size_t height, bool resizable, bool primary)
+bool KAndroidRenderWindow::Init(int32_t top, int32_t left, uint32_t width, uint32_t height, bool resizable, bool primary)
 {
 	assert(false && "android window can not inited by this call");
 	return false;
@@ -320,35 +320,36 @@ bool KAndroidRenderWindow::Loop()
 	return false;
 }
 
-bool KAndroidRenderWindow::GetPosition(size_t &top, size_t &left)
+bool KAndroidRenderWindow::GetPosition(int32_t &top, int32_t &left)
 {
 	top = 0;
 	left = 0;
 	return true;
 }
 
-bool KAndroidRenderWindow::SetPosition(size_t top, size_t left)
+bool KAndroidRenderWindow::SetPosition(int32_t top, int32_t left)
 {
 	assert(false && "Android window can not set window position");
 	return false;
 }
 
-bool KAndroidRenderWindow::GetSize(size_t &width, size_t &height)
+bool KAndroidRenderWindow::GetSize(uint32_t &width, uint32_t &height)
 {
 #ifdef __ANDROID__
 	if (m_app && m_app->window)
 	{
 		int nWidth = ANativeWindow_getWidth(m_app->window);
 		int nHeight = ANativeWindow_getHeight(m_app->window);
-		width = (size_t)nWidth;
-		height = (size_t)nHeight;
+		if (nWidth < 0 || nHeight < 0) return false;
+		width = (uint32_t)nWidth;
+		height = (uint32_t)nHeight;
 		return true;
 	}
 #endif
 	return false;
 }
 
-bool KAndroidRenderWindow::SetSize(size_t width, size_t height)
+bool KAndroidRenderWindow::SetSize(uint32_t width, uint32_t height)
 {
 	assert(false && "Android window can not set window size");
 	return false;

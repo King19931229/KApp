@@ -108,7 +108,7 @@ public:
 	virtual bool DebugDump();
 
 	virtual bool SetPrimitiveTopology(PrimitiveTopology topology);
-	virtual bool SetVertexBinding(const VertexFormat* format, size_t count);
+	virtual bool SetVertexBinding(const VertexFormat* format, uint32_t count);
 
 	virtual bool SetColorWrite(bool r, bool g, bool b, bool a);
 	virtual bool SetColorBlend(BlendFactor srcFactor, BlendFactor dstFactor, BlendOperator op);

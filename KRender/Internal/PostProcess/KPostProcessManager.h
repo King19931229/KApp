@@ -18,10 +18,10 @@ class KPostProcessManager : public IKPostProcessManager
 {
 	friend class KPostProcessPass;
 protected:
-	size_t m_FrameInFlight;
+	uint32_t m_FrameInFlight;
 
-	size_t m_Width;
-	size_t m_Height;
+	uint32_t m_Width;
+	uint32_t m_Height;
 
 	std::unordered_map<IKPostProcessNode::IDType, IKPostProcessNodePtr> m_AllNodes;
 	IKPostProcessNodePtr m_StartPointPass;
@@ -56,12 +56,12 @@ public:
 	KPostProcessManager();
 	~KPostProcessManager();
 
-	bool Init(size_t width, size_t height,
+	bool Init(uint32_t width, uint32_t height,
 		unsigned short massCount,
 		PixelFormat startFormat,
-		size_t frameInFlight);
+		uint32_t frameInFlight);
 	bool UnInit();
-	bool Resize(size_t width, size_t height);
+	bool Resize(uint32_t width, uint32_t height);
 
 	bool Save(const char* jsonFile);
 	bool Load(const char* jsonFile);

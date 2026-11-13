@@ -7,11 +7,11 @@ struct KCodecResult
 	KImageDataPtr pData;
 
 	PixelFormat eFormat;
-	size_t uWidth;
-	size_t uHeight;
-	size_t uDepth;
-	size_t uSlice;
-	size_t uMipmap;
+	uint32_t uWidth;
+	uint32_t uHeight;
+	uint32_t uDepth;
+	uint32_t uSlice;
+	uint32_t uMipmap;
 
 	bool bCompressed;
 	bool bCubemap;

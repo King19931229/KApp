@@ -7,13 +7,13 @@
 
 struct KSubImageInfo
 {
-	size_t uWidth;
-	size_t uHeight;
+	uint32_t uWidth;
+	uint32_t uHeight;
 	size_t uOffset;
 	size_t uSize;
-	size_t uFaceIndex;
-	size_t uSliceIndex;
-	size_t uMipmapIndex;
+	uint32_t uFaceIndex;
+	uint32_t uSliceIndex;
+	uint32_t uMipmapIndex;
 
 	KSubImageInfo()
 	{

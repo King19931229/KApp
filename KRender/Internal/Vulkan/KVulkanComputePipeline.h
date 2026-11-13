@@ -24,7 +24,7 @@ protected:
 	struct DescriptorSetBlockList
 	{
 		std::vector<DescriptorSetBlock> blocks;
-		size_t currentFrame;
+		uint32_t currentFrame;
 
 		DescriptorSetBlockList()
 		{
@@ -126,7 +126,7 @@ protected:
 
 	VkDescriptorPool CreateDescriptorPool(uint32_t maxCount);
 	VkDescriptorSet AllocDescriptorSet(VkDescriptorPool pool);
-	VkDescriptorSet Alloc(size_t frameIndex, size_t frameNum);
+	VkDescriptorSet Alloc(uint32_t frameIndex, uint32_t frameNum);
 
 	bool UpdateDynamicWrite(VkDescriptorSet dstSet, const KDynamicConstantBufferUsage* usage = nullptr);
 	bool SetupBarrier(IKCommandBufferPtr buffer, bool input);

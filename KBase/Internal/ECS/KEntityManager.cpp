@@ -42,7 +42,7 @@ KEntityManager::~KEntityManager()
 	assert(m_Entities.empty() && "entities is not empty");
 }
 
-size_t KEntityManager::GetAvailibleID()
+IKEntity::IDType KEntityManager::GetAvailibleID()
 {
 	return m_EntityHandleCounter++;
 }
@@ -63,7 +63,7 @@ void KEntityManager::UnInit()
 
 IKEntityPtr KEntityManager::CreateEntity()
 {
-	size_t id = GetAvailibleID();
+	IKEntity::IDType id = GetAvailibleID();
 	IKEntityPtr entity = IKEntityPtr(KNEW KEntity(id));
 	assert(m_Entities.find(id) == m_Entities.end());
 	m_Entities[id] = entity;
@@ -74,7 +74,7 @@ bool KEntityManager::ReleaseEntity(IKEntityPtr& entity)
 {
 	if(entity != nullptr)
 	{
-		size_t id = entity->GetID();
+		IKEntity::IDType id = entity->GetID();
 		auto it = m_Entities.find(id);
 		if(it != m_Entities.end())
 		{

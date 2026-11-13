@@ -114,17 +114,17 @@ bool KABufferDepthPeeling::Resize(uint32_t width, uint32_t height)
 	m_LinkHeaderTarget->GetFrameBuffer()->SetDebugName("ABufferLinkHeader");
 
 	m_LinkNextBuffer->UnInit();
-	m_LinkNextBuffer->InitMemory(m_MaxElementCount * sizeof(uint32_t), nullptr);
+	m_LinkNextBuffer->InitMemory(uint64_t(m_MaxElementCount) * sizeof(uint32_t), nullptr);
 	m_LinkNextBuffer->InitDevice(false, false);
 	m_LinkNextBuffer->SetDebugName("ABufferLinkNext");
 
 	m_LinkResultBuffer->UnInit();
-	m_LinkResultBuffer->InitMemory(m_MaxElementCount * 4 * sizeof(uint32_t), nullptr);
+	m_LinkResultBuffer->InitMemory(uint64_t(m_MaxElementCount) * 4 * sizeof(uint32_t), nullptr);
 	m_LinkResultBuffer->InitDevice(false, false);
 	m_LinkResultBuffer->SetDebugName("ABufferLinkResult");
 
 	m_LinkDepthBuffer->UnInit();
-	m_LinkDepthBuffer->InitMemory(m_MaxElementCount * sizeof(uint32_t), nullptr);
+	m_LinkDepthBuffer->InitMemory(uint64_t(m_MaxElementCount) * sizeof(uint32_t), nullptr);
 	m_LinkDepthBuffer->InitDevice(false, false);
 	m_LinkDepthBuffer->SetDebugName("ABufferLinkDepth");
 

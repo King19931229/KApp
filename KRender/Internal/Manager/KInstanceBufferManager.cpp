@@ -1,5 +1,6 @@
 #include "KInstanceBufferManager.h"
 #include "Internal/KRenderGlobal.h"
+#include "KBase/Publish/KInteger.h"
 
 KInstanceBufferManager::KInstanceBufferManager()
 	: m_VertexSize(64)
@@ -12,8 +13,9 @@ KInstanceBufferManager::~KInstanceBufferManager()
 	ASSERT_RESULT(m_InstanceBlocks.empty());
 }
 
-bool KInstanceBufferManager::Init(size_t vertexSize, size_t blockSize)
+bool KInstanceBufferManager::Init(uint32_t vertexSize, uint32_t blockSize)
 {
+	if (!KInteger::FitsMemorySize(uint64_t(vertexSize) * blockSize)) return false;
 	UnInit();
 
 	m_VertexSize = vertexSize;
@@ -37,20 +39,21 @@ bool KInstanceBufferManager::UnInit()
 	return true;
 }
 
-bool KInstanceBufferManager::Alloc(size_t count, const void* data, std::vector<AllocResultBlock>& results)
+bool KInstanceBufferManager::Alloc(uint32_t count, const void* data, std::vector<AllocResultBlock>& results)
 {
 	results.clear();
+	if (!KInteger::FitsMemorySize(uint64_t(count) * m_VertexSize)) return false;
 	if (InternalAlloc(count, KRenderGlobal::CurrentInFlightFrameIndex, KRenderGlobal::CurrentFrameNum, results))
 	{
 		std::lock_guard<decltype(m_Lock)> lockGuard(m_Lock);
 		ASSERT_RESULT(data);
 
-		size_t assignedCount = 0;
+		uint32_t assignedCount = 0;
 		for (AllocResultBlock& result : results)
 		{
 			void* pBufferData = nullptr;
 			ASSERT_RESULT(result.buffer->Map(&pBufferData));
-			memcpy(POINTER_OFFSET(pBufferData, result.start * m_VertexSize), POINTER_OFFSET(data, assignedCount * m_VertexSize), result.count * m_VertexSize);
+			memcpy(POINTER_OFFSET(pBufferData, uint64_t(result.start) * m_VertexSize), POINTER_OFFSET(data, uint64_t(assignedCount) * m_VertexSize), static_cast<size_t>(uint64_t(result.count) * m_VertexSize));
 			ASSERT_RESULT(result.buffer->UnMap());
 			assignedCount += result.count;
 		}
@@ -61,8 +64,8 @@ bool KInstanceBufferManager::Alloc(size_t count, const void* data, std::vector<A
 	return false;
 }
 
-bool KInstanceBufferManager::InternalAlloc(size_t count,
-	size_t frameIndex, size_t frameNum,
+bool KInstanceBufferManager::InternalAlloc(uint32_t count,
+	uint32_t frameIndex, uint32_t frameNum,
 	std::vector<AllocResultBlock>& results)
 {
 	if (frameIndex < m_InstanceBlocks.size())
@@ -87,22 +90,22 @@ bool KInstanceBufferManager::InternalAlloc(size_t count,
 			frameBlock.frameNum = frameNum;
 		}
 
-		size_t restCount = count;
+		uint32_t restCount = count;
 
 		{
 			for (InstanceBlock& block : frameBlock.blocks)
 			{
-				size_t blockRestCount = m_BlockCount - block.useCount;
+				uint32_t blockRestCount = m_BlockCount - block.useCount;
 				if (blockRestCount > 0)
 				{
-					size_t useCount = restCount > blockRestCount ? blockRestCount : restCount;
+					uint32_t useCount = restCount > blockRestCount ? blockRestCount : restCount;
 					restCount -= useCount;
 
 					AllocResultBlock resultBlock;
 					resultBlock.buffer = block.buffer;
 					resultBlock.count = useCount;
 					resultBlock.start = block.useCount;
-					resultBlock.offset = block.useCount * m_VertexSize;
+					resultBlock.offset = uint64_t(block.useCount) * m_VertexSize;
 					results.push_back(resultBlock);
 
 					block.useCount += useCount;
@@ -120,14 +123,14 @@ bool KInstanceBufferManager::InternalAlloc(size_t count,
 				ASSERT_RESULT(newBlock.buffer->InitDevice(true));
 
 				{
-					size_t useCount = restCount > m_BlockCount ? m_BlockCount : restCount;
+					uint32_t useCount = restCount > m_BlockCount ? m_BlockCount : restCount;
 					restCount -= useCount;
 
 					AllocResultBlock resultBlock;
 					resultBlock.buffer = newBlock.buffer;
 					resultBlock.count = useCount;
 					resultBlock.start = newBlock.useCount;
-					resultBlock.offset = newBlock.useCount * m_VertexSize;
+					resultBlock.offset = uint64_t(newBlock.useCount) * m_VertexSize;
 					results.push_back(resultBlock);
 
 					newBlock.useCount += useCount;

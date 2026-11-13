@@ -31,12 +31,13 @@ bool KMaterialSubMesh::CreateShadowPipeline()
 
 		const KVertexData* vertexData = m_SubMesh->m_pVertexData;
 		ASSERT_RESULT(vertexData);
+		if (vertexData->vertexFormats.size() >= UINT32_MAX) return false;
 
-		m_Pipelines[RENDER_STAGE_CASCADED_SHADOW_STATIC_GEN] = m_Material->CreateCSMPipeline(vertexData->vertexFormats.data(), vertexData->vertexFormats.size(), true);
-		m_Pipelines[RENDER_STAGE_CASCADED_SHADOW_STATIC_GEN_INSTANCE] = m_Material->CreateCSMInstancePipeline(vertexData->vertexFormats.data(), vertexData->vertexFormats.size(), true);
+		m_Pipelines[RENDER_STAGE_CASCADED_SHADOW_STATIC_GEN] = m_Material->CreateCSMPipeline(vertexData->vertexFormats.data(), static_cast<uint32_t>(vertexData->vertexFormats.size()), true);
+		m_Pipelines[RENDER_STAGE_CASCADED_SHADOW_STATIC_GEN_INSTANCE] = m_Material->CreateCSMInstancePipeline(vertexData->vertexFormats.data(), static_cast<uint32_t>(vertexData->vertexFormats.size()), true);
 
-		m_Pipelines[RENDER_STAGE_CASCADED_SHADOW_DYNAMIC_GEN] = m_Material->CreateCSMPipeline(vertexData->vertexFormats.data(), vertexData->vertexFormats.size(), false);
-		m_Pipelines[RENDER_STAGE_CASCADED_SHADOW_DYNAMIC_GEN_INSTANCE] = m_Material->CreateCSMInstancePipeline(vertexData->vertexFormats.data(), vertexData->vertexFormats.size(), false);
+		m_Pipelines[RENDER_STAGE_CASCADED_SHADOW_DYNAMIC_GEN] = m_Material->CreateCSMPipeline(vertexData->vertexFormats.data(), static_cast<uint32_t>(vertexData->vertexFormats.size()), false);
+		m_Pipelines[RENDER_STAGE_CASCADED_SHADOW_DYNAMIC_GEN_INSTANCE] = m_Material->CreateCSMInstancePipeline(vertexData->vertexFormats.data(), static_cast<uint32_t>(vertexData->vertexFormats.size()), false);
 
 		return true;
 	}
@@ -116,6 +117,7 @@ bool KMaterialSubMesh::CreateMaterialPipeline()
 	if (m_SubMesh && m_Material)
 	{
 		const KVertexData* vertexData = m_SubMesh->m_pVertexData;
+		if (vertexData->vertexFormats.size() >= UINT32_MAX) return false;
 
 		MaterialShadingMode shaingMode = m_Material->GetShadingMode();
 
@@ -126,19 +128,19 @@ bool KMaterialSubMesh::CreateMaterialPipeline()
 
 		if (shaingMode == MSM_OPAQUE)
 		{
-			m_Pipelines[RENDER_STAGE_OPAQUE] = m_Material->CreatePipeline(vertexData->vertexFormats.data(), vertexData->vertexFormats.size());
-			m_Pipelines[RENDER_STAGE_OPAQUE_INSTANCE] = m_Material->CreateInstancePipeline(vertexData->vertexFormats.data(), vertexData->vertexFormats.size());
+			m_Pipelines[RENDER_STAGE_OPAQUE] = m_Material->CreatePipeline(vertexData->vertexFormats.data(), static_cast<uint32_t>(vertexData->vertexFormats.size()));
+			m_Pipelines[RENDER_STAGE_OPAQUE_INSTANCE] = m_Material->CreateInstancePipeline(vertexData->vertexFormats.data(), static_cast<uint32_t>(vertexData->vertexFormats.size()));
 			return m_Pipelines[RENDER_STAGE_OPAQUE] && m_Pipelines[RENDER_STAGE_OPAQUE_INSTANCE];
 		}
 		else
 		{
-			m_Pipelines[RENDER_STAGE_TRANSPRANT] = m_Material->CreatePipeline(vertexData->vertexFormats.data(), vertexData->vertexFormats.size());
+			m_Pipelines[RENDER_STAGE_TRANSPRANT] = m_Material->CreatePipeline(vertexData->vertexFormats.data(), static_cast<uint32_t>(vertexData->vertexFormats.size()));
 
-			m_Pipelines[RENDER_STAGE_TRANSPRANT_DEPTH_PEELING] = m_Material->CreateDepthPeelingPipeline(vertexData->vertexFormats.data(), vertexData->vertexFormats.size());
-			m_Pipelines[RENDER_STAGE_TRANSPRANT_DEPTH_PEELING_INSTANCE] = m_Material->CreateDepthPeelingInstancePipeline(vertexData->vertexFormats.data(), vertexData->vertexFormats.size());
+			m_Pipelines[RENDER_STAGE_TRANSPRANT_DEPTH_PEELING] = m_Material->CreateDepthPeelingPipeline(vertexData->vertexFormats.data(), static_cast<uint32_t>(vertexData->vertexFormats.size()));
+			m_Pipelines[RENDER_STAGE_TRANSPRANT_DEPTH_PEELING_INSTANCE] = m_Material->CreateDepthPeelingInstancePipeline(vertexData->vertexFormats.data(), static_cast<uint32_t>(vertexData->vertexFormats.size()));
 
-			m_Pipelines[RENDER_STAGE_TRANSPRANT_ABUFFER_DEPTH_PEELING] = m_Material->CreateABufferDepthPeelingPipeline(vertexData->vertexFormats.data(), vertexData->vertexFormats.size());
-			m_Pipelines[RENDER_STAGE_TRANSPRANT_ABUFFER_DEPTH_PEELING_INSTANCE] = m_Material->CreateABufferDepthPeelingInstancePipeline(vertexData->vertexFormats.data(), vertexData->vertexFormats.size());
+			m_Pipelines[RENDER_STAGE_TRANSPRANT_ABUFFER_DEPTH_PEELING] = m_Material->CreateABufferDepthPeelingPipeline(vertexData->vertexFormats.data(), static_cast<uint32_t>(vertexData->vertexFormats.size()));
+			m_Pipelines[RENDER_STAGE_TRANSPRANT_ABUFFER_DEPTH_PEELING_INSTANCE] = m_Material->CreateABufferDepthPeelingInstancePipeline(vertexData->vertexFormats.data(), static_cast<uint32_t>(vertexData->vertexFormats.size()));
 			return m_Pipelines[RENDER_STAGE_TRANSPRANT] && m_Pipelines[RENDER_STAGE_TRANSPRANT_DEPTH_PEELING]
 				&& m_Pipelines[RENDER_STAGE_TRANSPRANT_DEPTH_PEELING_INSTANCE] && m_Pipelines[RENDER_STAGE_TRANSPRANT_ABUFFER_DEPTH_PEELING]
 				&& m_Pipelines[RENDER_STAGE_TRANSPRANT_ABUFFER_DEPTH_PEELING_INSTANCE];
@@ -172,10 +174,11 @@ bool KMaterialSubMesh::CreateGBufferPipeline()
 	if (m_SubMesh && m_Material->GetShadingMode() == MSM_OPAQUE)
 	{
 		const KVertexData* vertexData = m_SubMesh->m_pVertexData;
+		if (vertexData->vertexFormats.size() >= UINT32_MAX) return false;
 
-		IKShaderPtr vsShader = m_Material->GetVSShader(vertexData->vertexFormats.data(), vertexData->vertexFormats.size());
-		IKShaderPtr vsInstanceShader = m_Material->GetVSInstanceShader(vertexData->vertexFormats.data(), vertexData->vertexFormats.size());
-		IKShaderPtr fsShader = m_Material->GetFSShader(vertexData->vertexFormats.data(), vertexData->vertexFormats.size());
+		IKShaderPtr vsShader = m_Material->GetVSShader(vertexData->vertexFormats.data(), static_cast<uint32_t>(vertexData->vertexFormats.size()));
+		IKShaderPtr vsInstanceShader = m_Material->GetVSInstanceShader(vertexData->vertexFormats.data(), static_cast<uint32_t>(vertexData->vertexFormats.size()));
+		IKShaderPtr fsShader = m_Material->GetFSShader(vertexData->vertexFormats.data(), static_cast<uint32_t>(vertexData->vertexFormats.size()));
 
 		for (RenderStage stage : {RENDER_STAGE_BASEPASS, RENDER_STAGE_BASEPASS_INSTANCE})
 		{
@@ -184,14 +187,14 @@ bool KMaterialSubMesh::CreateGBufferPipeline()
 
 			if (stage == RENDER_STAGE_BASEPASS)
 			{
-				pipeline->SetVertexBinding((vertexData->vertexFormats).data(), vertexData->vertexFormats.size());
+				pipeline->SetVertexBinding((vertexData->vertexFormats).data(), static_cast<uint32_t>(vertexData->vertexFormats.size()));
 				pipeline->SetShader(ST_VERTEX, vsShader);
 			}
 			else if (stage == RENDER_STAGE_BASEPASS_INSTANCE)
 			{
 				std::vector<VertexFormat> instanceFormats = vertexData->vertexFormats;
 				instanceFormats.push_back(VF_INSTANCE);
-				pipeline->SetVertexBinding(instanceFormats.data(), instanceFormats.size());
+				pipeline->SetVertexBinding(instanceFormats.data(), static_cast<uint32_t>(instanceFormats.size()));
 				pipeline->SetShader(ST_VERTEX, vsInstanceShader);
 			}
 
@@ -225,10 +228,11 @@ bool KMaterialSubMesh::CreateVirtualFeedbackPipeline()
 	if (m_SubMesh && m_Material->GetShadingMode() == MSM_OPAQUE)
 	{
 		const KVertexData* vertexData = m_SubMesh->m_pVertexData;
+		if (vertexData->vertexFormats.size() >= UINT32_MAX) return false;
 
-		IKShaderPtr vsShader = m_Material->GetVSVirtualFeedbackShader(vertexData->vertexFormats.data(), vertexData->vertexFormats.size());
-		IKShaderPtr vsInstanceShader = m_Material->GetVSInstanceVirtualFeedbackShader(vertexData->vertexFormats.data(), vertexData->vertexFormats.size());
-		IKShaderPtr fsShader = m_Material->GetFSVirtualFeedbackShader(vertexData->vertexFormats.data(), vertexData->vertexFormats.size());
+		IKShaderPtr vsShader = m_Material->GetVSVirtualFeedbackShader(vertexData->vertexFormats.data(), static_cast<uint32_t>(vertexData->vertexFormats.size()));
+		IKShaderPtr vsInstanceShader = m_Material->GetVSInstanceVirtualFeedbackShader(vertexData->vertexFormats.data(), static_cast<uint32_t>(vertexData->vertexFormats.size()));
+		IKShaderPtr fsShader = m_Material->GetFSVirtualFeedbackShader(vertexData->vertexFormats.data(), static_cast<uint32_t>(vertexData->vertexFormats.size()));
 
 		for (RenderStage stage : {RENDER_STAGE_VIRTUAL_TEXTURE_FEEDBACK, RENDER_STAGE_VIRTUAL_TEXTURE_FEEDBACK_INSTANCE})
 		{
@@ -237,14 +241,14 @@ bool KMaterialSubMesh::CreateVirtualFeedbackPipeline()
 
 			if (stage == RENDER_STAGE_VIRTUAL_TEXTURE_FEEDBACK)
 			{
-				pipeline->SetVertexBinding((vertexData->vertexFormats).data(), vertexData->vertexFormats.size());
+				pipeline->SetVertexBinding((vertexData->vertexFormats).data(), static_cast<uint32_t>(vertexData->vertexFormats.size()));
 				pipeline->SetShader(ST_VERTEX, vsShader);
 			}
 			else if (stage == RENDER_STAGE_VIRTUAL_TEXTURE_FEEDBACK_INSTANCE)
 			{
 				std::vector<VertexFormat> instanceFormats = vertexData->vertexFormats;
 				instanceFormats.push_back(VF_INSTANCE);
-				pipeline->SetVertexBinding(instanceFormats.data(), instanceFormats.size());
+				pipeline->SetVertexBinding(instanceFormats.data(), static_cast<uint32_t>(instanceFormats.size()));
 				pipeline->SetShader(ST_VERTEX, vsInstanceShader);
 			}
 
@@ -288,10 +292,11 @@ bool KMaterialSubMesh::CreateVoxelPipeline()
 
 		IKPipelinePtr& pipeline = m_Pipelines[stage];
 		const KVertexData* vertexData = m_SubMesh->m_pVertexData;
+		if (vertexData->vertexFormats.size() > UINT32_MAX) return false;
 
 		KRenderGlobal::RenderDevice->CreatePipeline(pipeline);
 
-		pipeline->SetVertexBinding((vertexData->vertexFormats).data(), vertexData->vertexFormats.size());
+		pipeline->SetVertexBinding((vertexData->vertexFormats).data(), static_cast<uint32_t>(vertexData->vertexFormats.size()));
 
 		pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
 		pipeline->SetBlendEnable(false);
@@ -355,12 +360,13 @@ bool KMaterialSubMesh::CreateFixedPipeline(RenderStage stage, IKPipelinePtr& pip
 {
 	const KVertexData* vertexData = m_SubMesh->m_pVertexData;
 	ASSERT_RESULT(vertexData);
+	if (vertexData->vertexFormats.size() > UINT32_MAX) return false;
 
 	if (stage == RENDER_STAGE_SHADOW_GEN)
 	{
 		KRenderGlobal::RenderDevice->CreatePipeline(pipeline);
 
-		pipeline->SetVertexBinding((vertexData->vertexFormats).data(), vertexData->vertexFormats.size());
+		pipeline->SetVertexBinding((vertexData->vertexFormats).data(), static_cast<uint32_t>(vertexData->vertexFormats.size()));
 
 		pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
 		pipeline->SetBlendEnable(false);
@@ -396,7 +402,7 @@ bool KMaterialSubMesh::CreateFixedPipeline(RenderStage stage, IKPipelinePtr& pip
 	{
 		KRenderGlobal::RenderDevice->CreatePipeline(pipeline);
 
-		pipeline->SetVertexBinding((vertexData->vertexFormats).data(), vertexData->vertexFormats.size());
+		pipeline->SetVertexBinding((vertexData->vertexFormats).data(), static_cast<uint32_t>(vertexData->vertexFormats.size()));
 
 		pipeline->SetPrimitiveTopology(PT_LINE_LIST);
 		pipeline->SetBlendEnable(true);
@@ -422,7 +428,7 @@ bool KMaterialSubMesh::CreateFixedPipeline(RenderStage stage, IKPipelinePtr& pip
 	{
 		KRenderGlobal::RenderDevice->CreatePipeline(pipeline);
 
-		pipeline->SetVertexBinding((vertexData->vertexFormats).data(), vertexData->vertexFormats.size());
+		pipeline->SetVertexBinding((vertexData->vertexFormats).data(), static_cast<uint32_t>(vertexData->vertexFormats.size()));
 
 		pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
 		pipeline->SetBlendEnable(true);

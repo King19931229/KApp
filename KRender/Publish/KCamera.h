@@ -467,10 +467,10 @@ public:
 		return true;
 	}
 
-	bool CalcPickRay(size_t x, size_t y, size_t screenWidth, size_t screenHeight,
+	bool CalcPickRay(int32_t x, int32_t y, uint32_t screenWidth, uint32_t screenHeight,
 		glm::vec3& origin, glm::vec3& dir) const
 	{
-		if (screenWidth && screenHeight)
+		if (x >= 0 && y >= 0 && screenWidth && screenHeight)
 		{
 			return CalcPickRay(
 				2.0f * ((float)x / (float)screenWidth) - 1.0f,

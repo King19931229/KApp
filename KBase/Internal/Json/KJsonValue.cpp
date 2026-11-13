@@ -53,12 +53,12 @@ void KJsonValue::SetObject()
 	assert(m_Value->IsObject());
 }
 
-size_t KJsonValue::Size()
+uint32_t KJsonValue::Size()
 {
 	return m_Value->Size();
 }
 
-IKJsonValuePtr KJsonValue::GetArrayElement(size_t index)
+IKJsonValuePtr KJsonValue::GetArrayElement(uint32_t index)
 {
 	return IKJsonValuePtr(KNEW KJsonValue((*m_Value)[(rapidjson::SizeType)index], m_Allocator));
 }

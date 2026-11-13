@@ -9,15 +9,15 @@ public:
 	struct AllocResultBlock
 	{
 		IKVertexBufferPtr buffer;
-		size_t start;
-		size_t count;
-		size_t offset;
+		uint32_t start;
+		uint32_t count;
+		uint64_t offset;
 	};
 protected:
 	struct InstanceBlock
 	{
 		IKVertexBufferPtr buffer;
-		size_t useCount;
+		uint32_t useCount;
 
 		InstanceBlock()
 		{
@@ -28,7 +28,7 @@ protected:
 
 	struct FrameInstanceBlock
 	{
-		size_t frameNum;
+		uint32_t frameNum;
 		std::vector<InstanceBlock> blocks;
 		FrameInstanceBlock()
 		{
@@ -38,20 +38,20 @@ protected:
 
 	std::vector<FrameInstanceBlock> m_InstanceBlocks;
 	std::mutex m_Lock;
-	size_t m_VertexSize;
-	size_t m_BlockCount;
+	uint32_t m_VertexSize;
+	uint32_t m_BlockCount;
 
-	bool InternalAlloc(size_t count,
-		size_t frameIndex, size_t frameNum,
+	bool InternalAlloc(uint32_t count,
+		uint32_t frameIndex, uint32_t frameNum,
 		std::vector<AllocResultBlock>& results);
 public:
 	KInstanceBufferManager();
 	~KInstanceBufferManager();
 
-	bool Init(size_t vertexSize, size_t blockSize);
+	bool Init(uint32_t vertexSize, uint32_t blockSize);
 	bool UnInit();
 
-	bool Alloc(size_t count, const void* data, std::vector<AllocResultBlock>& results);
+	bool Alloc(uint32_t count, const void* data, std::vector<AllocResultBlock>& results);
 
-	inline size_t GetVertexSize() const { return m_VertexSize; }
+	inline uint32_t GetVertexSize() const { return m_VertexSize; }
 };

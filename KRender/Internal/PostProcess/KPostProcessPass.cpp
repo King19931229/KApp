@@ -6,7 +6,7 @@
 #include "Internal/KRenderGlobal.h"
 #include "KBase/Publish/KStringParser.h"
 
-KPostProcessPass::KPostProcessPass(KPostProcessManager* manager, size_t frameInFlight, PostProcessStage stage)
+KPostProcessPass::KPostProcessPass(KPostProcessManager* manager, uint32_t frameInFlight, PostProcessStage stage)
 	: m_Mgr(manager),
 	m_Scale(1),
 	m_MsaaCount(1),
@@ -24,7 +24,7 @@ KPostProcessPass::KPostProcessPass(KPostProcessManager* manager, size_t frameInF
 	ZERO_ARRAY_MEMORY(m_InputConnection);
 }
 
-KPostProcessPass::KPostProcessPass(KPostProcessManager* manager, size_t frameInFlight, PostProcessStage stage, IDType id)
+KPostProcessPass::KPostProcessPass(KPostProcessManager* manager, uint32_t frameInFlight, PostProcessStage stage, IDType id)
 	: m_Mgr(manager),
 	m_Scale(1),
 	m_MsaaCount(1),

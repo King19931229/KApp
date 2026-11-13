@@ -593,7 +593,7 @@ public:
 		const glm::vec3& objectBboxMax,
 		const glm::vec3& objectBboxMin,
 		const float* positions,
-		const size_t positionStride) const
+		const uint32_t positionStride) const
 	{
 		assert((positionStride % sizeof(float)) == 0);
 

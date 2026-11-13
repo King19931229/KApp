@@ -1,4 +1,5 @@
 #include "KVulkanPipeline.h"
+#include "KBase/Publish/KInteger.h"
 #include "KVulkanPipelineLayout.h"
 #include "KVulkanBuffer.h"
 #include "KVulkanTexture.h"
@@ -140,8 +141,8 @@ bool KVulkanPipeline::CreateDescriptionPool(uint32_t threadIndex)
 }
 
 VkDescriptorSet KVulkanPipeline::AllocDescriptorSet(uint32_t threadIndex,
-	const KDynamicConstantBufferUsage** ppConstantUsage, size_t dynamicBufferUsageCount,
-	const KStorageBufferUsage** ppStorageUsage, size_t storageBufferUsageCount)
+	const KDynamicConstantBufferUsage** ppConstantUsage, uint32_t dynamicBufferUsageCount,
+	const KStorageBufferUsage** ppStorageUsage, uint32_t storageBufferUsageCount)
 {
 	TrimDescriptionPool();
 	threadIndex = std::min(threadIndex, (uint32_t)(m_Pools.size() - 1));
@@ -217,7 +218,8 @@ bool KVulkanPipelineHandle::InitializeVulkanTerminology(const KPipelineState& st
 	m_PrimitiveTopology = state.topology;
 
 	KVulkanHelper::VulkanBindingDetailList bindingDetails;
-	ASSERT_RESULT(KVulkanHelper::PopulateInputBindingDescription(binding.formats.data(), binding.formats.size(), bindingDetails));
+	if (!KInteger::FitsUInt32(binding.formats.size())) return false;
+	ASSERT_RESULT(KVulkanHelper::PopulateInputBindingDescription(binding.formats.data(), static_cast<uint32_t>(binding.formats.size()), bindingDetails));
 
 	m_BindingDescriptions.clear();
 	m_AttributeDescriptions.clear();

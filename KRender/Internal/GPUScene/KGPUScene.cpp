@@ -1,4 +1,5 @@
 #include "KGPUScene.h"
+#include "KBase/Publish/KInteger.h"
 #include "Internal/ECS/Component/KRenderComponent.h"
 #include "Internal/ECS/Component/KTransformComponent.h"
 #include "Internal/KRenderGlobal.h"
@@ -154,12 +155,13 @@ uint32_t KGPUScene::CreateOrGetMegaShaderIndex(KSubMeshPtr subMesh, IKMaterialPt
 		index = (uint32_t)m_MegaShaders.size();
 
 		const KVertexData* vertexData = subMesh->GetVertexData();
+		if (!KInteger::FitsUInt32(vertexData->vertexFormats.size())) return UINT32_MAX;
 		const KShaderInformation::Constant* constantInfo = material->GetShadingInfo();
 
 		MegaShaderItem newItem;
 		newItem.refCount = 1;
-		newItem.vsShader = material->GetVSGPUSceneShader(vertexData->vertexFormats.data(), vertexData->vertexFormats.size());
-		newItem.fsShader = material->GetFSGPUSceneShader(vertexData->vertexFormats.data(), vertexData->vertexFormats.size());
+		newItem.vsShader = material->GetVSGPUSceneShader(vertexData->vertexFormats.data(), static_cast<uint32_t>(vertexData->vertexFormats.size()));
+		newItem.fsShader = material->GetFSGPUSceneShader(vertexData->vertexFormats.data(), static_cast<uint32_t>(vertexData->vertexFormats.size()));
 		newItem.parameterDataSize = constantInfo->size;
 		newItem.parameterDataCount = 0;
 
@@ -817,7 +819,7 @@ void KGPUScene::RebuildMeshStateBuffer()
 	}
 
 	m_MegaBuffer.meshStateBuffer->UnInit();
-	m_MegaBuffer.meshStateBuffer->InitMemory(sizeof(KGPUSceneMeshState) * m_MeshStates.size(), m_MeshStates.data());
+	m_MegaBuffer.meshStateBuffer->InitMemory(uint64_t(sizeof(KGPUSceneMeshState)) * m_MeshStates.size(), m_MeshStates.data());
 	m_MegaBuffer.meshStateBuffer->InitDevice(false, false);
 }
 
@@ -826,7 +828,7 @@ void KGPUScene::RebuildMegaShaderState()
 	for (size_t i = 0; i < m_MegaShaderStateBuffers.size(); ++i)
 	{
 		m_MegaShaderStateBuffers[i]->UnInit();
-		m_MegaShaderStateBuffers[i]->InitMemory(sizeof(KGPUSceneMegaShaderState) * m_MegaShaders.size(), nullptr);
+		m_MegaShaderStateBuffers[i]->InitMemory(uint64_t(sizeof(KGPUSceneMegaShaderState)) * m_MegaShaders.size(), nullptr);
 		m_MegaShaderStateBuffers[i]->InitDevice(false, false);
 	}
 }
@@ -892,7 +894,7 @@ void KGPUScene::RebuildTextureArray()
 	}
 
 	m_TextureArray.materialTextureBindingBuffer->UnInit();
-	m_TextureArray.materialTextureBindingBuffer->InitMemory(sizeof(KGPUSceneMaterialTextureBinding) * m_MaterialTextureBindings.size(), m_MaterialTextureBindings.data());
+	m_TextureArray.materialTextureBindingBuffer->InitMemory(uint64_t(sizeof(KGPUSceneMaterialTextureBinding)) * m_MaterialTextureBindings.size(), m_MaterialTextureBindings.data());
 	m_TextureArray.materialTextureBindingBuffer->InitDevice(false, false);
 
 	for (uint32_t arrayIndex = 0; arrayIndex < MAX_TEXTURE_ARRAY_NUM; ++arrayIndex)
@@ -942,10 +944,10 @@ void KGPUScene::RebuildInstance()
 	for (size_t i = 0; i < m_InstanceDataBuffers.size(); ++i)
 	{
 		IKStorageBufferPtr buffer = m_InstanceDataBuffers[i];
-		if (buffer->GetBufferSize() < instanceBufferCount * sizeof(KGPUSceneInstance))
+		if (buffer->GetBufferSize() < uint64_t(instanceBufferCount) * sizeof(KGPUSceneInstance))
 		{
 			buffer->UnInit();
-			buffer->InitMemory(instanceBufferCount * sizeof(KGPUSceneInstance), nullptr);
+			buffer->InitMemory(uint64_t(instanceBufferCount) * sizeof(KGPUSceneInstance), nullptr);
 			buffer->InitDevice(false, false);
 		}
 	}
@@ -953,10 +955,10 @@ void KGPUScene::RebuildInstance()
 	for (size_t i = 0; i < m_GroupDataBuffers.size(); ++i)
 	{
 		IKStorageBufferPtr buffer = m_GroupDataBuffers[i];
-		if (buffer->GetBufferSize() < instanceBufferCount * sizeof(uint32_t))
+		if (buffer->GetBufferSize() < uint64_t(instanceBufferCount) * sizeof(uint32_t))
 		{
 			buffer->UnInit();
-			buffer->InitMemory(instanceBufferCount * sizeof(uint32_t), nullptr);
+			buffer->InitMemory(uint64_t(instanceBufferCount) * sizeof(uint32_t), nullptr);
 			buffer->InitDevice(false, false);
 		}
 	}
@@ -964,10 +966,10 @@ void KGPUScene::RebuildInstance()
 	for (size_t i = 0; i < m_InstanceCullResultBuffers.size(); ++i)
 	{
 		IKStorageBufferPtr buffer = m_InstanceCullResultBuffers[i];
-		if (buffer->GetBufferSize() < instanceBufferCount * sizeof(uint32_t))
+		if (buffer->GetBufferSize() < uint64_t(instanceBufferCount) * sizeof(uint32_t))
 		{
 			buffer->UnInit();
-			buffer->InitMemory(instanceBufferCount * sizeof(uint32_t), nullptr);
+			buffer->InitMemory(uint64_t(instanceBufferCount) * sizeof(uint32_t), nullptr);
 			buffer->InitDevice(false, false);
 		}
 	}
@@ -983,13 +985,13 @@ void KGPUScene::RebuildMegaShaderBuffer()
 			for (size_t i = 0; i < shaderItem.parametersBuffers.size(); ++i)
 			{
 				shaderItem.parametersBuffers[i]->UnInit();
-				shaderItem.parametersBuffers[i]->InitMemory(shaderItem.parameterDataSize * shaderItem.parameterDataCount, nullptr);
+				shaderItem.parametersBuffers[i]->InitMemory(uint64_t(shaderItem.parameterDataSize) * shaderItem.parameterDataCount, nullptr);
 				shaderItem.parametersBuffers[i]->InitDevice(false, false);
 			}
 			for (size_t i = 0; i < shaderItem.materialIndicesBuffers.size(); ++i)
 			{
 				shaderItem.materialIndicesBuffers[i]->UnInit();
-				shaderItem.materialIndicesBuffers[i]->InitMemory(sizeof(uint32_t) * shaderItem.parameterDataCount, nullptr);
+				shaderItem.materialIndicesBuffers[i]->InitMemory(uint64_t(sizeof(uint32_t)) * shaderItem.parameterDataCount, nullptr);
 				shaderItem.materialIndicesBuffers[i]->InitDevice(false, false);
 			}
 		}
@@ -1000,7 +1002,7 @@ void KGPUScene::RebuildMegaShaderBuffer()
 			for (size_t i = 0; i < shaderItem.indirectDrawArgsBuffers.size(); ++i)
 			{
 				shaderItem.indirectDrawArgsBuffers[i]->UnInit();
-				shaderItem.indirectDrawArgsBuffers[i]->InitMemory(sizeof(uint32_t) * 4 * shaderItem.drawArgsDataCount, nullptr);
+				shaderItem.indirectDrawArgsBuffers[i]->InitMemory(uint64_t(sizeof(uint32_t)) * 4 * shaderItem.drawArgsDataCount, nullptr);
 				shaderItem.indirectDrawArgsBuffers[i]->InitDevice(true, false);
 			}
 		}
@@ -1486,7 +1488,8 @@ bool KGPUScene::BasePassMain(IKRenderPassPtr renderPass, KRHICommandList& comman
 
 		{
 			std::vector<char> datas;
-			datas.resize(megaShader.parametersBuffers[frameIndex]->GetBufferSize());
+			if (megaShader.parametersBuffers[frameIndex]->GetBufferSize() > datas.max_size()) return false;
+			datas.resize(static_cast<size_t>(megaShader.parametersBuffers[frameIndex]->GetBufferSize()));
 			void* pData = datas.data();
 
 			for (uint32_t materialIndex : megaShader.materialIndices)

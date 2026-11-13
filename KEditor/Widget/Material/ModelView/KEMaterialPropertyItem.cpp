@@ -304,12 +304,12 @@ void KEMaterialPropertyItem::InitAsTextureBinding(IKMaterial* material, IKMateri
 	for (size_t i = 0; i < m_NumChildren; ++i)
 	{
 		m_Children[i] = KNEW KEMaterialPropertyItem(this);
-		m_Children[i]->InitAsTextureBindingSlot(material, textureBinding, i);
+		m_Children[i]->InitAsTextureBindingSlot(material, textureBinding, static_cast<uint32_t>(i));
 		m_Children[i]->m_Index = i;
 	}
 }
 
-void KEMaterialPropertyItem::InitAsTextureBindingSlot(IKMaterial* material, IKMaterialTextureBinding* textureBinding, size_t slot)
+void KEMaterialPropertyItem::InitAsTextureBindingSlot(IKMaterial* material, IKMaterialTextureBinding* textureBinding, uint32_t slot)
 {
 	m_Type = MATERIAL_MEMBER_TYPE_MATERIAL_TEXTURE_SLOT;
 	m_Name = std::to_string(slot);

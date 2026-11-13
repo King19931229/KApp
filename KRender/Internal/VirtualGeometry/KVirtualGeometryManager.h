@@ -11,19 +11,19 @@ class KVirtualGeometryStorageBuffer
 {
 protected:
 	std::string m_Name;
-	size_t m_Size;
+	uint64_t m_Size;
 	IKStorageBufferPtr m_Buffer;
 public:
 	KVirtualGeometryStorageBuffer();
 	~KVirtualGeometryStorageBuffer();
 
-	bool Init(const char* name, size_t initialSize);
+	bool Init(const char* name, uint64_t initialSize);
 	bool UnInit();
-	bool Remove(size_t offset, size_t size);
-	bool Modify(size_t offset, size_t size, void* pData);
-	bool Append(size_t size, void* pData);
+	bool Remove(uint64_t offset, uint64_t size);
+	bool Modify(uint64_t offset, uint64_t size, void* pData);
+	bool Append(uint64_t size, void* pData);
 
-	size_t GetSize() const { return m_Size; }
+	uint64_t GetSize() const { return m_Size; }
 	IKStorageBufferPtr GetBuffer() { return m_Buffer; }
 };
 

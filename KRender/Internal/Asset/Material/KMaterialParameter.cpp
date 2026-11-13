@@ -95,6 +95,7 @@ IKMaterialValuePtr KMaterialParameter::MakeValue(const std::string& name, Materi
 
 bool KMaterialParameter::CreateValue(const std::string& name, MaterialValueType type, uint8_t vecSize, const void* initData)
 {
+	if (m_ParameterKey.size() >= UINT32_MAX) return false;
 	size_t hash = KHash::BKDR(name.c_str(), name.length());
 	Key ref = Key(name, hash, 0);
 
@@ -110,7 +111,7 @@ bool KMaterialParameter::CreateValue(const std::string& name, MaterialValueType 
 
 		if (it == m_ParameterKey.end())
 		{
-			ref.index = m_ParameterKey.size();
+			ref.index = static_cast<uint32_t>(m_ParameterKey.size());
 			m_ParameterValue.push_back(value);
 		}
 		else

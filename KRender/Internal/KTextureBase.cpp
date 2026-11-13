@@ -49,8 +49,8 @@ bool KTextureBase::InitProperty(bool generateMipmap)
 		m_bGenerateMipmap = generateMipmap;
 	}
 	// 如果硬生成mipmap mipmap层数与尺寸相关 否则从mipmap数据中获取
-	m_Mipmaps = (unsigned short)(m_bGenerateMipmap ?
-		(unsigned short)std::floor(std::log(std::max(std::max(m_Width, m_Height), m_Depth)) / std::log(2)) + 1 :
+	m_Mipmaps = (uint32_t)(m_bGenerateMipmap ?
+		(uint32_t)std::floor(std::log(std::max(std::max(m_Width, m_Height), m_Depth)) / std::log(2)) + 1 :
 		m_ImageData.uMipmap);
 
 	if (m_ImageData.bCubemap)
@@ -140,11 +140,11 @@ bool KTextureBase::InitMemoryFromFile(const std::string& filePath, bool bGenerat
 	}
 }
 
-bool KTextureBase::InitMemoryFromData(const void* pRawData, const std::string& name, size_t width, size_t height, size_t depth, PixelFormat format, bool cubeMap, bool bGenerateMipmap, bool async)
+bool KTextureBase::InitMemoryFromData(const void* pRawData, const std::string& name, uint32_t width, uint32_t height, uint32_t depth, PixelFormat format, bool cubeMap, bool bGenerateMipmap, bool async)
 {
 	ReleaseMemory();
 
-	const size_t faceCount = cubeMap ? 6 : 1;
+	const uint32_t faceCount = cubeMap ? 6 : 1;
 	size_t imageSize = 0;
 	if (KPixelFormatHelper::IsCompressed(format)
 		|| !KPixelFormatHelper::GetByteSize(format, 1, faceCount, width, height, depth, imageSize))
@@ -158,7 +158,7 @@ bool KTextureBase::InitMemoryFromData(const void* pRawData, const std::string& n
 		memcpy(pImageData->GetData(), pRawData, pImageData->GetSize());
 	}
 
-	for (size_t face = 0; face < faceCount; ++face)
+	for (uint32_t face = 0; face < faceCount; ++face)
 	{
 		KSubImageInfo subImageInfo;
 		subImageInfo.uWidth = width;
@@ -207,7 +207,7 @@ bool KTextureBase::InitMemoryFromData(const void* pRawData, const std::string& n
 	}
 }
 
-bool KTextureBase::InitMemoryFrom2DArray(const std::string& name, size_t width, size_t height, size_t slices, PixelFormat format, bool bGenerateMipmap, bool async)
+bool KTextureBase::InitMemoryFrom2DArray(const std::string& name, uint32_t width, uint32_t height, uint32_t slices, PixelFormat format, bool bGenerateMipmap, bool async)
 {
 	ReleaseMemory();
 
@@ -232,7 +232,7 @@ bool KTextureBase::InitMemoryFrom2DArray(const std::string& name, size_t width, 
 			m_ImageData.bTextureArray = true;
 			m_ImageData.pData = pImageData;
 
-			for (size_t slice = 0; slice < slices; ++slice)
+			for (uint32_t slice = 0; slice < slices; ++slice)
 			{
 				KSubImageInfo subImageInfo;
 				subImageInfo.uWidth = width;

@@ -44,7 +44,7 @@ bool KRayTraceManager::UpdateCamera()
 	return true;
 }
 
-bool KRayTraceManager::Resize(size_t width, size_t height)
+bool KRayTraceManager::Resize(uint32_t width, uint32_t height)
 {
 	for (IKRayTraceScenePtr scene : m_Scenes)
 	{
