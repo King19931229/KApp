@@ -184,9 +184,6 @@ bool KRenderer::Render(uint32_t chainImageIndex)
 
 	m_RHICommandList.BeginRecord();
 	{
-		// The previous frame's final graphics submission joins its compute work.
-		// Order all shared-resource reuse after that frame's remaining graphics work.
-		m_RHICommandList.PipelineMemoryBarrier(PIPELINE_STAGE_ALL_COMMANDS, PIPELINE_STAGE_ALL_COMMANDS);
 		KRenderGlobal::VirtualTextureManager.Update(m_RHICommandList, cullRes);
 		KRenderGlobal::GPUScene.Execute(m_RHICommandList);
 

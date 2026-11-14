@@ -122,7 +122,7 @@ protected:
 		IKShaderPtr fsShader;
 		std::vector<IKPipelinePtr> darwPipelines[GPUSCENE_RENDER_STAGE_COUNT];
 		std::vector<IKStorageBufferPtr> parametersBuffers;
-		std::vector<IKStorageBufferPtr> materialIndicesBuffers;
+		IKStorageBufferPtr materialIndicesBuffer;
 		std::vector<IKStorageBufferPtr> indirectDrawArgsBuffers;
 		std::vector<IKComputePipelinePtr> calcDrawArgsPipelines;
 		std::vector<uint32_t> materialIndices;
