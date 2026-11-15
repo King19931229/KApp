@@ -3,40 +3,15 @@
 #include "KVulkanConfig.h"
 #include <unordered_map>
 
+struct KVulkanDescriptorTicket;
+
 class KVulkanComputePipeline : public IKComputePipeline
 {
 protected:
-	struct DescriptorSetBlock
-	{
-		VkDescriptorPool pool;
-		std::vector<VkDescriptorSet> sets;
-		uint32_t useCount;
-		uint32_t maxCount;
-
-		DescriptorSetBlock()
-		{
-			useCount = 0;
-			maxCount = 8;
-			pool = VK_NULL_HANDLE;
-		}
-	};
-
-	struct DescriptorSetBlockList
-	{
-		std::vector<DescriptorSetBlock> blocks;
-		uint32_t currentFrame;
-
-		DescriptorSetBlockList()
-		{
-			currentFrame = 0;
-		}
-	};
-
 	VkDescriptorSetLayout m_DescriptorLayout;
-	std::vector<DescriptorSetBlockList> m_Descriptors;
+	KVulkanDescriptorTicket* m_DescriptorTicket;
 
 	std::vector<VkDescriptorSetLayoutBinding> m_LayoutBindings;
-	std::vector<VkDescriptorPoolSize> m_PoolSizes;
 	std::vector<VkWriteDescriptorSet> m_StaticWrites;
 
 	VkPipelineLayout m_PipelineLayout;
@@ -124,9 +99,7 @@ protected:
 
 	VkWriteDescriptorSet PopulateDynamicUniformBufferWrite(BindingInfo& binding, const KDynamicConstantBufferUsage& usage, VkDescriptorSet dstSet);
 
-	VkDescriptorPool CreateDescriptorPool(uint32_t maxCount);
-	VkDescriptorSet AllocDescriptorSet(VkDescriptorPool pool);
-	VkDescriptorSet Alloc(uint32_t frameIndex, uint32_t frameNum);
+	VkDescriptorSet Alloc();
 
 	bool UpdateDynamicWrite(VkDescriptorSet dstSet, const KDynamicConstantBufferUsage* usage = nullptr);
 	bool SetupBarrier(IKCommandBufferPtr buffer, bool input);

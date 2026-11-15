@@ -1,4 +1,5 @@
 #include "KVulkanComputePipeline.h"
+#include "KVulkanRenderDevice.h"
 #include "KBase/Interface/IKLog.h"
 #include "KVulkanRenderTarget.h"
 #include "KVulkanFrameBuffer.h"
@@ -15,6 +16,7 @@
 
 KVulkanComputePipeline::KVulkanComputePipeline()
 	: m_DescriptorLayout(VK_NULL_HANDEL)
+	, m_DescriptorTicket(nullptr)
 	, m_PipelineLayout(VK_NULL_HANDEL)
 	, m_Pipeline(VK_NULL_HANDEL)
 {
@@ -193,112 +195,31 @@ VkWriteDescriptorSet KVulkanComputePipeline::PopulateDynamicUniformBufferWrite(B
 	return KVulkanInitializer::CreateDescriptorBufferWrite(&binding.uniform.bufferDescriptor, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, dstSet, dstBinding, 1);
 }
 
-VkDescriptorPool KVulkanComputePipeline::CreateDescriptorPool(uint32_t maxCount)
+VkDescriptorSet KVulkanComputePipeline::Alloc()
 {
-	VkDescriptorPool pool = VK_NULL_HANDEL;
-
-	std::vector<VkDescriptorPoolSize> poolSizes = m_PoolSizes;
-	for (VkDescriptorPoolSize& poolSize : poolSizes)
+	bool newSet = false;
+	KVulkanDescriptorPoolAllocatedSetPtr allocation = static_cast<KVulkanRenderDevice*>(KRenderGlobal::RenderDevice)->GetDescriptorManager().Alloc(m_DescriptorTicket, 0, newSet);
+	VkDescriptorSet set = allocation->set;
+	if (newSet)
 	{
-		poolSize.descriptorCount *= maxCount;
+		std::vector<VkWriteDescriptorSet> staticWrites = m_StaticWrites;
+		for (VkWriteDescriptorSet& write : staticWrites)
+		{
+			write.dstSet = set;
+		}
+		vkUpdateDescriptorSets(KVulkanGlobal::device, static_cast<uint32_t>(staticWrites.size()), staticWrites.data(), 0, nullptr);
 	}
-
-	VkDescriptorPoolCreateInfo descriptorPoolCreateInfo = {};
-	descriptorPoolCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-	descriptorPoolCreateInfo.poolSizeCount = (uint32_t)poolSizes.size();
-	descriptorPoolCreateInfo.pPoolSizes = poolSizes.data();
-	descriptorPoolCreateInfo.maxSets = maxCount;
-	descriptorPoolCreateInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
-
-	VK_ASSERT_RESULT(vkCreateDescriptorPool(KVulkanGlobal::device, &descriptorPoolCreateInfo, nullptr, &pool));
-
-	return pool;
-}
-
-VkDescriptorSet KVulkanComputePipeline::AllocDescriptorSet(VkDescriptorPool pool)
-{
-	VkDescriptorSet set = VK_NULL_HANDEL;
-
-	std::vector<VkWriteDescriptorSet> staticWrites = m_StaticWrites;
-
-	VkDescriptorSetAllocateInfo descriptorSetAllocateInfo = {};
-	descriptorSetAllocateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-	descriptorSetAllocateInfo.descriptorPool = pool;
-	descriptorSetAllocateInfo.descriptorSetCount = 1;
-	descriptorSetAllocateInfo.pSetLayouts = &m_DescriptorLayout;
-
-	VK_ASSERT_RESULT(vkAllocateDescriptorSets(KVulkanGlobal::device, &descriptorSetAllocateInfo, &set));
-
-	for (VkWriteDescriptorSet& write : staticWrites)
-	{
-		write.dstSet = set;
-	}
-
-	vkUpdateDescriptorSets(KVulkanGlobal::device, static_cast<uint32_t>(staticWrites.size()), staticWrites.data(), 0, nullptr);
-
 	return set;
-}
-
-VkDescriptorSet KVulkanComputePipeline::Alloc(uint32_t frameIndex, uint32_t frameNum)
-{
-	if(frameIndex < m_Descriptors.size())
-	{
-		DescriptorSetBlockList& blockList = m_Descriptors[frameIndex];
-
-		if(blockList.currentFrame != frameNum)
-		{
-			blockList.currentFrame = frameNum;
-			for(DescriptorSetBlock& block : blockList.blocks)
-			{
-				block.useCount = 0;
-			}
-		}
-
-		for (DescriptorSetBlock& block : blockList.blocks)
-		{
-			uint32_t newUseIndex = block.useCount++;
-			if (newUseIndex < block.maxCount)
-			{
-				if (newUseIndex >= block.sets.size())
-				{
-					VkDescriptorSet newSet = AllocDescriptorSet(block.pool);
-					block.sets.push_back(newSet);
-					return newSet;
-				}
-				else
-				{
-					return block.sets[newUseIndex];
-				}
-			}
-		}
-
-		DescriptorSetBlock newBlock;
-
-		newBlock.pool = CreateDescriptorPool(newBlock.maxCount);
-		VkDescriptorSet newSet = AllocDescriptorSet(newBlock.pool);
-		newBlock.sets.push_back(newSet);
-		++newBlock.useCount;
-
-		blockList.blocks.push_back(newBlock);
-		return newSet;
-	}
-
-	return VK_NULL_HANDEL;
 }
 
 bool KVulkanComputePipeline::CreateLayout()
 {
-	uint32_t frames = KRenderGlobal::NumFramesInFlight;
-	m_Descriptors.resize(frames);
-
 	uint32_t stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
 
 	m_LayoutBindings.clear();
-	m_PoolSizes.clear();
 	m_StaticWrites.clear();
 
 	m_LayoutBindings.reserve(m_Bindings.size());
-	m_PoolSizes.reserve(m_Bindings.size());
 
 	for (auto& pair : m_Bindings)
 	{
@@ -345,10 +266,8 @@ bool KVulkanComputePipeline::CreateLayout()
 		}
 
 		VkDescriptorSetLayoutBinding newBinding = KVulkanInitializer::CreateDescriptorSetLayoutBinding(type, stageFlags, location, newWrite.descriptorCount);
-		VkDescriptorPoolSize newPoolSize = { type, newBinding.descriptorCount };
 
 		m_LayoutBindings.push_back(newBinding);
-		m_PoolSizes.push_back(newPoolSize);
 
 		if (!binding.dynamicWrite)
 		{
@@ -371,7 +290,9 @@ bool KVulkanComputePipeline::CreateLayout()
 	pipelineLayoutCI.setLayoutCount = 1;
 	pipelineLayoutCI.pSetLayouts = &m_DescriptorLayout;
 
-	return vkCreatePipelineLayout(KVulkanGlobal::device, &pipelineLayoutCI, nullptr, &m_PipelineLayout) == VK_SUCCESS;
+	if (vkCreatePipelineLayout(KVulkanGlobal::device, &pipelineLayoutCI, nullptr, &m_PipelineLayout) != VK_SUCCESS) return false;
+	m_DescriptorTicket = static_cast<KVulkanRenderDevice*>(KRenderGlobal::RenderDevice)->GetDescriptorManager().Create(m_DescriptorLayout, m_LayoutBindings, 1, 8, false);
+	return m_DescriptorTicket != nullptr;
 }
 
 bool KVulkanComputePipeline::CreatePipeline()
@@ -406,19 +327,11 @@ bool KVulkanComputePipeline::CreatePipeline()
 
 void KVulkanComputePipeline::DestroyDescriptorSet()
 {
-	for(DescriptorSetBlockList& blockList : m_Descriptors)
+	if (m_DescriptorTicket)
 	{
-		for (DescriptorSetBlock& block : blockList.blocks)
-		{
-			if (block.pool != VK_NULL_HANDEL)
-			{
-				vkDestroyDescriptorPool(KVulkanGlobal::device, block.pool, nullptr);
-				block.pool = VK_NULL_HANDEL;
-			}
-		}
+		static_cast<KVulkanRenderDevice*>(KRenderGlobal::RenderDevice)->GetDescriptorManager().Destroy(m_DescriptorTicket);
+		m_DescriptorTicket = nullptr;
 	}
-
-	m_Descriptors.clear();
 
 	if (m_DescriptorLayout != VK_NULL_HANDEL)
 	{
@@ -683,10 +596,9 @@ void KVulkanComputePipeline::PostDispatch(IKCommandBufferPtr primaryBuffer)
 
 bool KVulkanComputePipeline::Execute(IKCommandBufferPtr primaryBuffer, uint32_t groupX, uint32_t groupY, uint32_t groupZ, const KDynamicConstantBufferUsage* usage)
 {
-	uint32_t frameIndex = KRenderGlobal::CurrentInFlightFrameIndex;
-	if (primaryBuffer && frameIndex < m_Descriptors.size() && EnsurePipeline())
+	if (primaryBuffer && EnsurePipeline())
 	{
-		VkDescriptorSet dstSet = Alloc(frameIndex, KRenderGlobal::CurrentFrameNum);
+		VkDescriptorSet dstSet = Alloc();
 
 		PreDispatch(primaryBuffer, dstSet, usage);
 
@@ -707,10 +619,9 @@ bool KVulkanComputePipeline::Execute(IKCommandBufferPtr primaryBuffer, uint32_t 
 
 bool KVulkanComputePipeline::ExecuteIndirect(IKCommandBufferPtr primaryBuffer, IKStorageBufferPtr indirectBuffer, const KDynamicConstantBufferUsage* usage)
 {
-	uint32_t frameIndex = KRenderGlobal::CurrentInFlightFrameIndex;
-	if (primaryBuffer && frameIndex < m_Descriptors.size() && EnsurePipeline())
+	if (primaryBuffer && EnsurePipeline())
 	{
-		VkDescriptorSet dstSet = Alloc(frameIndex, KRenderGlobal::CurrentFrameNum);
+		VkDescriptorSet dstSet = Alloc();
 
 		PreDispatch(primaryBuffer, dstSet, usage);
 

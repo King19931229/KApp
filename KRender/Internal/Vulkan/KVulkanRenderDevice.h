@@ -6,6 +6,7 @@
 
 #include "KVulkanHeapAllocator.h"
 #include "KVulkanBufferManager.h"
+#include "KVulkanDescriptorManager.h"
 #include "KVulkanHelper.h"
 #include "KVulkanSwapChain.h"
 
@@ -104,6 +105,7 @@ class KVulkanRenderDevice : public IKRenderDevice
 	};
 protected:
 	KVulkanBufferManager m_BufferManager;
+	KVulkanDescriptorManager m_DescriptorManager;
 	std::unordered_set<KVulkanCommandPool*> m_CommandPools;
 	KRenderDeviceProperties m_Properties;
 	IKRenderWindow* m_pWindow;	
@@ -212,6 +214,7 @@ public:
 	virtual bool CreateRenderPass(IKRenderPassPtr& renderPass);
 
 	KVulkanBufferManager& GetBufferManager() { return m_BufferManager; }
+	KVulkanDescriptorManager& GetDescriptorManager() { return m_DescriptorManager; }
 	void RegisterCommandPool(KVulkanCommandPool* pool);
 	void UnRegisterCommandPool(KVulkanCommandPool* pool);
 	void ReleaseFrameResources(uint32_t frameNum);

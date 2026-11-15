@@ -1398,6 +1398,7 @@ bool KVulkanRenderDevice::UnInit()
 		m_GraphicCommandPool = VK_NULL_HANDLE;
 	}
 
+	m_DescriptorManager.UnInit();
 	m_BufferManager.UnInit();
 	UnInitHeapAllocator();
 
@@ -1830,6 +1831,7 @@ void KVulkanRenderDevice::ReleaseFrameResources(uint32_t frameNum)
 {
 	m_BufferManager.Release(frameNum);
 	for (KVulkanCommandPool* pool : m_CommandPools) pool->Release(frameNum);
+	m_DescriptorManager.Release(frameNum);
 }
 
 bool KVulkanRenderDevice::Wait()
