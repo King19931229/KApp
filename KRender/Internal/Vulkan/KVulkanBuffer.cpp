@@ -1,8 +1,10 @@
 #include "KVulkanBuffer.h"
+#include "KVulkanRenderDevice.h"
 #include "KVulkanHelper.h"
 #include "KVulkanInitializer.h"
 #include "KVulkanGlobal.h"
 #include "Internal/KRenderGlobal.h"
+#include "KBase/Publish/KInteger.h"
 
 
 KVulkanStageBuffer::KVulkanStageBuffer()
@@ -17,8 +19,9 @@ KVulkanStageBuffer::~KVulkanStageBuffer()
 	ASSERT_RESULT(m_vkBuffer == VK_NULL_HANDLE);
 }
 
-bool KVulkanStageBuffer::Init(uint32_t bufferSize)
+bool KVulkanStageBuffer::Init(uint64_t bufferSize)
 {
+	if (!KInteger::FitsMemorySize(bufferSize)) return false;
 	UnInit();
 
 	m_BufferSize = bufferSize;
@@ -80,7 +83,7 @@ bool KVulkanStageBuffer::Write(const void* pData)
 	void* pMapData = nullptr;
 	if (Map(&pMapData))
 	{
-		memcpy(pMapData, pData, m_BufferSize);
+		memcpy(pMapData, pData, static_cast<size_t>(m_BufferSize));
 		UnMap();
 		return true;
 	}
@@ -92,7 +95,7 @@ bool KVulkanStageBuffer::Read(void* pData)
 	void* pMapData = nullptr;
 	if (Map(&pMapData))
 	{
-		memcpy(pData, pMapData, m_BufferSize);
+		memcpy(pData, pMapData, static_cast<size_t>(m_BufferSize));
 		UnMap();
 		return true;
 	}
@@ -119,8 +122,9 @@ KVulkanBuffer::~KVulkanBuffer()
 	ASSERT_RESULT(m_vkBuffer == VK_NULL_HANDLE);
 }
 
-bool KVulkanBuffer::InitDevice(VkBufferUsageFlags usages, const void* pData, uint32_t bufferSize, bool hostVisible)
+bool KVulkanBuffer::InitDevice(VkBufferUsageFlags usages, const void* pData, uint64_t bufferSize, bool hostVisible)
 {
+	if (!KInteger::FitsMemorySize(bufferSize)) return false;
 	ASSERT_RESULT(UnInit());
 	ASSERT_RESULT(m_vkBuffer == VK_NULL_HANDLE);
 
@@ -287,9 +291,9 @@ bool KVulkanBuffer::Write(const void* pData)
 	return Write(pData, 0, m_BufferSize);
 }
 
-bool KVulkanBuffer::Write(const void* pData, size_t offset, size_t size)
+bool KVulkanBuffer::Write(const void* pData, uint64_t offset, uint64_t size)
 {
-	if (m_vkBuffer == VK_NULL_HANDLE || m_Mapping || offset > m_BufferSize || size > m_BufferSize - offset || (size && !pData))
+	if (m_vkBuffer == VK_NULL_HANDLE || m_Mapping || offset > m_BufferSize || size > m_BufferSize - offset || !KInteger::FitsMemorySize(size) || !KInteger::FitsMemorySize(offset) || (size && !pData))
 	{
 		return false;
 	}
@@ -302,14 +306,14 @@ bool KVulkanBuffer::Write(const void* pData, size_t offset, size_t size)
 		void* pMapData = nullptr;
 		if (Map(&pMapData))
 		{
-			memcpy(POINTER_OFFSET(pMapData, offset), pData, size);
+			memcpy(POINTER_OFFSET(pMapData, static_cast<size_t>(offset)), pData, static_cast<size_t>(size));
 			UnMap();
 			return true;
 		}
 	}
 	else
 	{
-		m_StageBuffer.Init((uint32_t)size);
+		m_StageBuffer.Init(size);
 		const bool success = m_StageBuffer.Write(pData);
 		if (success)
 		{
@@ -327,9 +331,9 @@ bool KVulkanBuffer::Read(void* pData)
 	return Read(pData, 0, m_BufferSize);
 }
 
-bool KVulkanBuffer::Read(void* pData, size_t offset, size_t size)
+bool KVulkanBuffer::Read(void* pData, uint64_t offset, uint64_t size)
 {
-	if (m_vkBuffer == VK_NULL_HANDLE || m_Mapping || offset > m_BufferSize || size > m_BufferSize - offset || (size && !pData))
+	if (m_vkBuffer == VK_NULL_HANDLE || m_Mapping || offset > m_BufferSize || size > m_BufferSize - offset || !KInteger::FitsMemorySize(size) || !KInteger::FitsMemorySize(offset) || (size && !pData))
 	{
 		return false;
 	}
@@ -342,14 +346,14 @@ bool KVulkanBuffer::Read(void* pData, size_t offset, size_t size)
 		void* pMapData = nullptr;
 		if (Map(&pMapData, MA_READ_ONLY))
 		{
-			memcpy(pData, POINTER_OFFSET(pMapData, offset), size);
+			memcpy(pData, POINTER_OFFSET(pMapData, static_cast<size_t>(offset)), static_cast<size_t>(size));
 			UnMap();
 			return true;
 		}
 	}
 	else
 	{
-		m_StageBuffer.Init((uint32_t)size);
+		m_StageBuffer.Init(size);
 		KVulkanInitializer::CopyVkBuffer(m_vkBuffer, m_StageBuffer.GetVulkanHandle(), (VkDeviceSize)size, (VkDeviceSize)offset, 0);
 		const bool success = m_StageBuffer.Read(pData);
 		m_StageBuffer.UnInit();
@@ -396,7 +400,7 @@ bool KVulkanVertexBuffer::InitDevice(bool hostVisible)
 		usageFlags |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
 	}
 
-	return m_Buffer.InitDevice(usageFlags, m_Data.data(), (uint32_t)m_BufferSize, hostVisible);
+	return m_Buffer.InitDevice(usageFlags, m_Data.data(), m_BufferSize, hostVisible);
 }
 
 bool KVulkanVertexBuffer::UnInit()
@@ -431,7 +435,7 @@ bool KVulkanVertexBuffer::Write(const void* pData)
 	return m_Buffer.Write(pData);
 }
 
-bool KVulkanVertexBuffer::Write(const void* pData, size_t offset, size_t size)
+bool KVulkanVertexBuffer::Write(const void* pData, uint64_t offset, uint64_t size)
 {
 	return m_Buffer.Write(pData, offset, size);
 }
@@ -441,7 +445,7 @@ bool KVulkanVertexBuffer::Read(void* pData)
 	return m_Buffer.Read(pData);
 }
 
-bool KVulkanVertexBuffer::Read(void* pData, size_t offset, size_t size)
+bool KVulkanVertexBuffer::Read(void* pData, uint64_t offset, uint64_t size)
 {
 	return m_Buffer.Read(pData, offset, size);
 }
@@ -490,7 +494,7 @@ bool KVulkanIndexBuffer::InitDevice(bool hostVisible)
 		usageFlags |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
 	}
 
-	return m_Buffer.InitDevice(usageFlags, m_Data.data(), (uint32_t)m_BufferSize, hostVisible);
+	return m_Buffer.InitDevice(usageFlags, m_Data.data(), m_BufferSize, hostVisible);
 }
 
 bool KVulkanIndexBuffer::UnInit()
@@ -525,7 +529,7 @@ bool KVulkanIndexBuffer::Write(const void* pData)
 	return m_Buffer.Write(pData);
 }
 
-bool KVulkanIndexBuffer::Write(const void* pData, size_t offset, size_t size)
+bool KVulkanIndexBuffer::Write(const void* pData, uint64_t offset, uint64_t size)
 {
 	return m_Buffer.Write(pData, offset, size);
 }
@@ -535,7 +539,7 @@ bool KVulkanIndexBuffer::Read(void* pData)
 	return m_Buffer.Read(pData);
 }
 
-bool KVulkanIndexBuffer::Read(void* pData, size_t offset, size_t size)
+bool KVulkanIndexBuffer::Read(void* pData, uint64_t offset, uint64_t size)
 {
 	return m_Buffer.Read(pData, offset, size);
 }
@@ -584,7 +588,7 @@ bool KVulkanStorageBuffer::InitDevice(bool indirect, bool hostVisible)
 	{
 		usageFlags |= VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT;
 	}
-	return m_Buffer.InitDevice(usageFlags, m_Data.data(), (uint32_t)m_BufferSize, hostVisible);
+	return m_Buffer.InitDevice(usageFlags, m_Data.data(), m_BufferSize, hostVisible);
 }
 
 bool KVulkanStorageBuffer::UnInit()
@@ -617,7 +621,7 @@ bool KVulkanStorageBuffer::Write(const void* pData)
 	return m_Buffer.Write(pData);
 }
 
-bool KVulkanStorageBuffer::Write(const void* pData, size_t offset, size_t size)
+bool KVulkanStorageBuffer::Write(const void* pData, uint64_t offset, uint64_t size)
 {
 	return m_Buffer.Write(pData, offset, size);
 }
@@ -627,7 +631,7 @@ bool KVulkanStorageBuffer::Read(void* pData)
 	return m_Buffer.Read(pData);
 }
 
-bool KVulkanStorageBuffer::Read(void* pData, size_t offset, size_t size)
+bool KVulkanStorageBuffer::Read(void* pData, uint64_t offset, uint64_t size)
 {
 	return m_Buffer.Read(pData, offset, size);
 }
@@ -655,6 +659,8 @@ uint32_t KVulkanStorageBuffer::GetUniqueID() const
 // KVulkanUniformBuffer
 KVulkanUniformBuffer::KVulkanUniformBuffer()
 	: KUniformBufferBase()
+	, m_Ticket(nullptr)
+	, m_MappedBuffer(nullptr)
 {
 }
 
@@ -664,49 +670,48 @@ KVulkanUniformBuffer::~KVulkanUniformBuffer()
 
 bool KVulkanUniformBuffer::InitDevice()
 {
-	VkBufferUsageFlags usageFlags = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
-	m_Buffers.resize(KRenderGlobal::NumFramesInFlight);
-	for (size_t i = 0; i < m_Buffers.size(); ++i)
-	{
-		m_Buffers[i].InitDevice(usageFlags, m_Data.data(), (uint32_t)m_BufferSize, true);
-	}
-	return true;
+	UnInit();
+	m_Ticket = static_cast<KVulkanRenderDevice*>(KRenderGlobal::RenderDevice)->GetBufferManager().Create(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, m_Data.data(), m_BufferSize, true);
+	return m_Ticket != nullptr;
 }
 
 bool KVulkanUniformBuffer::UnInit()
 {
-	for (size_t i = 0; i < m_Buffers.size(); ++i)
+	if (m_Ticket)
 	{
-		m_Buffers[i].UnInit();
+		static_cast<KVulkanRenderDevice*>(KRenderGlobal::RenderDevice)->GetBufferManager().Destroy(m_Ticket);
+		m_Ticket = nullptr;
 	}
+	m_MappedBuffer = nullptr;
 	return true;
 }
 
 bool KVulkanUniformBuffer::SetDebugName(const char* pName)
 {
-	for (size_t i = 0; i < m_Buffers.size(); ++i)
-	{
-		m_Buffers[i].SetDebugName((std::string(pName) + "_" + std::to_string(i)).c_str());
-	}
+	if (m_Ticket) static_cast<KVulkanRenderDevice*>(KRenderGlobal::RenderDevice)->GetBufferManager().SetDebugName(m_Ticket, pName);
 	return true;
 }
 
 KVulkanBuffer& KVulkanUniformBuffer::GetVulkanBuffer()
 {
-	ASSERT_RESULT(KRenderGlobal::CurrentInFlightFrameIndex < m_Buffers.size());
-	return m_Buffers[KRenderGlobal::CurrentInFlightFrameIndex];
+	return static_cast<KVulkanRenderDevice*>(KRenderGlobal::RenderDevice)->GetBufferManager().Request(m_Ticket, m_Data.data());
 }
 
 bool KVulkanUniformBuffer::Map(void** ppData, MapAccess access)
 {
+	ASSERT_RESULT(!m_MappedBuffer);
 	KVulkanBuffer& buffer = GetVulkanBuffer();
-	return buffer.Map(ppData, access);
+	if (!buffer.Map(ppData, access)) return false;
+	m_MappedBuffer = &buffer;
+	return true;
 }
 
 bool KVulkanUniformBuffer::UnMap()
 {
-	KVulkanBuffer& buffer = GetVulkanBuffer();
-	return buffer.UnMap();
+	ASSERT_RESULT(m_MappedBuffer);
+	if (!m_MappedBuffer->UnMap()) return false;
+	m_MappedBuffer = nullptr;
+	return true;
 }
 
 bool KVulkanUniformBuffer::Write(const void* pData)
@@ -715,7 +720,7 @@ bool KVulkanUniformBuffer::Write(const void* pData)
 	return buffer.Write(pData);
 }
 
-bool KVulkanUniformBuffer::Write(const void* pData, size_t offset, size_t size)
+bool KVulkanUniformBuffer::Write(const void* pData, uint64_t offset, uint64_t size)
 {
 	KVulkanBuffer& buffer = GetVulkanBuffer();
 	return buffer.Write(pData, offset, size);
@@ -727,7 +732,7 @@ bool KVulkanUniformBuffer::Read(void* pData)
 	return buffer.Read(pData);
 }
 
-bool KVulkanUniformBuffer::Read(void* pData, size_t offset, size_t size)
+bool KVulkanUniformBuffer::Read(void* pData, uint64_t offset, uint64_t size)
 {
 	KVulkanBuffer& buffer = GetVulkanBuffer();
 	return buffer.Read(pData, offset, size);
@@ -736,7 +741,7 @@ bool KVulkanUniformBuffer::Read(void* pData, size_t offset, size_t size)
 bool KVulkanUniformBuffer::Reference(void **ppData)
 {
 	ASSERT_RESULT(ppData != nullptr);
-	if(GetVulkanHandle() != VK_NULL_HANDEL)
+	if(m_Ticket && GetVulkanHandle() != VK_NULL_HANDEL)
 	{
 		ASSERT_RESULT(m_Data.size() == m_BufferSize);
 		ASSERT_RESULT(m_BufferSize > 0);

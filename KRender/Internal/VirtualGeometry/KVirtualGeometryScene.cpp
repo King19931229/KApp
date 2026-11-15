@@ -294,13 +294,9 @@ bool KVirtualGeometryScene::Init(IKRenderScene* scene, const KCamera* camera)
 					}
 				};
 
-				m_ClusterCullPipelines[i].resize(frameCount);
-				for (uint32_t frameIndex = 0; frameIndex < frameCount; ++frameIndex)
-				{
-					KRenderGlobal::RenderDevice->CreateComputePipeline(m_ClusterCullPipelines[i][frameIndex]);
-					BindNodeClusterResource(m_ClusterCullPipelines[i][frameIndex], (InstanceCull)i);
-					m_ClusterCullPipelines[i][frameIndex]->Init("virtualgeometry/node_and_cluster_cull.comp", clusterCullEnv, KRenderGlobal::EnableAsyncShaderCompile);
-				}
+				KRenderGlobal::RenderDevice->CreateComputePipeline(m_ClusterCullPipelines[i]);
+				BindNodeClusterResource(m_ClusterCullPipelines[i], (InstanceCull)i);
+				m_ClusterCullPipelines[i]->Init("virtualgeometry/node_and_cluster_cull.comp", clusterCullEnv, KRenderGlobal::EnableAsyncShaderCompile);
 
 				m_PersistentCullPipelines[i].resize(frameCount);
 				for (uint32_t frameIndex = 0; frameIndex < frameCount; ++frameIndex)
@@ -453,7 +449,7 @@ bool KVirtualGeometryScene::UnInit()
 		SAFE_UNINIT(m_InitClusterCullArgsPipeline[i]);
 		SAFE_UNINIT_CONTAINER(m_NodeCullPipelines[i]);
 		SAFE_UNINIT_CONTAINER(m_PersistentCullPipelines[i]);
-		SAFE_UNINIT_CONTAINER(m_ClusterCullPipelines[i]);
+		SAFE_UNINIT(m_ClusterCullPipelines[i]);
 		SAFE_UNINIT(m_CalcDrawArgsPipeline[i]);
 		SAFE_UNINIT(m_InitBinningPipline[i]);
 		SAFE_UNINIT(m_BinningClassifyPipline[i]);
@@ -502,8 +498,8 @@ bool KVirtualGeometryScene::UpdateInstanceData(KRHICommandList& commandList)
 		globalData.misc2.y = (uint32_t)m_BinningMaterials.size();
 		globalData.misc2.z = KRenderGlobal::VirtualGeometryManager.GetUseConeCull();
 
-		size_t sceneWidth = 0;
-		size_t sceneHeight = 0;
+		uint32_t sceneWidth = 0;
+		uint32_t sceneHeight = 0;
 		KRenderGlobal::GBuffer.GetSceneColor()->GetSize(sceneWidth, sceneHeight);
 		globalData.misc.z = m_Camera ? (sceneHeight / m_Camera->GetHeight()) : 1.0f;
 
@@ -842,7 +838,7 @@ bool KVirtualGeometryScene::Execute(KRHICommandList& commandList, InstanceCull c
 			commandList.EndDebugMarker();
 
 			commandList.BeginDebugMarker("VirtualGeometry_ClusterCull" + cullString, glm::vec4(1));
-			commandList.ExecuteIndirect(m_ClusterCullPipelines[cullMode][currentFrame], m_IndirectAgrsBuffer, nullptr);
+			commandList.ExecuteIndirect(m_ClusterCullPipelines[cullMode], m_IndirectAgrsBuffer, nullptr);
 			commandList.EndDebugMarker();
 		}
 
@@ -1045,9 +1041,9 @@ bool KVirtualGeometryScene::Reload()
 		{
 			pipeline->Reload();
 		}
-		for (IKComputePipelinePtr pipeline : m_ClusterCullPipelines[i])
+		if (m_ClusterCullPipelines[i])
 		{
-			pipeline->Reload();
+			m_ClusterCullPipelines[i]->Reload();
 		}
 		if (m_CalcDrawArgsPipeline[i])
 		{

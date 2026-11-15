@@ -34,10 +34,10 @@ public:
 
 	virtual bool Clear();
 
-	virtual bool Pick(const KCamera& camera, size_t x, size_t y,
-		size_t screenWidth, size_t screenHeight, std::vector<IKEntity*>& result);
-	virtual bool CloestPick(const KCamera& camera, size_t x, size_t y,
-		size_t screenWidth, size_t screenHeight, IKEntity*& result);
+	virtual bool Pick(const KCamera& camera, int32_t x, int32_t y,
+		uint32_t screenWidth, uint32_t screenHeight, std::vector<IKEntity*>& result);
+	virtual bool CloestPick(const KCamera& camera, int32_t x, int32_t y,
+		uint32_t screenWidth, uint32_t screenHeight, IKEntity*& result);
 
 	virtual bool RayPick(const glm::vec3& origin, const glm::vec3& dir, std::vector<IKEntity*>& result);
 	virtual bool CloestRayPick(const glm::vec3& origin, const glm::vec3& dir, IKEntity*& result);

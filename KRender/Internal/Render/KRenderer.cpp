@@ -103,21 +103,6 @@ void KRenderer::GPUQueueMiscs::UnInit()
 	threadPools.clear();
 }
 
-void KRenderer::GPUQueueMiscs::Reset()
-{
-	if (pool)
-	{
-		pool->Reset();
-	}
-	for (IKCommandPoolPtr& pool : threadPools)
-	{
-		if (pool)
-		{
-			pool->Reset();
-		}
-	}
-}
-
 void KRenderer::GPUQueueMiscs::SetThreadNum(uint32_t threadNum)
 {
 	size_t prevSize = threadPools.size();
@@ -179,14 +164,10 @@ bool KRenderer::Render(uint32_t chainImageIndex)
 	std::vector<IKEntity*> cullRes;
 	m_Scene->GetVisibleEntities(*m_Camera, cullRes);
 
-	m_Shadow.Reset();
 	m_RHICommandList.SetCommandBuffer(m_Shadow.pool->Request(CBL_PRIMARY));
 
 	m_RHICommandList.BeginRecord();
 	{
-		// The previous frame's final graphics submission joins its compute work.
-		// Order all shared-resource reuse after that frame's remaining graphics work.
-		m_RHICommandList.PipelineMemoryBarrier(PIPELINE_STAGE_ALL_COMMANDS, PIPELINE_STAGE_ALL_COMMANDS);
 		KRenderGlobal::VirtualTextureManager.Update(m_RHICommandList, cullRes);
 		KRenderGlobal::GPUScene.Execute(m_RHICommandList);
 
@@ -202,7 +183,6 @@ bool KRenderer::Render(uint32_t chainImageIndex)
 	m_RHICommandList.QueueSubmit(m_Shadow.queue, {}, {}, nullptr);
 	m_RHICommandList.Flush(RHICommandFlush::DispatchToRHIThread);
 
-	m_PreGraphics.Reset();
 	m_RHICommandList.SetCommandBuffer(m_PreGraphics.pool->Request(CBL_PRIMARY));
 
 	m_RHICommandList.BeginRecord();
@@ -253,7 +233,6 @@ bool KRenderer::Render(uint32_t chainImageIndex)
 	m_RHICommandList.QueueSubmit(m_PreGraphics.queue, {}, { m_PreGraphics.finish }, nullptr);
 	m_RHICommandList.Flush(RHICommandFlush::DispatchToRHIThread);
 
-	m_Compute.Reset();
 	m_RHICommandList.SetCommandBuffer(m_Compute.pool->Request(CBL_PRIMARY));
 
 	m_RHICommandList.BeginRecord();
@@ -265,7 +244,6 @@ bool KRenderer::Render(uint32_t chainImageIndex)
 	m_RHICommandList.QueueSubmit(m_Compute.queue, { { m_PreGraphics.finish, PIPELINE_STAGE_ALL_COMMANDS } }, { m_Compute.finish }, nullptr);
 	m_RHICommandList.Flush(RHICommandFlush::DispatchToRHIThread);
 
-	m_ParallelGraphics.Reset();
 	m_RHICommandList.SetCommandBuffer(m_ParallelGraphics.pool->Request(CBL_PRIMARY));
 	m_RHICommandList.BeginRecord();
 	{
@@ -295,7 +273,6 @@ bool KRenderer::Render(uint32_t chainImageIndex)
 	m_RHICommandList.QueueSubmit(m_ParallelGraphics.queue, {}, {}, nullptr);
 	m_RHICommandList.Flush(RHICommandFlush::DispatchToRHIThread);
 
-	m_PostGraphics.Reset();
 	m_RHICommandList.SetCommandBuffer(m_PostGraphics.pool->Request(CBL_PRIMARY));
 
 	m_RHICommandList.BeginRecord();
@@ -745,6 +722,12 @@ void KRenderer::OnSwapChainRecreate(uint32_t width, uint32_t height)
 	KRenderGlobal::VirtualTextureManager.Resize(width, height);
 }
 
+void KRenderer::ReleaseFrameResources(uint32_t frameNum)
+{
+	KRenderGlobal::InstanceBufferManager.Release(frameNum);
+	KRenderGlobal::DynamicConstantBufferManager.Release(frameNum);
+}
+
 bool KRenderer::Update()
 {
 	UpdateGlobal();
@@ -767,7 +750,7 @@ bool KRenderer::Execute(uint32_t chainImageIndex)
 	bool previousCameraOutdate = m_CameraOutdate;
 	glm::mat4 previousViewProj = m_CameraOutdate ? glm::mat4(1.0f) : m_PrevViewProj;
 
-	size_t windowWidth = 0, windowHeight = 0;
+	uint32_t windowWidth = 0, windowHeight = 0;
 	bool drawable = window->GetSize(windowWidth, windowHeight) && windowWidth && windowHeight;
 	if (drawable)
 	{
@@ -787,7 +770,6 @@ bool KRenderer::Execute(uint32_t chainImageIndex)
 	{
 		// Acquire has succeeded: consume its semaphore even without scene draws.
 		m_RHICommandList.SetImmediate(KRenderGlobal::EnableRHIImmediate);
-		m_PostGraphics.Reset();
 		m_RHICommandList.SetCommandBuffer(m_PostGraphics.pool->Request(CBL_PRIMARY));
 		m_RHICommandList.BeginRecord();
 		m_RHICommandList.BeginRenderPass(m_SwapChain->GetRenderPass(chainImageIndex), SUBPASS_CONTENTS_INLINE);

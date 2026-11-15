@@ -27,7 +27,7 @@ RenderWindowType KEQtRenderWindow::GetType()
 	return RENDER_WINDOW_EXTERNAL;
 }
 
-bool KEQtRenderWindow::Init(size_t top, size_t left, size_t width, size_t height, bool resizable, bool primary)
+bool KEQtRenderWindow::Init(int32_t top, int32_t left, uint32_t width, uint32_t height, bool resizable, bool primary)
 {
 	return false;
 }
@@ -137,32 +137,33 @@ bool KEQtRenderWindow::IsMinimized()
 	return false;
 }
 
-bool KEQtRenderWindow::GetPosition(size_t &top, size_t &left)
+bool KEQtRenderWindow::GetPosition(int32_t &top, int32_t &left)
 {
 	return false;
 }
 
-bool KEQtRenderWindow::SetPosition(size_t top, size_t left)
+bool KEQtRenderWindow::SetPosition(int32_t top, int32_t left)
 {
 	return false;
 }
 
-bool KEQtRenderWindow::GetSize(size_t &width, size_t &height)
+bool KEQtRenderWindow::GetSize(uint32_t &width, uint32_t &height)
 {
 #ifdef _WIN32
 	HWND hwnd = (HWND)m_HWND;
 	RECT area;
 	if (GetClientRect(hwnd, &area))
 	{
-		width = (size_t)area.right;
-		height = (size_t)area.bottom;
+		if (area.right < 0 || area.bottom < 0) return false;
+		width = (uint32_t)area.right;
+		height = (uint32_t)area.bottom;
 		return true;
 	}
 #endif
 	return false;
 }
 
-bool KEQtRenderWindow::SetSize(size_t width, size_t height)
+bool KEQtRenderWindow::SetSize(uint32_t width, uint32_t height)
 {
 	return false;
 }

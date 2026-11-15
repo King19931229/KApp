@@ -179,50 +179,50 @@ KTextureBinding KMaterial::ConvertToTextureBinding(const IKMaterialTextureBindin
 	return textureBinding;
 }
 
-IKShaderPtr KMaterial::GetVSShader(const VertexFormat* formats, size_t count)
+IKShaderPtr KMaterial::GetVSShader(const VertexFormat* formats, uint32_t count)
 {
 	return m_ShaderMap.GetVSShader(formats, count);
 }
 
-IKShaderPtr KMaterial::GetVSInstanceShader(const VertexFormat* formats, size_t count)
+IKShaderPtr KMaterial::GetVSInstanceShader(const VertexFormat* formats, uint32_t count)
 {
 	return m_ShaderMap.GetVSInstanceShader(formats, count);
 }
 
-IKShaderPtr KMaterial::GetVSGPUSceneShader(const VertexFormat* formats, size_t count)
+IKShaderPtr KMaterial::GetVSGPUSceneShader(const VertexFormat* formats, uint32_t count)
 {
 	return m_ShaderMap.GetVSGPUSceneShader(formats, count);
 }
 
-IKShaderPtr KMaterial::GetVSVirtualFeedbackShader(const VertexFormat* formats, size_t count)
+IKShaderPtr KMaterial::GetVSVirtualFeedbackShader(const VertexFormat* formats, uint32_t count)
 {
 	return m_VirtualFeedbackShaderMap.GetVSShader(formats, count);
 }
 
-IKShaderPtr KMaterial::GetVSInstanceVirtualFeedbackShader(const VertexFormat* formats, size_t count)
+IKShaderPtr KMaterial::GetVSInstanceVirtualFeedbackShader(const VertexFormat* formats, uint32_t count)
 {
 	return m_VirtualFeedbackShaderMap.GetVSInstanceShader(formats, count);
 }
 
-IKShaderPtr KMaterial::GetFSGPUSceneShader(const VertexFormat* formats, size_t count)
+IKShaderPtr KMaterial::GetFSGPUSceneShader(const VertexFormat* formats, uint32_t count)
 {
 	KTextureBinding textureBinding = ConvertToTextureBinding(m_TextureBinding.get());
 	return m_ShaderMap.GetFSGPUSceneShader(formats, count, &textureBinding);
 }
 
-IKShaderPtr KMaterial::GetFSShader(const VertexFormat* formats, size_t count)
+IKShaderPtr KMaterial::GetFSShader(const VertexFormat* formats, uint32_t count)
 {
 	KTextureBinding textureBinding = ConvertToTextureBinding(m_TextureBinding.get());
 	return m_ShaderMap.GetFSShader(formats, count, &textureBinding);
 }
 
-IKShaderPtr KMaterial::GetFSVirtualFeedbackShader(const VertexFormat* formats, size_t count)
+IKShaderPtr KMaterial::GetFSVirtualFeedbackShader(const VertexFormat* formats, uint32_t count)
 {
 	KTextureBinding textureBinding = ConvertToTextureBinding(m_TextureBinding.get());
 	return m_VirtualFeedbackShaderMap.GetFSShader(formats, count, &textureBinding);
 }
 
-bool KMaterial::IsShaderLoaded(const VertexFormat* formats, size_t count)
+bool KMaterial::IsShaderLoaded(const VertexFormat* formats, uint32_t count)
 {
 	KTextureBinding textureBinding = ConvertToTextureBinding(m_TextureBinding.get());
 	return m_ShaderMap.IsPermutationLoaded(formats, count, &textureBinding);
@@ -295,7 +295,7 @@ const KShaderInformation* KMaterial::GetFSInformation()
 	return m_ShaderMap.GetFSInformation();
 }
 
-IKPipelinePtr KMaterial::CreatePipelineInternal(const PipelineCreateContext& context, const VertexFormat* formats, size_t count, IKShaderPtr vertexShader, IKShaderPtr fragmentShader)
+IKPipelinePtr KMaterial::CreatePipelineInternal(const PipelineCreateContext& context, const VertexFormat* formats, uint32_t count, IKShaderPtr vertexShader, IKShaderPtr fragmentShader)
 {
 	if (!vertexShader || !fragmentShader) return nullptr;
 	vertexShader->WaitForDevice();
@@ -390,7 +390,7 @@ IKPipelinePtr KMaterial::CreatePipelineInternal(const PipelineCreateContext& con
 	return nullptr;
 }
 
-IKPipelinePtr KMaterial::CreatePipelineImpl(KShaderMap& shaderMap, const PipelineCreateContext& context, const VertexFormat* formats, size_t count)
+IKPipelinePtr KMaterial::CreatePipelineImpl(KShaderMap& shaderMap, const PipelineCreateContext& context, const VertexFormat* formats, uint32_t count)
 {
 	KTextureBinding textureBinding = ConvertToTextureBinding(m_TextureBinding.get());
 	IKShaderPtr vsShader = shaderMap.GetVSShader(formats, count);
@@ -402,8 +402,9 @@ IKPipelinePtr KMaterial::CreatePipelineImpl(KShaderMap& shaderMap, const Pipelin
 	return nullptr;
 }
 
-IKPipelinePtr KMaterial::CreateInstancePipelineImpl(KShaderMap& shaderMap, const PipelineCreateContext& context, const VertexFormat* formats, size_t count)
+IKPipelinePtr KMaterial::CreateInstancePipelineImpl(KShaderMap& shaderMap, const PipelineCreateContext& context, const VertexFormat* formats, uint32_t count)
 {
+	if (count == UINT32_MAX) return nullptr;
 	KTextureBinding textureBinding = ConvertToTextureBinding(m_TextureBinding.get());
 	std::vector<VertexFormat> instanceFormats;
 	instanceFormats.reserve(count + 1);
@@ -417,60 +418,60 @@ IKPipelinePtr KMaterial::CreateInstancePipelineImpl(KShaderMap& shaderMap, const
 	IKShaderPtr fsShader = shaderMap.GetFSShader(formats, count, &textureBinding);
 	if (vsInstanceShader && fsShader)
 	{
-		return CreatePipelineInternal(context, instanceFormats.data(), instanceFormats.size(), vsInstanceShader, fsShader);
+		return CreatePipelineInternal(context, instanceFormats.data(), static_cast<uint32_t>(instanceFormats.size()), vsInstanceShader, fsShader);
 	}
 	return nullptr;
 }
 
-IKPipelinePtr KMaterial::CreatePipeline(const VertexFormat* formats, size_t count)
+IKPipelinePtr KMaterial::CreatePipeline(const VertexFormat* formats, uint32_t count)
 {
 	return CreatePipelineImpl(m_ShaderMap, {}, formats, count);
 }
 
-IKPipelinePtr KMaterial::CreateInstancePipeline(const VertexFormat* formats, size_t count)
+IKPipelinePtr KMaterial::CreateInstancePipeline(const VertexFormat* formats, uint32_t count)
 {
 	return CreateInstancePipelineImpl(m_ShaderMap, {}, formats, count);
 }
 
-IKPipelinePtr KMaterial::CreatePrePassPipeline(const VertexFormat* formats, size_t count)
+IKPipelinePtr KMaterial::CreatePrePassPipeline(const VertexFormat* formats, uint32_t count)
 {
 	return CreatePipelineImpl(m_PrePassShaderMap, {}, formats, count);
 }
 
-IKPipelinePtr KMaterial::CreatePrePassInstancePipeline(const VertexFormat* formats, size_t count)
+IKPipelinePtr KMaterial::CreatePrePassInstancePipeline(const VertexFormat* formats, uint32_t count)
 {
 	return CreateInstancePipelineImpl(m_PrePassShaderMap, {}, formats, count);
 }
 
-IKPipelinePtr KMaterial::CreateDepthPeelingPipeline(const VertexFormat* formats, size_t count)
+IKPipelinePtr KMaterial::CreateDepthPeelingPipeline(const VertexFormat* formats, uint32_t count)
 {
 	PipelineCreateContext context;
 	context.depthPeeling = DepthPeelingMode::DEFAULT;
 	return CreatePipelineImpl(m_DepthPeelShaderMap, context, formats, count);
 }
 
-IKPipelinePtr KMaterial::CreateDepthPeelingInstancePipeline(const VertexFormat* formats, size_t count)
+IKPipelinePtr KMaterial::CreateDepthPeelingInstancePipeline(const VertexFormat* formats, uint32_t count)
 {
 	PipelineCreateContext context;
 	context.depthPeeling = DepthPeelingMode::DEFAULT;
 	return CreateInstancePipelineImpl(m_DepthPeelShaderMap, context, formats, count);
 }
 
-IKPipelinePtr KMaterial::CreateABufferDepthPeelingPipeline(const VertexFormat* formats, size_t count)
+IKPipelinePtr KMaterial::CreateABufferDepthPeelingPipeline(const VertexFormat* formats, uint32_t count)
 {
 	PipelineCreateContext context;
 	context.depthPeeling = DepthPeelingMode::ABUFFER;
 	return CreatePipelineImpl(m_ABufferDepthPeelShaderMap, context, formats, count);
 }
 
-IKPipelinePtr KMaterial::CreateABufferDepthPeelingInstancePipeline(const VertexFormat* formats, size_t count)
+IKPipelinePtr KMaterial::CreateABufferDepthPeelingInstancePipeline(const VertexFormat* formats, uint32_t count)
 {
 	PipelineCreateContext context;
 	context.depthPeeling = DepthPeelingMode::ABUFFER;
 	return CreateInstancePipelineImpl(m_ABufferDepthPeelShaderMap, context, formats, count);
 }
 
-IKPipelinePtr KMaterial::CreateCSMPipeline(const VertexFormat* formats, size_t count, bool staticCSM)
+IKPipelinePtr KMaterial::CreateCSMPipeline(const VertexFormat* formats, uint32_t count, bool staticCSM)
 {
 	if (m_ShadingMode == MSM_OPAQUE)
 	{
@@ -481,7 +482,7 @@ IKPipelinePtr KMaterial::CreateCSMPipeline(const VertexFormat* formats, size_t c
 	return nullptr;
 }
 
-IKPipelinePtr KMaterial::CreateCSMInstancePipeline(const VertexFormat* formats, size_t count, bool staticCSM)
+IKPipelinePtr KMaterial::CreateCSMInstancePipeline(const VertexFormat* formats, uint32_t count, bool staticCSM)
 {
 	if (m_ShadingMode == MSM_OPAQUE)
 	{

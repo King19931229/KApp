@@ -1,4 +1,5 @@
 #include "KGLFWRenderWindow.h"
+#include <limits>
 #include "Interface/IKRenderDevice.h"
 #include "Interface/IKUIOverlay.h"
 #include "Interface/IKSwapChain.h"
@@ -419,8 +420,9 @@ bool KGLFWRenderWindow::EditorKeyboardFocused()
 }
 #endif
 
-bool KGLFWRenderWindow::Init(size_t top, size_t left, size_t width, size_t height, bool resizable, bool primary)
+bool KGLFWRenderWindow::Init(int32_t top, int32_t left, uint32_t width, uint32_t height, bool resizable, bool primary)
 {
+	if (width > uint32_t((std::numeric_limits<int32_t>::max)()) || height > uint32_t((std::numeric_limits<int32_t>::max)())) return false;
 #ifndef __ANDROID__
 	ASSERT_RESULT(m_Device);
 	ASSERT_RESULT(IsInGameThread());
@@ -651,21 +653,21 @@ bool KGLFWRenderWindow::Loop()
 	return false;
 }
 
-bool KGLFWRenderWindow::GetPosition(size_t &top, size_t &left)
+bool KGLFWRenderWindow::GetPosition(int32_t &top, int32_t &left)
 {
 #ifndef __ANDROID__
 	if (m_Window)
 	{
 		int xPos = -1, yPos = -1;
 		glfwGetWindowPos(m_Window, &xPos, &yPos);
-		top = (size_t)xPos, left = (size_t)yPos;
+		top = (int32_t)xPos, left = (int32_t)yPos;
 		return true;
 	}
 #endif
 	return false;
 }
 
-bool KGLFWRenderWindow::SetPosition(size_t top, size_t left)
+bool KGLFWRenderWindow::SetPosition(int32_t top, int32_t left)
 {
 #ifndef __ANDROID__
 	if (m_Window)
@@ -677,22 +679,23 @@ bool KGLFWRenderWindow::SetPosition(size_t top, size_t left)
 	return false;
 }
 
-bool KGLFWRenderWindow::GetSize(size_t &width, size_t &height)
+bool KGLFWRenderWindow::GetSize(uint32_t &width, uint32_t &height)
 {
 #ifndef __ANDROID__
 	if (m_Window)
 	{
 		int nWidth = -1, nHeight = -1;
 		glfwGetFramebufferSize(m_Window, &nWidth, &nHeight);
-		width = (size_t)nWidth;
-		height = (size_t)nHeight;
+		if (nWidth < 0 || nHeight < 0) return false;
+		width = (uint32_t)nWidth;
+		height = (uint32_t)nHeight;
 		return true;
 	}
 #endif
 	return false;
 }
 
-bool KGLFWRenderWindow::GetInputSize(size_t& width, size_t& height)
+bool KGLFWRenderWindow::GetInputSize(uint32_t& width, uint32_t& height)
 {
 #ifndef __ANDROID__
 	if (KRenderGlobal::InEditor)
@@ -700,8 +703,8 @@ bool KGLFWRenderWindow::GetInputSize(size_t& width, size_t& height)
 		std::lock_guard<std::mutex> lock(m_ViewportMutex);
 		if (m_EditorViewport.width > 0 && m_EditorViewport.height > 0)
 		{
-			width = (size_t)m_EditorViewport.width;
-			height = (size_t)m_EditorViewport.height;
+			width = (uint32_t)m_EditorViewport.width;
+			height = (uint32_t)m_EditorViewport.height;
 			return true;
 		}
 	}
@@ -717,8 +720,9 @@ void KGLFWRenderWindow::SetEditorViewport(const KEditorViewport& viewport)
 #endif
 }
 
-bool KGLFWRenderWindow::SetSize(size_t width, size_t height)
+bool KGLFWRenderWindow::SetSize(uint32_t width, uint32_t height)
 {
+	if (width > uint32_t((std::numeric_limits<int32_t>::max)()) || height > uint32_t((std::numeric_limits<int32_t>::max)())) return false;
 #ifndef __ANDROID__
 	if (m_Window)
 	{

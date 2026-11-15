@@ -5,6 +5,8 @@
 #include "KVulkanInitializer.h"
 #include <unordered_map>
 
+struct KVulkanDescriptorTicket;
+
 class KVulkanRayTracePipeline : public IKRayTracePipeline
 {
 protected:
@@ -27,13 +29,14 @@ protected:
 	struct Descriptor
 	{
 		VkDescriptorSetLayout layout;
-		VkDescriptorPool pool;
-		std::vector<VkDescriptorSet> sets;
+		KVulkanDescriptorTicket* ticket;
+		uint32_t textureCount;
 
 		Descriptor()
 		{
 			layout = VK_NULL_HANDEL;
-			pool = VK_NULL_HANDEL;
+			ticket = nullptr;
+			textureCount = 0;
 		}
 	};
 	Descriptor m_Descriptor;
@@ -99,6 +102,7 @@ protected:
 	void CreateStrogeScene();
 	void DestroyStrogeScene();
 	void CreateDescriptorSet();
+	VkDescriptorSet AllocDescriptorSet();
 	void DestroyDescriptorSet();
 	bool CreateShader();
 	void DestroyShader();
@@ -109,7 +113,7 @@ protected:
 
 	void CreateShaderBindingTable(ShaderBindingTable& shaderBindingTable, uint32_t handleCount);
 	void DestroyShaderBindingTable(ShaderBindingTable& shaderBindingTable);
-	void UpdateCameraDescriptor();
+	void UpdateCameraDescriptor(VkDescriptorSet set);
 public:
 	KVulkanRayTracePipeline();
 	~KVulkanRayTracePipeline();

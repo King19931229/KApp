@@ -48,10 +48,10 @@ KRenderCore::~KRenderCore()
 
 bool KRenderCore::InitPostProcess()
 {
-	size_t width = 0, height = 0;
+	uint32_t width = 0, height = 0;
 	m_MainWindow->GetSize(width, height);
 
-	KRenderGlobal::PostProcessManager.Init(width, height, 1, PF_R16G16B16A16_FLOAT, KRenderGlobal::NumFramesInFlight);
+	KRenderGlobal::PostProcessManager.Init(width, height, 1, PF_R16G16B16A16_FLOAT);
 #if 0
 	auto startPoint = KRenderGlobal::PostProcessManager.GetStartPointPass();
 
@@ -145,7 +145,7 @@ bool KRenderCore::UnInitGlobalManager()
 
 bool KRenderCore::InitRenderer()
 {
-	size_t width = 0, height = 0;
+	uint32_t width = 0, height = 0;
 	m_MainWindow->GetSize(width, height);
 
 	m_CameraCube = CreateCameraCube();
@@ -519,7 +519,11 @@ void KRenderCore::Render()
 		m_EditorRenderHeight = editorHeight;
 	}
 
-	mainSwapChain->WaitForInFlightFrame();
+	uint32_t completedFrameNum = 0;
+	if (mainSwapChain->WaitForInFlightFrame(completedFrameNum))
+	{
+		KRenderGlobal::Renderer.ReleaseFrameResources(completedFrameNum);
+	}
 
 	uint32_t chainImageIndex = 0;
 	SwapChainAcquireResult acquireResult = mainSwapChain->AcquireNextImage(chainImageIndex);
@@ -564,13 +568,16 @@ void KRenderCore::Render()
 	for (IKRenderWindow* window : m_SecordaryWindows)
 	{
 		IKSwapChain* secordarySwapChain = window->GetSwapChain();
-		size_t width = 0, height = 0;
+		uint32_t width = 0, height = 0;
 		if (!secordarySwapChain || window->IsMinimized() || !window->GetSize(width, height) || !width || !height)
 		{
 			continue;
 		}
 		IKUIOverlay* secondaryUI = window->GetUIOverlay();
-		secordarySwapChain->WaitForInFlightFrame();
+		if (secordarySwapChain->WaitForInFlightFrame(completedFrameNum))
+		{
+			KRenderGlobal::Renderer.ReleaseFrameResources(completedFrameNum);
+		}
 		acquireResult = secordarySwapChain->AcquireNextImage(chainImageIndex);
 		if (acquireResult != SCAR_SUCCESS)
 		{

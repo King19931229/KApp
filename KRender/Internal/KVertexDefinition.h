@@ -93,14 +93,14 @@ namespace KVertexDefinition
 	{
 		VertexSemantic semantic;
 		PixelFormat pixelFormat;
-		size_t offset;
+		uint32_t offset;
 	};
 	typedef std::vector<VertexSemanticDetail> VertexSemanticDetailList;
 
 	struct VertexDetail
 	{
 		VertexSemanticDetailList semanticDetails;
-		size_t vertexSize;
+		uint32_t vertexSize;
 		const char* name;
 	};
 	const VertexDetail& GetVertexDetail(VertexFormat format);	

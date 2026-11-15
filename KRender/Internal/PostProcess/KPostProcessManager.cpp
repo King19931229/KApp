@@ -31,7 +31,6 @@ const uint16_t KPostProcessManager::ms_Indices[] = {0, 1, 2, 2, 3, 0};
 
 KPostProcessManager::KPostProcessManager()
 	: m_StartPointPass(nullptr),
-	m_FrameInFlight(0),
 	m_Width(0),
 	m_Height(0)
 {
@@ -44,14 +43,12 @@ KPostProcessManager::~KPostProcessManager()
 	assert(m_StartPointPass == nullptr);
 }
 
-bool KPostProcessManager::Init(size_t width, size_t height,
+bool KPostProcessManager::Init(uint32_t width, uint32_t height,
 							   unsigned short massCount,
-							   PixelFormat startFormat,
-							   size_t frameInFlight)
+							   PixelFormat startFormat)
 {
 	UnInit();
 
-	m_FrameInFlight = frameInFlight;
 	m_Width = width;
 	m_Height = height;
 
@@ -62,7 +59,7 @@ bool KPostProcessManager::Init(size_t width, size_t height,
 	m_Sampler->SetFilterMode(FM_LINEAR, FM_LINEAR);
 	m_Sampler->Init(0, 0);
 
-	m_StartPointPass = IKPostProcessNodePtr(KNEW KPostProcessPass(this, frameInFlight, POST_PROCESS_STAGE_START_POINT));
+	m_StartPointPass = IKPostProcessNodePtr(KNEW KPostProcessPass(this, POST_PROCESS_STAGE_START_POINT));
 	KPostProcessPass* pass = static_cast<KPostProcessPass*>(m_StartPointPass.get());
 	pass->SetFormat(startFormat);
 	pass->SetMSAA(massCount);
@@ -75,7 +72,6 @@ bool KPostProcessManager::Init(size_t width, size_t height,
 
 bool KPostProcessManager::UnInit()
 {
-	m_FrameInFlight = 0;
 
 	m_ScreenDrawVS.Release();
 	m_ScreenDrawFS.Release();
@@ -224,7 +220,7 @@ void KPostProcessManager::IterPostProcessGraph(std::function<void(IKPostProcessN
 	}
 }
 
-bool KPostProcessManager::Resize(size_t width, size_t height)
+bool KPostProcessManager::Resize(uint32_t width, uint32_t height)
 {
 	m_Width = width;
 	m_Height = height;
@@ -318,7 +314,7 @@ bool KPostProcessManager::Load(const char* jsonFile)
 			auto startID = jsonDoc->GetMember(msStartPointKey)->GetString();
 
 			auto nodes = jsonDoc->GetMember(msNodesKey);
-			for (size_t i = 0, count = nodes->Size(); i < count; ++i)
+			for (uint32_t i = 0, count = nodes->Size(); i < count; ++i)
 			{
 				auto node_json = nodes->GetArrayElement(i);
 
@@ -329,7 +325,7 @@ bool KPostProcessManager::Load(const char* jsonFile)
 
 				if (type == PPNT_PASS)
 				{
-					node = IKPostProcessNodePtr(KNEW KPostProcessPass(this, m_FrameInFlight, POST_PROCESS_STAGE_REGULAR /* stage and will be overwrited */));
+					node = IKPostProcessNodePtr(KNEW KPostProcessPass(this, POST_PROCESS_STAGE_REGULAR /* stage and will be overwrited */));
 					KPostProcessPass* pass = (KPostProcessPass*)node.get();
 					pass->Load(node_json);
 					pass->m_ID = id;
@@ -354,7 +350,7 @@ bool KPostProcessManager::Load(const char* jsonFile)
 			}
 
 			auto connections = jsonDoc->GetMember(msConnectionsKey);
-			for (size_t i = 0, count = connections->Size(); i < count; ++i)
+			for (uint32_t i = 0, count = connections->Size(); i < count; ++i)
 			{
 				auto conn_json = connections->GetArrayElement(i);
 				IKPostProcessConnectionPtr conn = IKPostProcessConnectionPtr(KNEW KPostProcessConnection(this /* id will be overwrited */));
@@ -496,7 +492,7 @@ bool KPostProcessManager::Execute(unsigned int chainImageIndex, IKSwapChain* swa
 
 IKPostProcessNodePtr KPostProcessManager::CreatePass()
 {
-	IKPostProcessNodePtr pass = IKPostProcessNodePtr(KNEW KPostProcessPass(this, m_FrameInFlight, POST_PROCESS_STAGE_REGULAR));
+	IKPostProcessNodePtr pass = IKPostProcessNodePtr(KNEW KPostProcessPass(this, POST_PROCESS_STAGE_REGULAR));
 	ASSERT_RESULT(m_AllNodes.insert(std::make_pair(pass->ID(), pass)).second);
 	return pass;
 }

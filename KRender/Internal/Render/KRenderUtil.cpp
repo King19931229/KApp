@@ -1,4 +1,5 @@
 #include "KRenderUtil.h"
+#include "KBase/Publish/KInteger.h"
 #include "Internal/KRenderGlobal.h"
 #include "Internal/ECS/Component/KTransformComponent.h"
 #include "Internal/ECS/Component/KRenderComponent.h"
@@ -383,7 +384,8 @@ namespace KRenderUtil
 
 				std::vector<KInstanceBufferManager::AllocResultBlock> allocRes;
 				ASSERT_RESULT(KRenderGlobal::InstanceBufferManager.GetVertexSize() == sizeof(instances[0]));
-				ASSERT_RESULT(KRenderGlobal::InstanceBufferManager.Alloc(instances.size(), instances.data(), allocRes));
+				if (!KInteger::FitsUInt32(instances.size())) return false;
+				ASSERT_RESULT(KRenderGlobal::InstanceBufferManager.Alloc(static_cast<uint32_t>(instances.size()), instances.data(), allocRes));
 
 				KRenderCommand command = baseCommand;
 

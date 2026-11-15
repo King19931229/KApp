@@ -249,7 +249,7 @@ void InitQEM(IKEnginePtr engine)
 				float zMin = std::max(z - radius, near);
 				float zMax = std::max(z + radius, near);
 
-				size_t w = 0, h = 0;
+				uint32_t w = 0, h = 0;
 				engine->GetRenderCore()->GetRenderWindow()->GetSize(w, h);
 
 				float lodScale = h / camera->GetHeight();

@@ -5,11 +5,11 @@
 class KEntityManager : public IKEntityManager
 {
 protected:
-	typedef std::unordered_map<size_t, IKEntityPtr> EntityMap;
+	typedef std::unordered_map<IKEntity::IDType, IKEntityPtr> EntityMap;
 	EntityMap m_Entities;
-	size_t m_EntityHandleCounter;
+	IKEntity::IDType m_EntityHandleCounter;
 
-	size_t GetAvailibleID();
+	IKEntity::IDType GetAvailibleID();
 public:
 	KEntityManager();
 	~KEntityManager();

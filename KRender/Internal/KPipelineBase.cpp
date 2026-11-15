@@ -67,7 +67,7 @@ bool KPipelineBase::SetPrimitiveTopology(PrimitiveTopology topology)
 	return true;
 }
 
-bool KPipelineBase::SetVertexBinding(const VertexFormat* format, size_t count)
+bool KPipelineBase::SetVertexBinding(const VertexFormat* format, uint32_t count)
 {
 	m_Binding.formats.clear();
 	m_Binding.formats.reserve(count);

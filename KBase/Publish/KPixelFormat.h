@@ -1,5 +1,6 @@
 #pragma once
 #include <cstddef>
+#include <cstdint>
 #include <cstring>
 #include <limits>
 
@@ -27,9 +28,9 @@ namespace KPixelFormatHelper
 	struct FormatInfo
 	{
 		const char* name;
-		size_t blockWidth;
-		size_t blockHeight;
-		size_t blockBytes;
+		uint32_t blockWidth;
+		uint32_t blockHeight;
+		uint32_t blockBytes;
 		Compression compression;
 		bool srgb;
 	};
@@ -107,7 +108,7 @@ namespace KPixelFormatHelper
 		return true;
 	}
 
-	inline bool GetBlockDimension(PixelFormat format, size_t& width, size_t& height)
+	inline bool GetBlockDimension(PixelFormat format, uint32_t& width, uint32_t& height)
 	{
 		width = height = 0;
 		const FormatInfo* info = GetInfo(format);
@@ -127,7 +128,7 @@ namespace KPixelFormatHelper
 		}
 	}
 
-	inline bool GetByteSize(PixelFormat format, size_t width, size_t height, size_t depth, size_t& size)
+	inline bool GetByteSize(PixelFormat format, uint32_t width, uint32_t height, uint32_t depth, size_t& size)
 	{
 		size = 0;
 		const FormatInfo* info = GetInfo(format);
@@ -144,8 +145,8 @@ namespace KPixelFormatHelper
 	}
 
 	// faces can also specify the number of array layers.
-	inline bool GetByteSize(PixelFormat format, size_t mipmaps, size_t faces,
-		size_t width, size_t height, size_t depth, size_t& totalSize)
+	inline bool GetByteSize(PixelFormat format, uint32_t mipmaps, uint32_t faces,
+		uint32_t width, uint32_t height, uint32_t depth, size_t& totalSize)
 	{
 		totalSize = 0;
 		if (!mipmaps || !faces) return false;

@@ -17,7 +17,7 @@ public:
 	bool UnInit();
 	bool Execute(KRHICommandList& commandList);
 	bool UpdateCamera();
-	bool Resize(size_t width, size_t height);
+	bool Resize(uint32_t width, uint32_t height);
 	bool Reload();
 
 	virtual bool CreateRayTraceScene(IKRayTraceScenePtr& scene);

@@ -132,8 +132,8 @@ protected:
 	{
 		std::vector<uint32_t> indexBuffer;
 		std::vector<Vertex> vertexBuffer;
-		size_t indexPos = 0;
-		size_t vertexPos = 0;
+		uint32_t indexPos = 0;
+		uint32_t vertexPos = 0;
 	} loaderInfo;
 
 	struct Node;
@@ -186,7 +186,7 @@ protected:
 	KCodecResult GetCodecResult(tinygltf::Image& gltfimage);
 	bool IsBinary(const char* pszFile) const;
 
-	void GetNodeProps(const tinygltf::Node& node, const tinygltf::Model& model, size_t& vertexCount, size_t& indexCount);
+	bool GetNodeProps(const tinygltf::Node& node, const tinygltf::Model& model, uint32_t& vertexCount, uint32_t& indexCount);
 	void LoadNode(Node* parent, const tinygltf::Node& node, uint32_t nodeIndex, const tinygltf::Model& model, MeshLoad& loaderInfo, float globalscale);
 
 	bool LoadModel(const char* pszFile, tinygltf::Model& gltfModel);

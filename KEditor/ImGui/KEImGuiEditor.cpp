@@ -47,7 +47,7 @@ namespace
 	}
 }
 
-bool KEImGuiEditor::Init(RenderWindowType windowType, size_t width, size_t height, const char* scene)
+bool KEImGuiEditor::Init(RenderWindowType windowType, uint32_t width, uint32_t height, const char* scene)
 {
 	KRenderGlobal::InEditor = true;
 	KEngineGlobal::CreateEngine();
@@ -250,9 +250,9 @@ void KEImGuiEditor::RefreshSnapshot()
 	m_Snapshot = std::move(snapshot);
 }
 
-void KEImGuiEditor::ApplyProperty(const std::vector<size_t>& ids, const Property& property)
+void KEImGuiEditor::ApplyProperty(const std::vector<IKEntity::IDType>& ids, const Property& property)
 {
-	for (size_t id : ids)
+	for (IKEntity::IDType id : ids)
 	{
 		KEEntityPtr entity = KEditorGlobal::EntityManipulator.GetEntity(id);
 		if (!entity) continue;
@@ -372,7 +372,7 @@ void KEImGuiEditor::Draw()
 			PostGame([ids]()
 			{
 				std::vector<KEEntityPtr> entities;
-				for (size_t id : ids) if (auto entity = KEditorGlobal::EntityManipulator.GetEntity(id)) entities.push_back(entity);
+				for (IKEntity::IDType id : ids) if (auto entity = KEditorGlobal::EntityManipulator.GetEntity(id)) entities.push_back(entity);
 				KEditorGlobal::EntityManipulator.Erase(entities);
 			});
 		}

@@ -1,4 +1,5 @@
 #include "KMesh.h"
+#include "KBase/Publish/KInteger.h"
 #include "KSubMesh.h"
 #include "Serializer/KMeshSerializer.h"
 #include "Interface/IKRenderDevice.h"
@@ -83,7 +84,8 @@ void KMesh::UpdateTriangleMesh()
 
 				{
 					std::vector<char> vertexDatas;
-					vertexDatas.resize(vertexBuffer->GetBufferSize());
+					if (vertexBuffer->GetBufferSize() > vertexDatas.max_size()) return;
+					vertexDatas.resize(static_cast<size_t>(vertexBuffer->GetBufferSize()));
 					vertexBuffer->Read(vertexDatas.data());
 					KVertexDefinition::POS_3F_NORM_3F_UV_2F* pData = (KVertexDefinition::POS_3F_NORM_3F_UV_2F*)vertexDatas.data();
 					for (auto i = vertexData->vertexStart; i < vertexData->vertexCount; ++i)
@@ -420,6 +422,7 @@ bool KMesh::InitFromUserData(const KMeshRawData& userData, const std::string& la
 
 bool KMesh::InitFromUtility(const KDebugUtilityInfo& info)
 {
+	if (!KInteger::FitsUInt32(info.positions.size()) || !KInteger::FitsUInt32(info.indices.size())) return false;
 	IKVertexBufferPtr vertexBuffer = nullptr;
 	KSubMeshPtr subMesh = nullptr;
 
@@ -439,7 +442,7 @@ bool KMesh::InitFromUtility(const KDebugUtilityInfo& info)
 	}
 
 	vertexBuffer->UnInit();
-	vertexBuffer->InitMemory(info.positions.size(), sizeof(info.positions[0]), info.positions.data());
+	vertexBuffer->InitMemory(static_cast<uint32_t>(info.positions.size()), sizeof(info.positions[0]), info.positions.data());
 	vertexBuffer->InitDevice(true);
 
 	KAABBBox bound;
@@ -463,7 +466,7 @@ bool KMesh::InitFromUtility(const KDebugUtilityInfo& info)
 		IKIndexBufferPtr indexBuffer = nullptr;
 		KRenderGlobal::RenderDevice->CreateIndexBuffer(indexBuffer);
 
-		indexBuffer->InitMemory(IT_16, info.indices.size(), info.indices.data());
+		indexBuffer->InitMemory(IT_16, static_cast<uint32_t>(info.indices.size()), info.indices.data());
 		indexBuffer->InitDevice(false);
 
 		KIndexData indexData;

@@ -177,6 +177,8 @@
     <ClInclude Include="Internal\Vulkan\KVulkanSampler.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanShader.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanBuffer.h" />
+    <ClInclude Include="Internal\Vulkan\KVulkanBufferManager.h" />
+    <ClInclude Include="Internal\Vulkan\KVulkanDescriptorManager.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanSwapChain.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanTexture.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanUIOverlay.h" />
@@ -291,6 +293,8 @@
     <ClCompile Include="Internal\Voxilzer\KVoxilzer.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanAccelerationStructure.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanBuffer.cpp" />
+    <ClCompile Include="Internal\Vulkan\KVulkanBufferManager.cpp" />
+    <ClCompile Include="Internal\Vulkan\KVulkanDescriptorManager.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanCommandBuffer.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanComputePipeline.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanDebug.cpp" />

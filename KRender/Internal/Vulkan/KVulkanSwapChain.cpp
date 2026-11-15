@@ -1,4 +1,5 @@
 #include "KVulkanSwapChain.h"
+#include "KVulkanRenderDevice.h"
 #include "KVulkanGlobal.h"
 #include "KVulkanInitializer.h"
 #include "KVulkanHelper.h"
@@ -133,7 +134,7 @@ bool KVulkanSwapChain::CreateSwapChain()
 	uint32_t windowHeight = 0;
 
 	{
-		size_t width = 0, height = 0;
+		uint32_t width = 0, height = 0;
 		m_pWindow->GetSize(width, height);
 		windowWidth = (uint32_t)width;
 		windowHeight = (uint32_t)height;
@@ -419,12 +420,16 @@ IKFrameBufferPtr KVulkanSwapChain::GetDepthStencilFrameBuffer(uint32_t chainInde
 	return nullptr;
 }
 
-void KVulkanSwapChain::WaitForInFlightFrame()
+bool KVulkanSwapChain::WaitForInFlightFrame(uint32_t& completedFrameNum)
 {
 	// 这个Wait保证Queue已经被执行完
-	VkFence fence = ((KVulkanFence*)(m_InFlightFence.get()))->GetVkFence();
+	KVulkanFence* vulkanFence = static_cast<KVulkanFence*>(m_InFlightFence.get());
+	VkFence fence = vulkanFence->GetVkFence();
 	VkResult vkResult = vkWaitForFences(KVulkanGlobal::device, 1, &fence, VK_TRUE, UINT64_MAX);
 	VK_ASSERT_RESULT(vkResult);
+	if (vkResult != VK_SUCCESS || !vulkanFence->TakeFrameNum(completedFrameNum)) return false;
+	static_cast<KVulkanRenderDevice*>(KRenderGlobal::RenderDevice)->ReleaseFrameResources(completedFrameNum);
+	return true;
 }
 
 SwapChainAcquireResult KVulkanSwapChain::AcquireNextImage(uint32_t& imageIndex)

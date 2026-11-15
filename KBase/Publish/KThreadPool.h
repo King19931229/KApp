@@ -1,4 +1,5 @@
 #pragma once
+#include <cstdint>
 #include "KBase/Publish/KLockFreeQueue.h"
 #include "KBase/Publish/KLockQueue.h"
 #include "KBase/Publish/KSemaphore.h"
@@ -238,7 +239,7 @@ public:
 #endif
 	}
 
-	void Init(const std::string& workThreadName, size_t uThreadNum)
+	void Init(const std::string& workThreadName, uint32_t uThreadNum)
 	{
 		assert(!m_pSyncTaskThread);
 		m_WorkerThreadName = workThreadName;
@@ -273,9 +274,9 @@ public:
 		m_Sem.Reset();
 	}
 
-	size_t GetWorkerThreadNum()
+	uint32_t GetWorkerThreadNum()
 	{
-		return m_Threads.size();
+		return static_cast<uint32_t>(m_Threads.size());
 	}
 
 	void SubmitTask(Task asyncTask)

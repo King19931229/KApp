@@ -29,7 +29,7 @@ size_t KShaderMap::GenHash(const bool* macrosToEnable)
 	return hash;
 }
 
-size_t KShaderMap::CalcHash(const VertexFormat* formats, size_t count, const KTextureBinding* textureBinding)
+size_t KShaderMap::CalcHash(const VertexFormat* formats, uint32_t count, const KTextureBinding* textureBinding)
 {
 	ASSERT_RESULT(!count || formats);
 
@@ -200,7 +200,7 @@ void KShaderMap::EnsureMacroMap(const bool* macrosToEnable)
 	}
 }
 
-void KShaderMap::PermutateMacro(bool* macrosToEnable, size_t permutateIndex)
+void KShaderMap::PermutateMacro(bool* macrosToEnable, uint32_t permutateIndex)
 {
 	ASSERT_RESULT(macrosToEnable);
 	ASSERT_RESULT(permutateIndex <= MACRO_SIZE);
@@ -347,7 +347,7 @@ bool KShaderMap::IsAllFSLoaded()
 	return false;
 }
 
-bool KShaderMap::IsPermutationLoaded(const VertexFormat* formats, size_t count, const KTextureBinding* textureBinding)
+bool KShaderMap::IsPermutationLoaded(const VertexFormat* formats, uint32_t count, const KTextureBinding* textureBinding)
 {
 	size_t vsHash = CalcHash(formats, count, nullptr);
 	auto vsIt = m_VSShaderMap.find(vsHash);
@@ -390,7 +390,7 @@ const KShaderInformation* KShaderMap::GetFSInformation()
 	return nullptr;
 }
 
-IKShaderPtr KShaderMap::GetShaderImplement(ShaderType shaderType, ShaderMap& shaderMap, MacrosMap& marcoMap, const VertexFormat* formats, size_t count, const KTextureBinding* textureBinding)
+IKShaderPtr KShaderMap::GetShaderImplement(ShaderType shaderType, ShaderMap& shaderMap, MacrosMap& marcoMap, const VertexFormat* formats, uint32_t count, const KTextureBinding* textureBinding)
 {
 	if (formats && count && (shaderType == ST_VERTEX || shaderType == ST_FRAGMENT))
 	{
@@ -440,27 +440,27 @@ IKShaderPtr KShaderMap::GetShaderImplement(ShaderType shaderType, ShaderMap& sha
 	return nullptr;
 }
 
-IKShaderPtr KShaderMap::GetVSShader(const VertexFormat* formats, size_t count)
+IKShaderPtr KShaderMap::GetVSShader(const VertexFormat* formats, uint32_t count)
 {
 	return GetShaderImplement(ST_VERTEX, m_VSShaderMap, VS_MACROS_MAP, formats, count, nullptr);
 }
 
-IKShaderPtr KShaderMap::GetVSInstanceShader(const VertexFormat* formats, size_t count)
+IKShaderPtr KShaderMap::GetVSInstanceShader(const VertexFormat* formats, uint32_t count)
 {
 	return GetShaderImplement(ST_VERTEX, m_VSInstanceShaderMap, VS_INSTANCE_MACROS_MAP, formats, count, nullptr);
 }
 
-IKShaderPtr KShaderMap::GetVSGPUSceneShader(const VertexFormat* formats, size_t count)
+IKShaderPtr KShaderMap::GetVSGPUSceneShader(const VertexFormat* formats, uint32_t count)
 {
 	return GetShaderImplement(ST_VERTEX, m_VSGPUSceneShaderMap, VS_GPUSCENE_MACROS_MAP, formats, count, nullptr);
 }
 
-IKShaderPtr KShaderMap::GetFSShader(const VertexFormat* formats, size_t count, const KTextureBinding* textureBinding)
+IKShaderPtr KShaderMap::GetFSShader(const VertexFormat* formats, uint32_t count, const KTextureBinding* textureBinding)
 {
 	return GetShaderImplement(ST_FRAGMENT, m_FSShaderMap, FS_MACROS_MAP, formats, count, textureBinding);
 }
 
-IKShaderPtr KShaderMap::GetFSGPUSceneShader(const VertexFormat* formats, size_t count, const KTextureBinding* textureBinding)
+IKShaderPtr KShaderMap::GetFSGPUSceneShader(const VertexFormat* formats, uint32_t count, const KTextureBinding* textureBinding)
 {
 	return GetShaderImplement(ST_FRAGMENT, m_FSGPUSceneShaderMap, FS_GPUSCENE_MACROS_MAP, formats, count, textureBinding);
 }

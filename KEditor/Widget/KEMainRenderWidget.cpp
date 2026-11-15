@@ -95,7 +95,7 @@ void KEMainRenderWidget::dropEvent(QDropEvent *event)
 		}
 		else
 		{
-			KEditorGlobal::ResourcePorter.MaterialDrop((size_t)event->pos().x(), (size_t)event->pos().y(), fullPath);
+			KEditorGlobal::ResourcePorter.MaterialDrop((int32_t)event->pos().x(), (int32_t)event->pos().y(), fullPath);
 		}
 	}
 }

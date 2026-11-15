@@ -1,4 +1,5 @@
 #include "KVirtualTexture.h"
+#include "KBase/Publish/KInteger.h"
 #include "Internal/KRenderGlobal.h"
 
 bool KVirtualTexture::PendingTileUpdateCompare::operator()(const KVirtualTextureTileNode* lhs, const KVirtualTextureTileNode* rhs)
@@ -280,7 +281,8 @@ bool KVirtualTexture::FeedbackRender(KRHICommandList& commandList, IKRenderPassP
 
 				std::vector<KInstanceBufferManager::AllocResultBlock> allocRes;
 				ASSERT_RESULT(KRenderGlobal::InstanceBufferManager.GetVertexSize() == sizeof(instances[0]));
-				ASSERT_RESULT(KRenderGlobal::InstanceBufferManager.Alloc(instances.size(), instances.data(), allocRes));
+				if (!KInteger::FitsUInt32(instances.size())) return false;
+				ASSERT_RESULT(KRenderGlobal::InstanceBufferManager.Alloc(static_cast<uint32_t>(instances.size()), instances.data(), allocRes));
 
 				command.instanceDraw = true;
 				command.instanceUsages.resize(allocRes.size());

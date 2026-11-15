@@ -22,9 +22,6 @@ protected:
 	IKPipelinePtr m_PipelineInstanceFrontFace;
 	IKPipelinePtr m_PipelineInstanceBackFace;
 
-	typedef std::vector<IKVertexBufferPtr> FrameInstanceBufferList;
-	std::vector<FrameInstanceBufferList> m_InstanceBuffers;
-
 	IKVertexBufferPtr m_VertexBuffer;
 	IKIndexBufferPtr m_IndexBuffer;
 

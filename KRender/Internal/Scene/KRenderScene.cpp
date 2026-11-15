@@ -261,8 +261,8 @@ bool KRenderScene::GetSceneObjectBound(KAABBBox& box)
 	return false;
 }
 
-bool KRenderScene::Pick(const KCamera& camera, size_t x, size_t y,
-	size_t screenWidth, size_t screenHeight, std::vector<IKEntity*>& result)
+bool KRenderScene::Pick(const KCamera& camera, int32_t x, int32_t y,
+	uint32_t screenWidth, uint32_t screenHeight, std::vector<IKEntity*>& result)
 {
 	if (m_SceneMgr)
 	{
@@ -278,8 +278,8 @@ bool KRenderScene::Pick(const KCamera& camera, size_t x, size_t y,
 	return false;
 }
 
-bool KRenderScene::CloestPick(const KCamera& camera, size_t x, size_t y,
-	size_t screenWidth, size_t screenHeight, IKEntity*& result)
+bool KRenderScene::CloestPick(const KCamera& camera, int32_t x, int32_t y,
+	uint32_t screenWidth, uint32_t screenHeight, IKEntity*& result)
 {
 	if (m_SceneMgr)
 	{

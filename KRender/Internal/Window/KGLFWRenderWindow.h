@@ -51,7 +51,7 @@ public:
 
 	virtual RenderWindowType GetType();
 
-	virtual bool Init(size_t top, size_t left, size_t width, size_t height, bool resizable, bool primary);
+	virtual bool Init(int32_t top, int32_t left, uint32_t width, uint32_t height, bool resizable, bool primary);
 	virtual bool Init(android_app* app);
 	virtual bool Init(void* hwnd, bool primary);
 	virtual bool UnInit();
@@ -71,13 +71,13 @@ public:
 	virtual bool IsMinimized();
 	virtual bool IdleUntilForeground();
 
-	virtual bool GetPosition(size_t &top, size_t &left);
-	virtual bool SetPosition(size_t top, size_t left);
+	virtual bool GetPosition(int32_t &top, int32_t &left);
+	virtual bool SetPosition(int32_t top, int32_t left);
 
-	virtual bool GetSize(size_t &width, size_t &height);
-	bool GetInputSize(size_t& width, size_t& height) override;
+	virtual bool GetSize(uint32_t &width, uint32_t &height);
+	bool GetInputSize(uint32_t& width, uint32_t& height) override;
 	void SetEditorViewport(const KEditorViewport& viewport) override;
-	virtual bool SetSize(size_t width, size_t height);
+	virtual bool SetSize(uint32_t width, uint32_t height);
 
 	virtual bool SetResizable(bool resizable);
 	virtual bool IsResizable();

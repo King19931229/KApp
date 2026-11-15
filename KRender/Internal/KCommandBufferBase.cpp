@@ -3,8 +3,7 @@
 
 KCommandBufferBase::DrawRecording& KCommandBufferBase::GetDrawRecording()
 {
-	assert(KRenderGlobal::CurrentInFlightFrameIndex < m_DrawRecordings.size());
-	return m_DrawRecordings[KRenderGlobal::CurrentInFlightFrameIndex];
+	return m_DrawRecording;
 }
 
 KDrawStatsStageId KCommandBufferBase::DrawRecording::CurrentStage() const

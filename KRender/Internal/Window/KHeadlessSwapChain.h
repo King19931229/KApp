@@ -33,7 +33,7 @@ public:
 	uint32_t GetWidth() override { return m_Width; }
 	uint32_t GetHeight() override { return m_Height; }
 
-	void WaitForInFlightFrame() override;
+	bool WaitForInFlightFrame(uint32_t& completedFrameNum) override;
 	SwapChainAcquireResult AcquireNextImage(uint32_t& imageIndex) override;
 	void PresentQueue(bool& needResize) override;
 	IKSemaphorePtr GetImageAvailableSemaphore() override { return m_ImageAvailable; }

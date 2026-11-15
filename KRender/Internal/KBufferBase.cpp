@@ -1,4 +1,5 @@
 #include "KBufferBase.h"
+#include "KBase/Publish/KInteger.h"
 
 KVertexBufferBase::KVertexBufferBase()
 	: m_VertexCount(0),
@@ -13,19 +14,21 @@ KVertexBufferBase::~KVertexBufferBase()
 
 }
 
-bool KVertexBufferBase::InitMemory(size_t vertexCount, size_t vertexSize, const void* pInitData)
+bool KVertexBufferBase::InitMemory(uint32_t vertexCount, uint32_t vertexSize, const void* pInitData)
 {
+	const uint64_t bytes = uint64_t(vertexCount) * vertexSize;
+	if (!KInteger::FitsMemorySize(bytes) || bytes > m_Data.max_size()) return false;
 	m_VertexCount = vertexCount;
 	m_VertexSize = vertexSize;
-	m_BufferSize = m_VertexCount * m_VertexSize;
-	m_Data.resize(m_BufferSize);
+	m_BufferSize = bytes;
+	m_Data.resize(static_cast<size_t>(bytes));
 	if(pInitData)
 	{
-		memcpy(m_Data.data(), pInitData, m_BufferSize);
+		memcpy(m_Data.data(), pInitData, static_cast<size_t>(m_BufferSize));
 	}
 	else
 	{
-		memset(m_Data.data(), 0, m_BufferSize);
+		memset(m_Data.data(), 0, static_cast<size_t>(m_BufferSize));
 	}
 	return true;
 }
@@ -52,19 +55,21 @@ KIndexBufferBase::~KIndexBufferBase()
 
 }
 
-bool KIndexBufferBase::InitMemory(IndexType indexType, size_t count, const void* pInitData)
+bool KIndexBufferBase::InitMemory(IndexType indexType, uint32_t count, const void* pInitData)
 {
+	const uint64_t bytes = uint64_t(indexType == IT_32 ? 4 : 2) * count;
+	if (!KInteger::FitsMemorySize(bytes) || bytes > m_Data.max_size()) return false;
 	m_uIndexCount = count;
-	m_BufferSize = (indexType == IT_32 ? 4 : 2) * count;
+	m_BufferSize = bytes;
 	m_IndexType = indexType;
-	m_Data.resize(m_BufferSize);	
+	m_Data.resize(static_cast<size_t>(m_BufferSize));	
 	if(pInitData)
 	{
-		memcpy(m_Data.data(), pInitData, m_BufferSize);
+		memcpy(m_Data.data(), pInitData, static_cast<size_t>(m_BufferSize));
 	}
 	else
 	{
-		memset(m_Data.data(), 0, m_BufferSize);
+		memset(m_Data.data(), 0, static_cast<size_t>(m_BufferSize));
 	}
 	return true;
 }
@@ -90,19 +95,20 @@ KStorageBufferBase::~KStorageBufferBase()
 
 }
 
-bool KStorageBufferBase::InitMemory(size_t bufferSize, const void* pInitData)
+bool KStorageBufferBase::InitMemory(uint64_t bufferSize, const void* pInitData)
 {
+	if (!KInteger::FitsMemorySize(bufferSize) || bufferSize > m_Data.max_size()) return false;
 	m_BufferSize = bufferSize;
 	if (bufferSize > 0)
 	{
-		m_Data.resize(bufferSize);
+		m_Data.resize(static_cast<size_t>(bufferSize));
 		if (pInitData)
 		{
-			memcpy(m_Data.data(), pInitData, bufferSize);
+			memcpy(m_Data.data(), pInitData, static_cast<size_t>(bufferSize));
 		}
 		else
 		{
-			memset(m_Data.data(), 0, bufferSize);
+			memset(m_Data.data(), 0, static_cast<size_t>(bufferSize));
 		}
 		return true;
 	}
@@ -139,19 +145,20 @@ KUniformBufferBase::~KUniformBufferBase()
 
 }
 
-bool KUniformBufferBase::InitMemory(size_t bufferSize, const void* pInitData)
+bool KUniformBufferBase::InitMemory(uint64_t bufferSize, const void* pInitData)
 {
+	if (!KInteger::FitsMemorySize(bufferSize) || bufferSize > m_Data.max_size()) return false;
 	m_BufferSize = bufferSize;
 	if(bufferSize > 0)
 	{
-		m_Data.resize(bufferSize);	
+		m_Data.resize(static_cast<size_t>(bufferSize));	
 		if(pInitData)
 		{
-			memcpy(m_Data.data(), pInitData, bufferSize);
+			memcpy(m_Data.data(), pInitData, static_cast<size_t>(bufferSize));
 		}
 		else
 		{
-			memset(m_Data.data(), 0, bufferSize);
+			memset(m_Data.data(), 0, static_cast<size_t>(bufferSize));
 		}
 		return true;
 	}

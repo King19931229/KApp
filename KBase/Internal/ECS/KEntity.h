@@ -8,7 +8,7 @@ class KEntity : public IKEntity, public KReflectionObjectBase
 	RTTR_REGISTRATION_FRIEND
 protected:
 	IKComponentBase* m_Components[CT_COUNT];
-	size_t m_Id;
+	IKEntity::IDType m_Id;
 	std::string m_Name;
 
 	static const char* msName;
@@ -32,7 +32,7 @@ protected:
 
 	KEntity();
 public:
-	KEntity(size_t id);
+	KEntity(IKEntity::IDType id);
 	~KEntity();
 
 	bool GetComponentBase(ComponentType type, IKComponentBase** pptr) override;
@@ -54,7 +54,7 @@ public:
 
 	bool Tick(float dt) override;
 
-	size_t GetID() const override { return m_Id; }
+	IDType GetID() const override { return m_Id; }
 
 	const std::string& GetName() const override  { return m_Name;}
 	void SetName(const std::string& name) override { m_Name = name; }

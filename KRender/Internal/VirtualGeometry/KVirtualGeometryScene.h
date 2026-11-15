@@ -98,7 +98,7 @@ protected:
 
 	std::vector<IKComputePipelinePtr> m_NodeCullPipelines[INSTANCE_CULL_COUNT];
 	std::vector<IKComputePipelinePtr> m_PersistentCullPipelines[INSTANCE_CULL_COUNT];
-	std::vector<IKComputePipelinePtr> m_ClusterCullPipelines[INSTANCE_CULL_COUNT];
+	IKComputePipelinePtr m_ClusterCullPipelines[INSTANCE_CULL_COUNT];
 
 	glm::mat4 m_PrevViewProj;
 

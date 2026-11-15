@@ -21,7 +21,7 @@ class KEImGuiEditor
 	};
 	struct Entity
 	{
-		size_t id;
+		IKEntity::IDType id;
 		std::string name;
 		bool selected;
 	};
@@ -33,7 +33,7 @@ class KEImGuiEditor
 	struct Snapshot
 	{
 		std::vector<Entity> entities;
-		std::vector<size_t> selection;
+		std::vector<IKEntity::IDType> selection;
 		std::vector<Property> properties;
 		std::vector<std::string> roots;
 		std::vector<Resource> resources;
@@ -76,7 +76,7 @@ class KEImGuiEditor
 	void RefreshResources();
 	void RefreshSnapshot();
 	void CollectProperties(KReflectionObjectBase* object, std::vector<std::string>& path, std::vector<Property>& out);
-	void ApplyProperty(const std::vector<size_t>& ids, const Property& property);
+	void ApplyProperty(const std::vector<IKEntity::IDType>& ids, const Property& property);
 	void Draw();
 	void DrawDockspace();
 	void DrawScene(const Snapshot& snapshot);
@@ -86,7 +86,7 @@ class KEImGuiEditor
 	void DrawGraph();
 	void OpenScene(bool save);
 public:
-	bool Init(RenderWindowType windowType = RENDER_WINDOW_GLFW, size_t width = 1600, size_t height = 900, const char* scene = nullptr);
+	bool Init(RenderWindowType windowType = RENDER_WINDOW_GLFW, uint32_t width = 1600, uint32_t height = 900, const char* scene = nullptr);
 	bool Run(uint32_t frames = 120, const char* output = nullptr);
 	void UnInit();
 };

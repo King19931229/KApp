@@ -28,7 +28,6 @@ protected:
 
 	float m_Scale;
 	unsigned short m_MsaaCount;
-	size_t m_FrameInFlight;
 	PixelFormat m_Format;
 
 	std::string m_VSFile;
@@ -52,8 +51,8 @@ protected:
 	// 一个输入槽只可能从一个节点输入
 	IKPostProcessConnection* m_InputConnection[PostProcessPort::MAX_INPUT_SLOT_COUNT];
 private:
-	KPostProcessPass(KPostProcessManager* manager, size_t frameInFlight, PostProcessStage stage);
-	KPostProcessPass(KPostProcessManager* manager, size_t frameInFlight, PostProcessStage stage, IDType id);
+	KPostProcessPass(KPostProcessManager* manager, PostProcessStage stage);
+	KPostProcessPass(KPostProcessManager* manager, PostProcessStage stage, IDType id);
 
 	IDType ID() override;
 

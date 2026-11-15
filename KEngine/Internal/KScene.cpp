@@ -118,8 +118,8 @@ bool KScene::Clear()
 	return true;
 }
 
-bool KScene::Pick(const KCamera& camera, size_t x, size_t y,
-	size_t screenWidth, size_t screenHeight, std::vector<IKEntity*>& result)
+bool KScene::Pick(const KCamera& camera, int32_t x, int32_t y,
+	uint32_t screenWidth, uint32_t screenHeight, std::vector<IKEntity*>& result)
 {
 	if (m_RenderScene)
 	{
@@ -129,8 +129,8 @@ bool KScene::Pick(const KCamera& camera, size_t x, size_t y,
 	return false;
 }
 
-bool KScene::CloestPick(const KCamera& camera, size_t x, size_t y,
-	size_t screenWidth, size_t screenHeight, IKEntity*& result)
+bool KScene::CloestPick(const KCamera& camera, int32_t x, int32_t y,
+	uint32_t screenWidth, uint32_t screenHeight, IKEntity*& result)
 {
 	if (m_RenderScene)
 	{

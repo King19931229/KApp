@@ -294,13 +294,13 @@ static bool EnsureDecodeData(KCodecResult& result)
 				KSubImageInfoList& newSubImages = newImage->GetSubImageInfo();
 
 				size_t offset = 0;
-				size_t numFaces = result.bCubemap ? 6 : 1;
+				uint32_t numFaces = result.bCubemap ? 6 : 1;
 
-				for (size_t level = 0; level < result.uMipmap; ++level)
+				for (uint32_t level = 0; level < result.uMipmap; ++level)
 				{
-					size_t width = oldSubImages[level * numFaces].uWidth;
-					size_t height = oldSubImages[level * numFaces].uHeight;
-					size_t depth = 1;
+					uint32_t width = oldSubImages[level * numFaces].uWidth;
+					uint32_t height = oldSubImages[level * numFaces].uHeight;
+					uint32_t depth = 1;
 
 					size_t subImageSize = 0;
 					KPixelFormatHelper::GetByteSize(
@@ -309,7 +309,7 @@ static bool EnsureDecodeData(KCodecResult& result)
 						width, height, depth,
 						subImageSize);
 
-					for (size_t face = 0; face < numFaces; ++face)
+					for (uint32_t face = 0; face < numFaces; ++face)
 					{
 						KSubImageInfo subImageInfo;
 						subImageInfo.uFaceIndex = face;
@@ -326,9 +326,9 @@ static bool EnsureDecodeData(KCodecResult& result)
 
 				assert(offset == imageSize);
 
-				size_t blockWidth = 1;
-				size_t blockHeight = 1;
-				size_t blockDepth = 1;
+				uint32_t blockWidth = 1;
+				uint32_t blockHeight = 1;
+				uint32_t blockDepth = 1;
 				if (!KPixelFormatHelper::GetBlockDimension(result.eFormat, blockWidth, blockHeight))
 				{
 					KG_LOGE(LM_RENDER, "Unable to get block dimension");
@@ -362,7 +362,7 @@ static bool EnsureDecodeData(KCodecResult& result)
 					return false;
 				}
 
-				for (size_t level = 0; level < result.uMipmap; ++level)
+				for (uint32_t level = 0; level < result.uMipmap; ++level)
 				{
 					astcenc_image image;
 					image.dim_x = (unsigned int)oldSubImages[level * numFaces].uWidth;
@@ -370,7 +370,7 @@ static bool EnsureDecodeData(KCodecResult& result)
 					image.dim_z = (unsigned int)1;
 					image.data_type = ASTCENC_TYPE_U8;
 
-					for (size_t face = 0; face < numFaces; ++face)
+					for (uint32_t face = 0; face < numFaces; ++face)
 					{
 						size_t subImageIndex = level * numFaces + face;
 
@@ -498,7 +498,7 @@ static bool DecodeKTX1(const IKDataStreamPtr& stream, KTXHeader& header, KCodecR
 		result.bCompressed = true;
 	}
 
-	size_t numFaces = header.numberOfFaces;
+	uint32_t numFaces = header.numberOfFaces;
 	if (numFaces > 1)
 	{
 		result.bCubemap = true;
@@ -524,9 +524,9 @@ static bool DecodeKTX1(const IKDataStreamPtr& stream, KTXHeader& header, KCodecR
 	unsigned char* destPtr = result.pData->GetData();
 
 	uint32_t mipOffset = 0;
-	size_t width = result.uWidth;
-	size_t height = result.uHeight;
-	size_t depth = result.uDepth;
+	uint32_t width = result.uWidth;
+	uint32_t height = result.uHeight;
+	uint32_t depth = result.uDepth;
 
 	for (uint32_t level = 0; level < header.numberOfMipmapLevels; ++level)
 	{
@@ -911,9 +911,9 @@ static bool DecodeKTX2(const IKDataStreamPtr& stream, KTXHeader2& header, KCodec
 	KSubImageInfoList& subImageInfoList = result.pData->GetSubImageInfo();
 	unsigned char* destPtr = result.pData->GetData();
 
-	size_t width = result.uWidth;
-	size_t height = result.uHeight;
-	size_t depth = result.uDepth;
+	uint32_t width = result.uWidth;
+	uint32_t height = result.uHeight;
+	uint32_t depth = result.uDepth;
 
 	uint32_t blockSize = 1;
 	for (size_t i = 0; i < 4; ++i)

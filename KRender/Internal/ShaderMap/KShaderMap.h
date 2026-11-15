@@ -177,12 +177,12 @@ protected:
 	static MacrosSet MACROS_SET;
 
 	static size_t GenHash(const bool* macrosToEnable);
-	static size_t CalcHash(const VertexFormat* formats, size_t count, const KTextureBinding* textureBinding);
+	static size_t CalcHash(const VertexFormat* formats, uint32_t count, const KTextureBinding* textureBinding);
 
 	static void EnsureMacroMap(const bool* macrosToEnable);
-	static void PermutateMacro(bool* macrosToEnable, size_t permutateIndex);
+	static void PermutateMacro(bool* macrosToEnable, uint32_t permutateIndex);
 
-	IKShaderPtr GetShaderImplement(ShaderType shaderType, ShaderMap& shaderMap, MacrosMap& marcoMap, const VertexFormat* formats, size_t count, const KTextureBinding* textureBinding);
+	IKShaderPtr GetShaderImplement(ShaderType shaderType, ShaderMap& shaderMap, MacrosMap& marcoMap, const VertexFormat* formats, uint32_t count, const KTextureBinding* textureBinding);
 public:
 	KShaderMap();
 	~KShaderMap();
@@ -199,7 +199,7 @@ public:
 	bool IsAllFSLoaded();
 	bool IsVSTemplateLoaded();
 	bool IsFSTemplateLoaded();
-	bool IsPermutationLoaded(const VertexFormat* formats, size_t count, const KTextureBinding* textureBinding);
+	bool IsPermutationLoaded(const VertexFormat* formats, uint32_t count, const KTextureBinding* textureBinding);
 
 	const std::string& GetVSPath() const { return m_VSFile; }
 	const std::string& GetFSPath() const { return m_FSFile; }
@@ -207,9 +207,9 @@ public:
 	const KShaderInformation* GetVSInformation();
 	const KShaderInformation* GetFSInformation();
 
-	IKShaderPtr GetVSShader(const VertexFormat* formats, size_t count);
-	IKShaderPtr GetVSInstanceShader(const VertexFormat* formats, size_t count);
-	IKShaderPtr GetVSGPUSceneShader(const VertexFormat* formats, size_t count);
-	IKShaderPtr GetFSShader(const VertexFormat* formats, size_t count, const KTextureBinding* textureBinding);
-	IKShaderPtr GetFSGPUSceneShader(const VertexFormat* formats, size_t count, const KTextureBinding* textureBinding);
+	IKShaderPtr GetVSShader(const VertexFormat* formats, uint32_t count);
+	IKShaderPtr GetVSInstanceShader(const VertexFormat* formats, uint32_t count);
+	IKShaderPtr GetVSGPUSceneShader(const VertexFormat* formats, uint32_t count);
+	IKShaderPtr GetFSShader(const VertexFormat* formats, uint32_t count, const KTextureBinding* textureBinding);
+	IKShaderPtr GetFSGPUSceneShader(const VertexFormat* formats, uint32_t count, const KTextureBinding* textureBinding);
 };

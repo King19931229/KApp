@@ -1,4 +1,5 @@
 #include "KSubMesh.h"
+#include "KBase/Publish/KInteger.h"
 #include "Interface/IKRenderDevice.h"
 #include "Interface/IKPipeline.h"
 #include "Interface/IKSampler.h"
@@ -92,7 +93,7 @@ bool KSubMesh::CreateAccelerationStructure()
 			IKIndexBufferPtr indexBuffer = nullptr;
 
 			KRenderGlobal::RenderDevice->CreateIndexBuffer(indexBuffer);
-			size_t count = m_IndexData.indexBuffer->GetIndexCount();
+			uint32_t count = m_IndexData.indexBuffer->GetIndexCount();
 
 			std::vector<uint16_t> srcData;
 			srcData.resize(count);
@@ -144,8 +145,10 @@ bool KSubMesh::CreateMeshlet()
 		std::vector<char> indices;
 		std::vector<char> vertices;
 
-		indices.resize(m_IndexData.indexBuffer->GetBufferSize());
-		vertices.resize(m_pVertexData->vertexBuffers[0]->GetBufferSize());
+		if (m_IndexData.indexBuffer->GetBufferSize() > indices.max_size()
+			|| m_pVertexData->vertexBuffers[0]->GetBufferSize() > vertices.max_size()) return false;
+		indices.resize(static_cast<size_t>(m_IndexData.indexBuffer->GetBufferSize()));
+		vertices.resize(static_cast<size_t>(m_pVertexData->vertexBuffers[0]->GetBufferSize()));
 
 		ASSERT_RESULT(m_IndexData.indexBuffer->Read(indices.data()));
 		ASSERT_RESULT(m_pVertexData->vertexBuffers[0]->Read(vertices.data()));
@@ -179,7 +182,7 @@ bool KSubMesh::CreateMeshlet()
 			}
 		}
 
-		size_t positionStride = m_pVertexData->vertexBuffers[0]->GetVertexSize();
+		uint32_t positionStride = m_pVertexData->vertexBuffers[0]->GetVertexSize();
 		buider.BuildMeshletEarlyCulling(m_Meshlet, m_pVertexData->bound.GetMin(), m_pVertexData->bound.GetMax(), (const float*)pVertices, positionStride);
 
 		if (m_IndexData.indexBuffer->GetIndexType() == IT_16)
@@ -193,14 +196,15 @@ bool KSubMesh::CreateMeshlet()
 
 		buider.PadTaskMeshlets(m_Meshlet);
 
+		if (!KInteger::FitsUInt32(m_Meshlet.meshletDescriptors.size()) || !KInteger::FitsUInt32(m_Meshlet.meshletPacks.size())) return false;
 		if (m_Meshlet.meshletDescriptors.size() && m_Meshlet.meshletPacks.size())
 		{
 			KRenderGlobal::RenderDevice->CreateVertexBuffer(m_MeshData.meshletDescBuffer);
-			m_MeshData.meshletDescBuffer->InitMemory(m_Meshlet.meshletDescriptors.size(), sizeof(KMeshletPackBasicDesc), m_Meshlet.meshletDescriptors.data());
+			m_MeshData.meshletDescBuffer->InitMemory(static_cast<uint32_t>(m_Meshlet.meshletDescriptors.size()), sizeof(KMeshletPackBasicDesc), m_Meshlet.meshletDescriptors.data());
 			m_MeshData.meshletDescBuffer->InitDevice(false);
 
 			KRenderGlobal::RenderDevice->CreateVertexBuffer(m_MeshData.meshletPrimBuffer);
-			m_MeshData.meshletPrimBuffer->InitMemory(m_Meshlet.meshletPacks.size(), sizeof(KMeshletPackBasicType), m_Meshlet.meshletPacks.data());
+			m_MeshData.meshletPrimBuffer->InitMemory(static_cast<uint32_t>(m_Meshlet.meshletPacks.size()), sizeof(KMeshletPackBasicType), m_Meshlet.meshletPacks.data());
 			m_MeshData.meshletPrimBuffer->InitDevice(false);
 		}
 

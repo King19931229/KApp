@@ -80,7 +80,7 @@ public:
 
 	KEEntityPtr GetEntity(IKEntity::IDType id);
 	const EntityCollectionType& GetEntities() const { return m_Entities; }
-	KEEntityPtr CloestPickEntity(size_t x, size_t y);
+	KEEntityPtr CloestPickEntity(int32_t x, int32_t y);
 
 	void UpdateGizmoTransform();
 };

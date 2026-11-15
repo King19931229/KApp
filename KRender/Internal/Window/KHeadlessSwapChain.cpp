@@ -4,6 +4,8 @@
 #include "Interface/IKRenderPass.h"
 #include "Interface/IKQueue.h"
 #include "Internal/KRenderGlobal.h"
+#include "Internal/Vulkan/KVulkanQueue.h"
+#include "Internal/Vulkan/KVulkanRenderDevice.h"
 
 KHeadlessSwapChain::~KHeadlessSwapChain()
 {
@@ -13,7 +15,7 @@ KHeadlessSwapChain::~KHeadlessSwapChain()
 bool KHeadlessSwapChain::Init(IKRenderWindow* window)
 {
 	UnInit();
-	size_t width = 0, height = 0;
+	uint32_t width = 0, height = 0;
 	if (!window || !window->GetSize(width, height) || !width || !height)
 	{
 		return false;
@@ -86,14 +88,18 @@ bool KHeadlessSwapChain::UnInit()
 	return true;
 }
 
-void KHeadlessSwapChain::WaitForInFlightFrame()
+bool KHeadlessSwapChain::WaitForInFlightFrame(uint32_t& completedFrameNum)
 {
-	ASSERT_RESULT(m_InFlightFence->Wait());
+	const bool waited = m_InFlightFence->Wait();
+	ASSERT_RESULT(waited);
+	if (!waited || !static_cast<KVulkanFence*>(m_InFlightFence.get())->TakeFrameNum(completedFrameNum)) return false;
+	static_cast<KVulkanRenderDevice*>(KRenderGlobal::RenderDevice)->ReleaseFrameResources(completedFrameNum);
+	return true;
 }
 
 SwapChainAcquireResult KHeadlessSwapChain::AcquireNextImage(uint32_t& imageIndex)
 {
-	size_t width = 0, height = 0;
+	uint32_t width = 0, height = 0;
 	if (!m_Window || !m_Window->GetSize(width, height)) return SCAR_FAILED;
 	if (width != m_Width || height != m_Height) return SCAR_OUT_OF_DATE;
 	const uint32_t slot = KRenderGlobal::CurrentInFlightFrameIndex;

@@ -69,14 +69,14 @@ protected:
 	glm::vec4 m_SHCoeff[9];
 
 	bool PopulateCubeMapRenderCommand(KRenderCommand& command, uint32_t faceIndex, float roughtness, IKPipelinePtr pipeline, IKRenderPassPtr renderPass);
-	bool AllocateTempResource(IKRenderDevice* renderDevice, uint32_t width, uint32_t height, size_t mipmaps);
+	bool AllocateTempResource(IKRenderDevice* renderDevice, uint32_t width, uint32_t height, uint32_t mipmaps);
 	bool FreeTempResource();
 	bool Compute();
 public:
 	KPrefilerCubeMap();
 	~KPrefilerCubeMap();
 
-	bool Init(uint32_t width, uint32_t height, size_t mipmaps, const char* cubemapPath);
+	bool Init(uint32_t width, uint32_t height, uint32_t mipmaps, const char* cubemapPath);
 	bool UnInit();
 
 	IKTexturePtr GetDiffuseIrradiance() { return m_DiffuseIrradianceMap; }

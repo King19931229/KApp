@@ -1,4 +1,5 @@
 #include "KVulkanRayTracePipeline.h"
+#include "KVulkanRenderDevice.h"
 #include "KVulkanAccelerationStructure.h"
 #include "KVulkanRenderTarget.h"
 #include "KVulkanFrameBuffer.h"
@@ -53,9 +54,6 @@ void KVulkanRayTracePipeline::DestroyStrogeScene()
 
 void KVulkanRayTracePipeline::CreateDescriptorSet()
 {
-	uint32_t frames = KRenderGlobal::NumFramesInFlight;
-	m_Descriptor.sets.resize(frames);
-
 	KVulkanAccelerationStructure* topDown = static_cast<KVulkanAccelerationStructure*>(m_TopDownAS.get());
 	const std::vector<VkDescriptorImageInfo>& textures = topDown->GetTextureDescriptors();
 
@@ -94,117 +92,105 @@ void KVulkanRayTracePipeline::CreateDescriptorSet()
 
 	VK_ASSERT_RESULT(vkCreatePipelineLayout(KVulkanGlobal::device, &pipelineLayoutCI, nullptr, &m_Pipeline.layout));
 
-	VkDescriptorPoolSize poolSizes[] =
+	m_Descriptor.textureCount = textureBinding.descriptorCount;
+	m_Descriptor.ticket = static_cast<KVulkanRenderDevice*>(KRenderGlobal::RenderDevice)->GetDescriptorManager().Create(m_Descriptor.layout,
+		std::vector<VkDescriptorSetLayoutBinding>(setLayoutBindings, setLayoutBindings + ARRAY_SIZE(setLayoutBindings)), 1, 1, false);
+	ASSERT_RESULT(m_Descriptor.ticket);
+}
+
+VkDescriptorSet KVulkanRayTracePipeline::AllocDescriptorSet()
+{
+	KVulkanAccelerationStructure* topDown = static_cast<KVulkanAccelerationStructure*>(m_TopDownAS.get());
+	const std::vector<VkDescriptorImageInfo>& textures = topDown->GetTextureDescriptors();
+	if (std::max(textures.size(), (size_t)1) != m_Descriptor.textureCount) return VK_NULL_HANDLE;
+
+	bool newSet = false;
+	KVulkanDescriptorPoolAllocatedSetPtr allocation = static_cast<KVulkanRenderDevice*>(KRenderGlobal::RenderDevice)->GetDescriptorManager().Request(m_Descriptor.ticket, newSet);
+	VkDescriptorSet set = allocation->set;
+	if (!newSet) return set;
+
+	VkWriteDescriptorSetAccelerationStructureKHR descriptorAccelerationStructureInfo = {};
+	descriptorAccelerationStructureInfo.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR;
+	descriptorAccelerationStructureInfo.accelerationStructureCount = 1;
+	descriptorAccelerationStructureInfo.pAccelerationStructures = &topDown->GetTopDown().handle;
+	VkWriteDescriptorSet accelerationStructureWrite = KVulkanInitializer::CreateDescriptorAccelerationStructureWrite(&descriptorAccelerationStructureInfo, set, RAYTRACE_BINDING_AS);
+
+	KVulkanRenderTarget* vulkanRenderTarget = static_cast<KVulkanRenderTarget*>(m_StorageRT.get());
+	KVulkanFrameBuffer* vulkanFrameBuffer = static_cast<KVulkanFrameBuffer*>(vulkanRenderTarget->GetFrameBuffer().get());
+	VkDescriptorImageInfo storageImageDescriptor{ VK_NULL_HANDLE, vulkanFrameBuffer->GetImageView(), VK_IMAGE_LAYOUT_GENERAL };
+	VkWriteDescriptorSet storageImageWrite = KVulkanInitializer::CreateDescriptorImageWrite(&storageImageDescriptor, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, set, RAYTRACE_BINDING_IMAGE);
+
+	KVulkanUniformBuffer* vulkanUniformBuffer = static_cast<KVulkanUniformBuffer*>(m_CameraBuffer.get());
+	VkDescriptorBufferInfo uniformBufferInfo = KVulkanInitializer::CreateDescriptorBufferIntfo(vulkanUniformBuffer->GetVulkanHandle(), 0, vulkanUniformBuffer->GetBufferSize());
+	VkWriteDescriptorSet uniformWrite = KVulkanInitializer::CreateDescriptorBufferWrite(&uniformBufferInfo, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, set, RAYTRACE_BINDING_CAMERA);
+
+	VkDescriptorBufferInfo sceneBufferInfo = KVulkanInitializer::CreateDescriptorBufferIntfo(m_Scene.buffer, 0, VK_WHOLE_SIZE);
+	VkWriteDescriptorSet sceneWrite = KVulkanInitializer::CreateDescriptorBufferWrite(&sceneBufferInfo, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, set, RAYTRACE_BINDING_SCENE);
+
+	// Keep VK happy
+	KSamplerRef errorSampler; ASSERT_RESULT(KRenderGlobal::SamplerManager.GetErrorSampler(errorSampler));
+	KTextureRef errorTexture; ASSERT_RESULT(KRenderGlobal::TextureManager.GetErrorTexture(errorTexture));
+	VkDescriptorImageInfo emptyImageInfo = KVulkanInitializer::CreateDescriptorImageInfo(
+		((KVulkanSampler*)(*errorSampler).get())->GetVkSampler(),
+		((KVulkanTexture*)(*errorTexture).get())->GetImageView(),
+		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+	);
+	VkWriteDescriptorSet textureWrite = KVulkanInitializer::CreateDescriptorImageWrite(textures.empty() ? &emptyImageInfo : textures.data(),
+		VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, set, RAYTRACE_BINDING_TEXTURES, m_Descriptor.textureCount);
+
+	IKSamplerPtr normalSampler = KRenderGlobal::GBuffer.GetSampler();
+	IKRenderTargetPtr normalTarget = KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET0);
+	VkDescriptorImageInfo normaImageInfo = KVulkanInitializer::CreateDescriptorImageInfo(
+		((KVulkanSampler*)normalSampler.get())->GetVkSampler(),
+		((KVulkanFrameBuffer*)normalTarget->GetFrameBuffer().get())->GetImageView(),
+		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+	);
+	VkWriteDescriptorSet normalWrite = KVulkanInitializer::CreateDescriptorImageWrite(&normaImageInfo, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, set, RAYTRACE_BINDING_GBUFFER0);
+
+	IKSamplerPtr positionSampler = KRenderGlobal::GBuffer.GetSampler();
+	IKRenderTargetPtr positionTarget = KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET0);
+	VkDescriptorImageInfo positionImageInfo = KVulkanInitializer::CreateDescriptorImageInfo(
+		((KVulkanSampler*)positionSampler.get())->GetVkSampler(),
+		((KVulkanFrameBuffer*)positionTarget->GetFrameBuffer().get())->GetImageView(),
+		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+	);
+	VkWriteDescriptorSet positionWrite = KVulkanInitializer::CreateDescriptorImageWrite(&positionImageInfo, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, set, RAYTRACE_BINDING_GBUFFER1);
+
+	VkWriteDescriptorSet writeDescriptorSets[] =
 	{
-		{ VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR, 1 },
-		{ VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1 },
-		{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1 },
-		{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1 },
-		{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1 },
-		{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1 }
+		// Binding 0: Top level acceleration structure
+		accelerationStructureWrite,
+		// Binding 1: Ray tracing result image
+		storageImageWrite,
+		// Binding 2: Uniform data
+		uniformWrite,
+		// Binding 3: Scene data
+		sceneWrite,
+		// Binding 4: Texture data
+		textureWrite,
+		// Binding 5: Normal data
+		normalWrite,
+		// Binding 6: Position data
+		positionWrite
 	};
 
-	VkDescriptorPoolCreateInfo descriptorPoolCreateInfo = {};
-	descriptorPoolCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-	descriptorPoolCreateInfo.poolSizeCount = ARRAY_SIZE(poolSizes);
-	descriptorPoolCreateInfo.pPoolSizes = poolSizes;
-	descriptorPoolCreateInfo.maxSets = frames;
-	descriptorPoolCreateInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
-
-	VK_ASSERT_RESULT(vkCreateDescriptorPool(KVulkanGlobal::device, &descriptorPoolCreateInfo, nullptr, &m_Descriptor.pool));
-
-	for (uint32_t frameIndex = 0; frameIndex < frames; ++frameIndex)
-	{
-		VkDescriptorSetAllocateInfo descriptorSetAllocateInfo = {};
-		descriptorSetAllocateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-		descriptorSetAllocateInfo.descriptorPool = m_Descriptor.pool;
-		descriptorSetAllocateInfo.descriptorSetCount = 1;
-		descriptorSetAllocateInfo.pSetLayouts = &m_Descriptor.layout;
-
-		VK_ASSERT_RESULT(vkAllocateDescriptorSets(KVulkanGlobal::device, &descriptorSetAllocateInfo, &m_Descriptor.sets[frameIndex]));
-	}
-
-	for (uint32_t frameIndex = 0; frameIndex < frames; ++frameIndex)
-	{
-		VkWriteDescriptorSetAccelerationStructureKHR descriptorAccelerationStructureInfo = {};
-		descriptorAccelerationStructureInfo.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR;
-		descriptorAccelerationStructureInfo.accelerationStructureCount = 1;
-		descriptorAccelerationStructureInfo.pAccelerationStructures = &topDown->GetTopDown().handle;
-		VkWriteDescriptorSet accelerationStructureWrite = KVulkanInitializer::CreateDescriptorAccelerationStructureWrite(&descriptorAccelerationStructureInfo, m_Descriptor.sets[frameIndex], RAYTRACE_BINDING_AS);
-
-		KVulkanRenderTarget* vulkanRenderTarget = static_cast<KVulkanRenderTarget*>(m_StorageRT.get());
-		KVulkanFrameBuffer* vulkanFrameBuffer = static_cast<KVulkanFrameBuffer*>(vulkanRenderTarget->GetFrameBuffer().get());
-		VkDescriptorImageInfo storageImageDescriptor{ VK_NULL_HANDLE, vulkanFrameBuffer->GetImageView(), VK_IMAGE_LAYOUT_GENERAL };	
-		VkWriteDescriptorSet storageImageWrite = KVulkanInitializer::CreateDescriptorImageWrite(&storageImageDescriptor, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, m_Descriptor.sets[frameIndex], RAYTRACE_BINDING_IMAGE);
-
-		KVulkanUniformBuffer* vulkanUniformBuffer = static_cast<KVulkanUniformBuffer*>(m_CameraBuffer.get());
-		VkDescriptorBufferInfo uniformBufferInfo = KVulkanInitializer::CreateDescriptorBufferIntfo(vulkanUniformBuffer->GetVulkanHandle(), 0, vulkanUniformBuffer->GetBufferSize());
-		VkWriteDescriptorSet uniformWrite = KVulkanInitializer::CreateDescriptorBufferWrite(&uniformBufferInfo, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, m_Descriptor.sets[frameIndex], RAYTRACE_BINDING_CAMERA);
-
-		VkDescriptorBufferInfo sceneBufferInfo = KVulkanInitializer::CreateDescriptorBufferIntfo(m_Scene.buffer, 0, VK_WHOLE_SIZE);
-		VkWriteDescriptorSet sceneWrite = KVulkanInitializer::CreateDescriptorBufferWrite(&sceneBufferInfo, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, m_Descriptor.sets[frameIndex], RAYTRACE_BINDING_SCENE);
-
-		// Keep VK happy
-		KSamplerRef errorSampler; ASSERT_RESULT(KRenderGlobal::SamplerManager.GetErrorSampler(errorSampler));
-		KTextureRef errorTexture; ASSERT_RESULT(KRenderGlobal::TextureManager.GetErrorTexture(errorTexture));
-		VkDescriptorImageInfo emptyImageInfo = KVulkanInitializer::CreateDescriptorImageInfo(
-			((KVulkanSampler*)(*errorSampler).get())->GetVkSampler(),
-			((KVulkanTexture*)(*errorTexture).get())->GetImageView(),
-			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
-		);
-		VkWriteDescriptorSet textureWrite = KVulkanInitializer::CreateDescriptorImageWrite(textures.size() ? textures.data() : &emptyImageInfo,
-			VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, m_Descriptor.sets[frameIndex], RAYTRACE_BINDING_TEXTURES, textures.size() ? textureBinding.descriptorCount : 1);
-
-		IKSamplerPtr normalSampler = KRenderGlobal::GBuffer.GetSampler();
-		IKRenderTargetPtr normalTarget = KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET0);
-		VkDescriptorImageInfo normaImageInfo = KVulkanInitializer::CreateDescriptorImageInfo(
-			((KVulkanSampler*)normalSampler.get())->GetVkSampler(),
-			((KVulkanFrameBuffer*)normalTarget->GetFrameBuffer().get())->GetImageView(),
-			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
-		);
-		VkWriteDescriptorSet normalWrite = KVulkanInitializer::CreateDescriptorImageWrite(&normaImageInfo, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, m_Descriptor.sets[frameIndex], RAYTRACE_BINDING_GBUFFER0);
-
-		IKSamplerPtr positionSampler = KRenderGlobal::GBuffer.GetSampler();
-		IKRenderTargetPtr positionTarget = KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET0);
-		VkDescriptorImageInfo positionImageInfo = KVulkanInitializer::CreateDescriptorImageInfo(
-			((KVulkanSampler*)positionSampler.get())->GetVkSampler(),
-			((KVulkanFrameBuffer*)positionTarget->GetFrameBuffer().get())->GetImageView(),
-			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
-		);
-		VkWriteDescriptorSet positionWrite = KVulkanInitializer::CreateDescriptorImageWrite(&positionImageInfo, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, m_Descriptor.sets[frameIndex], RAYTRACE_BINDING_GBUFFER1);
-
-		VkWriteDescriptorSet writeDescriptorSets[] =
-		{
-			// Binding 0: Top level acceleration structure
-			accelerationStructureWrite,
-			// Binding 1: Ray tracing result image
-			storageImageWrite,
-			// Binding 2: Uniform data
-			uniformWrite,
-			// Binding 3: Scene data
-			sceneWrite,
-			// Binding 4: Texture data
-			textureWrite,
-			// Binding 5: Normal data
-			normalWrite,
-			// Binding 6: Position data
-			positionWrite
-		};
-
-		vkUpdateDescriptorSets(KVulkanGlobal::device, ARRAY_SIZE(writeDescriptorSets), writeDescriptorSets, 0, VK_NULL_HANDLE);
-	}
+	vkUpdateDescriptorSets(KVulkanGlobal::device, ARRAY_SIZE(writeDescriptorSets), writeDescriptorSets, 0, VK_NULL_HANDLE);
+	return set;
 }
 
 void KVulkanRayTracePipeline::DestroyDescriptorSet()
 {
-	if (m_Descriptor.pool != VK_NULL_HANDEL)
+	if (m_Descriptor.ticket)
+	{
+		static_cast<KVulkanRenderDevice*>(KRenderGlobal::RenderDevice)->GetDescriptorManager().Destroy(m_Descriptor.ticket);
+		m_Descriptor.ticket = nullptr;
+	}
+	m_Descriptor.textureCount = 0;
+
+	if (m_Descriptor.layout != VK_NULL_HANDEL)
 	{
 		vkDestroyDescriptorSetLayout(KVulkanGlobal::device, m_Descriptor.layout, nullptr);
-		vkDestroyDescriptorPool(KVulkanGlobal::device, m_Descriptor.pool, nullptr);
-
 		m_Descriptor.layout = VK_NULL_HANDEL;
-		m_Descriptor.pool = VK_NULL_HANDEL;
-		m_Descriptor.sets.clear();
 	}
 
 	if (m_Pipeline.layout != VK_NULL_HANDEL)
@@ -468,17 +454,17 @@ bool KVulkanRayTracePipeline::RecreateFromAS()
 
 		KVulkanAccelerationStructure* topDown = static_cast<KVulkanAccelerationStructure*>(m_TopDownAS.get());
 
-		uint32_t frames = KRenderGlobal::NumFramesInFlight;
-		for (uint32_t frameIndex = 0; frameIndex < frames; ++frameIndex)
+		KVulkanDescriptorManager& manager = static_cast<KVulkanRenderDevice*>(KRenderGlobal::RenderDevice)->GetDescriptorManager();
+		for (VkDescriptorSet set : manager.GetDescriptorSets(m_Descriptor.ticket))
 		{
 			VkWriteDescriptorSetAccelerationStructureKHR descriptorAccelerationStructureInfo = {};
 			descriptorAccelerationStructureInfo.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR;
 			descriptorAccelerationStructureInfo.accelerationStructureCount = 1;
 			descriptorAccelerationStructureInfo.pAccelerationStructures = &topDown->GetTopDown().handle;
-			VkWriteDescriptorSet accelerationStructureWrite = KVulkanInitializer::CreateDescriptorAccelerationStructureWrite(&descriptorAccelerationStructureInfo, m_Descriptor.sets[frameIndex], RAYTRACE_BINDING_AS);
+			VkWriteDescriptorSet accelerationStructureWrite = KVulkanInitializer::CreateDescriptorAccelerationStructureWrite(&descriptorAccelerationStructureInfo, set, RAYTRACE_BINDING_AS);
 
 			VkDescriptorBufferInfo sceneBufferInfo = KVulkanInitializer::CreateDescriptorBufferIntfo(m_Scene.buffer, 0, VK_WHOLE_SIZE);
-			VkWriteDescriptorSet sceneWrite = KVulkanInitializer::CreateDescriptorBufferWrite(&sceneBufferInfo, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, m_Descriptor.sets[frameIndex], RAYTRACE_BINDING_SCENE);
+			VkWriteDescriptorSet sceneWrite = KVulkanInitializer::CreateDescriptorBufferWrite(&sceneBufferInfo, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, set, RAYTRACE_BINDING_SCENE);
 
 			VkWriteDescriptorSet writeDescriptorSets[] =
 			{
@@ -507,13 +493,13 @@ bool KVulkanRayTracePipeline::ResizeImage(uint32_t width, uint32_t height)
 		m_StorageRT->UnInit();
 		m_StorageRT->InitFromStorage(m_Width, m_Height, 1, m_Format);
 
-		uint32_t frames = KRenderGlobal::NumFramesInFlight;
-		for (uint32_t frameIndex = 0; frameIndex < frames; ++frameIndex)
+		KVulkanDescriptorManager& manager = static_cast<KVulkanRenderDevice*>(KRenderGlobal::RenderDevice)->GetDescriptorManager();
+		for (VkDescriptorSet set : manager.GetDescriptorSets(m_Descriptor.ticket))
 		{
 			KVulkanRenderTarget* vulkanRenderTarget = static_cast<KVulkanRenderTarget*>(m_StorageRT.get());
 			KVulkanFrameBuffer* vulkanFrameBuffer = static_cast<KVulkanFrameBuffer*>(vulkanRenderTarget->GetFrameBuffer().get());
 			VkDescriptorImageInfo storageImageDescriptor{ VK_NULL_HANDLE, vulkanFrameBuffer->GetImageView(), VK_IMAGE_LAYOUT_GENERAL };
-			VkWriteDescriptorSet storageImageWrite = KVulkanInitializer::CreateDescriptorImageWrite(&storageImageDescriptor, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, m_Descriptor.sets[frameIndex], RAYTRACE_BINDING_IMAGE);
+			VkWriteDescriptorSet storageImageWrite = KVulkanInitializer::CreateDescriptorImageWrite(&storageImageDescriptor, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, set, RAYTRACE_BINDING_IMAGE);
 
 			IKSamplerPtr normalSampler = KRenderGlobal::GBuffer.GetSampler();
 			IKRenderTargetPtr normalTarget = KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET0);
@@ -522,7 +508,7 @@ bool KVulkanRayTracePipeline::ResizeImage(uint32_t width, uint32_t height)
 				((KVulkanFrameBuffer*)normalTarget->GetFrameBuffer().get())->GetImageView(),
 				VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
 			);
-			VkWriteDescriptorSet normalWrite = KVulkanInitializer::CreateDescriptorImageWrite(&normaImageInfo, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, m_Descriptor.sets[frameIndex], RAYTRACE_BINDING_GBUFFER0);
+			VkWriteDescriptorSet normalWrite = KVulkanInitializer::CreateDescriptorImageWrite(&normaImageInfo, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, set, RAYTRACE_BINDING_GBUFFER0);
 
 			IKSamplerPtr positionSampler = KRenderGlobal::GBuffer.GetSampler();
 			IKRenderTargetPtr positionTarget = KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET0);
@@ -531,7 +517,7 @@ bool KVulkanRayTracePipeline::ResizeImage(uint32_t width, uint32_t height)
 				((KVulkanFrameBuffer*)positionTarget->GetFrameBuffer().get())->GetImageView(),
 				VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
 			);
-			VkWriteDescriptorSet positionWrite = KVulkanInitializer::CreateDescriptorImageWrite(&positionImageInfo, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, m_Descriptor.sets[frameIndex], RAYTRACE_BINDING_GBUFFER1);
+			VkWriteDescriptorSet positionWrite = KVulkanInitializer::CreateDescriptorImageWrite(&positionImageInfo, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, set, RAYTRACE_BINDING_GBUFFER1);
 
 			VkWriteDescriptorSet writeDescriptorSets[] =
 			{
@@ -646,11 +632,11 @@ bool KVulkanRayTracePipeline::MarkASUpdated()
 	return true;
 }
 
-void KVulkanRayTracePipeline::UpdateCameraDescriptor()
+void KVulkanRayTracePipeline::UpdateCameraDescriptor(VkDescriptorSet set)
 {
 	KVulkanUniformBuffer* vulkanUniformBuffer = static_cast<KVulkanUniformBuffer*>(m_CameraBuffer.get());
 	VkDescriptorBufferInfo uniformBufferInfo = KVulkanInitializer::CreateDescriptorBufferIntfo(vulkanUniformBuffer->GetVulkanHandle(), 0, vulkanUniformBuffer->GetBufferSize());
-	VkWriteDescriptorSet uniformWrite = KVulkanInitializer::CreateDescriptorBufferWrite(&uniformBufferInfo, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, m_Descriptor.sets[KRenderGlobal::CurrentInFlightFrameIndex], RAYTRACE_BINDING_CAMERA);
+	VkWriteDescriptorSet uniformWrite = KVulkanInitializer::CreateDescriptorBufferWrite(&uniformBufferInfo, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, set, RAYTRACE_BINDING_CAMERA);
 
 	VkWriteDescriptorSet writeDescriptorSets[] =
 	{
@@ -663,10 +649,9 @@ void KVulkanRayTracePipeline::UpdateCameraDescriptor()
 
 bool KVulkanRayTracePipeline::Execute(IKCommandBufferPtr primaryBuffer)
 {
-	uint32_t frameIndex = KRenderGlobal::CurrentInFlightFrameIndex;
 	if (KVulkanGlobal::supportRaytrace)
 	{
-		if (m_Inited && m_Pipeline.pipeline != VK_NULL_HANDLE && primaryBuffer && frameIndex < m_Descriptor.sets.size())
+		if (m_Inited && m_Pipeline.pipeline != VK_NULL_HANDLE && primaryBuffer)
 		{
 			if (m_ASUpdated)
 			{
@@ -674,14 +659,16 @@ bool KVulkanRayTracePipeline::Execute(IKCommandBufferPtr primaryBuffer)
 				RecreateFromAS();
 			}
 
-			UpdateCameraDescriptor();
+			VkDescriptorSet set = AllocDescriptorSet();
+			if (set == VK_NULL_HANDLE) return false;
+			UpdateCameraDescriptor(set);
 
 			IKCommandBufferPtr commandBuffer = primaryBuffer;
 			KVulkanCommandBuffer* vulkanCommandBuffer = (KVulkanCommandBuffer*)(commandBuffer.get());
 			VkCommandBuffer vkCommandBuffer = vulkanCommandBuffer->GetVkHandle();
 
 			vkCmdBindPipeline(vkCommandBuffer, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, m_Pipeline.pipeline);
-			vkCmdBindDescriptorSets(vkCommandBuffer, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, m_Pipeline.layout, 0, 1, &m_Descriptor.sets[frameIndex], 0, 0);
+			vkCmdBindDescriptorSets(vkCommandBuffer, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, m_Pipeline.layout, 0, 1, &set, 0, 0);
 
 			VkStridedDeviceAddressRegionKHR emptySbtEntry = {};
 			KVulkanGlobal::vkCmdTraceRaysKHR(

@@ -290,8 +290,8 @@ void KEEntityManipulator::OnMouseListen(InputMouseButton key, InputAction action
 				IKEntity* entity = nullptr;
 				KEEntityPtr editorEntity;
 
-				size_t width = 0;
-				size_t height = 0;
+				uint32_t width = 0;
+				uint32_t height = 0;
 				m_Window->GetInputSize(width, height);
 
 				if (m_SelectType == SelectType::SELECT_TYPE_SINGLE)
@@ -299,7 +299,8 @@ void KEEntityManipulator::OnMouseListen(InputMouseButton key, InputAction action
 					KEditorGlobal::EntitySelector.Clear();
 				}
 
-				if (m_Scene->CloestPick(*m_Camera, (size_t)x, (size_t)y,
+				if (x >= 0 && y >= 0 && x < float(INT32_MAX) && y < float(INT32_MAX)
+					&& m_Scene->CloestPick(*m_Camera, (int32_t)x, (int32_t)y,
 					width, height, entity) && (editorEntity = GetEditorEntity(entity)))
 				{
 					if (m_SelectType == SelectType::SELECT_TYPE_SINGLE)
@@ -536,15 +537,15 @@ KEEntityPtr KEEntityManipulator::GetEntity(IKEntity::IDType id)
 	return nullptr;
 }
 
-KEEntityPtr KEEntityManipulator::CloestPickEntity(size_t x, size_t y)
+KEEntityPtr KEEntityManipulator::CloestPickEntity(int32_t x, int32_t y)
 {
 	if (m_Scene && m_Camera)
 	{
 		IKEntity* entity;
 		KEEntityPtr editorEntity;
 
-		size_t width = 0;
-		size_t height = 0;
+		uint32_t width = 0;
+		uint32_t height = 0;
 		m_Window->GetInputSize(width, height);
 
 		if (m_Scene->CloestPick(*m_Camera, x, y,

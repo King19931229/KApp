@@ -1,4 +1,5 @@
 #include "KDeferredRenderer.h"
+#include "KBase/Publish/KInteger.h"
 #include "Interface/IKCommandBuffer.h"
 #include "Interface/IKSampler.h"
 #include "Interface/IKRenderTarget.h"
@@ -487,7 +488,8 @@ void KDeferredRenderer::PopulateRenderCommand(DeferredRenderStage deferredRender
 
 			std::vector<KInstanceBufferManager::AllocResultBlock> allocRes;
 			ASSERT_RESULT(KRenderGlobal::InstanceBufferManager.GetVertexSize() == sizeof(instances[0]));
-			ASSERT_RESULT(KRenderGlobal::InstanceBufferManager.Alloc(instances.size(), instances.data(), allocRes));
+			if (!KInteger::FitsUInt32(instances.size())) continue;
+			ASSERT_RESULT(KRenderGlobal::InstanceBufferManager.Alloc(static_cast<uint32_t>(instances.size()), instances.data(), allocRes));
 
 			command.instanceDraw = true;
 			command.instanceUsages.resize(allocRes.size());

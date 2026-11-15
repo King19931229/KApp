@@ -18,7 +18,8 @@ protected:
 	IKRenderDevice* m_Device = nullptr;
 	IKUIOverlayPtr m_UIOverlay;
 	IKSwapChainPtr m_SwapChain;
-	size_t m_Top = 0, m_Left = 0, m_Width = 0, m_Height = 0;
+	int32_t m_Top = 0, m_Left = 0;
+	uint32_t m_Width = 0, m_Height = 0;
 	bool m_Initialized = false, m_Primary = false, m_Resizable = true, m_Focused = true;
 	float m_MouseX = 0, m_MouseY = 0;
 	std::mutex m_InputMutex, m_ViewportMutex;
@@ -44,7 +45,7 @@ public:
 	KHeadlessRenderWindow();
 	~KHeadlessRenderWindow() override;
 	RenderWindowType GetType() override { return RENDER_WINDOW_HEADLESS; }
-	bool Init(size_t top, size_t left, size_t width, size_t height, bool resizable, bool primary) override;
+	bool Init(int32_t top, int32_t left, uint32_t width, uint32_t height, bool resizable, bool primary) override;
 	bool Init(android_app* app) override { return false; }
 	bool Init(void* hwnd, bool primary) override { return false; }
 	bool UnInit() override;
@@ -57,12 +58,12 @@ public:
 	bool Tick() override;
 	bool Loop() override { return false; }
 	bool IsMinimized() override { return !m_Width || !m_Height; }
-	bool GetPosition(size_t& top, size_t& left) override { top = m_Top; left = m_Left; return true; }
-	bool SetPosition(size_t top, size_t left) override { m_Top = top; m_Left = left; return true; }
-	bool GetSize(size_t& width, size_t& height) override { width = m_Width; height = m_Height; return true; }
-	bool GetInputSize(size_t& width, size_t& height) override;
+	bool GetPosition(int32_t& top, int32_t& left) override { top = m_Top; left = m_Left; return true; }
+	bool SetPosition(int32_t top, int32_t left) override { m_Top = top; m_Left = left; return true; }
+	bool GetSize(uint32_t& width, uint32_t& height) override { width = m_Width; height = m_Height; return true; }
+	bool GetInputSize(uint32_t& width, uint32_t& height) override;
 	void SetEditorViewport(const KEditorViewport& viewport) override;
-	bool SetSize(size_t width, size_t height) override;
+	bool SetSize(uint32_t width, uint32_t height) override;
 	bool SetResizable(bool resizable) override { m_Resizable = resizable; return true; }
 	bool IsResizable() override { return m_Resizable; }
 	bool SetWindowTitle(const char* name) override { return true; }

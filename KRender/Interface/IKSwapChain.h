@@ -22,7 +22,7 @@ struct IKSwapChain
 	virtual uint32_t GetWidth() = 0;
 	virtual uint32_t GetHeight() = 0;
 
-	virtual void WaitForInFlightFrame() = 0;
+	virtual bool WaitForInFlightFrame(uint32_t& completedFrameNum) = 0;
 	virtual SwapChainAcquireResult AcquireNextImage(uint32_t& imageIndex) = 0;
 	virtual void PresentQueue(bool& needResize) = 0;
 

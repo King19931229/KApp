@@ -9,9 +9,9 @@ protected:
 	{
 		std::string name;
 		size_t hash;
-		size_t index;
+		uint32_t index;
 
-		Key(const std::string& inName, size_t inHash, size_t inIndex)
+		Key(const std::string& inName, size_t inHash, uint32_t inIndex)
 		{
 			name = inName;
 			hash = inHash;

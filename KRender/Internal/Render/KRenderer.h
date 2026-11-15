@@ -90,7 +90,6 @@ protected:
 
 		void Init(QueueCategory category, uint32_t queueIndex, uint32_t threadNum, const char* name);
 		void UnInit();
-		void Reset();
 		void SetThreadNum(uint32_t threadNum);
 	};
 
@@ -139,6 +138,7 @@ public:
 	KRHICommandList& GetRHICommandList() { return m_RHICommandList; }
 
 	bool Update();
+	void ReleaseFrameResources(uint32_t frameNum);
 	void RemoveUnreferenced();
 	bool Render(uint32_t chainImageIndex);
 	bool Execute(uint32_t chainImageIndex);

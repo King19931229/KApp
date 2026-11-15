@@ -80,25 +80,25 @@ protected:
 		DepthPeelingMode depthPeeling = DepthPeelingMode::NONE;
 	};
 
-	IKPipelinePtr CreatePipelineInternal(const PipelineCreateContext& context, const VertexFormat* formats, size_t count, IKShaderPtr vertexShader, IKShaderPtr fragmentShader);
+	IKPipelinePtr CreatePipelineInternal(const PipelineCreateContext& context, const VertexFormat* formats, uint32_t count, IKShaderPtr vertexShader, IKShaderPtr fragmentShader);
 
-	IKPipelinePtr CreatePipelineImpl(KShaderMap& shaderMap, const PipelineCreateContext& context, const VertexFormat* formats, size_t count);
-	IKPipelinePtr CreateInstancePipelineImpl(KShaderMap& shaderMap, const PipelineCreateContext& context, const VertexFormat* formats, size_t count);
+	IKPipelinePtr CreatePipelineImpl(KShaderMap& shaderMap, const PipelineCreateContext& context, const VertexFormat* formats, uint32_t count);
+	IKPipelinePtr CreateInstancePipelineImpl(KShaderMap& shaderMap, const PipelineCreateContext& context, const VertexFormat* formats, uint32_t count);
 public:
 	KMaterial();
 	~KMaterial();
 
-	virtual IKShaderPtr GetVSShader(const VertexFormat* formats, size_t count);
-	virtual IKShaderPtr GetVSInstanceShader(const VertexFormat* formats, size_t count);
-	virtual IKShaderPtr GetVSGPUSceneShader(const VertexFormat* formats, size_t count);
-	virtual IKShaderPtr GetVSVirtualFeedbackShader(const VertexFormat* formats, size_t count);
-	virtual IKShaderPtr GetVSInstanceVirtualFeedbackShader(const VertexFormat* formats, size_t count);
+	virtual IKShaderPtr GetVSShader(const VertexFormat* formats, uint32_t count);
+	virtual IKShaderPtr GetVSInstanceShader(const VertexFormat* formats, uint32_t count);
+	virtual IKShaderPtr GetVSGPUSceneShader(const VertexFormat* formats, uint32_t count);
+	virtual IKShaderPtr GetVSVirtualFeedbackShader(const VertexFormat* formats, uint32_t count);
+	virtual IKShaderPtr GetVSInstanceVirtualFeedbackShader(const VertexFormat* formats, uint32_t count);
 
-	virtual IKShaderPtr GetFSShader(const VertexFormat* formats, size_t count);
-	virtual IKShaderPtr GetFSGPUSceneShader(const VertexFormat* formats, size_t count);	
-	virtual IKShaderPtr GetFSVirtualFeedbackShader(const VertexFormat* formats, size_t count);
+	virtual IKShaderPtr GetFSShader(const VertexFormat* formats, uint32_t count);
+	virtual IKShaderPtr GetFSGPUSceneShader(const VertexFormat* formats, uint32_t count);	
+	virtual IKShaderPtr GetFSVirtualFeedbackShader(const VertexFormat* formats, uint32_t count);
 
-	virtual bool IsShaderLoaded(const VertexFormat* formats, size_t count);
+	virtual bool IsShaderLoaded(const VertexFormat* formats, uint32_t count);
 
 	virtual const IKMaterialParameterPtr GetParameter();
 
@@ -112,20 +112,20 @@ public:
 	virtual MaterialShadingMode GetShadingMode() const { return m_ShadingMode; }
 	virtual void SetShadingMode(MaterialShadingMode mode) { m_ShadingMode = mode; }
 
-	virtual IKPipelinePtr CreatePipeline(const VertexFormat* formats, size_t count);
-	virtual IKPipelinePtr CreateInstancePipeline(const VertexFormat* formats, size_t count);
+	virtual IKPipelinePtr CreatePipeline(const VertexFormat* formats, uint32_t count);
+	virtual IKPipelinePtr CreateInstancePipeline(const VertexFormat* formats, uint32_t count);
 
-	virtual IKPipelinePtr CreateCSMPipeline(const VertexFormat* formats, size_t count, bool staticCSM);
-	virtual IKPipelinePtr CreateCSMInstancePipeline(const VertexFormat* formats, size_t count, bool staticCSM);
+	virtual IKPipelinePtr CreateCSMPipeline(const VertexFormat* formats, uint32_t count, bool staticCSM);
+	virtual IKPipelinePtr CreateCSMInstancePipeline(const VertexFormat* formats, uint32_t count, bool staticCSM);
 
-	virtual IKPipelinePtr CreatePrePassPipeline(const VertexFormat* formats, size_t count);
-	virtual IKPipelinePtr CreatePrePassInstancePipeline(const VertexFormat* formats, size_t count);
+	virtual IKPipelinePtr CreatePrePassPipeline(const VertexFormat* formats, uint32_t count);
+	virtual IKPipelinePtr CreatePrePassInstancePipeline(const VertexFormat* formats, uint32_t count);
 
-	virtual IKPipelinePtr CreateDepthPeelingPipeline(const VertexFormat* formats, size_t count);
-	virtual IKPipelinePtr CreateDepthPeelingInstancePipeline(const VertexFormat* formats, size_t count);
+	virtual IKPipelinePtr CreateDepthPeelingPipeline(const VertexFormat* formats, uint32_t count);
+	virtual IKPipelinePtr CreateDepthPeelingInstancePipeline(const VertexFormat* formats, uint32_t count);
 
-	virtual IKPipelinePtr CreateABufferDepthPeelingPipeline(const VertexFormat* formats, size_t count);
-	virtual IKPipelinePtr CreateABufferDepthPeelingInstancePipeline(const VertexFormat* formats, size_t count);
+	virtual IKPipelinePtr CreateABufferDepthPeelingPipeline(const VertexFormat* formats, uint32_t count);
+	virtual IKPipelinePtr CreateABufferDepthPeelingInstancePipeline(const VertexFormat* formats, uint32_t count);
 
 	virtual bool InitFromFile(const std::string& path, bool async);
 	virtual bool InitFromImportAssetMaterial(const KMeshRawData::Material& input, bool async);

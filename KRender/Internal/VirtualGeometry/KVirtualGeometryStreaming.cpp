@@ -32,7 +32,7 @@ void KVirtualGeometryStreamingManager::Init(uint32_t maxStreamingPages, uint32_t
 
 	KRenderGlobal::RenderDevice->CreateStorageBuffer(m_PageDataBuffer);
 	m_PageDataBuffer->SetDebugName(VIRTUAL_GEOMETRY_PAGE_STORAGE);
-	m_PageDataBuffer->InitMemory(KVirtualGeometryDefine::MAX_STREAMING_PAGE_SIZE * m_MaxStreamingPages + KVirtualGeometryDefine::MAX_ROOT_PAGE_SIZE * m_MaxRootPages, nullptr);
+	m_PageDataBuffer->InitMemory(uint64_t(KVirtualGeometryDefine::MAX_STREAMING_PAGE_SIZE) * m_MaxStreamingPages + uint64_t(KVirtualGeometryDefine::MAX_ROOT_PAGE_SIZE) * m_MaxRootPages, nullptr);
 	m_PageDataBuffer->InitDevice(false, false);
 
 	m_Pages.resize(m_NumPages);
@@ -799,11 +799,13 @@ uint32_t KVirtualGeometryStreamingManager::AddGeometry(const KVirtualGeometryPag
 		assert(m_PageDataBuffer);
 
 		std::vector<unsigned char> oldPageStorageData;
-		oldPageStorageData.resize(KVirtualGeometryDefine::MAX_STREAMING_PAGE_SIZE * m_MaxStreamingPages + KVirtualGeometryDefine::MAX_ROOT_PAGE_SIZE * m_MaxRootPages);
+		const uint64_t pageBufferSize = uint64_t(KVirtualGeometryDefine::MAX_STREAMING_PAGE_SIZE) * m_MaxStreamingPages + uint64_t(KVirtualGeometryDefine::MAX_ROOT_PAGE_SIZE) * m_MaxRootPages;
+		if (pageBufferSize > oldPageStorageData.max_size()) return UINT32_MAX;
+		oldPageStorageData.resize(static_cast<size_t>(pageBufferSize));
 		m_PageDataBuffer->Read(oldPageStorageData.data());
 
 		m_PageDataBuffer->UnInit();
-		m_PageDataBuffer->InitMemory(KVirtualGeometryDefine::MAX_STREAMING_PAGE_SIZE * m_MaxStreamingPages + KVirtualGeometryDefine::MAX_ROOT_PAGE_SIZE * m_MaxRootPages, nullptr);
+		m_PageDataBuffer->InitMemory(uint64_t(KVirtualGeometryDefine::MAX_STREAMING_PAGE_SIZE) * m_MaxStreamingPages + uint64_t(KVirtualGeometryDefine::MAX_ROOT_PAGE_SIZE) * m_MaxRootPages, nullptr);
 		m_PageDataBuffer->InitDevice(false, false);
 
 		m_PageDataBuffer->Write(oldPageStorageData.data());

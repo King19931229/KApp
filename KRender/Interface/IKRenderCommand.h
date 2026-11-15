@@ -133,9 +133,9 @@ struct KMeshDataLeagcy
 struct KDynamicConstantBufferUsage
 {
 	IKUniformBufferPtr buffer;
-	size_t offset;
-	size_t range;
-	size_t binding;
+	uint32_t offset;
+	uint64_t range;
+	uint32_t binding;
 
 	KDynamicConstantBufferUsage()
 	{
@@ -149,9 +149,9 @@ struct KDynamicConstantBufferUsage
 struct KInstanceBufferUsage
 {
 	IKVertexBufferPtr buffer;
-	size_t start;
-	size_t count;
-	size_t offset;
+	uint32_t start;
+	uint32_t count;
+	uint64_t offset;
 
 	KInstanceBufferUsage()
 	{
@@ -165,7 +165,7 @@ struct KInstanceBufferUsage
 struct KStorageBufferUsage
 {
 	IKVertexBufferPtr buffer;
-	size_t binding;
+	uint32_t binding;
 
 	KStorageBufferUsage()
 	{

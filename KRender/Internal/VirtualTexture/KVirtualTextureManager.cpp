@@ -761,7 +761,7 @@ void KVirtualTextureManager::Resize(uint32_t width, uint32_t height)
 
 		m_VirtualTextureFeedbackWidth = width;
 		m_VirtualTextureFeedbackHeight = height;
-		m_VirtualTextureFeedbackBuffer->InitMemory(sizeof(float) * 4 * m_VirtualTextureFeedbackWidth * m_VirtualTextureFeedbackHeight, nullptr);
+		m_VirtualTextureFeedbackBuffer->InitMemory(uint64_t(sizeof(float)) * 4 * m_VirtualTextureFeedbackWidth * m_VirtualTextureFeedbackHeight, nullptr);
 		m_VirtualTextureFeedbackBuffer->InitDevice(false, false);
 		m_VirtualTextureFeedbackBuffer->SetDebugName("VirtualTextureFeedbackBuffer");
 	}

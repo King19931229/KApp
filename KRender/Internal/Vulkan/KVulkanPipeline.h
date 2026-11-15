@@ -2,7 +2,7 @@
 #include "Internal/KPipelineBase.h"
 #include "Internal/KRenderGlobal.h"
 #include "KVulkanConfig.h"
-#include "KVulkanDescripiorPool.h"
+#include "KVulkanDescriptorManager.h"
 #include <unordered_map>
 
 class KVulkanRenderTarget;
@@ -69,7 +69,7 @@ public:
 class KVulkanPipeline : public KPipelineBase
 {
 	friend class KVulkanPipelineHandle;
-	friend class KVulkanDescriptorPool;
+	friend class KVulkanGraphicsDescriptorWriter;
 protected:
 	VkDescriptorSetLayout m_DescriptorSetLayout;
 	VkPipelineLayout m_PipelineLayout;
@@ -78,17 +78,10 @@ protected:
 	std::vector<VkWriteDescriptorSet> m_WriteDescriptorSet;
 	std::vector<VkDescriptorBufferInfo> m_BufferWriteInfo;
 
-	uint32_t m_LastTrimFrame;
 	static constexpr uint32_t MAX_THREAD_SUPPORT = 512;
-	std::array<KVulkanDescriptorPool, MAX_THREAD_SUPPORT> m_Pools;
-	std::array<bool, MAX_THREAD_SUPPORT> m_PoolInitializeds;
-#ifdef _DEBUG
-	std::array<std::atomic_bool, MAX_THREAD_SUPPORT> m_PoolInitialing;
-#endif
+	KVulkanDescriptorTicket* m_DescriptorTicket;
 
 	bool CreateDescriptionWrite();
-	bool CreateDescriptionPool(uint32_t threadIndex);
-	bool TrimDescriptionPool();
 	bool DestroyDevice() override;
 	bool CreateLayout() override;
 public:
@@ -99,9 +92,11 @@ public:
 	virtual bool UnInit();
 	virtual bool Reload(bool reloadShader);
 
+	virtual bool SetDebugName(const char* name);
+
 	inline VkPipelineLayout GetVkPipelineLayout() { return m_PipelineLayout; }
 
 	VkDescriptorSet AllocDescriptorSet(uint32_t threadIndex,
-		const KDynamicConstantBufferUsage** ppConstantUsage, size_t dynamicBufferUsageCount,
-		const KStorageBufferUsage** ppStorageUsage, size_t storageBufferUsageCount);
+		const KDynamicConstantBufferUsage** ppConstantUsage, uint32_t dynamicBufferUsageCount,
+		const KStorageBufferUsage** ppStorageUsage, uint32_t storageBufferUsageCount);
 };

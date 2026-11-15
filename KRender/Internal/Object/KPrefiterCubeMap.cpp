@@ -32,7 +32,7 @@ KPrefilerCubeMap::~KPrefilerCubeMap()
 {
 }
 
-bool KPrefilerCubeMap::Init(uint32_t width, uint32_t height, size_t mipmaps, const char* cubemapPath)
+bool KPrefilerCubeMap::Init(uint32_t width, uint32_t height, uint32_t mipmaps, const char* cubemapPath)
 {
 	IKRenderDevice* renderDevice = KRenderGlobal::RenderDevice;
 
@@ -186,7 +186,7 @@ bool KPrefilerCubeMap::PopulateCubeMapRenderCommand(KRenderCommand& command, uin
 	return false;
 }
 
-bool KPrefilerCubeMap::AllocateTempResource(IKRenderDevice* renderDevice, uint32_t width, uint32_t height, size_t mipmaps)
+bool KPrefilerCubeMap::AllocateTempResource(IKRenderDevice* renderDevice, uint32_t width, uint32_t height, uint32_t mipmaps)
 {
 	VertexFormat formats[] = { VF_SCREENQUAD_POS };
 
@@ -268,7 +268,7 @@ bool KPrefilerCubeMap::AllocateTempResource(IKRenderDevice* renderDevice, uint32
 	uint32_t numGroups = (uint32_t)((m_SrcCubeMap->GetWidth() + SH_GROUP_SIZE - 1) / SH_GROUP_SIZE)
 		* (uint32_t)((m_SrcCubeMap->GetHeight() + SH_GROUP_SIZE - 1) / SH_GROUP_SIZE)
 		* 6;
-	m_SHCoffBuffer->InitMemory(9 * sizeof(glm::vec4) * numGroups, nullptr);
+	m_SHCoffBuffer->InitMemory(uint64_t(9) * sizeof(glm::vec4) * numGroups, nullptr);
 	m_SHCoffBuffer->InitDevice(false, false);
 
 	m_SHProductPipeline->BindStorageBuffer(SH_BINDING_COEFFICIENT, m_SHCoffBuffer, COMPUTE_RESOURCE_OUT, true);

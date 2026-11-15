@@ -1,4 +1,6 @@
 #include "KVulkanPipeline.h"
+#include "KVulkanRenderDevice.h"
+#include "KBase/Publish/KInteger.h"
 #include "KVulkanPipelineLayout.h"
 #include "KVulkanBuffer.h"
 #include "KVulkanTexture.h"
@@ -15,15 +17,8 @@
 KVulkanPipeline::KVulkanPipeline()
 	: m_DescriptorSetLayout(VK_NULL_HANDLE)
 	, m_PipelineLayout(VK_NULL_HANDLE)
-	, m_LastTrimFrame(-1)
+	, m_DescriptorTicket(nullptr)
 {
-	for (size_t i = 0; i < m_Pools.size(); ++i)
-	{
-		m_PoolInitializeds[i] = false;
-#ifdef _DEBUG
-		m_PoolInitialing[i] = false;
-#endif
-	}
 }
 
 KVulkanPipeline::~KVulkanPipeline()
@@ -41,16 +36,10 @@ bool KVulkanPipeline::DestroyDevice()
 	m_WriteDescriptorSet.clear();
 	m_BufferWriteInfo.clear();
 
-	for (size_t i = 0; i < m_Pools.size(); ++i)
+	if (m_DescriptorTicket)
 	{
-		if (m_PoolInitializeds[i])
-		{
-			m_Pools[i].UnInit();
-			m_PoolInitializeds[i] = false;
-#ifdef _DEBUG
-			m_PoolInitialing[i] = false;
-#endif
-		}
+		static_cast<KVulkanRenderDevice*>(KRenderGlobal::RenderDevice)->GetDescriptorManager().Destroy(m_DescriptorTicket);
+		m_DescriptorTicket = nullptr;
 	}
 
 	return true;
@@ -65,7 +54,10 @@ bool KVulkanPipeline::CreateLayout()
 		m_PipelineLayout = vulkanPipelineLayout->GetPipelineLayout();
 		m_DescriptorSetLayoutBinding = vulkanPipelineLayout->GetDescriptorSetLayoutBinding();
 		CreateDescriptionWrite();
-		return true;
+		KVulkanDescriptorManager& manager = static_cast<KVulkanRenderDevice*>(KRenderGlobal::RenderDevice)->GetDescriptorManager();
+		m_DescriptorTicket = manager.Create(m_DescriptorSetLayout, m_DescriptorSetLayoutBinding, MAX_THREAD_SUPPORT, 512, true);
+		if (m_DescriptorTicket && !m_Name.empty()) manager.SetDebugName(m_DescriptorTicket, m_Name.c_str());
+		return m_DescriptorTicket != nullptr;
 	}
 	else
 	{
@@ -112,41 +104,16 @@ bool KVulkanPipeline::CreateDescriptionWrite()
 	return true;
 }
 
-bool KVulkanPipeline::CreateDescriptionPool(uint32_t threadIndex)
-{
-	if (m_Layout)
-	{
-#ifdef _DEBUG
-		KSectionEnterAssertGuard gurad(m_PoolInitialing[threadIndex]);
-#endif
-		if (!m_PoolInitializeds[threadIndex])
-		{
-			KVulkanDescriptorPool pool;
-			pool.Init(m_DescriptorSetLayout, m_DescriptorSetLayoutBinding, m_WriteDescriptorSet);
-			if (!m_Name.empty())
-			{
-				pool.SetDebugName(m_Name + "_Thread" + std::to_string(threadIndex));
-			}
-			m_Pools[threadIndex].UnInit();
-			m_Pools[threadIndex] = std::move(pool);
-			m_PoolInitializeds[threadIndex] = true;
-		}
-		return true;
-	}
-	else
-	{
-		return false;
-	}
-}
-
 VkDescriptorSet KVulkanPipeline::AllocDescriptorSet(uint32_t threadIndex,
-	const KDynamicConstantBufferUsage** ppConstantUsage, size_t dynamicBufferUsageCount,
-	const KStorageBufferUsage** ppStorageUsage, size_t storageBufferUsageCount)
+	const KDynamicConstantBufferUsage** ppConstantUsage, uint32_t dynamicBufferUsageCount,
+	const KStorageBufferUsage** ppStorageUsage, uint32_t storageBufferUsageCount)
 {
-	TrimDescriptionPool();
-	threadIndex = std::min(threadIndex, (uint32_t)(m_Pools.size() - 1));
-	CreateDescriptionPool(threadIndex);
-	return m_Pools[threadIndex].Alloc(KRenderGlobal::CurrentInFlightFrameIndex, KRenderGlobal::CurrentFrameNum, this, ppConstantUsage, dynamicBufferUsageCount, ppStorageUsage, storageBufferUsageCount);
+	threadIndex = std::min(threadIndex, MAX_THREAD_SUPPORT - 1);
+	KVulkanDescriptorManager& manager = static_cast<KVulkanRenderDevice*>(KRenderGlobal::RenderDevice)->GetDescriptorManager();
+	bool newSet = false;
+	KVulkanDescriptorPoolAllocatedSetPtr allocation = manager.Alloc(m_DescriptorTicket, threadIndex, newSet);
+	return manager.GetGraphicsWriter(m_DescriptorTicket, threadIndex).UpdateDescriptorSet(this, allocation, newSet,
+		ppConstantUsage, dynamicBufferUsageCount, ppStorageUsage, storageBufferUsageCount);
 }
 
 bool KVulkanPipeline::Init()
@@ -167,18 +134,12 @@ bool KVulkanPipeline::Reload(bool reloadShader)
 	return true;
 }
 
-bool KVulkanPipeline::TrimDescriptionPool()
+bool KVulkanPipeline::SetDebugName(const char* name)
 {
-	if (m_LastTrimFrame != KRenderGlobal::CurrentFrameNum)
+	KPipelineBase::SetDebugName(name);
+	if (m_DescriptorTicket)
 	{
-		for (uint32_t threadIndex = 0; threadIndex < MAX_THREAD_SUPPORT; ++threadIndex)
-		{
-			if (m_PoolInitializeds[threadIndex])
-			{
-				m_Pools[threadIndex].Trim(KRenderGlobal::CurrentInFlightFrameIndex, KRenderGlobal::CurrentFrameNum);
-			}
-		}
-		m_LastTrimFrame = KRenderGlobal::CurrentFrameNum;
+		static_cast<KVulkanRenderDevice*>(KRenderGlobal::RenderDevice)->GetDescriptorManager().SetDebugName(m_DescriptorTicket, name);
 	}
 	return true;
 }
@@ -217,7 +178,8 @@ bool KVulkanPipelineHandle::InitializeVulkanTerminology(const KPipelineState& st
 	m_PrimitiveTopology = state.topology;
 
 	KVulkanHelper::VulkanBindingDetailList bindingDetails;
-	ASSERT_RESULT(KVulkanHelper::PopulateInputBindingDescription(binding.formats.data(), binding.formats.size(), bindingDetails));
+	if (!KInteger::FitsUInt32(binding.formats.size())) return false;
+	ASSERT_RESULT(KVulkanHelper::PopulateInputBindingDescription(binding.formats.data(), static_cast<uint32_t>(binding.formats.size()), bindingDetails));
 
 	m_BindingDescriptions.clear();
 	m_AttributeDescriptions.clear();

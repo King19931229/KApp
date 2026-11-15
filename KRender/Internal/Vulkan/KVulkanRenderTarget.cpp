@@ -104,7 +104,7 @@ bool KVulkanRenderTarget::UnInit()
 	return true;
 }
 
-bool KVulkanRenderTarget::GetSize(size_t& width, size_t& height)
+bool KVulkanRenderTarget::GetSize(uint32_t& width, uint32_t& height)
 {
 	width = m_FrameBuffer->GetWidth();
 	height = m_FrameBuffer->GetHeight();
@@ -120,8 +120,8 @@ VkExtent2D KVulkanRenderTarget::GetExtend()
 {
 	VkExtent2D extend = {};
 
-	size_t width = 0;
-	size_t height = 0;
+	uint32_t width = 0;
+	uint32_t height = 0;
 	if (GetSize(width, height))
 	{
 		extend.width = (uint32_t)width;

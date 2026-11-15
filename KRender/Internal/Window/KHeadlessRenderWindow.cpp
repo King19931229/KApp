@@ -43,10 +43,10 @@ KHeadlessRenderWindow::~KHeadlessRenderWindow()
 	ASSERT_RESULT(!m_Initialized);
 }
 
-bool KHeadlessRenderWindow::Init(size_t top, size_t left, size_t width, size_t height, bool resizable, bool primary)
+bool KHeadlessRenderWindow::Init(int32_t top, int32_t left, uint32_t width, uint32_t height, bool resizable, bool primary)
 {
 	ASSERT_RESULT(IsInGameThread());
-	if (!m_Device || m_Initialized || !width || !height || width > UINT32_MAX || height > UINT32_MAX) return false;
+	if (!m_Device || m_Initialized || !width || !height) return false;
 	m_Top = top;
 	m_Left = left;
 	m_Width = width;
@@ -139,24 +139,24 @@ bool KHeadlessRenderWindow::DestroyUISwapChain()
 	return true;
 }
 
-bool KHeadlessRenderWindow::SetSize(size_t width, size_t height)
+bool KHeadlessRenderWindow::SetSize(uint32_t width, uint32_t height)
 {
 	ASSERT_RESULT(IsInGameThread());
-	if (!m_Initialized || width > UINT32_MAX || height > UINT32_MAX) return false;
+	if (!m_Initialized) return false;
 	ENQUEUE_RENDER_COMMAND(HeadlessResizeWindow)([this, width, height]() { m_Width = width; m_Height = height; });
 	FLUSH_RENDER_COMMAND();
 	return true;
 }
 
-bool KHeadlessRenderWindow::GetInputSize(size_t& width, size_t& height)
+bool KHeadlessRenderWindow::GetInputSize(uint32_t& width, uint32_t& height)
 {
 	if (KRenderGlobal::InEditor)
 	{
 		std::lock_guard<std::mutex> lock(m_ViewportMutex);
 		if (m_EditorViewport.width > 0 && m_EditorViewport.height > 0)
 		{
-			width = (size_t)m_EditorViewport.width;
-			height = (size_t)m_EditorViewport.height;
+			width = (uint32_t)m_EditorViewport.width;
+			height = (uint32_t)m_EditorViewport.height;
 			return true;
 		}
 	}
