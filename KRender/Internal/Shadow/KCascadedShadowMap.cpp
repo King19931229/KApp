@@ -837,7 +837,6 @@ bool KCascadedShadowMap::Init(const KCamera* camera, uint32_t numCascaded, uint3
 {
 	ASSERT_RESULT(UnInit());
 
-	uint32_t frameInFlight = KRenderGlobal::NumFramesInFlight;
 	if (numCascaded >= 1 && numCascaded <= SHADOW_MAP_MAX_CASCADED)
 	{
 		m_MainCamera = camera;

@@ -238,14 +238,10 @@ bool KOcclusionBox::Init(IKRenderDevice* renderDevice)
 	ASSERT_RESULT(renderDevice != nullptr);
 	ASSERT_RESULT(UnInit());
 
-	uint32_t frameInFlight = KRenderGlobal::NumFramesInFlight;
-
 	m_Device = renderDevice;
 
 	renderDevice->CreateVertexBuffer(m_VertexBuffer);
 	renderDevice->CreateIndexBuffer(m_IndexBuffer);
-
-	m_InstanceBuffers.resize(frameInFlight);
 
 	KRenderGlobal::RenderDevice->CreatePipeline(m_PipelineFrontFace);
 	KRenderGlobal::RenderDevice->CreatePipeline(m_PipelineBackFace);
@@ -266,16 +262,6 @@ bool KOcclusionBox::UnInit()
 	SAFE_UNINIT(m_PipelineBackFace);
 	SAFE_UNINIT(m_PipelineInstanceFrontFace);
 	SAFE_UNINIT(m_PipelineInstanceBackFace);
-
-	for (FrameInstanceBufferList& instanceBuffers : m_InstanceBuffers)
-	{
-		for (IKVertexBufferPtr& instanceBuffer : instanceBuffers)
-		{
-			SAFE_UNINIT(instanceBuffer);
-		}
-		instanceBuffers.clear();
-	}
-	m_InstanceBuffers.clear();
 
 	SAFE_UNINIT(m_VertexBuffer);
 	SAFE_UNINIT(m_IndexBuffer);

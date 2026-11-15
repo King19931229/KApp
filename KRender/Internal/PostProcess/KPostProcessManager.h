@@ -18,7 +18,6 @@ class KPostProcessManager : public IKPostProcessManager
 {
 	friend class KPostProcessPass;
 protected:
-	uint32_t m_FrameInFlight;
 
 	uint32_t m_Width;
 	uint32_t m_Height;
@@ -58,8 +57,7 @@ public:
 
 	bool Init(uint32_t width, uint32_t height,
 		unsigned short massCount,
-		PixelFormat startFormat,
-		uint32_t frameInFlight);
+		PixelFormat startFormat);
 	bool UnInit();
 	bool Resize(uint32_t width, uint32_t height);
 

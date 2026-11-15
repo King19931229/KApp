@@ -4,6 +4,8 @@
 #include "KVulkanHeapAllocator.h"
 #include <atomic>
 
+struct KVulkanBufferTicket;
+
 class KVulkanStageBuffer
 {
 protected:
@@ -158,7 +160,8 @@ public:
 class KVulkanUniformBuffer : public KUniformBufferBase
 {
 protected:
-	std::vector<KVulkanBuffer> m_Buffers;
+	KVulkanBufferTicket* m_Ticket;
+	KVulkanBuffer* m_MappedBuffer;
 	KVulkanBuffer& GetVulkanBuffer();
 public:
 	KVulkanUniformBuffer();

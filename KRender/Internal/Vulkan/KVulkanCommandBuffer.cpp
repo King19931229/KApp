@@ -6,19 +6,23 @@
 #include "KVulkanFrameBuffer.h"
 #include "KVulkanQuery.h"
 #include "KVulkanGlobal.h"
+#include "KVulkanRenderDevice.h"
 #include "KVulkanInitializer.h"
 #include "KVulkanHelper.h"
 #include "KVulkanDebug.h"
 #include "Internal/KConstantDefinition.h"
 
 KVulkanCommandPool::KVulkanCommandPool()
-	: m_ResetMode(CBR_RESET_POOL)
+	: m_CurrentBlockIndex(SIZE_MAX)
+	, m_QueueFamilyIndex(0)
+	, m_Flags(0)
+	, m_ResetMode(CBR_RESET_POOL)
 {
 }
 
 KVulkanCommandPool::~KVulkanCommandPool()
 {
-	assert(m_CommandPools.empty());
+	assert(m_Blocks.empty());
 }
 
 bool KVulkanCommandPool::Init(QueueCategory queue, uint32_t index, CommmandBufferReset resetMode)
@@ -66,44 +70,69 @@ bool KVulkanCommandPool::Init(QueueCategory queue, uint32_t index, CommmandBuffe
 			break;
 	}
 
-	m_CommandPools.resize(KRenderGlobal::NumFramesInFlight);
-	for (size_t i = 0; i < m_CommandPools.size(); ++i)
-	{
-		VkCommandPoolCreateInfo poolInfo = {};
-		poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-		poolInfo.queueFamilyIndex = (*queueFamilyIndices)[index];
-		poolInfo.flags = flags;
-		VK_ASSERT_RESULT(vkCreateCommandPool(KVulkanGlobal::device, &poolInfo, nullptr, &m_CommandPools[i]));
-	}
-
+	m_QueueFamilyIndex = (*queueFamilyIndices)[index];
+	m_Flags = flags;
 	m_ResetMode = resetMode;
+	CreateBlock();
+	static_cast<KVulkanRenderDevice*>(KRenderGlobal::RenderDevice)->RegisterCommandPool(this);
+	return true;
+}
 
-	return true;	
+KVulkanCommandPool::PoolBlock& KVulkanCommandPool::CreateBlock()
+{
+	m_Blocks.emplace_back();
+	PoolBlock& block = m_Blocks.back();
+	VkCommandPoolCreateInfo poolInfo = {};
+	poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+	poolInfo.queueFamilyIndex = m_QueueFamilyIndex;
+	poolInfo.flags = m_Flags;
+	VK_ASSERT_RESULT(vkCreateCommandPool(KVulkanGlobal::device, &poolInfo, nullptr, &block.pool));
+	if (!m_Name.empty())
+	{
+		KVulkanHelper::DebugUtilsSetObjectName(KVulkanGlobal::device, (uint64_t)block.pool, VK_OBJECT_TYPE_COMMAND_POOL, (m_Name + "_" + std::to_string(m_Blocks.size() - 1)).c_str());
+	}
+	return block;
 }
 
 bool KVulkanCommandPool::UnInit()
 {
-	Reset();
-
-	if(m_CommandPools.size() > 0)
+	if (KRenderGlobal::RenderDevice) static_cast<KVulkanRenderDevice*>(KRenderGlobal::RenderDevice)->UnRegisterCommandPool(this);
+	for (PoolBlock& block : m_Blocks)
 	{
-		for (size_t i = 0; i < m_CommandPools.size(); ++i)
-		{
-			ASSERT_RESULT(KVulkanGlobal::deviceReady);
-			vkDestroyCommandPool(KVulkanGlobal::device, m_CommandPools[i], nullptr);
-		}
-		m_CommandPools.clear();
-		return true;
+		for (IKCommandBufferPtr& buffer : block.primary.buffers) static_cast<KVulkanCommandBuffer*>(buffer.get())->UnInit();
+		for (IKCommandBufferPtr& buffer : block.secondary.buffers) static_cast<KVulkanCommandBuffer*>(buffer.get())->UnInit();
+		block.primary.buffers.clear();
+		block.secondary.buffers.clear();
+		vkDestroyCommandPool(KVulkanGlobal::device, block.pool, nullptr);
 	}
+	m_Blocks.clear();
+	m_CurrentBlockIndex = SIZE_MAX;
 	return true;
 }
 
 IKCommandBufferPtr KVulkanCommandPool::Request(CommandBufferLevel level)
 {
+	const uint32_t frameNum = KRenderGlobal::CurrentFrameNum;
+	PoolBlock* selected = nullptr;
+	PoolBlock* available = nullptr;
+	for (PoolBlock& block : m_Blocks)
+	{
+		if (block.occupied && block.frameNum == frameNum)
+		{
+			selected = &block;
+			break;
+		}
+		if (!block.occupied && !available) available = &block;
+	}
+	if (!selected)
+	{
+		selected = available ? available : &CreateBlock();
+		selected->frameNum = frameNum;
+		selected->occupied = true;
+	}
+	m_CurrentBlockIndex = static_cast<size_t>(selected - m_Blocks.data());
 	IKCommandBufferPtr buffer = nullptr;
-
-	BufferUsage& usage = level == CBL_PRIMARY ? m_PrimaryUsage : m_SecondaryUsage;
-
+	BufferUsage& usage = level == CBL_PRIMARY ? selected->primary : selected->secondary;
 	if (usage.currentActive < usage.buffers.size())
 	{
 		buffer = usage.buffers[usage.currentActive++];
@@ -111,7 +140,7 @@ IKCommandBufferPtr KVulkanCommandPool::Request(CommandBufferLevel level)
 	else
 	{
 		KVulkanCommandBuffer* vulkanCommandBuffer = KNEW KVulkanCommandBuffer();
-		vulkanCommandBuffer->Init(this, level);
+		vulkanCommandBuffer->Init(selected->pool, level);
 		if (!m_Name.empty())
 		{
 			vulkanCommandBuffer->SetDebugName((m_Name + "_CommandBuffer_" + std::to_string(usage.buffers.size())).c_str());
@@ -120,22 +149,19 @@ IKCommandBufferPtr KVulkanCommandPool::Request(CommandBufferLevel level)
 		usage.buffers.push_back(buffer);
 		++usage.currentActive;
 	}
-
+	static_cast<KVulkanCommandBuffer*>(buffer.get())->m_FrameNum = frameNum;
 	return buffer;
 }
 
 bool KVulkanCommandPool::SetDebugName(const char* name)
 {
 	m_Name = name;
-	if (m_CommandPools.size() > 0)
+	size_t index = 0;
+	for (PoolBlock& block : m_Blocks)
 	{
-		for (size_t i = 0; i < m_CommandPools.size(); ++i)
-		{
-			KVulkanHelper::DebugUtilsSetObjectName(KVulkanGlobal::device, (uint64_t)m_CommandPools[i], VK_OBJECT_TYPE_COMMAND_POOL, (name + std::string("_") + std::to_string(i)).c_str());
-		}
-		return true;
+		KVulkanHelper::DebugUtilsSetObjectName(KVulkanGlobal::device, (uint64_t)block.pool, VK_OBJECT_TYPE_COMMAND_POOL, (m_Name + "_" + std::to_string(index++)).c_str());
 	}
-	return false;
+	return !m_Blocks.empty();
 }
 
 void KVulkanCommandPool::BufferUsage::Reset(CommmandBufferReset resetMode)
@@ -158,25 +184,42 @@ void KVulkanCommandPool::BufferUsage::Reset(CommmandBufferReset resetMode)
 	currentActive = 0;
 }
 
-bool KVulkanCommandPool::Reset()
+void KVulkanCommandPool::Reset(PoolBlock& block)
 {
 	if (m_ResetMode == CBR_RESET_POOL)
 	{
-		if (m_CommandPools.size() > 0)
-		{
-			ASSERT_RESULT(KVulkanGlobal::deviceReady);
-			VK_ASSERT_RESULT(vkResetCommandPool(KVulkanGlobal::device, m_CommandPools[KRenderGlobal::CurrentInFlightFrameIndex], 0));
-		}
+		VK_ASSERT_RESULT(vkResetCommandPool(KVulkanGlobal::device, block.pool, 0));
 	}
+	block.primary.Reset(m_ResetMode);
+	block.secondary.Reset(m_ResetMode);
+	block.occupied = false;
+}
 
-	m_PrimaryUsage.Reset(m_ResetMode);
-	m_SecondaryUsage.Reset(m_ResetMode);
-
+bool KVulkanCommandPool::Reset()
+{
+	if (m_CurrentBlockIndex < m_Blocks.size() && m_Blocks[m_CurrentBlockIndex].occupied) Reset(m_Blocks[m_CurrentBlockIndex]);
+	m_CurrentBlockIndex = SIZE_MAX;
 	return false;
 }
 
+void KVulkanCommandPool::Release(uint32_t frameNum)
+{
+	for (size_t index = 0; index < m_Blocks.size(); ++index)
+	{
+		PoolBlock& block = m_Blocks[index];
+		if (block.occupied && block.frameNum == frameNum)
+		{
+			Reset(block);
+			if (m_CurrentBlockIndex == index) m_CurrentBlockIndex = SIZE_MAX;
+		}
+	}
+}
+
 KVulkanCommandBuffer::KVulkanCommandBuffer()
-	: m_CommandLevel(VK_COMMAND_BUFFER_LEVEL_MAX_ENUM)
+	: m_CommandBuffer(VK_NULL_HANDLE)
+	, m_ParentPool(VK_NULL_HANDLE)
+	, m_FrameNum(0)
+	, m_CommandLevel(VK_COMMAND_BUFFER_LEVEL_MAX_ENUM)
 {
 }
 
@@ -184,19 +227,14 @@ KVulkanCommandBuffer::~KVulkanCommandBuffer()
 {
 }
 
-bool KVulkanCommandBuffer::Init(KVulkanCommandPool* pool, CommandBufferLevel level)
+bool KVulkanCommandBuffer::Init(VkCommandPool pool, CommandBufferLevel level)
 {
 	ASSERT_RESULT(UnInit());
-
 	ASSERT_RESULT(KVulkanGlobal::deviceReady);
-	KVulkanCommandPool* vulkanPool = (KVulkanCommandPool*)pool;
-
-	m_ParentPools = vulkanPool->GetVkHandles();
-	ASSERT_RESULT(!m_ParentPools.empty());
-
+	m_ParentPool = pool;
+	ASSERT_RESULT(m_ParentPool != VK_NULL_HANDLE);
 	VkCommandBufferAllocateInfo allocInfo = {};
 	allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-
 	switch (level)
 	{
 	case CBL_PRIMARY:
@@ -212,57 +250,39 @@ bool KVulkanCommandBuffer::Init(KVulkanCommandPool* pool, CommandBufferLevel lev
 
 	allocInfo.level = m_CommandLevel;
 	allocInfo.commandBufferCount = 1;
-	m_CommandBuffers.resize(KRenderGlobal::NumFramesInFlight);
-	InitDrawRecordings(static_cast<uint32_t>(m_CommandBuffers.size()));
-
-	for (size_t i = 0; i < m_CommandBuffers.size(); ++i)
-	{
-		allocInfo.commandPool = m_ParentPools[i];
-		VK_ASSERT_RESULT(vkAllocateCommandBuffers(KVulkanGlobal::device, &allocInfo, &m_CommandBuffers[i]));
-	}
+	allocInfo.commandPool = m_ParentPool;
+	VK_ASSERT_RESULT(vkAllocateCommandBuffers(KVulkanGlobal::device, &allocInfo, &m_CommandBuffer));
 	return true;
 }
 
 bool KVulkanCommandBuffer::UnInit()
 {
-	if (m_CommandBuffers.size())
+	if (m_CommandBuffer != VK_NULL_HANDLE)
 	{
 		ASSERT_RESULT(KVulkanGlobal::deviceReady);
-		for (size_t i = 0; i < m_CommandBuffers.size(); ++i)
-		{
-			vkFreeCommandBuffers(KVulkanGlobal::device, m_ParentPools[i], 1, &m_CommandBuffers[i]);
-		}
-		m_CommandBuffers.clear();
+		vkFreeCommandBuffers(KVulkanGlobal::device, m_ParentPool, 1, &m_CommandBuffer);
+		m_CommandBuffer = VK_NULL_HANDLE;
 	}
-
-	m_ParentPools.clear();
-	ReleaseDrawRecordings();
-
+	m_ParentPool = VK_NULL_HANDLE;
+	ResetDrawRecording();
 	m_CommandLevel = VK_COMMAND_BUFFER_LEVEL_MAX_ENUM;
-
 	return true;
 }
 
 bool KVulkanCommandBuffer::Reset(CommmandBufferReset resetMode)
 {
-	if (resetMode == CBR_RESET_INDIVIDUALLY)
+	if (resetMode == CBR_RESET_INDIVIDUALLY && m_CommandBuffer != VK_NULL_HANDLE)
 	{
-		if (m_CommandBuffers.size() > 0)
-		{
-			VK_ASSERT_RESULT(vkResetCommandBuffer(m_CommandBuffers[KRenderGlobal::CurrentInFlightFrameIndex], VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT));
-		}
+		VK_ASSERT_RESULT(vkResetCommandBuffer(m_CommandBuffer, VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT));
 	}
 	return true;
 }
 
 bool KVulkanCommandBuffer::SetDebugName(const char* name)
 {
-	if (m_CommandBuffers.size() > 0)
+	if (m_CommandBuffer != VK_NULL_HANDLE)
 	{
-		for (size_t i = 0; i < m_CommandBuffers.size(); ++i)
-		{
-			KVulkanHelper::DebugUtilsSetObjectName(KVulkanGlobal::device, (uint64_t)m_CommandBuffers[i], VK_OBJECT_TYPE_COMMAND_BUFFER, (name + std::string("_FrameID_") + std::to_string(i)).c_str());
-		}
+		KVulkanHelper::DebugUtilsSetObjectName(KVulkanGlobal::device, (uint64_t)m_CommandBuffer, VK_OBJECT_TYPE_COMMAND_BUFFER, name);
 		return true;
 	}
 	return false;
@@ -270,8 +290,7 @@ bool KVulkanCommandBuffer::SetDebugName(const char* name)
 
 VkCommandBuffer KVulkanCommandBuffer::GetVkHandle()
 {
-	assert(KRenderGlobal::CurrentInFlightFrameIndex < m_CommandBuffers.size());
-	return KRenderGlobal::CurrentInFlightFrameIndex < m_CommandBuffers.size() ? m_CommandBuffers[KRenderGlobal::CurrentInFlightFrameIndex] : VK_NULL_HANDEL;
+	return m_CommandBuffer;
 }
 
 void KVulkanCommandBuffer::Draw(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance)

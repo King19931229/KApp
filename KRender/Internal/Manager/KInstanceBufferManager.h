@@ -29,10 +29,12 @@ protected:
 	struct FrameInstanceBlock
 	{
 		uint32_t frameNum;
+		bool occupied;
 		std::vector<InstanceBlock> blocks;
 		FrameInstanceBlock()
 		{
 			frameNum = 0;
+			occupied = false;
 		}
 	};
 
@@ -42,7 +44,6 @@ protected:
 	uint32_t m_BlockCount;
 
 	bool InternalAlloc(uint32_t count,
-		uint32_t frameIndex, uint32_t frameNum,
 		std::vector<AllocResultBlock>& results);
 public:
 	KInstanceBufferManager();
@@ -50,6 +51,7 @@ public:
 
 	bool Init(uint32_t vertexSize, uint32_t blockSize);
 	bool UnInit();
+	void Release(uint32_t frameNum);
 
 	bool Alloc(uint32_t count, const void* data, std::vector<AllocResultBlock>& results);
 

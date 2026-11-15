@@ -13,12 +13,10 @@ class KCommandBufferBase : public IKCommandBuffer
 		KDrawStatsStageId CurrentStage() const;
 		KRenderStageStatistics& Counts(KDrawStatsStageId stage);
 	};
-	std::vector<DrawRecording> m_DrawRecordings;
+	DrawRecording m_DrawRecording;
 	DrawRecording& GetDrawRecording();
 
 protected:
-	void InitDrawRecordings(uint32_t count) { m_DrawRecordings.resize(count); }
-	void ReleaseDrawRecordings() { m_DrawRecordings.clear(); }
 	void ResetDrawRecording();
 	void BeginRenderPassDrawStats(KDrawStatsStageId stage);
 	void EndRenderPassDrawStats();

@@ -94,7 +94,7 @@ public:
 	virtual bool RegisterSwapChainRecreateCallback(KSwapChainRecreateCallback* callback);
 	virtual bool UnRegisterSwapChainRecreateCallback(KSwapChainRecreateCallback* callback);
 
-	virtual void WaitForInFlightFrame();
+	virtual bool WaitForInFlightFrame(uint32_t& completedFrameNum);
 	virtual SwapChainAcquireResult AcquireNextImage(uint32_t& imageIndex);
 	virtual void PresentQueue(bool& needResize);
 

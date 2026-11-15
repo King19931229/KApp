@@ -16,14 +16,8 @@ bool KDynamicConstantBufferManager::Init(uint64_t alignment, uint32_t blockSize)
 {
 	UnInit();
 
-	m_ConstantBlocks.resize(KRenderGlobal::NumFramesInFlight);
 	m_Alignment = alignment;
 	m_BlockSize = blockSize;
-
-	for (FrameConstantBlock& frameBlock : m_ConstantBlocks)
-	{
-		frameBlock.frameNum = 0;
-	}
 
 	return true;
 }
@@ -43,12 +37,33 @@ bool KDynamicConstantBufferManager::UnInit()
 	return true;
 }
 
+void KDynamicConstantBufferManager::Release(uint32_t frameNum)
+{
+	std::lock_guard<decltype(m_Lock)> lockGuard(m_Lock);
+	for (FrameConstantBlock& frameBlock : m_ConstantBlocks)
+	{
+		if (!frameBlock.occupied || frameBlock.frameNum != frameNum) continue;
+		for (auto it = frameBlock.blocks.begin(); it != frameBlock.blocks.end();)
+		{
+			if (it->useSize == 0 && it != frameBlock.blocks.begin())
+			{
+				SAFE_UNINIT(it->buffer);
+				it = frameBlock.blocks.erase(it);
+				continue;
+			}
+			it->useSize = 0;
+			++it;
+		}
+		frameBlock.occupied = false;
+	}
+}
+
 bool KDynamicConstantBufferManager::Alloc(const void* data, KDynamicConstantBufferUsage& usage)
 {
 	if (usage.range > m_BlockSize) return false;
 	uint64_t alignment = (usage.range + m_Alignment - 1) & ~(m_Alignment - 1);
 	if (alignment > m_BlockSize) return false;
-	if (InternalAlloc(static_cast<uint32_t>(alignment), KRenderGlobal::CurrentInFlightFrameIndex, KRenderGlobal::CurrentFrameNum, usage.buffer, usage.offset))
+	if (InternalAlloc(static_cast<uint32_t>(alignment), usage.buffer, usage.offset))
 	{
 		std::lock_guard<decltype(m_Lock)> lockGuard(m_Lock);
 		ASSERT_RESULT(data);
@@ -62,32 +77,38 @@ bool KDynamicConstantBufferManager::Alloc(const void* data, KDynamicConstantBuff
 }
 
 bool KDynamicConstantBufferManager::InternalAlloc(uint32_t size,
-	uint32_t frameIndex, uint32_t frameNum,
 	IKUniformBufferPtr& buffer, uint32_t& offset)
 {
 	ASSERT_RESULT(size <= m_BlockSize);
 
-	if (size <= m_BlockSize && frameIndex < m_ConstantBlocks.size())
+	if (size <= m_BlockSize)
 	{
 		std::lock_guard<decltype(m_Lock)> lockGuard(m_Lock);
 
-		FrameConstantBlock& frameBlock = m_ConstantBlocks[frameIndex];
-
-		if (frameBlock.frameNum != frameNum)
+		const uint32_t frameNum = KRenderGlobal::CurrentFrameNum;
+		FrameConstantBlock* selected = nullptr;
+		FrameConstantBlock* available = nullptr;
+		for (FrameConstantBlock& group : m_ConstantBlocks)
 		{
-			for (auto it = frameBlock.blocks.begin(); it != frameBlock.blocks.end();)
+			if (group.occupied && group.frameNum == frameNum)
 			{
-				if (it->useSize == 0 && it != frameBlock.blocks.begin())
-				{
-					SAFE_UNINIT(it->buffer);
-					it = frameBlock.blocks.erase(it);
-					continue;
-				}
-				it->useSize = 0;
-				++it;
+				selected = &group;
+				break;
 			}
-			frameBlock.frameNum = frameNum;
+			if (!group.occupied && !available) available = &group;
 		}
+		if (!selected)
+		{
+			if (!available)
+			{
+				m_ConstantBlocks.emplace_back();
+				available = &m_ConstantBlocks.back();
+			}
+			selected = available;
+			selected->frameNum = frameNum;
+			selected->occupied = true;
+		}
+		FrameConstantBlock& frameBlock = *selected;
 
 		for (ConstantBlock& block : frameBlock.blocks)
 		{

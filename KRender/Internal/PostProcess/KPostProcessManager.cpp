@@ -31,7 +31,6 @@ const uint16_t KPostProcessManager::ms_Indices[] = {0, 1, 2, 2, 3, 0};
 
 KPostProcessManager::KPostProcessManager()
 	: m_StartPointPass(nullptr),
-	m_FrameInFlight(0),
 	m_Width(0),
 	m_Height(0)
 {
@@ -46,12 +45,10 @@ KPostProcessManager::~KPostProcessManager()
 
 bool KPostProcessManager::Init(uint32_t width, uint32_t height,
 							   unsigned short massCount,
-							   PixelFormat startFormat,
-							   uint32_t frameInFlight)
+							   PixelFormat startFormat)
 {
 	UnInit();
 
-	m_FrameInFlight = frameInFlight;
 	m_Width = width;
 	m_Height = height;
 
@@ -62,7 +59,7 @@ bool KPostProcessManager::Init(uint32_t width, uint32_t height,
 	m_Sampler->SetFilterMode(FM_LINEAR, FM_LINEAR);
 	m_Sampler->Init(0, 0);
 
-	m_StartPointPass = IKPostProcessNodePtr(KNEW KPostProcessPass(this, frameInFlight, POST_PROCESS_STAGE_START_POINT));
+	m_StartPointPass = IKPostProcessNodePtr(KNEW KPostProcessPass(this, POST_PROCESS_STAGE_START_POINT));
 	KPostProcessPass* pass = static_cast<KPostProcessPass*>(m_StartPointPass.get());
 	pass->SetFormat(startFormat);
 	pass->SetMSAA(massCount);
@@ -75,7 +72,6 @@ bool KPostProcessManager::Init(uint32_t width, uint32_t height,
 
 bool KPostProcessManager::UnInit()
 {
-	m_FrameInFlight = 0;
 
 	m_ScreenDrawVS.Release();
 	m_ScreenDrawFS.Release();
@@ -316,7 +312,7 @@ bool KPostProcessManager::Load(const char* jsonFile)
 
 				if (type == PPNT_PASS)
 				{
-					node = IKPostProcessNodePtr(KNEW KPostProcessPass(this, m_FrameInFlight, POST_PROCESS_STAGE_REGULAR /* stage and will be overwrited */));
+					node = IKPostProcessNodePtr(KNEW KPostProcessPass(this, POST_PROCESS_STAGE_REGULAR /* stage and will be overwrited */));
 					KPostProcessPass* pass = (KPostProcessPass*)node.get();
 					pass->Load(node_json);
 					pass->m_ID = id;
@@ -483,7 +479,7 @@ bool KPostProcessManager::Execute(unsigned int chainImageIndex, IKSwapChain* swa
 
 IKPostProcessNodePtr KPostProcessManager::CreatePass()
 {
-	IKPostProcessNodePtr pass = IKPostProcessNodePtr(KNEW KPostProcessPass(this, m_FrameInFlight, POST_PROCESS_STAGE_REGULAR));
+	IKPostProcessNodePtr pass = IKPostProcessNodePtr(KNEW KPostProcessPass(this, POST_PROCESS_STAGE_REGULAR));
 	ASSERT_RESULT(m_AllNodes.insert(std::make_pair(pass->ID(), pass)).second);
 	return pass;
 }

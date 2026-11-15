@@ -19,8 +19,19 @@ public:
 
 class KVulkanFence : public IKFence
 {
+public:
+	struct Payload
+	{
+		uint32_t frameNum = 0;
+		bool submitted = false;
+	};
 protected:
-	std::vector<VkFence> m_Fences;
+	struct Fence
+	{
+		VkFence handle = VK_NULL_HANDLE;
+		Payload payload;
+	};
+	std::vector<Fence> m_Fences;
 public:
 	KVulkanFence();
 	~KVulkanFence();
@@ -32,6 +43,10 @@ public:
 	virtual bool Reset();
 
 	VkFence GetVkFence();
+	void SetFrameNum(uint32_t frameNum);
+	bool TakeFrameNum(uint32_t& frameNum);
+	std::vector<Payload> GetFramePayloads() const;
+	void SetFramePayloads(const std::vector<Payload>& payloads);
 };
 
 struct KVulkanQueue : public IKQueue

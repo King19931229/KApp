@@ -1,11 +1,11 @@
 #pragma once
 #include "Internal/KCommandBufferBase.h"
 #include "KVulkanConfig.h"
+#include <vector>
 
 class KVulkanCommandPool : public IKCommandPool
 {
 protected:
-	std::vector<VkCommandPool> m_CommandPools;
 	struct BufferUsage
 	{
 		std::vector<IKCommandBufferPtr> buffers;
@@ -16,8 +16,20 @@ protected:
 		}
 		void Reset(CommmandBufferReset resetMode);
 	};
-	BufferUsage m_PrimaryUsage;
-	BufferUsage m_SecondaryUsage;
+	struct PoolBlock
+	{
+		VkCommandPool pool = VK_NULL_HANDLE;
+		BufferUsage primary;
+		BufferUsage secondary;
+		uint32_t frameNum = 0;
+		bool occupied = false;
+	};
+	std::vector<PoolBlock> m_Blocks;
+	size_t m_CurrentBlockIndex;
+	uint32_t m_QueueFamilyIndex;
+	VkCommandPoolCreateFlags m_Flags;
+	PoolBlock& CreateBlock();
+	void Reset(PoolBlock& block);
 	CommmandBufferReset m_ResetMode;
 	std::string m_Name;
 public:
@@ -27,25 +39,27 @@ public:
 	virtual bool Init(QueueCategory queue, uint32_t index, CommmandBufferReset resetMode);
 	virtual bool UnInit();
 	virtual bool Reset();
+	void Release(uint32_t frameNum);
 	virtual bool SetDebugName(const char* name);
 
 	virtual IKCommandBufferPtr Request(CommandBufferLevel level);
 
-	inline std::vector<VkCommandPool> GetVkHandles() { return m_CommandPools; }
 };
 
 class KVulkanCommandBuffer : public KCommandBufferBase
 {
+	friend class KVulkanCommandPool;
 protected:
-	std::vector<VkCommandBuffer> m_CommandBuffers;
-	std::vector<VkCommandPool> m_ParentPools;
+	VkCommandBuffer m_CommandBuffer;
+	VkCommandPool m_ParentPool;
+	uint32_t m_FrameNum;
 	VkCommandBufferLevel m_CommandLevel;
 
 public:
 	KVulkanCommandBuffer();
 	virtual ~KVulkanCommandBuffer();
 
-	bool Init(KVulkanCommandPool *pool, CommandBufferLevel level);
+	bool Init(VkCommandPool pool, CommandBufferLevel level);
 	bool UnInit();
 	bool Reset(CommmandBufferReset resetMode);
 
@@ -91,5 +105,6 @@ public:
 	virtual bool Blit(IKFrameBufferPtr src, IKFrameBufferPtr dest);
 
 	VkCommandBuffer GetVkHandle();
+	uint32_t GetFrameNum() const { return m_FrameNum; }
 	inline VkCommandBufferLevel GetVkBufferLevel() { return m_CommandLevel; }
 };

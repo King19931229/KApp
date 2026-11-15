@@ -21,11 +21,13 @@ protected:
 	struct FrameConstantBlock
 	{
 		uint32_t frameNum;
+		bool occupied;
 		std::vector<ConstantBlock> blocks;
 
 		FrameConstantBlock()
 		{
 			frameNum = 0;
+			occupied = false;
 		}
 	};
 
@@ -35,7 +37,6 @@ protected:
 	uint64_t m_Alignment;
 
 	bool InternalAlloc(uint32_t size,
-		uint32_t frameIndex, uint32_t frameNum,
 		IKUniformBufferPtr& buffer, uint32_t& offset);
 public:
 	KDynamicConstantBufferManager();
@@ -43,6 +44,7 @@ public:
 
 	bool Init(uint64_t aligment, uint32_t blockSize);
 	bool UnInit();
+	void Release(uint32_t frameNum);
 
 	bool Alloc(const void* data, KDynamicConstantBufferUsage& usage);
 };

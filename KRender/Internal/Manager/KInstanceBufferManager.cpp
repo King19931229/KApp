@@ -21,7 +21,6 @@ bool KInstanceBufferManager::Init(uint32_t vertexSize, uint32_t blockSize)
 	m_VertexSize = vertexSize;
 	m_BlockCount = blockSize;
 
-	m_InstanceBlocks.resize(KRenderGlobal::NumFramesInFlight);
 	return true;
 }
 
@@ -39,11 +38,32 @@ bool KInstanceBufferManager::UnInit()
 	return true;
 }
 
+void KInstanceBufferManager::Release(uint32_t frameNum)
+{
+	std::lock_guard<decltype(m_Lock)> lockGuard(m_Lock);
+	for (FrameInstanceBlock& frameBlock : m_InstanceBlocks)
+	{
+		if (!frameBlock.occupied || frameBlock.frameNum != frameNum) continue;
+		for (auto it = frameBlock.blocks.begin(); it != frameBlock.blocks.end();)
+		{
+			if (it->useCount == 0 && it != frameBlock.blocks.begin())
+			{
+				SAFE_UNINIT(it->buffer);
+				it = frameBlock.blocks.erase(it);
+				continue;
+			}
+			it->useCount = 0;
+			++it;
+		}
+		frameBlock.occupied = false;
+	}
+}
+
 bool KInstanceBufferManager::Alloc(uint32_t count, const void* data, std::vector<AllocResultBlock>& results)
 {
 	results.clear();
 	if (!KInteger::FitsMemorySize(uint64_t(count) * m_VertexSize)) return false;
-	if (InternalAlloc(count, KRenderGlobal::CurrentInFlightFrameIndex, KRenderGlobal::CurrentFrameNum, results))
+	if (InternalAlloc(count, results))
 	{
 		std::lock_guard<decltype(m_Lock)> lockGuard(m_Lock);
 		ASSERT_RESULT(data);
@@ -65,82 +85,84 @@ bool KInstanceBufferManager::Alloc(uint32_t count, const void* data, std::vector
 }
 
 bool KInstanceBufferManager::InternalAlloc(uint32_t count,
-	uint32_t frameIndex, uint32_t frameNum,
 	std::vector<AllocResultBlock>& results)
 {
-	if (frameIndex < m_InstanceBlocks.size())
+	std::lock_guard<decltype(m_Lock)> lockGuard(m_Lock);
+
+	const uint32_t frameNum = KRenderGlobal::CurrentFrameNum;
+	FrameInstanceBlock* selected = nullptr;
+	FrameInstanceBlock* available = nullptr;
+	for (FrameInstanceBlock& group : m_InstanceBlocks)
 	{
-		std::lock_guard<decltype(m_Lock)> lockGuard(m_Lock);
-
-		FrameInstanceBlock& frameBlock = m_InstanceBlocks[frameIndex];
-
-		if (frameBlock.frameNum != frameNum)
+		if (group.occupied && group.frameNum == frameNum)
 		{
-			for (auto it = frameBlock.blocks.begin(); it != frameBlock.blocks.end();)
-			{
-				if (it->useCount == 0 && it != frameBlock.blocks.begin())
-				{
-					SAFE_UNINIT(it->buffer);
-					it = frameBlock.blocks.erase(it);
-					continue;
-				}
-				it->useCount = 0;
-				++it;
-			}
-			frameBlock.frameNum = frameNum;
+			selected = &group;
+			break;
 		}
-
-		uint32_t restCount = count;
-
-		{
-			for (InstanceBlock& block : frameBlock.blocks)
-			{
-				uint32_t blockRestCount = m_BlockCount - block.useCount;
-				if (blockRestCount > 0)
-				{
-					uint32_t useCount = restCount > blockRestCount ? blockRestCount : restCount;
-					restCount -= useCount;
-
-					AllocResultBlock resultBlock;
-					resultBlock.buffer = block.buffer;
-					resultBlock.count = useCount;
-					resultBlock.start = block.useCount;
-					resultBlock.offset = uint64_t(block.useCount) * m_VertexSize;
-					results.push_back(resultBlock);
-
-					block.useCount += useCount;
-				}
-			}
-
-			while (restCount)
-			{
-				InstanceBlock newBlock;
-
-				ASSERT_RESULT(KRenderGlobal::RenderDevice->CreateVertexBuffer(newBlock.buffer));
-				newBlock.useCount = 0;
-
-				ASSERT_RESULT(newBlock.buffer->InitMemory(m_BlockCount, m_VertexSize, nullptr));
-				ASSERT_RESULT(newBlock.buffer->InitDevice(true));
-
-				{
-					uint32_t useCount = restCount > m_BlockCount ? m_BlockCount : restCount;
-					restCount -= useCount;
-
-					AllocResultBlock resultBlock;
-					resultBlock.buffer = newBlock.buffer;
-					resultBlock.count = useCount;
-					resultBlock.start = newBlock.useCount;
-					resultBlock.offset = uint64_t(newBlock.useCount) * m_VertexSize;
-					results.push_back(resultBlock);
-
-					newBlock.useCount += useCount;
-				}
-
-				frameBlock.blocks.push_back(newBlock);
-			}
-		}
-
-		return true;
+		if (!group.occupied && !available) available = &group;
 	}
-	return false;
+	if (!selected)
+	{
+		if (!available)
+		{
+			m_InstanceBlocks.emplace_back();
+			available = &m_InstanceBlocks.back();
+		}
+		selected = available;
+		selected->frameNum = frameNum;
+		selected->occupied = true;
+	}
+	FrameInstanceBlock& frameBlock = *selected;
+
+	uint32_t restCount = count;
+
+	{
+		for (InstanceBlock& block : frameBlock.blocks)
+		{
+			uint32_t blockRestCount = m_BlockCount - block.useCount;
+			if (blockRestCount > 0)
+			{
+				uint32_t useCount = restCount > blockRestCount ? blockRestCount : restCount;
+				restCount -= useCount;
+
+				AllocResultBlock resultBlock;
+				resultBlock.buffer = block.buffer;
+				resultBlock.count = useCount;
+				resultBlock.start = block.useCount;
+				resultBlock.offset = uint64_t(block.useCount) * m_VertexSize;
+				results.push_back(resultBlock);
+
+				block.useCount += useCount;
+			}
+		}
+
+		while (restCount)
+		{
+			InstanceBlock newBlock;
+
+			ASSERT_RESULT(KRenderGlobal::RenderDevice->CreateVertexBuffer(newBlock.buffer));
+			newBlock.useCount = 0;
+
+			ASSERT_RESULT(newBlock.buffer->InitMemory(m_BlockCount, m_VertexSize, nullptr));
+			ASSERT_RESULT(newBlock.buffer->InitDevice(true));
+
+			{
+				uint32_t useCount = restCount > m_BlockCount ? m_BlockCount : restCount;
+				restCount -= useCount;
+
+				AllocResultBlock resultBlock;
+				resultBlock.buffer = newBlock.buffer;
+				resultBlock.count = useCount;
+				resultBlock.start = newBlock.useCount;
+				resultBlock.offset = uint64_t(newBlock.useCount) * m_VertexSize;
+				results.push_back(resultBlock);
+
+				newBlock.useCount += useCount;
+			}
+
+			frameBlock.blocks.push_back(newBlock);
+		}
+	}
+
+	return true;
 }

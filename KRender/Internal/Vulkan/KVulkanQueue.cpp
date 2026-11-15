@@ -77,7 +77,7 @@ bool KVulkanFence::Init(bool singaled)
 		fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
 		fenceInfo.flags = singaled ? VK_FENCE_CREATE_SIGNALED_BIT : VK_FLAGS_NONE;
 		fenceInfo.pNext = nullptr;
-		VK_ASSERT_RESULT(vkCreateFence(KVulkanGlobal::device, &fenceInfo, nullptr, &m_Fences[i]));
+		VK_ASSERT_RESULT(vkCreateFence(KVulkanGlobal::device, &fenceInfo, nullptr, &m_Fences[i].handle));
 	}
 	return true;
 }
@@ -88,7 +88,7 @@ bool KVulkanFence::UnInit()
 	{
 		for (size_t i = 0; i < m_Fences.size(); ++i)
 		{
-			vkDestroyFence(KVulkanGlobal::device, m_Fences[i], nullptr);
+			vkDestroyFence(KVulkanGlobal::device, m_Fences[i].handle, nullptr);
 		}
 		m_Fences.clear();
 	}
@@ -99,7 +99,7 @@ bool KVulkanFence::SetDebugName(const char* name)
 {
 	for (size_t i = 0; i < m_Fences.size(); ++i)
 	{
-		KVulkanHelper::DebugUtilsSetObjectName(KVulkanGlobal::device, (uint64_t)m_Fences[i], VK_OBJECT_TYPE_FENCE, (std::string(name) + "_" + std::to_string(i)).c_str());
+		KVulkanHelper::DebugUtilsSetObjectName(KVulkanGlobal::device, (uint64_t)m_Fences[i].handle, VK_OBJECT_TYPE_FENCE, (std::string(name) + "_" + std::to_string(i)).c_str());
 	}
 	return true;
 }
@@ -108,7 +108,7 @@ bool KVulkanFence::Wait()
 {
 	if (m_Fences.size() > 0)
 	{
-		VkResult result = vkWaitForFences(KVulkanGlobal::device, 1, &m_Fences[KRenderGlobal::CurrentInFlightFrameIndex], VK_TRUE, UINT64_MAX);
+		VkResult result = vkWaitForFences(KVulkanGlobal::device, 1, &m_Fences[KRenderGlobal::CurrentInFlightFrameIndex].handle, VK_TRUE, UINT64_MAX);
 		return result == VK_SUCCESS;
 	}
 	return false;
@@ -118,7 +118,7 @@ bool KVulkanFence::Reset()
 {
 	if (m_Fences.size() > 0)
 	{
-		VkResult result = vkResetFences(KVulkanGlobal::device, 1, &m_Fences[KRenderGlobal::CurrentInFlightFrameIndex]);
+		VkResult result = vkResetFences(KVulkanGlobal::device, 1, &m_Fences[KRenderGlobal::CurrentInFlightFrameIndex].handle);
 		return result == VK_SUCCESS;
 	}
 	return false;
@@ -128,12 +128,41 @@ VkFence KVulkanFence::GetVkFence()
 {
 	if (m_Fences.size() > 0)
 	{
-		return m_Fences[KRenderGlobal::CurrentInFlightFrameIndex];
+		return m_Fences[KRenderGlobal::CurrentInFlightFrameIndex].handle;
 	}
 	else
 	{
 		return VK_NULL_HANDEL;
 	}
+}
+
+void KVulkanFence::SetFrameNum(uint32_t frameNum)
+{
+	Payload& payload = m_Fences[KRenderGlobal::CurrentInFlightFrameIndex].payload;
+	payload.frameNum = frameNum;
+	payload.submitted = true;
+}
+
+bool KVulkanFence::TakeFrameNum(uint32_t& frameNum)
+{
+	Payload& payload = m_Fences[KRenderGlobal::CurrentInFlightFrameIndex].payload;
+	if (!payload.submitted) return false;
+	frameNum = payload.frameNum;
+	payload.submitted = false;
+	return true;
+}
+
+std::vector<KVulkanFence::Payload> KVulkanFence::GetFramePayloads() const
+{
+	std::vector<Payload> result;
+	for (const Fence& fence : m_Fences) result.push_back(fence.payload);
+	return result;
+}
+
+void KVulkanFence::SetFramePayloads(const std::vector<Payload>& payloads)
+{
+	ASSERT_RESULT(payloads.size() == m_Fences.size());
+	for (size_t i = 0; i < m_Fences.size() && i < payloads.size(); ++i) m_Fences[i].payload = payloads[i];
 }
 
 KVulkanQueue::KVulkanQueue()
@@ -263,6 +292,7 @@ bool KVulkanQueue::Submit(IKCommandBufferPtr buffer, std::vector<KSemaphoreWaitI
 		{
 			return false;
 		}
+		if (fence) static_cast<KVulkanFence*>(fence.get())->SetFrameNum(vulkanBuffer ? vulkanBuffer->GetFrameNum() : KRenderGlobal::CurrentFrameNum);
 		if (vulkanBuffer)
 		{
 			vulkanBuffer->ReportSubmittedDraws();

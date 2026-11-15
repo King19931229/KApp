@@ -1,4 +1,5 @@
 #include "KVulkanBuffer.h"
+#include "KVulkanRenderDevice.h"
 #include "KVulkanHelper.h"
 #include "KVulkanInitializer.h"
 #include "KVulkanGlobal.h"
@@ -658,6 +659,8 @@ uint32_t KVulkanStorageBuffer::GetUniqueID() const
 // KVulkanUniformBuffer
 KVulkanUniformBuffer::KVulkanUniformBuffer()
 	: KUniformBufferBase()
+	, m_Ticket(nullptr)
+	, m_MappedBuffer(nullptr)
 {
 }
 
@@ -667,49 +670,48 @@ KVulkanUniformBuffer::~KVulkanUniformBuffer()
 
 bool KVulkanUniformBuffer::InitDevice()
 {
-	VkBufferUsageFlags usageFlags = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
-	m_Buffers.resize(KRenderGlobal::NumFramesInFlight);
-	for (size_t i = 0; i < m_Buffers.size(); ++i)
-	{
-		m_Buffers[i].InitDevice(usageFlags, m_Data.data(), m_BufferSize, true);
-	}
-	return true;
+	UnInit();
+	m_Ticket = static_cast<KVulkanRenderDevice*>(KRenderGlobal::RenderDevice)->GetBufferManager().Create(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, m_Data.data(), m_BufferSize, true);
+	return m_Ticket != nullptr;
 }
 
 bool KVulkanUniformBuffer::UnInit()
 {
-	for (size_t i = 0; i < m_Buffers.size(); ++i)
+	if (m_Ticket)
 	{
-		m_Buffers[i].UnInit();
+		static_cast<KVulkanRenderDevice*>(KRenderGlobal::RenderDevice)->GetBufferManager().Destroy(m_Ticket);
+		m_Ticket = nullptr;
 	}
+	m_MappedBuffer = nullptr;
 	return true;
 }
 
 bool KVulkanUniformBuffer::SetDebugName(const char* pName)
 {
-	for (size_t i = 0; i < m_Buffers.size(); ++i)
-	{
-		m_Buffers[i].SetDebugName((std::string(pName) + "_" + std::to_string(i)).c_str());
-	}
+	if (m_Ticket) static_cast<KVulkanRenderDevice*>(KRenderGlobal::RenderDevice)->GetBufferManager().SetDebugName(m_Ticket, pName);
 	return true;
 }
 
 KVulkanBuffer& KVulkanUniformBuffer::GetVulkanBuffer()
 {
-	ASSERT_RESULT(KRenderGlobal::CurrentInFlightFrameIndex < m_Buffers.size());
-	return m_Buffers[KRenderGlobal::CurrentInFlightFrameIndex];
+	return static_cast<KVulkanRenderDevice*>(KRenderGlobal::RenderDevice)->GetBufferManager().Request(m_Ticket, m_Data.data());
 }
 
 bool KVulkanUniformBuffer::Map(void** ppData, MapAccess access)
 {
+	ASSERT_RESULT(!m_MappedBuffer);
 	KVulkanBuffer& buffer = GetVulkanBuffer();
-	return buffer.Map(ppData, access);
+	if (!buffer.Map(ppData, access)) return false;
+	m_MappedBuffer = &buffer;
+	return true;
 }
 
 bool KVulkanUniformBuffer::UnMap()
 {
-	KVulkanBuffer& buffer = GetVulkanBuffer();
-	return buffer.UnMap();
+	ASSERT_RESULT(m_MappedBuffer);
+	if (!m_MappedBuffer->UnMap()) return false;
+	m_MappedBuffer = nullptr;
+	return true;
 }
 
 bool KVulkanUniformBuffer::Write(const void* pData)
@@ -739,7 +741,7 @@ bool KVulkanUniformBuffer::Read(void* pData, uint64_t offset, uint64_t size)
 bool KVulkanUniformBuffer::Reference(void **ppData)
 {
 	ASSERT_RESULT(ppData != nullptr);
-	if(GetVulkanHandle() != VK_NULL_HANDEL)
+	if(m_Ticket && GetVulkanHandle() != VK_NULL_HANDEL)
 	{
 		ASSERT_RESULT(m_Data.size() == m_BufferSize);
 		ASSERT_RESULT(m_BufferSize > 0);

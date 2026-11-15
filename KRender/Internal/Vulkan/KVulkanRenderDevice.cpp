@@ -1398,6 +1398,7 @@ bool KVulkanRenderDevice::UnInit()
 		m_GraphicCommandPool = VK_NULL_HANDLE;
 	}
 
+	m_BufferManager.UnInit();
 	UnInitHeapAllocator();
 
 	UnsetDebugMessenger();
@@ -1815,6 +1816,22 @@ bool KVulkanRenderDevice::CreateQuery(IKQueryPtr& query)
 	return true;
 }
 
+void KVulkanRenderDevice::RegisterCommandPool(KVulkanCommandPool* pool)
+{
+	m_CommandPools.insert(pool);
+}
+
+void KVulkanRenderDevice::UnRegisterCommandPool(KVulkanCommandPool* pool)
+{
+	m_CommandPools.erase(pool);
+}
+
+void KVulkanRenderDevice::ReleaseFrameResources(uint32_t frameNum)
+{
+	m_BufferManager.Release(frameNum);
+	for (KVulkanCommandPool* pool : m_CommandPools) pool->Release(frameNum);
+}
+
 bool KVulkanRenderDevice::Wait()
 {
 	if (m_Device != VK_NULL_HANDLE)
@@ -1904,9 +1921,11 @@ bool KVulkanRenderDevice::RecreateSwapChain(IKSwapChain* swapChain)
 		}
 
 		vkDeviceWaitIdle(m_Device);
+		auto payloads = static_cast<KVulkanFence*>(swapChain->GetInFlightFence().get())->GetFramePayloads();
 
 		swapChain->UnInit();
 		swapChain->Init(window);
+		static_cast<KVulkanFence*>(swapChain->GetInFlightFence().get())->SetFramePayloads(payloads);
 
 		return true;
 	}

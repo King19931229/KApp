@@ -51,7 +51,7 @@ bool KRenderCore::InitPostProcess()
 	uint32_t width = 0, height = 0;
 	m_MainWindow->GetSize(width, height);
 
-	KRenderGlobal::PostProcessManager.Init(width, height, 1, PF_R16G16B16A16_FLOAT, KRenderGlobal::NumFramesInFlight);
+	KRenderGlobal::PostProcessManager.Init(width, height, 1, PF_R16G16B16A16_FLOAT);
 #if 0
 	auto startPoint = KRenderGlobal::PostProcessManager.GetStartPointPass();
 
@@ -493,7 +493,11 @@ void KRenderCore::Render()
 		m_bSwapChainResized = false;
 	}
 
-	mainSwapChain->WaitForInFlightFrame();
+	uint32_t completedFrameNum = 0;
+	if (mainSwapChain->WaitForInFlightFrame(completedFrameNum))
+	{
+		KRenderGlobal::Renderer.ReleaseFrameResources(completedFrameNum);
+	}
 
 	uint32_t chainImageIndex = 0;
 	SwapChainAcquireResult acquireResult = mainSwapChain->AcquireNextImage(chainImageIndex);
@@ -544,7 +548,10 @@ void KRenderCore::Render()
 			continue;
 		}
 		IKUIOverlay* secondaryUI = window->GetUIOverlay();
-		secordarySwapChain->WaitForInFlightFrame();
+		if (secordarySwapChain->WaitForInFlightFrame(completedFrameNum))
+		{
+			KRenderGlobal::Renderer.ReleaseFrameResources(completedFrameNum);
+		}
 		acquireResult = secordarySwapChain->AcquireNextImage(chainImageIndex);
 		if (acquireResult != SCAR_SUCCESS)
 		{

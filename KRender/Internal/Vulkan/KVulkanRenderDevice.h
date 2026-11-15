@@ -5,6 +5,7 @@
 #include "Internal/KRenderThreadPool.h"
 
 #include "KVulkanHeapAllocator.h"
+#include "KVulkanBufferManager.h"
 #include "KVulkanHelper.h"
 #include "KVulkanSwapChain.h"
 
@@ -27,6 +28,8 @@
 #else
 
 #endif
+
+class KVulkanCommandPool;
 
 class KVulkanRenderDevice : public IKRenderDevice
 {
@@ -100,6 +103,8 @@ class KVulkanRenderDevice : public IKRenderDevice
 		}
 	};
 protected:
+	KVulkanBufferManager m_BufferManager;
+	std::unordered_set<KVulkanCommandPool*> m_CommandPools;
 	KRenderDeviceProperties m_Properties;
 	IKRenderWindow* m_pWindow;	
 	VkInstance m_Instance;
@@ -205,6 +210,11 @@ public:
 	virtual bool CreateUIOverlay(IKUIOverlayPtr& ui);
 
 	virtual bool CreateRenderPass(IKRenderPassPtr& renderPass);
+
+	KVulkanBufferManager& GetBufferManager() { return m_BufferManager; }
+	void RegisterCommandPool(KVulkanCommandPool* pool);
+	void UnRegisterCommandPool(KVulkanCommandPool* pool);
+	void ReleaseFrameResources(uint32_t frameNum);
 
 	virtual bool Wait();
 	virtual bool Tick();
