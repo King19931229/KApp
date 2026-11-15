@@ -77,6 +77,7 @@ bool KABufferDepthPeeling::UnInit()
 	SAFE_UNINIT(m_LinkNextBuffer);
 	SAFE_UNINIT(m_LinkResultBuffer);
 	SAFE_UNINIT(m_LinkDepthBuffer);
+	m_Width = m_Height = 0;
 	return true;
 }
 

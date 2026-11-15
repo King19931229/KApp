@@ -109,6 +109,7 @@ protected:
 	VkCommandPool m_GraphicCommandPool;
 	int32_t m_ValidationLayerIdx;
 	bool m_EnableValidationLayer;
+	bool m_Initialized;
 
 	VkDebugUtilsMessengerEXT m_DebugUtilsMessenger;
 	VkDebugReportCallbackEXT m_DebugReportCallback;

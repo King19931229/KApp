@@ -20,7 +20,8 @@ enum RenderWindowType
 {
 	RENDER_WINDOW_GLFW,
 	RENDER_WINDOW_ANDROID_NATIVE,
-	RENDER_WINDOW_EXTERNAL
+	RENDER_WINDOW_EXTERNAL,
+	RENDER_WINDOW_HEADLESS
 };
 
 struct KEditorViewport
@@ -51,6 +52,14 @@ struct IKRenderWindow
 
 	virtual bool Tick() = 0;
 	virtual bool Loop() = 0;
+
+	// Optional injected input. Key uses the same ImGuiKey codes as IKUIOverlay::SetKey.
+	virtual bool InjectKey(int key, InputAction action) { return false; }
+	virtual bool InjectCharacter(uint32_t character) { return false; }
+	virtual bool InjectMouseMove(float x, float y) { return false; }
+	virtual bool InjectMouseButton(InputMouseButton button, InputAction action) { return false; }
+	virtual bool InjectScroll(float x, float y) { return false; }
+	virtual bool InjectFocus(bool focused) { return false; }
 
 	virtual bool IsMinimized() = 0;
 

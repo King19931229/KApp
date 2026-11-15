@@ -390,6 +390,7 @@ bool KRenderCore::UnInit()
 		if (m_bInit)
 		{
 			KRenderGlobal::Renderer.RemoveCallback(m_MainWindow);
+			KRenderGlobal::Scene.UnInit();
 
 			KECSGlobal::UnInit();
 

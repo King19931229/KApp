@@ -229,25 +229,32 @@ bool KEngine::Init(IKRenderWindowPtr window, const KEngineOptions& options)
 
 		m_RenderCore = CreateRenderCore();
 		m_RenderCore->StartRenderThread();
-		m_RenderCore->Init(m_Device, m_Window, [options](IKRenderWindowPtr& window)
+		bool windowInitialized = false;
+		m_RenderCore->Init(m_Device, m_Window, [options, &windowInitialized](IKRenderWindowPtr& window)
 		{
 			const auto& windowInfo = options.window;
 			switch (windowInfo.type)
 			{
 				case KEngineOptions::WindowInitializeInformation::TYPE_DEFAULT:
-					ASSERT_RESULT(window->Init(windowInfo.top, windowInfo.left, windowInfo.width, windowInfo.height, windowInfo.resizable, true));
+					windowInitialized = window->Init(windowInfo.top, windowInfo.left, windowInfo.width, windowInfo.height, windowInfo.resizable, true);
 					break;
 				case KEngineOptions::WindowInitializeInformation::TYPE_ANDROID:
-					ASSERT_RESULT(window->Init(windowInfo.app));
+					windowInitialized = window->Init(windowInfo.app);
 					break;
 				case KEngineOptions::WindowInitializeInformation::TYPE_EDITOR:
-					ASSERT_RESULT(window->Init(windowInfo.hwnd, true));
+					windowInitialized = window->Init(windowInfo.hwnd, true);
 					break;
 				default:
 					assert(false && "should not reach");
 					break;
 			}
 		});
+
+		if (!windowInitialized)
+		{
+			UnInit();
+			return false;
+		}
 
 		m_Scene = IKScenePtr(KNEW KScene());
 		m_Scene->Init(m_RenderCore->GetRenderScene());
@@ -261,16 +268,16 @@ bool KEngine::Init(IKRenderWindowPtr window, const KEngineOptions& options)
 
 bool KEngine::UnInit()
 {
-	if (m_bInit)
+	if (m_bInit || m_RenderCore)
 	{
-		m_RenderCore->Wait();
+		if (m_bInit) m_RenderCore->Wait();
 
 		KECS::DestroyEntityManager();
 		KECS::DestroyComponentManager();
 
 		m_Window->UnInit();
 
-		m_Scene->UnInit();
+		if (m_Scene) m_Scene->UnInit();
 		m_Scene = nullptr;
 
 		m_RenderCore->UnInit();

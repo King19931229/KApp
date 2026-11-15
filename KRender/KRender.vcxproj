@@ -182,7 +182,10 @@
     <ClInclude Include="Internal\Vulkan\KVulkanUIOverlay.h" />
     <ClInclude Include="Internal\Window\KAndroidRenderWindow.h" />
     <ClInclude Include="Internal\Window\KGLFWRenderWindow.h" />
+    <ClInclude Include="Internal\Window\KHeadlessRenderWindow.h" />
+    <ClInclude Include="Internal\Window\KHeadlessSwapChain.h" />
     <ClInclude Include="Publish\KCamera.h" />
+    <ClInclude Include="Publish\KRenderApplication.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Internal\Asset\KMaterial.cpp" />
@@ -228,6 +231,7 @@
     <ClCompile Include="Internal\KRenderImGui.cpp" />
     <ClCompile Include="Internal\KRenderThread.cpp" />
     <ClCompile Include="Internal\KRenderWindow.cpp" />
+    <ClCompile Include="Internal\KRenderApplication.cpp" />
     <ClCompile Include="Internal\KSamplerBase.cpp" />
     <ClCompile Include="Internal\KStatistics.cpp" />
     <ClCompile Include="Internal\KTextureBase.cpp" />
@@ -311,6 +315,8 @@
     <ClCompile Include="Internal\Vulkan\KVulkanUIOverlay.cpp" />
     <ClCompile Include="Internal\Window\KAndroidRenderWindow.cpp" />
     <ClCompile Include="Internal\Window\KGLFWRenderWindow.cpp" />
+    <ClCompile Include="Internal\Window\KHeadlessRenderWindow.cpp" />
+    <ClCompile Include="Internal\Window\KHeadlessSwapChain.cpp" />
     <ClCompile Include="KRenderMain.cpp" />
   </ItemGroup>
   <ItemGroup>

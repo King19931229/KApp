@@ -67,7 +67,7 @@ bool KUIOverlayController::Init(IKUIOverlay* ui, IKRenderWindow* window)
 		};
 
 #if defined(_WIN32)
-		if (m_Window->GetType() != RENDER_WINDOW_GLFW)
+		if (m_Window->GetType() != RENDER_WINDOW_GLFW && m_Window->GetType() != RENDER_WINDOW_HEADLESS)
 		{
 			m_Window->RegisterMouseCallback(&m_MouseCallback);
 			m_Window->RegisterScrollCallback(&m_ScrollCallback);
@@ -86,7 +86,7 @@ bool KUIOverlayController::UnInit()
 	if (m_UIOverlay && m_Window)
 	{
 #if defined(_WIN32)
-		if (m_Window->GetType() != RENDER_WINDOW_GLFW)
+		if (m_Window->GetType() != RENDER_WINDOW_GLFW && m_Window->GetType() != RENDER_WINDOW_HEADLESS)
 		{
 			m_Window->UnRegisterMouseCallback(&m_MouseCallback);
 			m_Window->UnRegisterScrollCallback(&m_ScrollCallback);

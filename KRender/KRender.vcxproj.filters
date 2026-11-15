@@ -180,6 +180,9 @@
     <ClInclude Include="Publish\KCamera.h">
       <Filter>Publish</Filter>
     </ClInclude>
+    <ClInclude Include="Publish\KRenderApplication.h">
+      <Filter>Publish</Filter>
+    </ClInclude>
     <ClInclude Include="Interface\IKUIOverlay.h">
       <Filter>Interface</Filter>
     </ClInclude>
@@ -265,6 +268,12 @@
       <Filter>Internal\PostProcess</Filter>
     </ClInclude>
     <ClInclude Include="Internal\Window\KGLFWRenderWindow.h">
+      <Filter>Internal\Window</Filter>
+    </ClInclude>
+    <ClInclude Include="Internal\Window\KHeadlessRenderWindow.h">
+      <Filter>Internal\Window</Filter>
+    </ClInclude>
+    <ClInclude Include="Internal\Window\KHeadlessSwapChain.h">
       <Filter>Internal\Window</Filter>
     </ClInclude>
     <ClInclude Include="Internal\Window\KAndroidRenderWindow.h">
@@ -591,6 +600,9 @@
     <ClCompile Include="Internal\KRenderWindow.cpp">
       <Filter>Internal</Filter>
     </ClCompile>
+    <ClCompile Include="Internal\KRenderApplication.cpp">
+      <Filter>Internal</Filter>
+    </ClCompile>
     <ClCompile Include="Internal\Vulkan\KVulkanRenderDevice.cpp">
       <Filter>Internal\Vulkan</Filter>
     </ClCompile>
@@ -715,6 +727,12 @@
       <Filter>Internal\PostProcess</Filter>
     </ClCompile>
     <ClCompile Include="Internal\Window\KGLFWRenderWindow.cpp">
+      <Filter>Internal\Window</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\Window\KHeadlessRenderWindow.cpp">
+      <Filter>Internal\Window</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\Window\KHeadlessSwapChain.cpp">
       <Filter>Internal\Window</Filter>
     </ClCompile>
     <ClCompile Include="Internal\Window\KAndroidRenderWindow.cpp">

@@ -224,8 +224,15 @@ static void DestroyDebugReportCallbackEXT(
 //-------------------- KVulkanRenderDevice --------------------//
 KVulkanRenderDevice::KVulkanRenderDevice()
 	: m_pWindow(nullptr)
+	, m_Instance(VK_NULL_HANDLE)
+	, m_Device(VK_NULL_HANDLE)
+	, m_PipelineCache(VK_NULL_HANDLE)
+	, m_GraphicCommandPool(VK_NULL_HANDLE)
 	, m_EnableValidationLayer((bool)USE_VALIDAION_LAYER)
+	, m_Initialized(false)
 	, m_ValidationLayerIdx(-1)
+	, m_DebugUtilsMessenger(VK_NULL_HANDLE)
+	, m_DebugReportCallback(VK_NULL_HANDLE)
 	, m_GpuCrashTracker(nullptr)
 {
 #ifdef _WIN32
@@ -944,6 +951,13 @@ bool KVulkanRenderDevice::CreateLogicalDevice()
 
 		// 组装支持扩展
 		std::vector<const char*> extensionNames(DEVICE_DEFAULT_EXTENSIONS, DEVICE_DEFAULT_EXTENSIONS + ARRAY_SIZE(DEVICE_DEFAULT_EXTENSIONS));
+		if (m_pWindow->GetType() == RENDER_WINDOW_HEADLESS)
+		{
+			extensionNames.erase(std::remove_if(extensionNames.begin(), extensionNames.end(), [](const char* extension)
+			{
+				return strcmp(extension, VK_KHR_SWAPCHAIN_EXTENSION_NAME) == 0;
+			}), extensionNames.end());
+		}
 
 		if (std::find(m_PhysicalDevice.supportedExtensions.begin(), m_PhysicalDevice.supportedExtensions.end(), VK_EXT_CUSTOM_BORDER_COLOR_EXTENSION_NAME) != m_PhysicalDevice.supportedExtensions.end())
 		{
@@ -1197,14 +1211,19 @@ bool KVulkanRenderDevice::SetupDebugMessenger()
 
 bool KVulkanRenderDevice::UnsetDebugMessenger()
 {
-	if (m_EnableValidationLayer)
-	{
 #ifndef __ANDROID__
+	if (m_Instance != VK_NULL_HANDLE && m_DebugUtilsMessenger != VK_NULL_HANDLE)
+	{
 		DestroyDebugUtilsMessengerEXT(m_Instance, m_DebugUtilsMessenger, nullptr);
-#else
-		DestroyDebugReportCallbackEXT(m_Instance, m_DebugReportCallback, nullptr);
-#endif
+		m_DebugUtilsMessenger = VK_NULL_HANDLE;
 	}
+#else
+	if (m_Instance != VK_NULL_HANDLE && m_DebugReportCallback != VK_NULL_HANDLE)
+	{
+		DestroyDebugReportCallbackEXT(m_Instance, m_DebugReportCallback, nullptr);
+		m_DebugReportCallback = VK_NULL_HANDLE;
+	}
+#endif
 	return true;
 }
 
@@ -1224,9 +1243,9 @@ bool KVulkanRenderDevice::Init(IKRenderWindow* window)
 {
 	if (window == nullptr
 #if defined(_WIN32)
-		|| window->GetHWND() == nullptr
+		|| (window->GetType() != RENDER_WINDOW_HEADLESS && window->GetHWND() == nullptr)
 #elif defined(__ANDROID__)
-		|| window->GetAndroidApp() == nullptr
+		|| (window->GetType() != RENDER_WINDOW_HEADLESS && window->GetAndroidApp() == nullptr)
 #endif
 		)
 	{
@@ -1355,6 +1374,7 @@ bool KVulkanRenderDevice::Init(IKRenderWindow* window)
 			(*callback)();
 		}
 
+		m_Initialized = true;
 		m_pWindow->SetRenderDevice(this);
 
 #if defined(USE_NSIGHT_AFTERMATH)
@@ -1376,14 +1396,21 @@ bool KVulkanRenderDevice::UnInit()
 	Wait();
 
 #if defined(USE_NSIGHT_AFTERMATH)
-	((GpuCrashTracker*)m_GpuCrashTracker)->Deinitialize();
-	delete ((GpuCrashTracker*)m_GpuCrashTracker);
-	m_GpuCrashTracker = nullptr;
+	if (m_GpuCrashTracker)
+	{
+		((GpuCrashTracker*)m_GpuCrashTracker)->Deinitialize();
+		delete ((GpuCrashTracker*)m_GpuCrashTracker);
+		m_GpuCrashTracker = nullptr;
+	}
 #endif
 
-	for (KDeviceUnInitCallback* callback : m_UnInitCallback)
+	if (m_Initialized)
 	{
-		(*callback)();
+		for (KDeviceUnInitCallback* callback : m_UnInitCallback)
+		{
+			(*callback)();
+		}
+		m_Initialized = false;
 	}
 
 	if (m_PipelineCache != VK_NULL_HANDLE)
@@ -1426,6 +1453,10 @@ bool KVulkanRenderDevice::CheckExtentionsSupported(PhysicalDevice& device)
 	device.suitable = true;
 	for (const char* requiredExt : DEVICE_DEFAULT_EXTENSIONS)
 	{
+		if (m_pWindow->GetType() == RENDER_WINDOW_HEADLESS && strcmp(requiredExt, VK_KHR_SWAPCHAIN_EXTENSION_NAME) == 0)
+		{
+			continue;
+		}
 		if (std::find(device.supportedExtensions.begin(), device.supportedExtensions.end(), requiredExt) == device.supportedExtensions.end())
 		{
 			device.suitable = false;
@@ -1927,8 +1958,11 @@ bool KVulkanRenderDevice::PopulateInstanceExtensions(std::vector<const char*>& e
 {
 	extensions.clear();
 #if defined(_WIN32)
-	extensions.push_back(VK_KHR_SURFACE_EXTENSION_NAME);
-	extensions.push_back(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
+	if (m_pWindow->GetType() != RENDER_WINDOW_HEADLESS)
+	{
+		extensions.push_back(VK_KHR_SURFACE_EXTENSION_NAME);
+		extensions.push_back(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
+	}
 #ifndef VK_USE_DEBUG_UTILS_AS_DEBUG_MARKER
 	if (m_EnableValidationLayer)
 #endif
@@ -1939,8 +1973,11 @@ bool KVulkanRenderDevice::PopulateInstanceExtensions(std::vector<const char*>& e
 	extensions.push_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
 	return true;
 #elif defined(__ANDROID__)
-	extensions.push_back(VK_KHR_SURFACE_EXTENSION_NAME);
-	extensions.push_back(VK_KHR_ANDROID_SURFACE_EXTENSION_NAME);
+	if (m_pWindow->GetType() != RENDER_WINDOW_HEADLESS)
+	{
+		extensions.push_back(VK_KHR_SURFACE_EXTENSION_NAME);
+		extensions.push_back(VK_KHR_ANDROID_SURFACE_EXTENSION_NAME);
+	}
 #ifdef VK_USE_DEBUG_UTILS_AS_DEBUG_MARKER
 	extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 #endif

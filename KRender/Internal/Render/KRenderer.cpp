@@ -570,6 +570,7 @@ bool KRenderer::UnInit()
 
 	SAFE_UNINIT(m_Pass);
 
+	m_RHICommandList.SetImmediate(true);
 	m_RHIThread->ShutDown();
 	m_RHIThread = nullptr;
 

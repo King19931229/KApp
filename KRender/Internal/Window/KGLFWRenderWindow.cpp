@@ -430,7 +430,7 @@ bool KGLFWRenderWindow::Init(size_t top, size_t left, size_t width, size_t heigh
 
 	if (m_bPrimary)
 	{
-		ASSERT_RESULT(glfwInit() == GLFW_TRUE);
+		if (glfwInit() != GLFW_TRUE) return false;
 	}
 
 	{
@@ -457,11 +457,13 @@ bool KGLFWRenderWindow::Init(size_t top, size_t left, size_t width, size_t heigh
 
 			if (m_bPrimary)
 			{
-				ENQUEUE_RENDER_COMMAND(GLFW_InitWindow)([this]()
+				bool result = false;
+				ENQUEUE_RENDER_COMMAND(GLFW_InitWindow)([this, &result]()
 				{
-					return m_Device->Init(this);
+					result = m_Device->Init(this);
 				});
 				FLUSH_RENDER_COMMAND();
+				return result;
 			}
 
 			return true;

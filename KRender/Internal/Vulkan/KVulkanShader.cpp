@@ -12,6 +12,7 @@
 #include "KBase/Publish/KHash.h"
 
 #include "Internal/KRenderGlobal.h"
+#include "Interface/IKRenderWindow.h"
 #include "KVulkanHelper.h"
 
 #include "SPIRV/GlslangToSpv.h"
@@ -65,7 +66,8 @@ bool KVulkanShader::WaitForResult()
 {
 	WaitDeviceTask();
 #ifdef _WIN32
-	if (m_ResourceState == RS_UNLOADED && !m_Path.empty() && KRenderGlobal::ShaderDevelopmentMode)
+	if (m_ResourceState == RS_UNLOADED && !m_Path.empty() && KRenderGlobal::ShaderDevelopmentMode &&
+		(!KRenderGlobal::MainWindow || KRenderGlobal::MainWindow->GetType() != RENDER_WINDOW_HEADLESS))
 	{
 		static std::mutex errorLock;
 		std::unique_lock<std::mutex> guard(errorLock);

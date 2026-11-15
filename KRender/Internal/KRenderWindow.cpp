@@ -1,6 +1,7 @@
 #include "Interface/IKRenderWindow.h"
 #include "Window/KGLFWRenderWindow.h"
 #include "Window/KAndroidRenderWindow.h"
+#include "Window/KHeadlessRenderWindow.h"
 #include <assert.h>
 
 IKRenderWindowPtr CreateRenderWindow(RenderWindowType type)
@@ -13,6 +14,9 @@ IKRenderWindowPtr CreateRenderWindow(RenderWindowType type)
 		break;
 	case RENDER_WINDOW_ANDROID_NATIVE:
 		ret = IKRenderWindowPtr((IKRenderWindow*)KNEW KAndroidRenderWindow());
+		break;
+	case RENDER_WINDOW_HEADLESS:
+		ret = IKRenderWindowPtr(KNEW KHeadlessRenderWindow());
 		break;
 	case RENDER_WINDOW_EXTERNAL:
 		assert(false && "external window can not init here");

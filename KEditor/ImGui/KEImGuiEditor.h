@@ -86,7 +86,7 @@ class KEImGuiEditor
 	void DrawGraph();
 	void OpenScene(bool save);
 public:
-	bool Init();
-	void Run();
+	bool Init(RenderWindowType windowType = RENDER_WINDOW_GLFW, size_t width = 1600, size_t height = 900, const char* scene = nullptr);
+	bool Run(uint32_t frames = 120, const char* output = nullptr);
 	void UnInit();
 };

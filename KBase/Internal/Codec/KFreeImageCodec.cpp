@@ -251,10 +251,8 @@ bool KFreeImageCodec::Save(const KCodecResult& source, const char* pszFile)
 			DWORD writeSize = 0;
 			FreeImage_AcquireMemory(foMem, &writeData, &writeSize);
 			IKDataStreamPtr stream = GetDataStream(IT_FILEHANDLE);
-			stream->Open(pszFile, IM_WRITE);
-			stream->Write(writeData, writeSize);
+			bSuccess = stream->Open(pszFile, IM_WRITE) && stream->Write(writeData, writeSize);
 			stream->Close();
-			bSuccess = true;
 		}
 
 		FreeImage_Unload(foBitmap);

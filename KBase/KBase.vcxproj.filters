@@ -46,6 +46,9 @@
     <ClInclude Include="Publish\KStringParser.h">
       <Filter>Publish</Filter>
     </ClInclude>
+    <ClInclude Include="Publish\KCommandLine.h">
+      <Filter>Publish</Filter>
+    </ClInclude>
     <ClInclude Include="Publish\KSystem.h">
       <Filter>Publish</Filter>
     </ClInclude>
@@ -457,6 +460,9 @@
       <Filter>Internal</Filter>
     </ClCompile>
     <ClCompile Include="Internal\KStringParser.cpp">
+      <Filter>Internal</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\KCommandLine.cpp">
       <Filter>Internal</Filter>
     </ClCompile>
     <ClCompile Include="Internal\KStringUtil.cpp">

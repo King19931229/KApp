@@ -2,6 +2,8 @@
 #include "KEditorGlobal.h"
 #include "KBase/Interface/Task/IKTaskGraph.h"
 #include "KBase/Publish/KFileTool.h"
+#include "KBase/Interface/IKLog.h"
+#include "KRender/Publish/KRenderApplication.h"
 #include "KRender/Interface/IKPostProcess.h"
 #include "KRender/Internal/KRenderThread.h"
 #include "imgui_internal.h"
@@ -45,18 +47,18 @@ namespace
 	}
 }
 
-bool KEImGuiEditor::Init()
+bool KEImGuiEditor::Init(RenderWindowType windowType, size_t width, size_t height, const char* scene)
 {
 	KRenderGlobal::InEditor = true;
 	KEngineGlobal::CreateEngine();
 	m_Engine = KEngineGlobal::Engine;
 	KEngineOptions options;
 	options.window.type = KEngineOptions::WindowInitializeInformation::TYPE_DEFAULT;
-	options.window.width = 1600;
-	options.window.height = 900;
+	options.window.width = width;
+	options.window.height = height;
 	options.window.left = 100;
 	options.window.top = 60;
-	IKRenderWindowPtr window = CreateRenderWindow(RENDER_WINDOW_GLFW);
+	IKRenderWindowPtr window = CreateRenderWindow(windowType);
 	m_Window = window.get();
 	if (!m_Engine || !window || !m_Engine->Init(std::move(window), options))
 	{
@@ -76,6 +78,11 @@ bool KEImGuiEditor::Init()
 		UnInit();
 		return false;
 	}
+	if (scene && *scene && !KEditorGlobal::EntityManipulator.Load(scene))
+	{
+		UnInit();
+		return false;
+	}
 	IKFileSystemPtr resources = KFileSystem::Manager->GetFileSystem(FSD_RESOURCE);
 	if (resources) resources->GetAllSubFileSystem(m_ResourceSystems);
 	RefreshResources();
@@ -90,8 +97,12 @@ bool KEImGuiEditor::Init()
 	return true;
 }
 
-void KEImGuiEditor::Run()
+bool KEImGuiEditor::Run(uint32_t frames, const char* output)
 {
+	if (m_Window->GetType() == RENDER_WINDOW_HEADLESS)
+	{
+		return KRenderApplication::RunHeadless(*m_Engine->GetRenderCore(), frames, output, [this]() { RefreshSnapshot(); });
+	}
 	while (!m_Engine->GetRenderCore()->TickShouldEnd())
 	{
 		FLUSH_RENDER_COMMAND();
@@ -99,6 +110,7 @@ void KEImGuiEditor::Run()
 		RefreshSnapshot();
 		m_Engine->Tick();
 	}
+	return true;
 }
 
 void KEImGuiEditor::UnInit()
@@ -267,6 +279,11 @@ void KEImGuiEditor::ApplyProperty(const std::vector<size_t>& ids, const Property
 
 void KEImGuiEditor::OpenScene(bool save)
 {
+	if (m_Window->GetType() == RENDER_WINDOW_HEADLESS)
+	{
+		KG_LOGE(LM_RENDER, "Native file dialogs are unavailable for a headless window");
+		return;
+	}
 	wchar_t path[32768] = {};
 	OPENFILENAMEW dialog = {};
 	dialog.lStructSize = sizeof(dialog);

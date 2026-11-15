@@ -12,6 +12,9 @@
 #include "KBase/Interface/Component/IKUserComponent.h"
 
 #include "KBase/Publish/KMath.h"
+#include "KBase/Publish/KCommandLine.h"
+#include "KBase/Publish/KStringUtil.h"
+#include "KRender/Publish/KRenderApplication.h"
 #include "KBase/Interface/IKFileSystem.h"
 #include "KBase/Interface/IKAssetLoader.h"
 #include "KBase/Publish/Mesh/KMeshSimplification.h"
@@ -773,8 +776,47 @@ namespace
 	};
 }
 
-int main()
+int main(int argc, char** argv)
 {
+	KCommandLine commandLine;
+	commandLine.AddBool("headless", false, false, "Render without a system window");
+	commandLine.AddInt("width", 1280, "Output width");
+	commandLine.AddInt("height", 720, "Output height");
+	commandLine.AddInt("frames", 120, "Number of headless frames");
+	commandLine.AddString("scene", "", "Scene file to load");
+	commandLine.AddString("output", "", "Save the final headless frame as PNG");
+	commandLine.AddBool("help", false, false, "Show command-line help");
+	if (!commandLine.Parse(argc, argv))
+	{
+		fprintf(stderr, "%s\n", commandLine.GetError().c_str());
+		return 2;
+	}
+	if (commandLine.GetBool("help"))
+	{
+		printf("%s", commandLine.GetHelp().c_str());
+		return 0;
+	}
+	const bool headless = commandLine.GetBool("headless");
+	const int width = commandLine.GetInt("width"), height = commandLine.GetInt("height");
+	const int frames = commandLine.GetInt("frames");
+	std::string scenePath = commandLine.GetString("scene");
+	std::string outputPath = commandLine.GetString("output"), lowerOutput;
+	KStringUtil::Lower(outputPath, lowerOutput);
+	if (width <= 0 || height <= 0 || frames <= 0 ||
+		(!headless && (commandLine.Has("frames") || commandLine.Has("output"))) ||
+		(commandLine.Has("scene") && scenePath.empty()) ||
+		(commandLine.Has("output") && (lowerOutput.size() < 4 || lowerOutput.substr(lowerOutput.size() - 4) != ".png")))
+	{
+		fprintf(stderr, "--width, --height and --frames must be positive; --frames and --output require --headless; --scene requires a path and --output requires a .png path\n");
+		return 2;
+	}
+	std::string pathError;
+	if (!KRenderApplication::PreparePaths(scenePath, outputPath, pathError))
+	{
+		fprintf(stderr, "%s\n", pathError.c_str());
+		return 1;
+	}
+
 	DUMP_MEMORY_LEAK_BEGIN();
 
 	/*
@@ -789,28 +831,50 @@ int main()
 	KEngineGlobal::CreateEngine();
 	IKEnginePtr engine = KEngineGlobal::Engine;
 
-	IKRenderWindowPtr window = CreateRenderWindow(RENDER_WINDOW_GLFW);
+	IKRenderWindowPtr window = CreateRenderWindow(headless ? RENDER_WINDOW_HEADLESS : RENDER_WINDOW_GLFW);
 	KEngineOptions options;
 
 	options.window.top = 60;
 	options.window.left = 60;
-	options.window.width = 1280;
-	options.window.height = 720;
+	options.window.width = width;
+	options.window.height = height;
 	options.window.resizable = true;
 	options.window.type = KEngineOptions::WindowInitializeInformation::TYPE_DEFAULT;
 
-	engine->Init(std::move(window), options);
+	if (!engine->Init(std::move(window), options))
+	{
+		fprintf(stderr, "Failed to initialize KApp\n");
+		engine->UnInit();
+		engine = nullptr;
+		KEngineGlobal::DestroyEngine();
+		return 1;
+	}
 	InitQEM(engine);
 	bool startupSceneLoaded = false;
-	IKDataStreamPtr stream = GetDataStream(IT_FILEHANDLE);
-	if (stream->Open("D:/KApp/scene.txt", IM_READ))
+	if (!scenePath.empty())
 	{
-		char scene[1024] = {};
-		stream->ReadLine(scene, ARRAY_SIZE(scene));
-		startupSceneLoaded = engine->GetScene()->Load(scene);
+		startupSceneLoaded = engine->GetScene()->Load(scenePath.c_str());
+		if (!startupSceneLoaded)
+		{
+			fprintf(stderr, "Cannot load scene: %s\n", scenePath.c_str());
+			engine->UnInit();
+			engine = nullptr;
+			KEngineGlobal::DestroyEngine();
+			return 1;
+		}
 	}
-	stream->Close();
-	stream = nullptr;
+	else
+	{
+		IKDataStreamPtr stream = GetDataStream(IT_FILEHANDLE);
+		if (stream->Open("D:/KApp/scene.txt", IM_READ))
+		{
+			char scene[1024] = {};
+			stream->ReadLine(scene, ARRAY_SIZE(scene));
+			startupSceneLoaded = engine->GetScene()->Load(scene);
+		}
+		stream->Close();
+		stream = nullptr;
+	}
 
 	ExampleScenePicker scenePicker(*engine, startupSceneLoaded);
 	KRenderCoreUIRenderCallback sceneUI = [&scenePicker]() { scenePicker.Draw(); };
@@ -928,7 +992,7 @@ int main()
 		engine->GetRenderCore()->RegisterSecordaryWindow(secordaryWindow);
 	}
 
-	engine->Loop();
+	bool success = headless ? KRenderApplication::RunHeadless(*engine->GetRenderCore(), frames, outputPath.c_str()) : engine->Loop();
 	engine->Wait();
 	engine->GetRenderCore()->UnRegisterUIRenderCallback(&sceneUI);
 
@@ -941,4 +1005,5 @@ int main()
 	engine = nullptr;
 
 	KEngineGlobal::DestroyEngine();
+	return success ? 0 : 1;
 }

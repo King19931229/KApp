@@ -101,6 +101,7 @@ bool KDepthPeeling::UnInit()
 	{
 		SAFE_UNINIT(m_PeelingDepthTarget[i]);
 	}
+	m_Width = m_Height = 0;
 	return true;
 }
 
