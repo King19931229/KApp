@@ -91,6 +91,11 @@ bool KPipelineManager::RemoveComputePipeline(IKComputePipeline* pipeline)
 size_t KPipelineManager::ComputeBindingLayoutHash(const KPipelineBinding& binding)
 {
 	size_t hash = 0;
+	for (const auto& samplerCount : binding.runtimeSamplerCounts)
+	{
+		KHash::HashCombine(hash, samplerCount.first);
+		KHash::HashCombine(hash, samplerCount.second);
+	}
 	for (uint32_t i = 0; i < LAYOUT_SHADER_COUNT; ++i)
 	{
 		if (binding.shaders[i])
@@ -171,14 +176,6 @@ size_t KPipelineManager::ComputeStateHash(const KPipelineState& state)
 
 bool KPipelineManager::AcquireLayout(const KPipelineBinding& binding, KPipelineLayoutRef& ref)
 {
-	for (IKShaderPtr shader : binding.shaders)
-	{
-		if (shader)
-		{
-			shader->WaitForDevice();
-			if (shader->GetResourceState() != RS_DEVICE_LOADED) return false;
-		}
-	}
 	size_t hash = ComputeBindingLayoutHash(binding);
 
 	auto it = m_LayoutMap.find(hash);

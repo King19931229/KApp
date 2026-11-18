@@ -388,16 +388,16 @@ KVulkanVertexBuffer::~KVulkanVertexBuffer()
 
 bool KVulkanVertexBuffer::InitDevice(bool hostVisible)
 {
-	VkBufferUsageFlags usageFlags = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+	VkBufferUsageFlags usageFlags = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
 
 	if (KVulkanGlobal::supportRaytrace)
 	{
-		usageFlags |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR;
+		usageFlags |= VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR;
 	}
 
 	if (KVulkanGlobal::supportNVMeshShader || KVulkanGlobal::supportKHRMeshShader)
 	{
-		usageFlags |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
+		usageFlags |= VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
 	}
 
 	return m_Buffer.InitDevice(usageFlags, m_Data.data(), m_BufferSize, hostVisible);
@@ -579,8 +579,29 @@ KVulkanStorageBuffer::~KVulkanStorageBuffer()
 {
 }
 
+bool KVulkanStorageBuffer::InitFromVertexBuffer(IKVertexBufferPtr pSource)
+{
+	if (!pSource || !pSource->GetBufferSize())
+	{
+		return false;
+	}
+	KVulkanBuffer& buffer = static_cast<KVulkanVertexBuffer*>(pSource.get())->m_Buffer;
+	if (buffer.GetVulkanHandle() == VK_NULL_HANDLE)
+	{
+		return false;
+	}
+
+	UnInit();
+	// 与源顶点缓冲共享所有权。
+	m_ReferencedBuffer = std::shared_ptr<KVulkanBuffer>(pSource, &buffer);
+	m_BufferSize = pSource->GetBufferSize();
+	m_bIndirect = false;
+	return true;
+}
+
 bool KVulkanStorageBuffer::InitDevice(bool indirect, bool hostVisible)
 {
+	m_ReferencedBuffer.reset();
 	KStorageBufferBase::InitDevice(indirect, hostVisible);
 
 	VkBufferUsageFlags usageFlags = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
@@ -588,11 +609,17 @@ bool KVulkanStorageBuffer::InitDevice(bool indirect, bool hostVisible)
 	{
 		usageFlags |= VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT;
 	}
-	return m_Buffer.InitDevice(usageFlags, m_Data.data(), m_BufferSize, hostVisible);
+	if (!m_Buffer.InitDevice(usageFlags, m_Data.data(), m_BufferSize, hostVisible)) return false;
+	m_Data.clear();
+	m_Data.shrink_to_fit();
+	return true;
 }
 
 bool KVulkanStorageBuffer::UnInit()
 {
+	m_ReferencedBuffer.reset();
+	KStorageBufferBase::UnInit();
+	m_Data.shrink_to_fit();
 	return m_Buffer.UnInit();
 }
 
@@ -606,34 +633,39 @@ bool KVulkanStorageBuffer::IsIndirect()
 	return m_bIndirect;
 }
 
+KVulkanBuffer& KVulkanStorageBuffer::GetVulkanBuffer()
+{
+	return m_ReferencedBuffer ? *m_ReferencedBuffer : m_Buffer;
+}
+
 bool KVulkanStorageBuffer::Map(void** ppData, MapAccess access)
 {
-	return m_Buffer.Map(ppData, access);
+	return GetVulkanBuffer().Map(ppData, access);
 }
 
 bool KVulkanStorageBuffer::UnMap()
 {
-	return m_Buffer.UnMap();
+	return GetVulkanBuffer().UnMap();
 }
 
 bool KVulkanStorageBuffer::Write(const void* pData)
 {
-	return m_Buffer.Write(pData);
+	return GetVulkanBuffer().Write(pData);
 }
 
 bool KVulkanStorageBuffer::Write(const void* pData, uint64_t offset, uint64_t size)
 {
-	return m_Buffer.Write(pData, offset, size);
+	return GetVulkanBuffer().Write(pData, offset, size);
 }
 
 bool KVulkanStorageBuffer::Read(void* pData)
 {
-	return m_Buffer.Read(pData);
+	return GetVulkanBuffer().Read(pData);
 }
 
 bool KVulkanStorageBuffer::Read(void* pData, uint64_t offset, uint64_t size)
 {
-	return m_Buffer.Read(pData, offset, size);
+	return GetVulkanBuffer().Read(pData, offset, size);
 }
 
 bool KVulkanStorageBuffer::CopyFrom(IKStorageBufferPtr pSource)
@@ -648,12 +680,12 @@ bool KVulkanStorageBuffer::CopyTo(IKStorageBufferPtr pDest)
 
 VkBuffer KVulkanStorageBuffer::GetVulkanHandle()
 {
-	return m_Buffer.GetVulkanHandle();
+	return GetVulkanBuffer().GetVulkanHandle();
 }
 
 uint32_t KVulkanStorageBuffer::GetUniqueID() const
 {
-	return m_Buffer.GetUniqueID();
+	return m_ReferencedBuffer ? m_ReferencedBuffer->GetUniqueID() : m_Buffer.GetUniqueID();
 }
 
 // KVulkanUniformBuffer

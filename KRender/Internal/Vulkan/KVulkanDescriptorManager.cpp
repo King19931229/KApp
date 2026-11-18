@@ -1,6 +1,7 @@
 #include "KVulkanDescriptorManager.h"
 #include <algorithm>
 #include <limits>
+#include <cstdio>
 
 KVulkanDescriptorManager::~KVulkanDescriptorManager()
 {
@@ -36,36 +37,72 @@ KVulkanDescriptorTicket* KVulkanDescriptorManager::Create(VkDescriptorSetLayout 
 	return &ticket;
 }
 
-KVulkanDescriptorPool& KVulkanDescriptorManager::GetPool(KVulkanDescriptorTicket* ticket, uint32_t threadIndex)
+KVulkanDescriptorTicket::ThreadResources& KVulkanDescriptorManager::GetThreadResources(KVulkanDescriptorTicket* ticket, uint32_t threadIndex)
 {
-	ASSERT_RESULT(ticket && !ticket->retired && threadIndex < ticket->pools.size());
-	KVulkanDescriptorPool& pool = ticket->pools[threadIndex];
-	if (!pool.IsInitialized())
+	ASSERT_RESULT(ticket && !ticket->retired && threadIndex < ticket->threads.size());
+	// 每个槽只由对应的录制线程访问，帧回收在录制任务结束后执行。
+	auto& resources = ticket->threads[threadIndex];
+	if (!resources)
 	{
+		std::lock_guard<decltype(m_Lock)> lockGuard(m_Lock);
+		resources.reset(KNEW KVulkanDescriptorTicket::ThreadResources());
+		KVulkanDescriptorPool& pool = resources->pool;
 		ASSERT_RESULT(pool.Init(ticket->layout, ticket->poolSizes, ticket->blockSize, ticket->trim));
+		pool.SetArenaProvider([this, ticket, threadIndex](VkCommandPool commandPool)
+		{
+			return GetArena(ticket, threadIndex, commandPool);
+		});
 		if (!ticket->name.empty())
 		{
 			pool.SetDebugName(ticket->name + "_Thread" + std::to_string(threadIndex));
 		}
+		ticket->activeThreads.push_back(threadIndex);
 	}
-	return pool;
+	return *resources;
 }
 
-KVulkanDescriptorPoolAllocatedSetPtr KVulkanDescriptorManager::Alloc(KVulkanDescriptorTicket* ticket, uint32_t threadIndex, bool& newSet)
+std::shared_ptr<KVulkanDescriptorArena> KVulkanDescriptorManager::GetArena(KVulkanDescriptorTicket* ticket, uint32_t threadIndex, VkCommandPool commandPool)
 {
-	return GetPool(ticket, threadIndex).Alloc(newSet);
+	std::lock_guard<decltype(m_Lock)> lockGuard(m_Lock);
+	auto& owner = m_CommandPools.emplace(commandPool, CommandPoolResources{ threadIndex }).first->second;
+	if (owner.threadIndex != threadIndex)
+	{
+		std::fprintf(stderr, "Vulkan descriptor ownership mismatch: pool=%llu thread=%u expected=%u\n",
+			(unsigned long long)commandPool, threadIndex, owner.threadIndex);
+		assert(false && "command pool used by a different recording thread");
+		return nullptr;
+	}
+	auto range = owner.arenas.equal_range(ticket->layout);
+	for (auto it = range.first; it != range.second;)
+	{
+		auto arena = it->second.lock();
+		if (!arena)
+		{
+			it = owner.arenas.erase(it);
+			continue;
+		}
+		if (arena->Matches(ticket->poolSizes)) return arena;
+		++it;
+	}
+	auto arena = std::make_shared<KVulkanDescriptorArena>(ticket->poolSizes);
+	owner.arenas.emplace(ticket->layout, arena);
+	return arena;
+}
+
+KVulkanDescriptorPoolAllocatedSetPtr KVulkanDescriptorManager::Alloc(KVulkanDescriptorTicket* ticket, uint32_t threadIndex, bool& newSet, VkCommandPool commandPool)
+{
+	return GetThreadResources(ticket, threadIndex).pool.Alloc(newSet, commandPool);
 }
 
 KVulkanDescriptorPoolAllocatedSetPtr KVulkanDescriptorManager::Request(KVulkanDescriptorTicket* ticket, bool& newSet)
 {
-	ASSERT_RESULT(ticket && ticket->pools.size() == 1 && ticket->blockSize == 1);
-	return GetPool(ticket, 0).Request(newSet);
+	ASSERT_RESULT(ticket && ticket->threads.size() == 1 && ticket->blockSize == 1);
+	return GetThreadResources(ticket, 0).pool.Request(newSet);
 }
 
 KVulkanGraphicsDescriptorWriter& KVulkanDescriptorManager::GetGraphicsWriter(KVulkanDescriptorTicket* ticket, uint32_t threadIndex)
 {
-	ASSERT_RESULT(ticket && !ticket->retired && threadIndex < ticket->writers.size());
-	std::unique_ptr<KVulkanGraphicsDescriptorWriter>& writer = ticket->writers[threadIndex];
+	auto& writer = GetThreadResources(ticket, threadIndex).writer;
 	if (!writer)
 	{
 		writer.reset(KNEW KVulkanGraphicsDescriptorWriter());
@@ -76,9 +113,13 @@ KVulkanGraphicsDescriptorWriter& KVulkanDescriptorManager::GetGraphicsWriter(KVu
 
 std::vector<VkDescriptorSet> KVulkanDescriptorManager::GetDescriptorSets(const KVulkanDescriptorTicket* ticket) const
 {
+	std::lock_guard<decltype(m_Lock)> lockGuard(m_Lock);
 	ASSERT_RESULT(ticket && !ticket->retired);
 	std::vector<VkDescriptorSet> sets;
-	for (const KVulkanDescriptorPool& pool : ticket->pools) pool.AppendDescriptorSets(sets);
+	for (uint32_t threadIndex : ticket->activeThreads)
+	{
+		ticket->threads[threadIndex]->pool.AppendDescriptorSets(sets);
+	}
 	return sets;
 }
 
@@ -93,10 +134,16 @@ void KVulkanDescriptorManager::DestroyUnusedTickets()
 			continue;
 		}
 		bool occupied = false;
-		for (const KVulkanDescriptorPool& pool : ticket.pools) occupied |= pool.IsOccupied();
+		for (uint32_t threadIndex : ticket.activeThreads)
+		{
+			occupied |= ticket.threads[threadIndex]->pool.IsOccupied();
+		}
 		if (!occupied)
 		{
-			for (KVulkanDescriptorPool& pool : ticket.pools) pool.UnInit();
+			for (uint32_t threadIndex : ticket.activeThreads)
+			{
+				ticket.threads[threadIndex]->pool.UnInit();
+			}
 			it = m_Tickets.erase(it);
 		}
 		else ++it;
@@ -106,8 +153,8 @@ void KVulkanDescriptorManager::DestroyUnusedTickets()
 void KVulkanDescriptorManager::Destroy(KVulkanDescriptorTicket* ticket)
 {
 	std::lock_guard<decltype(m_Lock)> lockGuard(m_Lock);
+	ASSERT_RESULT(ticket && !ticket->retired);
 	ticket->retired = true;
-	DestroyUnusedTickets();
 }
 
 void KVulkanDescriptorManager::Release(uint32_t frameNum)
@@ -115,9 +162,28 @@ void KVulkanDescriptorManager::Release(uint32_t frameNum)
 	std::lock_guard<decltype(m_Lock)> lockGuard(m_Lock);
 	for (KVulkanDescriptorTicket& ticket : m_Tickets)
 	{
-		for (KVulkanDescriptorPool& pool : ticket.pools) pool.Release(frameNum);
+		for (uint32_t threadIndex : ticket.activeThreads)
+		{
+			ticket.threads[threadIndex]->pool.Release(frameNum);
+		}
 	}
 	DestroyUnusedTickets();
+}
+
+void KVulkanDescriptorManager::ReleaseCommandPool(VkCommandPool commandPool)
+{
+	std::lock_guard<decltype(m_Lock)> lockGuard(m_Lock);
+	auto owner = m_CommandPools.find(commandPool);
+	if (owner == m_CommandPools.end()) return;
+	const uint32_t threadIndex = owner->second.threadIndex;
+	for (KVulkanDescriptorTicket& ticket : m_Tickets)
+	{
+		if (threadIndex < ticket.threads.size() && ticket.threads[threadIndex])
+		{
+			ticket.threads[threadIndex]->pool.ReleaseCommandPool(commandPool);
+		}
+	}
+	m_CommandPools.erase(owner);
 }
 
 void KVulkanDescriptorManager::SetDebugName(KVulkanDescriptorTicket* ticket, const char* name)
@@ -131,7 +197,11 @@ void KVulkanDescriptorManager::UnInit()
 	std::lock_guard<decltype(m_Lock)> lockGuard(m_Lock);
 	for (KVulkanDescriptorTicket& ticket : m_Tickets)
 	{
-		for (KVulkanDescriptorPool& pool : ticket.pools) pool.UnInit();
+		for (uint32_t threadIndex : ticket.activeThreads)
+		{
+			ticket.threads[threadIndex]->pool.UnInit();
+		}
 	}
 	m_Tickets.clear();
+	m_CommandPools.clear();
 }

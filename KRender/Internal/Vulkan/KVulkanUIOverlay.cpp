@@ -114,7 +114,8 @@ bool KVulkanUIOverlay::Draw(IKRenderPassPtr renderPass, KRHICommandList& command
 					int maxX = std::min(framebufferWidth, (int)((pcmd->ClipRect.z - snapshot->displayPos.x) * snapshot->framebufferScale.x));
 					int maxY = std::min(framebufferHeight, (int)((pcmd->ClipRect.w - snapshot->displayPos.y) * snapshot->framebufferScale.y));
 					if (maxX <= minX || maxY <= minY) continue;
-					VkDescriptorSet descriptorSet = vulkanPipeline->AllocDescriptorSet(0, nullptr, 0, nullptr, 0);
+					VkDescriptorSet descriptorSet = vulkanPipeline->AllocDescriptorSet(0, vulkanCommandBuffer->GetVkPool(), nullptr, 0, nullptr, 0);
+					if (descriptorSet == VK_NULL_HANDLE) continue;
 					VkDescriptorImageInfo imageInfo = {};
 					imageInfo.sampler = static_cast<KVulkanSampler*>(texture->second.sampler.get())->GetVkSampler();
 					imageInfo.imageView = static_cast<KVulkanFrameBuffer*>(texture->second.image.get())->GetImageView();

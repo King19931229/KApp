@@ -5,8 +5,6 @@
 #include "Internal/KRenderGlobal.h"
 #include "Internal/Render/KRenderUtil.h"
 
-#define COMPUTE_HASH_CONSTRUCT_MEGA_BUFFER 0
-
 KGPUScene::KGPUScene()
 	: m_Scene(nullptr)
 	, m_Camera(nullptr)
@@ -90,7 +88,7 @@ uint32_t KGPUScene::CreateOrGetMaterialIndex(IKMaterialPtr material, bool create
 	}
 	else if (create)
 	{
-		m_DataDirtyBits |= TEXTURE_ARRAY_DIRTY;
+		m_DataDirtyBits |= TEXTURE_BINDINGS_DIRTY;
 		MaterialItem newItem;
 		newItem.refCount = 1;
 		newItem.material = material;
@@ -215,7 +213,7 @@ uint32_t KGPUScene::CreateOrGetMegaShaderIndex(KSubMeshPtr subMesh, IKMaterialPt
 
 				pipeline->SetStorageBuffer(SHADER_BINDING_MATERIAL_PARAMETER, ST_FRAGMENT, newItem.parametersBuffers[frameIndex]);
 				pipeline->SetStorageBuffer(SHADER_BINDING_MATERIAL_INDEX, ST_FRAGMENT, newItem.materialIndicesBuffer);
-				pipeline->SetStorageBuffer(SHADER_BINDING_MATERIAL_TEXTURE_BINDING, ST_FRAGMENT, m_TextureArray.materialTextureBindingBuffer);
+				pipeline->SetStorageBuffer(SHADER_BINDING_MATERIAL_TEXTURE_BINDING, ST_FRAGMENT, m_MaterialTextureBindingBuffer);
 				pipeline->SetStorageBuffer(SHADER_BINDING_MEGA_SHADER_STATE, ST_FRAGMENT, m_MegaShaderStateBuffers[frameIndex]);
 
 				IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_CAMERA);
@@ -238,11 +236,6 @@ uint32_t KGPUScene::CreateOrGetMegaShaderIndex(KSubMeshPtr subMesh, IKMaterialPt
 
 				IKUniformBufferPtr virtualTextureBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_VIRTUAL_TEXTURE_CONSTANT);
 				pipeline->SetConstantBuffer(CBT_VIRTUAL_TEXTURE_CONSTANT, ST_FRAGMENT, virtualTextureBuffer);
-
-				for (uint32_t i = 0; i < MAX_TEXTURE_ARRAY_NUM; ++i)
-				{
-					pipeline->SetSampler(SHADER_BINDING_TEXTURE0 + i, m_TextureArray.textureArrays[i]->GetFrameBuffer(), m_TextureArray.samplers[i].Get(), true);
-				}
 
 				ASSERT_RESULT(pipeline->Init());
 
@@ -320,7 +313,7 @@ void KGPUScene::RemoveMaterial(IKMaterialPtr material)
 	}
 	if (removeIndex != -1)
 	{
-		m_DataDirtyBits |= TEXTURE_ARRAY_DIRTY;
+		m_DataDirtyBits |= TEXTURE_BINDINGS_DIRTY;
 		for (auto& pair : m_MaterialToIndex)
 		{
 			if (pair.second > removeIndex)
@@ -473,321 +466,150 @@ void KGPUScene::RebuildEntityDataIndex()
 
 void KGPUScene::RebuildMegaBuffer()
 {
-	std::unordered_map<uint64_t, uint32_t> vertexBufferOffset[VF_SCENE_COUNT];
-	std::unordered_set<uint64_t> vertexBufferWrite[VF_SCENE_COUNT];
-	uint32_t vertexBufferTotalSize[VF_SCENE_COUNT] = { 0 };
-	uint32_t vertexBufferWriteSize[VF_SCENE_COUNT] = { 0 };
-	uint32_t vertexBufferVertexCount[VF_SCENE_COUNT] = { 0 };
+	std::unordered_map<IKVertexBufferPtr, uint32_t> vertexBufferOffsets[VF_SCENE_COUNT];
+	std::unordered_map<IKIndexBufferPtr, uint32_t> indexBufferOffsets;
+	std::unordered_map<uint32_t, uint32_t> generatedIndexOffsets;
+	uint64_t vertexBufferSizes[VF_SCENE_COUNT] = { 0 };
+	uint64_t indexBufferSize = 0;
 
-	std::unordered_map<uint64_t, uint32_t> indexBufferOffset;
-	std::unordered_set<uint64_t> indexBufferWrite;
-	uint32_t indexBufferTotalSize = 0;
-	uint32_t indexBufferWriteSize = 0;
-	uint32_t indexBufferCount = 0;
-
+	// 每个源缓冲只复制一次，子网格保留各自的范围。
 	for (SubMeshItem& item : m_SubMeshes)
 	{
 		const KVertexData* vertexData = item.subMesh->GetVertexData();
-		uint32_t vertexCount = vertexData->vertexCount;
-
-		for (size_t index = 0; index < vertexData->vertexFormats.size(); ++index)
-		{
-			VertexFormat vertexFormat = vertexData->vertexFormats[index];
-			IKVertexBufferPtr vertexBuffer = vertexData->vertexBuffers[index];
-
-			const KVertexDefinition::VertexDetail& detail = KVertexDefinition::GetVertexDetail(vertexFormat);
-
-			uint64_t hash = 0;
-#if COMPUTE_HASH_CONSTRUCT_MEGA_BUFFER
-			void* pData = nullptr;
-			vertexBuffer->Map(&pData, MA_READ_ONLY);
-			pData = POINTER_OFFSET(pData, vertexData->vertexStart * detail.vertexSize);
-			hash = KHash::BKDR((const char*)pData, vertexData->vertexCount * detail.vertexSize);
-			vertexBuffer->UnMap();
-#else
-			hash = (uint64_t)vertexBuffer.get();
-#endif
-
-			auto it = vertexBufferOffset[vertexFormat].find(hash);
-			if (it == vertexBufferOffset[vertexFormat].end())
-			{
-				vertexBufferOffset[vertexFormat].insert({ hash, vertexBufferTotalSize[vertexFormat] });
-				vertexBufferTotalSize[vertexFormat] += (uint32_t)(vertexData->vertexCount * detail.vertexSize);
-				vertexBufferVertexCount[vertexFormat] += vertexCount;
-			}
-		}
-
-		uint32_t indexCount = 0;
+		item.vertexCount = vertexData->vertexCount;
 		KIndexData indexData;
 		bool indexDraw = false;
 		item.subMesh->GetIndexData(indexData, indexDraw);
+		for (size_t index = 0; index < vertexData->vertexFormats.size(); ++index)
 		{
-			uint64_t hash = 0;
-
-			if (indexDraw)
+			VertexFormat format = vertexData->vertexFormats[index];
+			IKVertexBufferPtr buffer = vertexData->vertexBuffers[index];
+			const KVertexDefinition::VertexDetail& detail = KVertexDefinition::GetVertexDetail(format);
+			auto inserted = vertexBufferOffsets[format].emplace(buffer, (uint32_t)vertexBufferSizes[format]);
+			if (inserted.second)
 			{
-#if COMPUTE_HASH_CONSTRUCT_MEGA_BUFFER
-				void* pData = nullptr;
-				indexData.indexBuffer->Map(&pData, MA_READ_ONLY);
-				pData = POINTER_OFFSET(pData, indexData.indexStart * ((indexData.indexBuffer->GetIndexType() == IT_16) ? sizeof(uint16_t) : sizeof(uint32_t)));
-				hash = KHash::BKDR((const char*)pData, indexData.indexCount * ((indexData.indexBuffer->GetIndexType() == IT_16) ? sizeof(uint16_t) : sizeof(uint32_t)));
-				indexData.indexBuffer->UnMap();
-#else
-				hash = (uint64_t)indexData.indexBuffer.get();
-#endif
-				indexCount = indexData.indexCount;
+				vertexBufferSizes[format] += buffer->GetBufferSize();
 			}
-			else
-			{
-				std::vector<uint32_t> indices;
-				indices.reserve(vertexData->vertexCount);
-				for (uint32_t i = 0; i < vertexData->vertexCount; ++i)
-				{
-					indices.push_back(i + vertexData->vertexStart);
-				}
-				hash = KHash::BKDR((const char*)indices.data(), vertexData->vertexCount * sizeof(uint32_t));
-
-				indexCount = vertexData->vertexCount;
-			}
-
-			auto it = indexBufferOffset.find(hash);
-			if (it == indexBufferOffset.end())
-			{
-				indexBufferOffset.insert({ hash, indexBufferTotalSize });
-				indexBufferTotalSize += indexCount * sizeof(uint32_t);
-				indexBufferCount += indexCount;
-			}
+			ASSERT_RESULT(KInteger::FitsUInt32(vertexBufferSizes[format]));
+			// 索引绘制沿用普通绘制的绝对顶点索引。
+			uint64_t start = indexDraw ? 0 : uint64_t(vertexData->vertexStart) * detail.vertexSize;
+			uint64_t size = uint64_t(vertexData->vertexCount) * detail.vertexSize;
+			ASSERT_RESULT(start + size <= buffer->GetBufferSize());
+			item.vertexBufferOffset[format] = inserted.first->second + (uint32_t)start;
 		}
 
-		// Assign vertexCount and indexCount
-		item.vertexCount = vertexCount;
-		item.indexCount = indexCount;
-	}
-
-	for (uint32_t vertexFormat = 0; vertexFormat < VF_SCENE_COUNT; ++vertexFormat)
-	{
-		if (vertexBufferTotalSize[vertexFormat] > 0 && m_MegaBuffer.vertexBuffers[vertexFormat]->GetBufferSize() != vertexBufferTotalSize[vertexFormat])
+		if (indexDraw)
 		{
-			const KVertexDefinition::VertexDetail& detail = KVertexDefinition::GetVertexDetail((VertexFormat)vertexFormat);
-			m_MegaBuffer.vertexBuffers[vertexFormat]->UnInit();
-			m_MegaBuffer.vertexBuffers[vertexFormat]->InitMemory(vertexBufferTotalSize[vertexFormat], nullptr);
-			m_MegaBuffer.vertexBuffers[vertexFormat]->InitDevice(false, false);
-			m_MegaBuffer.vertexBuffers[vertexFormat]->SetDebugName((std::string("GPUSceneVertexData_") + detail.name).c_str());
+			IKIndexBufferPtr buffer = indexData.indexBuffer;
+			auto inserted = indexBufferOffsets.emplace(buffer, (uint32_t)indexBufferSize);
+			if (inserted.second)
+			{
+				indexBufferSize += uint64_t(buffer->GetIndexCount()) * sizeof(uint32_t);
+			}
+			ASSERT_RESULT(uint64_t(indexData.indexStart) + indexData.indexCount <= buffer->GetIndexCount());
+			item.indexBufferOffset = inserted.first->second + indexData.indexStart * sizeof(uint32_t);
+			item.indexCount = indexData.indexCount;
 		}
-	}
-
-	if (m_MegaBuffer.indexBuffer->GetBufferSize() != indexBufferTotalSize)
-	{
-		m_MegaBuffer.indexBuffer->UnInit();
-		if (indexBufferCount > 0)
+		else
 		{
-			m_MegaBuffer.indexBuffer->InitMemory(indexBufferTotalSize, nullptr);
-			m_MegaBuffer.indexBuffer->InitDevice(false, false);
-			m_MegaBuffer.indexBuffer->SetDebugName("GPUSceneIndexData");
+			// 顶点偏移已包含 vertexStart，索引从零开始生成。
+			auto inserted = generatedIndexOffsets.emplace(item.vertexCount, (uint32_t)indexBufferSize);
+			if (inserted.second)
+			{
+				indexBufferSize += uint64_t(item.vertexCount) * sizeof(uint32_t);
+			}
+			item.indexBufferOffset = inserted.first->second;
+			item.indexCount = item.vertexCount;
 		}
-		assert(m_MegaBuffer.indexBuffer->GetBufferSize() == indexBufferTotalSize);
+		ASSERT_RESULT(KInteger::FitsUInt32(indexBufferSize));
 	}
 
-	for (uint32_t vertexFormat = 0; vertexFormat < VF_SCENE_COUNT; ++vertexFormat)
+	for (uint32_t format = 0; format < VF_SCENE_COUNT; ++format)
 	{
-		if (vertexBufferTotalSize[vertexFormat] == 0)
+		const IKStorageBufferPtr& dstBuffer = m_MegaBuffer.vertexBuffers[format];
+		if (!vertexBufferSizes[format])
+		{
+			if (dstBuffer->GetBufferSize() != sizeof(uint32_t))
+			{
+				dstBuffer->UnInit();
+				dstBuffer->InitMemory(sizeof(uint32_t), nullptr);
+				dstBuffer->InitDevice(false, false);
+			}
+			continue;
+		}
+		const auto& offsets = vertexBufferOffsets[format];
+		if (offsets.size() == 1 && dstBuffer->InitFromVertexBuffer(offsets.begin()->first))
 		{
 			continue;
 		}
 
-		IKStorageBufferPtr destVertexBuffer = m_MegaBuffer.vertexBuffers[vertexFormat];
+		dstBuffer->UnInit();
+		dstBuffer->InitMemory(vertexBufferSizes[format], nullptr);
+		dstBuffer->InitDevice(false, false);
+		const KVertexDefinition::VertexDetail& detail = KVertexDefinition::GetVertexDetail((VertexFormat)format);
+		dstBuffer->SetDebugName((std::string("GPUSceneVertexData_") + detail.name).c_str());
 
-		void* pMegaVertexData = nullptr;
-		destVertexBuffer->Map(&pMegaVertexData, MA_WRITE_DISCARD);
-
-		const KVertexDefinition::VertexDetail& detail = KVertexDefinition::GetVertexDetail((VertexFormat)vertexFormat);
-
-		for (SubMeshItem& item : m_SubMeshes)
+		void* pDstData = nullptr;
+		ASSERT_RESULT(dstBuffer->Map(&pDstData, MA_WRITE_DISCARD));
+		for (const auto& source : offsets)
 		{
-			const KVertexData* vertexData = item.subMesh->GetVertexData();
-			uint32_t vertexStart = vertexData->vertexStart;
-			uint32_t vertexCount = vertexData->vertexCount;
-
-			for (size_t index = 0; index < vertexData->vertexFormats.size(); ++index)
-			{
-				if (vertexData->vertexFormats[index] != vertexFormat)
-				{
-					continue;
-				}
-
-				IKVertexBufferPtr srcVertexBuffer = vertexData->vertexBuffers[index];
-
-				uint64_t hash = 0;
-
-				uint32_t srcVertexOffset = (uint32_t)(vertexStart * detail.vertexSize);
-				uint32_t srcVertexSize = (uint32_t)(vertexCount * detail.vertexSize);
-
-				uint32_t destWriteOffset = 0;
-
-				void* pSrcVertexData = nullptr;
-				srcVertexBuffer->Map(&pSrcVertexData, MA_READ_ONLY);
-#if COMPUTE_HASH_CONSTRUCT_MEGA_BUFFER
-				pSrcVertexData = POINTER_OFFSET(pSrcVertexData, srcVertexOffset);
-				hash = KHash::BKDR((const char*)pSrcVertexData, srcVertexSize);
-#else
-				hash = (uint64_t)srcVertexBuffer.get();
-#endif
-				// Find the location to write
-				auto it = vertexBufferOffset[vertexFormat].find(hash);
-				assert(it != vertexBufferOffset[vertexFormat].end());
-				if (it != vertexBufferOffset[vertexFormat].end())
-				{
-					destWriteOffset = it->second;
-				}
-
-				// Copy only when necessary
-				if (vertexBufferWrite[vertexFormat].find(hash) == vertexBufferWrite[vertexFormat].end())
-				{
-					void* pDestVertexData = nullptr;
-					pDestVertexData = POINTER_OFFSET(pMegaVertexData, destWriteOffset);
-					memcpy(pDestVertexData, pSrcVertexData, srcVertexSize);
-					vertexBufferWrite[vertexFormat].insert(hash);
-					vertexBufferWriteSize[vertexFormat] += srcVertexSize;
-				}
-
-				srcVertexBuffer->UnMap();
-				
-				// Assign vertexBufferOffset and vertexBufferSize
-				item.vertexBufferOffset[vertexFormat] = destWriteOffset;
-				item.vertexBufferSize[vertexFormat] = srcVertexSize;
-
-				break;
-			}
+			const IKVertexBufferPtr& srcBuffer = source.first;
+			void* pSrcData = nullptr;
+			ASSERT_RESULT(srcBuffer->Map(&pSrcData, MA_READ_ONLY));
+			memcpy(POINTER_OFFSET(pDstData, source.second), pSrcData, (size_t)srcBuffer->GetBufferSize());
+			srcBuffer->UnMap();
 		}
-
-		destVertexBuffer->UnMap();
-		assert(vertexBufferTotalSize[vertexFormat] == vertexBufferWriteSize[vertexFormat]);
+		dstBuffer->UnMap();
 	}
 
+	const IKStorageBufferPtr& dstBuffer = m_MegaBuffer.indexBuffer;
+	if (dstBuffer->GetBufferSize() != indexBufferSize)
 	{
-		void* pMegaIndexData = nullptr;
-		m_MegaBuffer.indexBuffer->Map(&pMegaIndexData, MA_WRITE_DISCARD);
-
-		for (SubMeshItem& item : m_SubMeshes)
+		dstBuffer->UnInit();
+		if (indexBufferSize)
 		{
-			item.indexBufferOffset = indexBufferWriteSize;
+			dstBuffer->InitMemory(indexBufferSize, nullptr);
+			dstBuffer->InitDevice(false, false);
+			dstBuffer->SetDebugName("GPUSceneIndexData");
+		}
+	}
+	if (!indexBufferSize)
+	{
+		return;
+	}
 
-			KIndexData indexData;
-			bool indexDraw;
-			item.subMesh->GetIndexData(indexData, indexDraw);
-			if (indexDraw)
+	void* pDstData = nullptr;
+	ASSERT_RESULT(dstBuffer->Map(&pDstData, MA_WRITE_DISCARD));
+	for (const auto& source : indexBufferOffsets)
+	{
+		const IKIndexBufferPtr& srcBuffer = source.first;
+		void* pSrcData = nullptr;
+		ASSERT_RESULT(srcBuffer->Map(&pSrcData, MA_READ_ONLY));
+		uint32_t* pDstIndices = static_cast<uint32_t*>(POINTER_OFFSET(pDstData, source.second));
+		const uint32_t count = srcBuffer->GetIndexCount();
+		if (srcBuffer->GetIndexType() == IT_16)
+		{
+			const uint16_t* pSrcIndices = static_cast<const uint16_t*>(pSrcData);
+			for (uint32_t i = 0; i < count; ++i)
 			{
-				uint32_t indexStart = indexData.indexStart;
-				uint32_t indexCount = indexData.indexCount;
-
-				void* pSrcIndexData = nullptr;
-				indexData.indexBuffer->Map(&pSrcIndexData, MA_READ_ONLY);
-
-				if (indexData.indexBuffer->GetIndexType() == IT_16)
-				{
-					pSrcIndexData = POINTER_OFFSET(pSrcIndexData, indexStart * sizeof(uint16_t));
-				}
-				else
-				{
-					pSrcIndexData = POINTER_OFFSET(pSrcIndexData, indexStart * sizeof(uint32_t));
-				}
-
-				uint64_t hash = 0;
-#if COMPUTE_HASH_CONSTRUCT_MEGA_BUFFER
-				if (indexData.indexBuffer->GetIndexType() == IT_16)
-				{
-					hash = KHash::BKDR((const char*)pSrcIndexData, indexCount * sizeof(uint16_t));
-				}
-				else
-				{
-					hash = KHash::BKDR((const char*)pSrcIndexData, indexCount * sizeof(uint32_t));
-				}
-#else
-				hash = (uint64_t)indexData.indexBuffer.get();
-#endif
-
-				uint32_t destWriteOffset = 0;
-
-				// Find the location to write
-				auto it = indexBufferOffset.find(hash);
-				assert(it != indexBufferOffset.end());
-				if (it != indexBufferOffset.end())
-				{
-					destWriteOffset = it->second;
-				}
-
-				// Copy only when necessary
-				if (indexBufferWrite.find(hash) == indexBufferWrite.end())
-				{
-					void* pDestIndexData = pMegaIndexData;
-					pDestIndexData = POINTER_OFFSET(pDestIndexData, destWriteOffset);
-
-					for (uint32_t i = 0; i < indexCount; ++i)
-					{
-						if (indexData.indexBuffer->GetIndexType() == IT_16)
-						{
-							*(uint32_t*)pDestIndexData = *(uint16_t*)pSrcIndexData;
-							pSrcIndexData = POINTER_OFFSET(pSrcIndexData, sizeof(uint16_t));
-						}
-						else
-						{
-							*(uint32_t*)pDestIndexData = *(uint32_t*)pSrcIndexData;
-							pSrcIndexData = POINTER_OFFSET(pSrcIndexData, sizeof(uint32_t));
-						}
-						pDestIndexData = POINTER_OFFSET(pDestIndexData, sizeof(uint32_t));
-						indexBufferWriteSize += sizeof(uint32_t);
-					}
-					indexBufferWrite.insert(hash);
-				}
-				indexData.indexBuffer->UnMap();
-
-				item.indexBufferSize = indexCount * sizeof(uint32_t);
-			}
-			else
-			{
-				const KVertexData* vertexData = item.subMesh->GetVertexData();
-				uint32_t vertexStart = vertexData->vertexStart;
-				uint32_t vertexCount = vertexData->vertexCount;
-	
-				std::vector<uint32_t> indices;
-				indices.reserve(vertexData->vertexCount);
-				for (uint32_t i = 0; i < vertexData->vertexCount; ++i)
-				{
-					indices.push_back(i + vertexData->vertexStart);
-				}
-				uint32_t hash = KHash::BKDR((const char*)indices.data(), vertexData->vertexCount * sizeof(uint32_t));
-
-				uint32_t destWriteOffset = 0;
-				// Find the location to write
-				auto it = indexBufferOffset.find(hash);
-				assert(it != indexBufferOffset.end());
-				if (it != indexBufferOffset.end())
-				{
-					destWriteOffset = it->second;
-				}
-
-				void* pDestIndexData = pMegaIndexData;
-				pDestIndexData = POINTER_OFFSET(pDestIndexData, destWriteOffset);
-
-				// Copy only when necessary
-				if (indexBufferWrite.find(hash) == indexBufferWrite.end())
-				{
-					for (uint32_t i = 0; i < vertexCount; ++i)
-					{
-						*(uint32_t*)pDestIndexData = vertexStart + i;
-						pDestIndexData = POINTER_OFFSET(pDestIndexData, sizeof(uint32_t));
-						indexBufferWriteSize += sizeof(uint32_t);
-					}
-					indexBufferWrite.insert(hash);
-				}
-
-				item.indexBufferSize = vertexCount * sizeof(uint32_t);
+				pDstIndices[i] = pSrcIndices[i];
 			}
 		}
-
-		m_MegaBuffer.indexBuffer->UnMap();
-		assert(indexBufferTotalSize == indexBufferWriteSize);
+		else
+		{
+			memcpy(pDstIndices, pSrcData, size_t(count) * sizeof(uint32_t));
+		}
+		srcBuffer->UnMap();
 	}
+	for (const auto& generated : generatedIndexOffsets)
+	{
+		uint32_t* pDstIndices = static_cast<uint32_t*>(POINTER_OFFSET(pDstData, generated.second));
+		for (uint32_t i = 0; i < generated.first; ++i)
+		{
+			pDstIndices[i] = i;
+		}
+	}
+	dstBuffer->UnMap();
 }
 
 void KGPUScene::RebuildMeshStateBuffer()
@@ -832,85 +654,75 @@ void KGPUScene::RebuildMegaShaderState()
 	}
 }
 
-void KGPUScene::RebuildTextureArray()
+void KGPUScene::RebuildTextureBindings()
 {
-	struct TextureArrayCreation
-	{
-		std::vector<IKTexturePtr> textures;
-		std::unordered_map<IKTexturePtr, uint32_t> textureLocation;
-	} creationInfos[MAX_TEXTURE_ARRAY_NUM];
-
-	m_MaterialTextureBindings.resize(m_Materials.size());
-
-	auto FindBestFitArrayIndex = [this](uint32_t width, uint32_t height)
-	{
-		uint32_t dimension = std::max(width, height);
-		uint32_t smallestDimension = m_TextureArray.dimension[0];
-		dimension = (dimension < smallestDimension) ? smallestDimension : dimension;
-		uint32_t arrayIndex = (uint32_t)roundf(std::log2((float)dimension / (float)smallestDimension));
-		arrayIndex = std::min(arrayIndex, (uint32_t)(MAX_TEXTURE_ARRAY_NUM - 1));
-		return arrayIndex;
-	};
+	std::map<std::pair<IKTexturePtr, IKSamplerPtr>, uint32_t> textureLocations;
+	std::vector<IKFrameBufferPtr> images;
+	std::vector<IKSamplerPtr> samplers;
+	std::vector<KGPUSceneMaterialTextureBinding> materialBindings(m_Materials.size());
 
 	for (size_t materialIndex = 0; materialIndex < m_Materials.size(); ++materialIndex)
 	{
-		MaterialItem& materialItem = m_Materials[materialIndex];
-		KGPUSceneMaterialTextureBinding& materialTextureBinding = m_MaterialTextureBindings[materialIndex];
+		const MaterialItem& materialItem = m_Materials[materialIndex];
+		KGPUSceneMaterialTextureBinding& materialTextureBinding = materialBindings[materialIndex];
 
 		IKMaterialPtr material = materialItem.material;
 		IKMaterialTextureBindingPtr textureBinding = material->GetTextureBinding();
-		uint32_t slots = textureBinding->GetNumSlot();
-		assert(slots <= MAX_MATERIAL_TEXTURE_BINDING);
-		for (uint32_t slotIndex = 0; slotIndex < slots; ++slotIndex)
+		for (uint32_t slotIndex = 0; slotIndex < MAX_MATERIAL_TEXTURE_BINDING; ++slotIndex)
 		{
+			materialTextureBinding.binding[slotIndex] = UINT32_MAX;
 			IKTexturePtr texture = textureBinding->GetTexture(slotIndex);
 			if (texture)
 			{
-				uint32_t arrayIndex = FindBestFitArrayIndex((uint32_t)texture->GetWidth(), (uint32_t)texture->GetHeight());
-				TextureArrayCreation& creationInfo = creationInfos[arrayIndex];
-				uint32_t location = -1;
-				auto it = creationInfo.textureLocation.find(texture);
-				if (it == creationInfo.textureLocation.end())
+				IKSamplerPtr sampler = textureBinding->GetSampler(slotIndex);
+				auto inserted = textureLocations.emplace(std::make_pair(texture, sampler), (uint32_t)images.size());
+				if (inserted.second)
 				{
-					location = (uint32_t)creationInfo.textures.size();
-					creationInfo.textures.push_back(texture);
+					texture->WaitForDevice();
+					images.push_back(texture->GetFrameBuffer());
+					samplers.push_back(sampler);
 				}
-				else
-				{
-					location = it->second;
-				}
-				creationInfo.textureLocation.insert({ texture, location });
-
-				materialTextureBinding.binding[slotIndex] = arrayIndex;
-				materialTextureBinding.slice[slotIndex] = location;
-			}
-			else
-			{
-				materialTextureBinding.binding[slotIndex] = -1;
-				materialTextureBinding.slice[slotIndex] = -1;
+				materialTextureBinding.binding[slotIndex] = inserted.first->second;
 			}
 		}
 	}
 
-	m_TextureArray.materialTextureBindingBuffer->UnInit();
-	m_TextureArray.materialTextureBindingBuffer->InitMemory(uint64_t(sizeof(KGPUSceneMaterialTextureBinding)) * m_MaterialTextureBindings.size(), m_MaterialTextureBindings.data());
-	m_TextureArray.materialTextureBindingBuffer->InitDevice(false, false);
-
-	for (uint32_t arrayIndex = 0; arrayIndex < MAX_TEXTURE_ARRAY_NUM; ++arrayIndex)
+	if (images.empty())
 	{
-		const TextureArrayCreation& creationInfo = creationInfos[arrayIndex];
-		if (m_TextureArray.textureArrays[arrayIndex]->GetSlice() < (uint32_t)creationInfo.textures.size())
+		KTextureRef texture;
+		KSamplerRef sampler;
+		KRenderGlobal::TextureManager.GetErrorTexture(texture);
+		KRenderGlobal::SamplerManager.GetErrorSampler(sampler);
+		images.push_back(texture->GetFrameBuffer());
+		samplers.push_back(sampler.Get());
+	}
+
+	const uint64_t bindingBufferSize = sizeof(KGPUSceneMaterialTextureBinding) * std::max<size_t>(1, materialBindings.size());
+	m_MaterialTextureBindingBuffer->UnInit();
+	m_MaterialTextureBindingBuffer->InitMemory(bindingBufferSize, materialBindings.empty() ? nullptr : materialBindings.data());
+	m_MaterialTextureBindingBuffer->InitDevice(false, false);
+
+	for (MegaShaderItem& shader : m_MegaShaders)
+	{
+		shader.fsShader->WaitForDevice();
+		const auto& textures = shader.fsShader->GetInformation().textures;
+		const bool hasTextureTable = std::any_of(textures.begin(), textures.end(), [](const KShaderInformation::Texture& texture)
 		{
-			m_TextureArray.textureArrays[arrayIndex]->UnInit();
-			if (creationInfo.textures.size() > 0)
-			{
-				m_TextureArray.textureArrays[arrayIndex]->InitMemoryFrom2DArray("GPUSceneTextureArray_" + std::to_string(arrayIndex), m_TextureArray.dimension[arrayIndex], m_TextureArray.dimension[arrayIndex], (uint32_t)creationInfo.textures.size(), PF_R8G8B8A8_UNORM, true, false);
-				m_TextureArray.textureArrays[arrayIndex]->InitDevice(false);
-			}
+			return texture.runtimeArray && texture.bindingIndex == SHADER_BINDING_TEXTURE0;
+		});
+		if (!hasTextureTable)
+		{
+			continue;
 		}
-		for (uint32_t sliceIndex = 0; sliceIndex < (uint32_t)creationInfo.textures.size(); ++sliceIndex)
+		for (auto& pipelines : shader.darwPipelines)
 		{
-			m_TextureArray.textureArrays[arrayIndex]->CopyFromFrameBufferToSlice(creationInfo.textures[sliceIndex]->GetFrameBuffer(), sliceIndex);
+			for (const IKPipelinePtr& pipeline : pipelines)
+			{
+				if (pipeline)
+				{
+					pipeline->SetSamplers(SHADER_BINDING_TEXTURE0, images, samplers, true);
+				}
+			}
 		}
 	}
 }
@@ -1134,10 +946,10 @@ void KGPUScene::InitializeBuffers()
 	m_MegaBuffer.meshStateBuffer->InitDevice(false, false);
 	m_MegaBuffer.meshStateBuffer->SetDebugName("GPUSceneMeshState");
 
-	KRenderGlobal::RenderDevice->CreateStorageBuffer(m_TextureArray.materialTextureBindingBuffer);
-	m_TextureArray.materialTextureBindingBuffer->InitMemory(sizeof(KGPUSceneMaterialTextureBinding), nullptr);
-	m_TextureArray.materialTextureBindingBuffer->InitDevice(false, false);
-	m_TextureArray.materialTextureBindingBuffer->SetDebugName("GPUSceneMaterialTextureBinding");
+	KRenderGlobal::RenderDevice->CreateStorageBuffer(m_MaterialTextureBindingBuffer);
+	m_MaterialTextureBindingBuffer->InitMemory(sizeof(KGPUSceneMaterialTextureBinding), nullptr);
+	m_MaterialTextureBindingBuffer->InitDevice(false, false);
+	m_MaterialTextureBindingBuffer->SetDebugName("GPUSceneMaterialTextureBinding");
 }
 
 void KGPUScene::InitializePipelines()
@@ -1193,24 +1005,6 @@ bool KGPUScene::Init(IKRenderScene* scene, const KCamera* camera)
 	UnInit();
 	if (scene && camera)
 	{
-		for (uint32_t arrayIndex = 0; arrayIndex < MAX_TEXTURE_ARRAY_NUM; ++arrayIndex)
-		{
-			m_TextureArray.dimension[arrayIndex] = 128 * (1 << arrayIndex);
-
-			KSamplerDescription desc;
-			desc.minMipmap = 0;
-			desc.maxMipmap = (unsigned short)std::log2(m_TextureArray.dimension[arrayIndex]);
-			desc.anisotropic = true;
-			desc.anisotropicCount = 16;
-			desc.addressU = desc.addressV = desc.addressW = AM_REPEAT;
-			desc.minFilter = desc.magFilter = FM_LINEAR;
-
-			KRenderGlobal::SamplerManager.Acquire(desc, m_TextureArray.samplers[arrayIndex]);
-			KRenderGlobal::RenderDevice->CreateTexture(m_TextureArray.textureArrays[arrayIndex]);
-			m_TextureArray.textureArrays[arrayIndex]->InitMemoryFrom2DArray("GPUSceneTextureArray_" + std::to_string(arrayIndex), m_TextureArray.dimension[arrayIndex], m_TextureArray.dimension[arrayIndex], 1, PF_R8G8B8A8_UNORM, true, false);
-			m_TextureArray.textureArrays[arrayIndex]->InitDevice(false);
-		}
-
 		InitializeBuffers();
 		InitializePipelines();
 
@@ -1267,12 +1061,7 @@ bool KGPUScene::UnInit()
 	SAFE_UNINIT(m_MegaBuffer.indexBuffer);
 	SAFE_UNINIT(m_MegaBuffer.meshStateBuffer);
 
-	for (uint32_t slot = 0; slot < MAX_TEXTURE_ARRAY_NUM; ++slot)
-	{
-		SAFE_UNINIT(m_TextureArray.textureArrays[slot]);
-		m_TextureArray.samplers[slot].Release();
-	}
-	SAFE_UNINIT(m_TextureArray.materialTextureBindingBuffer);
+	SAFE_UNINIT(m_MaterialTextureBindingBuffer);
 
 	SAFE_UNINIT_CONTAINER(m_SceneStateBuffers);
 	SAFE_UNINIT_CONTAINER(m_InstanceDataBuffers);
@@ -1306,9 +1095,9 @@ void KGPUScene::RebuildDirtyBuffer()
 	{
 		RebuildMegaShaderState();
 	}
-	if (m_DataDirtyBits & TEXTURE_ARRAY_DIRTY)
+	if (m_DataDirtyBits & (TEXTURE_BINDINGS_DIRTY | MEGA_SHADER_DIRTY))
 	{
-		RebuildTextureArray();
+		RebuildTextureBindings();
 	}
 	if (m_DataDirtyBits & INSTANCE_DIRTY)
 	{
@@ -1514,7 +1303,10 @@ bool KGPUScene::BasePassMain(IKRenderPassPtr renderPass, KRHICommandList& comman
 			command.dynamicConstantUsages.push_back(objectUsage);
 			command.pipeline = megaShader.darwPipelines[GPUSCENE_RENDER_STAGE_BASEPASS_MAIN][frameIndex];
 			command.indirectArgsBuffer = megaShader.indirectDrawArgsBuffers[frameIndex];
-			command.pipeline->GetHandle(renderPass, command.pipelineHandle);
+			if (!command.pipeline->GetHandle(renderPass, command.pipelineHandle))
+			{
+				return false;
+			}
 			command.indexDraw = false;
 			command.indirectDraw = true;
 			command.indirectOffset = 0;

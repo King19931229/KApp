@@ -59,6 +59,8 @@ struct IKStorageBuffer
 {
 	virtual ~IKStorageBuffer() {}
 	virtual uint64_t GetBufferSize() = 0;
+	// 复用已有顶点缓冲的设备内存
+	virtual bool InitFromVertexBuffer(IKVertexBufferPtr pSource) { return false; }
 
 	// 初始化内存数据 通常用于异步IO
 	virtual bool InitMemory(uint64_t bufferSize, const void* pInitData) = 0;

@@ -105,6 +105,7 @@ public:
 	virtual bool Blit(IKFrameBufferPtr src, IKFrameBufferPtr dest);
 
 	VkCommandBuffer GetVkHandle();
+	VkCommandPool GetVkPool() const { return m_ParentPool; }
 	uint32_t GetFrameNum() const { return m_FrameNum; }
 	inline VkCommandBufferLevel GetVkBufferLevel() { return m_CommandLevel; }
 };

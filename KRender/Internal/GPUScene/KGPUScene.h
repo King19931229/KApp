@@ -50,7 +50,6 @@ static_assert((sizeof(KGPUSceneState) % 16) == 0, "Size must be a multiple of 16
 struct KGPUSceneMaterialTextureBinding
 {
 	uint32_t binding[MAX_MATERIAL_TEXTURE_BINDING] = { 0 };
-	uint32_t slice[MAX_MATERIAL_TEXTURE_BINDING] = { 0 };
 };
 static_assert((sizeof(KGPUSceneMaterialTextureBinding) % 16) == 0, "Size must be a multiple of 16");
 
@@ -87,8 +86,7 @@ class KGPUScene
 protected:
 	enum
 	{
-		GPUSCENE_GROUP_SIZE = 64,
-		MAX_TEXTURE_ARRAY_NUM = 6
+		GPUSCENE_GROUP_SIZE = 64
 	};
 
 	IKRenderScene* m_Scene;
@@ -98,10 +96,8 @@ protected:
 	{
 		KSubMeshPtr subMesh;
 		uint32_t vertexBufferOffset[VF_SCENE_COUNT] = { 0 };
-		uint32_t vertexBufferSize[VF_SCENE_COUNT] = { 0 };
 		uint32_t vertexCount = 0;
 		uint32_t indexBufferOffset = 0;
-		uint32_t indexBufferSize = 0;
 		uint32_t indexCount = 0;
 		uint32_t refCount = 0;
 	};
@@ -160,15 +156,7 @@ protected:
 		IKStorageBufferPtr meshStateBuffer = nullptr;
 	} m_MegaBuffer;
 
-	std::vector<KGPUSceneMaterialTextureBinding> m_MaterialTextureBindings;
-
-	struct TextureArrayCollection
-	{
-		KSamplerRef samplers[MAX_TEXTURE_ARRAY_NUM];
-		uint32_t dimension[MAX_TEXTURE_ARRAY_NUM] = { 0 };
-		IKTexturePtr textureArrays[MAX_TEXTURE_ARRAY_NUM] = { nullptr };
-		IKStorageBufferPtr materialTextureBindingBuffer = nullptr;
-	} m_TextureArray;
+	IKStorageBufferPtr m_MaterialTextureBindingBuffer;
 
 	std::vector<IKStorageBufferPtr> m_SceneStateBuffers;
 	std::vector<IKStorageBufferPtr> m_InstanceDataBuffers;
@@ -188,7 +176,7 @@ protected:
 	enum DataDirtyBitMask
 	{
 		MEGA_BUFFER_DIRTY = 1,
-		TEXTURE_ARRAY_DIRTY = 2,
+		TEXTURE_BINDINGS_DIRTY = 2,
 		MEGA_SHADER_DIRTY = 4,
 		INSTANCE_DIRTY = 8
 	};
@@ -224,7 +212,7 @@ protected:
 	void RebuildMegaBuffer();
 	void RebuildMeshStateBuffer();
 	void RebuildMegaShaderState();
-	void RebuildTextureArray();
+	void RebuildTextureBindings();
 	void RebuildInstance();
 	void RebuildMegaShaderBuffer();
 

@@ -68,6 +68,7 @@ public:
 
 class KVulkanVertexBuffer : public KVertexBufferBase
 {
+	friend class KVulkanStorageBuffer;
 protected:
 	KVulkanBuffer m_Buffer;
 public:
@@ -132,10 +133,13 @@ class KVulkanStorageBuffer : public KStorageBufferBase
 {
 protected:
 	KVulkanBuffer m_Buffer;
+	std::shared_ptr<KVulkanBuffer> m_ReferencedBuffer;
+	KVulkanBuffer& GetVulkanBuffer();
 public:
 	KVulkanStorageBuffer();
 	virtual ~KVulkanStorageBuffer();
 
+	bool InitFromVertexBuffer(IKVertexBufferPtr pSource) override;
 	virtual bool InitDevice(bool indirect, bool hostVisible);
 	virtual bool UnInit();
 

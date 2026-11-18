@@ -414,6 +414,7 @@ bool KVulkanShader::GenerateReflection(const std::vector<unsigned int>& spirv, K
 		texture.bindingIndex = (uint16_t)compiler.get_decoration(block.id, spv::DecorationBinding);
 		texture.attachmentIndex = (uint16_t)compiler.get_decoration(block.id, spv::DecorationInputAttachmentIndex);
 		texture.arraysize = type.array.empty() ? 0 : type.array[0];
+		texture.runtimeArray = !type.array.empty() && type.array[0] == 0;
 
 		information.textures.push_back(texture);
 	}

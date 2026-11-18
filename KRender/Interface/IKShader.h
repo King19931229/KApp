@@ -123,6 +123,7 @@ struct KShaderInformation
 		uint16_t bindingIndex;
 		uint16_t attachmentIndex;
 		uint16_t arraysize;
+		bool runtimeArray;
 
 		Texture()
 		{
@@ -130,6 +131,7 @@ struct KShaderInformation
 			bindingIndex = 0;
 			attachmentIndex = 0;
 			arraysize = 0;
+			runtimeArray = false;
 		}
 
 		size_t Hash() const
@@ -139,6 +141,7 @@ struct KShaderInformation
 			KHash::HashCombine(hash, bindingIndex);
 			KHash::HashCombine(hash, attachmentIndex);
 			KHash::HashCombine(hash, arraysize);
+			KHash::HashCombine(hash, runtimeArray);
 			return hash;
 		}
 	};

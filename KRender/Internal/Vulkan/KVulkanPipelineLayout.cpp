@@ -1,10 +1,10 @@
 ﻿#include "KVulkanPipelineLayout.h"
 #include "KVulkanGlobal.h"
+#include "KBase/Interface/IKLog.h"
 
 KVulkanPipelineLayout::KVulkanPipelineLayout()
 	: m_DescriptorSetLayout(VK_NULL_HANDEL)
 	, m_PipelineLayout(VK_NULL_HANDEL)
-	, m_Hash(0)
 {
 }
 
@@ -29,22 +29,51 @@ bool KVulkanPipelineLayout::Init(const KPipelineBinding& binding)
 
 	static_assert(ARRAY_SIZE(SHADER_STAGE_FLAGS) == LAYOUT_SHADER_COUNT, "must match");
 
-	m_Hash = 0;
-
 	std::vector<VkPushConstantRange> pushConstantRanges;
 	for (uint32_t i = 0; i < LAYOUT_SHADER_COUNT; ++i)
 	{
 		if (binding.shaders[i])
 		{
 			const KShaderInformation& info = binding.shaders[i]->GetInformation();
-			AddLayoutBinding(info, SHADER_STAGE_FLAGS[i]);
+			AddLayoutBinding(info, SHADER_STAGE_FLAGS[i], binding);
 			AddPushConstantRange(pushConstantRanges, info, SHADER_STAGE_FLAGS[i]);
-			KHash::HashCombine(m_Hash, info.Hash());
 		}
-		else
+	}
+
+	const VkPhysicalDeviceLimits& limits = KVulkanGlobal::deviceProperties.limits;
+	uint64_t samplerCount = 0;
+	for (const VkDescriptorSetLayoutBinding& layoutBinding : m_DescriptorSetLayoutBinding)
+	{
+		if (layoutBinding.descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
 		{
-			KHash::HashCombine(m_Hash, 0);
+			samplerCount += layoutBinding.descriptorCount;
 		}
+	}
+	bool supported = samplerCount <= limits.maxDescriptorSetSamplers && samplerCount <= limits.maxDescriptorSetSampledImages;
+	for (VkShaderStageFlagBits stage : SHADER_STAGE_FLAGS)
+	{
+		uint64_t stageSamplers = 0;
+		uint64_t stageResources = 0;
+		for (const VkDescriptorSetLayoutBinding& layoutBinding : m_DescriptorSetLayoutBinding)
+		{
+			if (!(layoutBinding.stageFlags & stage))
+			{
+				continue;
+			}
+			stageResources += layoutBinding.descriptorCount;
+			if (layoutBinding.descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
+			{
+				stageSamplers += layoutBinding.descriptorCount;
+			}
+		}
+		supported &= stageSamplers <= limits.maxPerStageDescriptorSamplers &&
+			stageSamplers <= limits.maxPerStageDescriptorSampledImages &&
+			stageResources <= limits.maxPerStageResources;
+	}
+	if (!supported)
+	{
+		KG_LOGE(LM_RENDER, "Pipeline texture descriptor count %llu exceeds device limits", (unsigned long long)samplerCount);
+		return false;
 	}
 
 	VkDescriptorSetLayoutCreateInfo layoutInfo = {};
@@ -85,8 +114,6 @@ bool KVulkanPipelineLayout::UnInit()
 		m_PipelineLayout = VK_NULL_HANDLE;
 	}
 
-	m_Hash = 0;
-
 	return true;
 }
 
@@ -116,7 +143,7 @@ void KVulkanPipelineLayout::MergeLayoutBinding(std::vector<VkDescriptorSetLayout
 	}
 }
 
-void KVulkanPipelineLayout::AddLayoutBinding(const KShaderInformation& information, VkShaderStageFlags stageFlag)
+void KVulkanPipelineLayout::AddLayoutBinding(const KShaderInformation& information, VkShaderStageFlags stageFlag, const KPipelineBinding& binding)
 {
 	for (const KShaderInformation::Storage& storage : information.storageBuffers)
 	{
@@ -181,6 +208,10 @@ void KVulkanPipelineLayout::AddLayoutBinding(const KShaderInformation& informati
 		samplerLayoutBinding.binding = texture.bindingIndex;
 		samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 		samplerLayoutBinding.descriptorCount = texture.arraysize > 1 ? texture.arraysize : 1;
+		if (texture.runtimeArray)
+		{
+			samplerLayoutBinding.descriptorCount = binding.runtimeSamplerCounts.at(texture.bindingIndex);
+		}
 		// 声明哪个阶段Shader能够使用上此Sampler
 		samplerLayoutBinding.stageFlags = stageFlag;
 		samplerLayoutBinding.pImmutableSamplers = nullptr; // Optional

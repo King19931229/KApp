@@ -238,6 +238,11 @@ bool KPipelineBase::BindSampler(unsigned int location, const SamplerBindingInfo&
 	}
 	else
 	{
+		if (m_Layout && m_Binding.runtimeSamplerCounts.count(location) &&
+			it->second.images.size() != info.images.size())
+		{
+			DestroyDevice();
+		}
 		it->second = info;
 	}
 	return true;
@@ -379,6 +384,7 @@ bool KPipelineBase::UnInit()
 	m_Binding.formats.clear();
 
 	DestroyDevice();
+	m_Binding.runtimeSamplerCounts.clear();
 
 	KRenderGlobal::PipelineManager.RemoveGraphicsPipeline(this);
 
@@ -401,6 +407,20 @@ bool KPipelineBase::DestroyDevice()
 
 bool KPipelineBase::CreateLayout()
 {
+	m_Binding.runtimeSamplerCounts.clear();
+	for (const IKShaderPtr& shader : m_Binding.shaders)
+	{
+		if (!shader) continue;
+		shader->WaitForDevice();
+		if (shader->GetResourceState() != RS_DEVICE_LOADED) return false;
+		for (const KShaderInformation::Texture& texture : shader->GetInformation().textures)
+		{
+			if (!texture.runtimeArray) continue;
+			auto it = m_Samplers.find(texture.bindingIndex);
+			if (it == m_Samplers.end() || it->second.images.empty()) return false;
+			m_Binding.runtimeSamplerCounts[texture.bindingIndex] = (uint32_t)it->second.images.size();
+		}
+	}
 	if (!KRenderGlobal::PipelineManager.AcquireLayout(m_Binding, m_Layout)) return false;
 	for (uint32_t i = 0; i < LAYOUT_SHADER_COUNT; ++i)
 	{

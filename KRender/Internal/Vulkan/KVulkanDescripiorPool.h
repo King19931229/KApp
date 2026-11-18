@@ -2,21 +2,18 @@
 #include "KVulkanConfig.h"
 #include "Interface/IKRenderCommand.h"
 #include <vector>
+#include <functional>
 
 struct KVulkanDescriptorPoolAllocatedSet
 {
 	VkDescriptorSet set;
+	VkCommandPool commandPool;
 	size_t hash0;
 	size_t hash1;
 
-	KVulkanDescriptorPoolAllocatedSet()
-		: set(VK_NULL_HANDEL)
-		, hash0(0)
-		, hash1(0)
-	{}
-
-	KVulkanDescriptorPoolAllocatedSet(VkDescriptorSet inSet)
+	KVulkanDescriptorPoolAllocatedSet(VkDescriptorSet inSet, VkCommandPool inCommandPool)
 		: set(inSet)
+		, commandPool(inCommandPool)
 		, hash0(0)
 		, hash1(0)
 	{}
@@ -24,43 +21,52 @@ struct KVulkanDescriptorPoolAllocatedSet
 
 typedef std::shared_ptr<KVulkanDescriptorPoolAllocatedSet> KVulkanDescriptorPoolAllocatedSetPtr;
 
+// 同一 CommandPool 内的管线共享底层容量，各自保留 DescriptorSet 缓存。
+class KVulkanDescriptorArena
+{
+	struct Page
+	{
+		VkDescriptorPool pool;
+		uint32_t capacity;
+		uint32_t reserved;
+	};
+	std::vector<VkDescriptorPoolSize> m_PoolSizes;
+	std::vector<Page> m_Pages;
+	uint32_t m_NextPageSize = 8;
+public:
+	explicit KVulkanDescriptorArena(const std::vector<VkDescriptorPoolSize>& poolSizes);
+	~KVulkanDescriptorArena();
+	VkDescriptorPool Acquire(uint32_t count);
+	void Release(VkDescriptorPool pool, uint32_t count);
+	bool Matches(const std::vector<VkDescriptorPoolSize>& sizes) const;
+};
+
 class KVulkanDescriptorPool
 {
 protected:
 	struct DescriptorSetBlock
 	{
-		VkDescriptorPool pool;
+		VkDescriptorPool pool = VK_NULL_HANDLE;
 		std::vector<KVulkanDescriptorPoolAllocatedSetPtr> sets;
-		uint32_t useCount;
-		uint32_t maxCount;
-
-		DescriptorSetBlock()
-		{
-			useCount = 0;
-			maxCount = 512;
-			pool = VK_NULL_HANDLE;
-		}
+		uint32_t useCount = 0;
+		uint32_t maxCount = 0;
 	};
 
 	struct DescriptorSetBlockList
 	{
 		std::vector<DescriptorSetBlock> blocks;
-		uint32_t currentFrame;
-		bool occupied;
-
-		DescriptorSetBlockList()
-		{
-			currentFrame = 0;
-			occupied = false;
-		}
+		uint32_t currentFrame = 0;
+		bool occupied = false;
+		VkCommandPool commandPool = VK_NULL_HANDLE;
+		std::shared_ptr<KVulkanDescriptorArena> arena;
 	};
 
 	VkDescriptorSetLayout m_Layout;
 	std::vector<DescriptorSetBlockList> m_Descriptors;
 	std::vector<VkDescriptorPoolSize> m_PoolSizes;
 	bool m_Trim;
+	std::function<std::shared_ptr<KVulkanDescriptorArena>(VkCommandPool)> m_ArenaProvider;
 
-	uint32_t m_CurrentFrame;
 	uint32_t m_BlockSize;
 
 #ifdef _DEBUG
@@ -70,34 +76,35 @@ protected:
 
 	VkDescriptorSet AllocDescriptorSet(VkDescriptorPool pool);
 	VkDescriptorPool CreateDescriptorPool(uint32_t maxCount);
+	void DestroyDescriptorPool(DescriptorSetBlockList& list, DescriptorSetBlock& block);
+	void Clear(DescriptorSetBlockList& list);
 
-	KVulkanDescriptorPoolAllocatedSetPtr InternalAlloc(bool reuseSet, bool& newSet);
+	KVulkanDescriptorPoolAllocatedSetPtr InternalAlloc(bool reuseSet, bool& newSet, VkCommandPool commandPool);
 
-	void Move(KVulkanDescriptorPool&& rhs);
 public:
 	KVulkanDescriptorPool();
 	~KVulkanDescriptorPool();
 
-	KVulkanDescriptorPool(KVulkanDescriptorPool&) = delete;
-	KVulkanDescriptorPool& operator=(KVulkanDescriptorPool&) = delete;
-
-	KVulkanDescriptorPool(KVulkanDescriptorPool&& rhs);
-	KVulkanDescriptorPool& operator=(KVulkanDescriptorPool&& rhs);
+	KVulkanDescriptorPool(const KVulkanDescriptorPool&) = delete;
+	KVulkanDescriptorPool& operator=(const KVulkanDescriptorPool&) = delete;
 
 	bool Init(VkDescriptorSetLayout layout,
 		const std::vector<VkDescriptorPoolSize>& poolSizes, uint32_t blockSize, bool trim);
 	bool UnInit();
 
 	void Release(uint32_t frameNum);
+	void ReleaseCommandPool(VkCommandPool commandPool);
+	void SetArenaProvider(std::function<std::shared_ptr<KVulkanDescriptorArena>(VkCommandPool)> provider)
+	{
+		m_ArenaProvider = std::move(provider);
+	}
 	bool IsOccupied() const;
-	inline bool IsInitialized() const { return m_Layout != VK_NULL_HANDLE; }
 	void AppendDescriptorSets(std::vector<VkDescriptorSet>& sets) const;
 
-	KVulkanDescriptorPoolAllocatedSetPtr Alloc(bool& newSet);
+	KVulkanDescriptorPoolAllocatedSetPtr Alloc(bool& newSet, VkCommandPool commandPool = VK_NULL_HANDLE);
 	KVulkanDescriptorPoolAllocatedSetPtr Request(bool& newSet);
 
 	inline void SetDebugName(const std::string& name) { m_Name = name; }
-	inline const std::string& GetDebugName() { return m_Name; }
 };
 
 class KVulkanPipeline;

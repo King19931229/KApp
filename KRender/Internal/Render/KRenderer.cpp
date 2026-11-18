@@ -52,15 +52,21 @@ bool KMainPass::Execute(KFrameGraphExecutor& executor)
 	return true;
 }
 
+static int GetActiveDepthPeelingMethod()
+{
+	return KRenderGlobal::EnablePeeling ? KRenderGlobal::DepthPeelingMethod : -1;
+}
+
 KRenderer::KRenderer()
 	: m_SwapChain(nullptr),
 	m_UIOverlay(nullptr),
 	m_Scene(nullptr),
 	m_Camera(nullptr),
 	m_CameraCube(nullptr),
-	m_PrevEnableAsyncCompute(false),
 	m_PrevMultithreadCount(std::thread::hardware_concurrency()),
 	m_MultithreadCount(std::thread::hardware_concurrency()),
+	m_PrevEnableAsyncCompute(false),
+	m_PrevPeelingMethod(-1),
 	m_DisplayCameraCube(true),
 	m_CameraOutdate(true)
 {
@@ -348,8 +354,11 @@ bool KRenderer::Init(const KRendererInitContext& initContext)
 
 	KRenderGlobal::FrameGraph.Init(device);
 	KRenderGlobal::GBuffer.Init(width, height);
-	KRenderGlobal::DepthPeeling.Init(width, height, 4);
-	KRenderGlobal::ABufferDepthPeeling.Init(width, height, 4);
+	m_PrevPeelingMethod = GetActiveDepthPeelingMethod();
+	const bool normalPeeling = m_PrevPeelingMethod == KRenderGlobal::NORMAL_DEPTH_PEELING;
+	const bool aBufferPeeling = m_PrevPeelingMethod == KRenderGlobal::ABUFFER_DEPTH_PEELING;
+	KRenderGlobal::DepthPeeling.Init(normalPeeling ? width : 1, normalPeeling ? height : 1, 4);
+	KRenderGlobal::ABufferDepthPeeling.Init(aBufferPeeling ? width : 1, aBufferPeeling ? height : 1, 4);
 	KRenderGlobal::HiZBuffer.Init(width, height);
 	KRenderGlobal::HiZOcclusion.Init();
 	KRenderGlobal::RayTraceManager.Init();
@@ -695,14 +704,22 @@ bool KRenderer::UpdateGlobal()
 	return false;
 }
 
+void KRenderer::ResizePeelingResources(uint32_t width, uint32_t height)
+{
+	m_PrevPeelingMethod = GetActiveDepthPeelingMethod();
+	const bool normalPeeling = m_PrevPeelingMethod == KRenderGlobal::NORMAL_DEPTH_PEELING;
+	const bool aBufferPeeling = m_PrevPeelingMethod == KRenderGlobal::ABUFFER_DEPTH_PEELING;
+	KRenderGlobal::ABufferDepthPeeling.Resize(aBufferPeeling ? width : 1, aBufferPeeling ? height : 1);
+	KRenderGlobal::DepthPeeling.Resize(normalPeeling ? width : 1, normalPeeling ? height : 1);
+}
+
 void KRenderer::OnSwapChainRecreate(uint32_t width, uint32_t height)
 {
 	KRenderGlobal::FrameGraph.Resize(width, height);
 	KRenderGlobal::PostProcessManager.Resize(width, height);
 	KRenderGlobal::CascadedShadowMap.Resize(width, height);
 	KRenderGlobal::GBuffer.Resize(width, height);
-	KRenderGlobal::ABufferDepthPeeling.Resize(width, height);
-	KRenderGlobal::DepthPeeling.Resize(width, height);
+	ResizePeelingResources(width, height);
 	KRenderGlobal::HiZBuffer.Resize(width, height);
 	KRenderGlobal::HiZOcclusion.Resize();
 	KRenderGlobal::DeferredRenderer.Resize(width, height);
@@ -730,6 +747,11 @@ void KRenderer::ReleaseFrameResources(uint32_t frameNum)
 
 bool KRenderer::Update()
 {
+	if (m_PrevPeelingMethod != GetActiveDepthPeelingMethod())
+	{
+		FLUSH_INFLIGHT_RENDER_JOB();
+		ResizePeelingResources(KRenderGlobal::GBuffer.GetWidth(), KRenderGlobal::GBuffer.GetHeight());
+	}
 	UpdateGlobal();
 	return true;
 }

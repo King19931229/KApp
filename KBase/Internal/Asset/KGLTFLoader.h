@@ -2,6 +2,9 @@
 #include "Interface/IKAssetLoader.h"
 #include "Interface/IKCodec.h"
 #include "Publish/KAABBBox.h"
+#include <array>
+#include <map>
+#include <tuple>
 
 #define TINYGLTF_NO_EXTERNAL_IMAGE
 #include "tiny_gltf.h"
@@ -128,10 +131,19 @@ protected:
 	};
 	typedef std::shared_ptr<Mesh> MeshPtr;
 
+	typedef std::tuple<std::map<std::string, int>, std::array<float, 16>, int32_t> VertexKey;
+
+	struct VertexRange
+	{
+		uint32_t start = UINT32_MAX;
+		uint32_t count = 0;
+	};
+
 	struct MeshLoad
 	{
 		std::vector<uint32_t> indexBuffer;
 		std::vector<Vertex> vertexBuffer;
+		std::map<VertexKey, VertexRange> vertexRanges;
 		uint32_t indexPos = 0;
 		uint32_t vertexPos = 0;
 	} loaderInfo;
@@ -183,10 +195,12 @@ protected:
 
 	MeshTextureFilter GetTextureFilter(int32_t filterMode);
 	MeshTextureAddress GetTextureAddress(int32_t addressMode);
-	KCodecResult GetCodecResult(tinygltf::Image& gltfimage);
+	KCodecResult GetCodecResult(const tinygltf::Image& gltfimage);
 	bool IsBinary(const char* pszFile) const;
 
-	bool GetNodeProps(const tinygltf::Node& node, const tinygltf::Model& model, uint32_t& vertexCount, uint32_t& indexCount);
+	void LoadNodeTransform(Node& target, const tinygltf::Node& source);
+	VertexKey GetVertexKey(const tinygltf::Primitive& primitive, Node& node);
+	bool GetNodeProps(Node* parent, const tinygltf::Node& node, const tinygltf::Model& model, uint32_t& vertexCount, uint32_t& indexCount);
 	void LoadNode(Node* parent, const tinygltf::Node& node, uint32_t nodeIndex, const tinygltf::Model& model, MeshLoad& loaderInfo, float globalscale);
 
 	bool LoadModel(const char* pszFile, tinygltf::Model& gltfModel);

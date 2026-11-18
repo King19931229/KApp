@@ -2,8 +2,10 @@
 #include "KVulkanGlobal.h"
 #include "KVulkanHelper.h"
 #include "KBase/Publish/KNumerical.h"
+#include "KBase/Publish/KMath.h"
 #include "KBase/Interface/IKLog.h"
 #include <algorithm>
+#include <cstdio>
 
 #include <mutex>
 
@@ -32,6 +34,7 @@ namespace KVulkanHeapAllocator
 	const static size_t RELEASE_MEMORY_TICK = 180;
 
 	static std::mutex ALLOC_FREE_LOCK;
+	static VkDeviceSize ReleaseUnusedPages(uint32_t memoryHeapIndex);
 
 	enum MemoryAllocateType
 	{
@@ -169,6 +172,7 @@ namespace KVulkanHeapAllocator
 			if(vkMemroy == VK_NULL_HANDLE)
 			{
 				assert(pHead == nullptr);
+				ReleaseUnusedPages(memoryHeapIndex);
 
 #ifdef KVUALKAN_HEAP_TRUELY_ALLOC
 				{
@@ -188,14 +192,22 @@ namespace KVulkanHeapAllocator
 						allocInfo.pNext = &allocFlagsInfo;
 					}
 
-					VK_ASSERT_RESULT(vkAllocateMemory(DEVICE, &allocInfo, nullptr, &vkMemroy));
+					if (vkAllocateMemory(DEVICE, &allocInfo, nullptr, &vkMemroy) != VK_SUCCESS)
+					{
+						vkMemroy = VK_NULL_HANDLE;
+						return nullptr;
+					}
 					HEAP_REMAIN_SIZE[memoryHeapIndex] -= size;
 
 					if (persistentMap)
 					{
 						assert(!pMapped);
-						vkMapMemory(DEVICE, vkMemroy, 0, size, 0, &pMapped);
-						assert(pMapped);
+						if (vkMapMemory(DEVICE, vkMemroy, 0, size, 0, &pMapped) != VK_SUCCESS)
+						{
+							pMapped = nullptr;
+							Clear();
+							return nullptr;
+						}
 					}
 				}
 #else
@@ -258,29 +270,20 @@ namespace KVulkanHeapAllocator
 			}
 		}
 
+		bool IsUnused() const
+		{
+			return pHead && pHead->isFree && !pHead->pNext;
+		}
+
 		void Tick()
 		{
-			if (pHead && pHead->isFree && pHead->pNext == nullptr)
+			if (IsUnused())
 			{
 				assert(pHead->offset == 0 && pHead->size == size);
 				++releaseMemoryCounter;
 				if (releaseMemoryCounter >= RELEASE_MEMORY_TICK)
 				{
-					SAFE_DELETE(pHead);
-					assert(vkMemroy != VK_NULL_HANDLE);
-#ifdef KVUALKAN_HEAP_TRUELY_ALLOC
-					if (persistentMap)
-					{
-						assert(pMapped);
-						vkUnmapMemory(vkDevice, vkMemroy);
-						pMapped = nullptr;
-					}
-					vkFreeMemory(vkDevice, vkMemroy, nullptr);
-					HEAP_REMAIN_SIZE[memoryHeapIndex] += size;
-#else
-					free(vkMemroy);
-#endif
-					vkMemroy = VK_NULL_HANDLE;
+					Clear();
 				}
 			}
 		}
@@ -301,6 +304,10 @@ namespace KVulkanHeapAllocator
 			if(vkMemroy)
 			{
 #ifdef KVUALKAN_HEAP_TRUELY_ALLOC
+				if (pMapped)
+				{
+					vkUnmapMemory(vkDevice, vkMemroy);
+				}
 				vkFreeMemory(vkDevice, vkMemroy, nullptr);
 				HEAP_REMAIN_SIZE[memoryHeapIndex] += size;
 #else
@@ -309,6 +316,7 @@ namespace KVulkanHeapAllocator
 				vkMemroy = VK_NULL_HANDLE;
 			}
 			pMapped = nullptr;
+			releaseMemoryCounter = 0;
 
 			for(BlockInfo* p = pHead; p != nullptr;)
 			{
@@ -326,7 +334,7 @@ namespace KVulkanHeapAllocator
 			{
 				if(pTemp->isFree && pTemp->size >= sizeToFit)
 				{
-					VkDeviceSize offset = (pTemp->offset % size) ? pTemp->offset + alignment - (pTemp->offset % alignment) : pTemp->offset;
+					VkDeviceSize offset = (pTemp->offset % alignment) ? pTemp->offset + alignment - (pTemp->offset % alignment) : pTemp->offset;
 					VkDeviceSize extraSize = offset - pTemp->offset + sizeToFit;
 					assert(offset % alignment == 0);
 					if(extraSize <= pTemp->size)
@@ -556,14 +564,6 @@ namespace KVulkanHeapAllocator
 			return newSize;
 		}
 
-		VkDeviceSize FindPageFitSize(VkDeviceSize pageSize, VkDeviceSize sizeToFit)
-		{
-			VkDeviceSize newPageSize = KNumerical::Factor2GreaterEqual(sizeToFit);
-			newPageSize = std::max(newPageSize, MIN_PAGE_SIZE[memoryHeapIndex]);
-			newPageSize = std::min(newPageSize, pageSize);
-			return newPageSize;
-		}
-
 		BlockInfo* Alloc(VkDeviceSize sizeToFit, VkDeviceSize alignment, bool persistentMap, bool noShared, MemoryAllocateType type)
 		{
 			std::lock_guard<decltype(ALLOC_FREE_LOCK)> guard(ALLOC_FREE_LOCK);
@@ -572,6 +572,11 @@ namespace KVulkanHeapAllocator
 			{
 				PageInfo* pPage = KNEW PageInfo(this, vkDevice, sizeToFit, type, memoryTypeIndex, memoryHeapIndex, persistentMap, noShared);
 				BlockInfo* pBlock = pPage->Alloc(sizeToFit, alignment);
+				if (!pBlock)
+				{
+					SAFE_DELETE(pPage);
+					return nullptr;
+				}
 
 				pPage->pNext = pNoShareHead[type];
 				if(pNoShareHead[type])
@@ -585,14 +590,8 @@ namespace KVulkanHeapAllocator
 			}
 			else
 			{
-				VkDeviceSize allocFactor = ALLOC_FACTOR;
-
-				// 分配大小必须是allocFactor的整数倍
-				// 当每次分配都是allocFactor的整数倍时候 就能保证同一个page里的offset也是allocFactor的整数倍
-				// sizeToFit = ((sizeToFit + ALLOC_FACTOR - 1) / ALLOC_FACTOR) * ALLOC_FACTOR;
-				// assert(sizeToFit % ALLOC_FACTOR == 0);
-
 				alignment = KNumerical::LCM(alignment, ALLOC_FACTOR);
+				const VkDeviceSize minSize = KMath::DivideAndRoundUp(sizeToFit, ALLOC_FACTOR) * ALLOC_FACTOR;
 
 				PageInfo* pPage = Find(sizeToFit, alignment, type);
 				if(!pPage)
@@ -630,11 +629,15 @@ namespace KVulkanHeapAllocator
 				// 把多余的空间分裂出来 尽量节省实际分配的内存
 				if(pPage->vkMemroy == VK_NULL_HANDLE)
 				{
-					VkDeviceSize newPageSize = FindPageFitSize(pPage->size, sizeToFit);
+					VkDeviceSize newPageSize = std::min(pPage->size, std::max(minSize, MIN_PAGE_SIZE[memoryHeapIndex]));
 					Split(pPage, newPageSize);
 				}
 				BlockInfo* pBlock = pPage->Alloc(sizeToFit, alignment);
-				assert(pBlock && !pBlock->isFree);
+				if (!pBlock && pPage->vkMemroy == VK_NULL_HANDLE && minSize < pPage->size)
+				{
+					Split(pPage, minSize);
+					pBlock = pPage->Alloc(sizeToFit, alignment);
+				}
 
 				Check();
 				return pBlock;
@@ -796,6 +799,38 @@ namespace KVulkanHeapAllocator
 		}
 	};
 
+	static VkDeviceSize ReleaseUnusedPages(uint32_t memoryHeapIndex)
+	{
+		VkDeviceSize released = 0;
+		for (MemoryHeap* heap : MEMORY_TYPE_TO_HEAP)
+		{
+			if (heap->memoryHeapIndex != memoryHeapIndex) continue;
+			for (uint32_t type = 0; type < MAT_COUNT; ++type)
+			{
+				for (PageInfo* page = heap->pHead[type]; page; page = page->pNext)
+				{
+					if (page->IsUnused())
+					{
+						released += page->size;
+						page->Clear();
+					}
+				}
+			}
+		}
+		return released;
+	}
+
+	VkDeviceSize ReleaseUnusedPages()
+	{
+		std::lock_guard<decltype(ALLOC_FREE_LOCK)> guard(ALLOC_FREE_LOCK);
+		VkDeviceSize released = 0;
+		for (uint32_t heapIndex = 0; heapIndex < HEAP_REMAIN_SIZE.size(); ++heapIndex)
+		{
+			released += ReleaseUnusedPages(heapIndex);
+		}
+		return released;
+	}
+
 	bool Init()
 	{
 		if(KVulkanGlobal::deviceReady)
@@ -894,6 +929,7 @@ namespace KVulkanHeapAllocator
 
 	bool Alloc(VkDeviceSize size, VkDeviceSize alignment, uint32_t memoryTypeIndex, VkMemoryPropertyFlags memoryUsage, VkBufferUsageFlags bufferUsage, bool noShared, AllocInfo& info)
 	{
+		info = AllocInfo();
 		if(memoryTypeIndex < MEMORY_TYPE_COUNT)
 		{
 			MemoryHeap* pHeap = MEMORY_TYPE_TO_HEAP[memoryTypeIndex];
@@ -914,6 +950,11 @@ namespace KVulkanHeapAllocator
 			bool persistentMap = memoryUsage & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
 
 			info.internalData = pHeap->Alloc(size, alignment, persistentMap, noShared, type);
+			if (!info.internalData)
+			{
+				std::fprintf(stderr, "Vulkan allocation failed: bytes=%llu heap=%u type=%u\n",
+					(unsigned long long)size, pHeap->memoryHeapIndex, memoryTypeIndex);
+			}
 
 			if(info.internalData)
 			{

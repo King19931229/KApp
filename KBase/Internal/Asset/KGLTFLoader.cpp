@@ -5,6 +5,7 @@
 #include "glm/gtc/type_ptr.inl"
 #include "glm/gtc/matrix_transform.hpp"
 #include <algorithm>
+#include <set>
 
 #define TINYGLTF_IMPLEMENTATION
 
@@ -23,6 +24,13 @@
 #define GLTF_LOADER_DO_YUP_TO_ZUP 0
 #define GLTF_LOADER_BUILD_INDEX_IF_NONE 1
 #define GLTF_LOADER_ELIMINATE_COINCIDE_VERTEX 1
+
+static bool CanShareVertices(const tinygltf::Primitive& primitive)
+{
+	// 生成的法线和切线取决于当前子网格的三角形。
+	return primitive.indices >= 0 && primitive.targets.empty() &&
+		primitive.attributes.count("NORMAL") && primitive.attributes.count("TANGENT");
+}
 
 bool KGLTFLoader::Init()
 {
@@ -143,7 +151,7 @@ MeshTextureAddress KGLTFLoader::GetTextureAddress(int32_t addressMode)
 	return MTA_REPEAT;
 }
 
-KCodecResult KGLTFLoader::GetCodecResult(tinygltf::Image& gltfimage)
+KCodecResult KGLTFLoader::GetCodecResult(const tinygltf::Image& gltfimage)
 {
 	if (gltfimage.width < 0 || gltfimage.height < 0) return KCodecResult();
 	std::vector<unsigned char> bufferData;
@@ -155,7 +163,7 @@ KCodecResult KGLTFLoader::GetCodecResult(tinygltf::Image& gltfimage)
 		bufferSize = gltfimage.width * gltfimage.height * 4;
 		bufferData.resize(bufferSize);
 		unsigned char* rgba = bufferData.data();
-		unsigned char* rgb = &gltfimage.image[0];
+		const unsigned char* rgb = gltfimage.image.data();
 		for (int32_t i = 0; i < gltfimage.width * gltfimage.height; ++i)
 		{
 			for (int32_t j = 0; j < 3; ++j)
@@ -231,34 +239,41 @@ void KGLTFLoader::LoadTextureSamplers(tinygltf::Model& gltfModel)
 
 void KGLTFLoader::LoadTextures(tinygltf::Model& gltfModel)
 {
-	for (tinygltf::Texture& tex : gltfModel.textures)
+	for (const tinygltf::Texture& tex : gltfModel.textures)
 	{
-		tinygltf::Image image = gltfModel.images[tex.source];
-		KMeshTextureSampler sampler;
-		if (tex.sampler >= 0)
+		int sourceIndex = tex.source;
+		auto ddsExtension = tex.extensions.find("MSFT_texture_dds");
+		if (KCodec::BCHardwareCodec && ddsExtension != tex.extensions.end() && ddsExtension->second.Has("source"))
 		{
-			sampler = m_Samplers[tex.sampler];
-		}
-		else
-		{
-			sampler.minFilter = MTF_LINEAR;
-			sampler.magFilter = MTF_LINEAR;
-			sampler.addressModeU = MTA_REPEAT;
-			sampler.addressModeV = MTA_REPEAT;
-			sampler.addressModeW = MTA_REPEAT;
+			const tinygltf::Value& ddsSource = ddsExtension->second.Get("source");
+			if (ddsSource.IsInt())
+			{
+				const int imageIndex = ddsSource.Get<int>();
+				if (imageIndex >= 0 && static_cast<size_t>(imageIndex) < gltfModel.images.size())
+				{
+					sourceIndex = imageIndex;
+				}
+			}
 		}
 
 		Texture texture;
-		if (image.image.size() > 0)
+		if (tex.sampler >= 0 && static_cast<size_t>(tex.sampler) < m_Samplers.size())
 		{
-			texture.codec = GetCodecResult(image);
+			texture.sampler = m_Samplers[tex.sampler];
 		}
-		if (!image.uri.empty())
+		if (sourceIndex >= 0 && static_cast<size_t>(sourceIndex) < gltfModel.images.size())
 		{
-			KFileTool::PathJoin(m_AssetFolder, image.uri, texture.url);
+			const tinygltf::Image& image = gltfModel.images[sourceIndex];
+			if (!image.image.empty())
+			{
+				texture.codec = GetCodecResult(image);
+			}
+			if (!image.uri.empty())
+			{
+				KFileTool::PathJoin(m_AssetFolder, image.uri, texture.url);
+			}
 		}
-		texture.sampler = sampler;
-		m_Textures.push_back(texture);
+		m_Textures.push_back(std::move(texture));
 	}
 }
 
@@ -532,13 +547,42 @@ bool KGLTFLoader::LoadModel(const char* pszFile, tinygltf::Model& gltfModel)
 	return fileLoaded;
 }
 
-bool KGLTFLoader::GetNodeProps(const tinygltf::Node& node, const tinygltf::Model& model, uint32_t& vertexCount, uint32_t& indexCount)
+void KGLTFLoader::LoadNodeTransform(Node& target, const tinygltf::Node& source)
 {
+	target.skinIndex = source.skin;
+	target.matrix = source.matrix.size() == 16 ? glm::make_mat4x4(source.matrix.data()) : glm::mat4(1.0f);
+	if (source.translation.size() == 3)
+	{
+		target.translation = glm::make_vec3(source.translation.data());
+	}
+	if (source.rotation.size() == 4)
+	{
+		target.rotation = glm::make_quat(source.rotation.data());
+	}
+	if (source.scale.size() == 3)
+	{
+		target.scale = glm::make_vec3(source.scale.data());
+	}
+}
+
+KGLTFLoader::VertexKey KGLTFLoader::GetVertexKey(const tinygltf::Primitive& primitive, Node& node)
+{
+	const glm::mat4 transform = node.GetMatrix();
+	std::array<float, 16> matrix;
+	std::copy_n(glm::value_ptr(transform), matrix.size(), matrix.begin());
+	return std::make_tuple(primitive.attributes, matrix, node.skinIndex);
+}
+
+bool KGLTFLoader::GetNodeProps(Node* parent, const tinygltf::Node& node, const tinygltf::Model& model, uint32_t& vertexCount, uint32_t& indexCount)
+{
+	Node current;
+	current.parent = parent;
+	LoadNodeTransform(current, node);
 	if (node.children.size() > 0)
 	{
 		for (size_t i = 0; i < node.children.size(); i++)
 		{
-			if (!GetNodeProps(model.nodes[node.children[i]], model, vertexCount, indexCount)) return false;
+			if (!GetNodeProps(&current, model.nodes[node.children[i]], model, vertexCount, indexCount)) return false;
 		}
 	}
 	if (node.mesh > -1)
@@ -547,9 +591,13 @@ bool KGLTFLoader::GetNodeProps(const tinygltf::Node& node, const tinygltf::Model
 		for (size_t i = 0; i < mesh.primitives.size(); i++)
 		{
 			const auto& primitive = mesh.primitives[i];
-			const uint64_t vertices = model.accessors[primitive.attributes.find("POSITION")->second].count;
-			if (vertices > UINT32_MAX - vertexCount) return false;
-			vertexCount += static_cast<uint32_t>(vertices);
+			if (!CanShareVertices(primitive) ||
+				loaderInfo.vertexRanges.emplace(GetVertexKey(primitive, current), VertexRange()).second)
+			{
+				const uint64_t vertices = model.accessors[primitive.attributes.find("POSITION")->second].count;
+				if (vertices > UINT32_MAX - vertexCount) return false;
+				vertexCount += static_cast<uint32_t>(vertices);
+			}
 			if (primitive.indices > -1)
 			{
 				const uint64_t indices = model.accessors[primitive.indices].count;
@@ -567,32 +615,7 @@ void KGLTFLoader::LoadNode(Node* parent, const tinygltf::Node& node, uint32_t no
 	newNode->index = nodeIndex;
 	newNode->parent = parent;
 	newNode->name = node.name;
-	newNode->skinIndex = node.skin;
-	newNode->matrix = glm::mat4(1.0f);
-
-	// Generate local node matrix
-	glm::vec3 translation = glm::vec3(0.0f);
-	if (node.translation.size() == 3)
-	{
-		translation = glm::make_vec3(node.translation.data());
-		newNode->translation = translation;
-	}
-	glm::mat4 rotation = glm::mat4(1.0f);
-	if (node.rotation.size() == 4)
-	{
-		glm::quat q = glm::make_quat(node.rotation.data());
-		newNode->rotation = glm::mat4(q);
-	}
-	glm::vec3 scale = glm::vec3(1.0f);
-	if (node.scale.size() == 3)
-	{
-		scale = glm::make_vec3(node.scale.data());
-		newNode->scale = scale;
-	}
-	if (node.matrix.size() == 16)
-	{
-		newNode->matrix = glm::make_mat4x4(node.matrix.data());
-	};
+	LoadNodeTransform(*newNode, node);
 
 	// Node with children
 	if (node.children.size() > 0)
@@ -606,7 +629,7 @@ void KGLTFLoader::LoadNode(Node* parent, const tinygltf::Node& node, uint32_t no
 	// Node contains mesh data
 	if (node.mesh > -1)
 	{
-		const tinygltf::Mesh mesh = model.meshes[node.mesh];
+		const tinygltf::Mesh& mesh = model.meshes[node.mesh];
 		MeshPtr newMesh = MeshPtr(KNEW Mesh(newNode->matrix));
 		for (size_t j = 0; j < mesh.primitives.size(); j++)
 		{
@@ -615,13 +638,25 @@ void KGLTFLoader::LoadNode(Node* parent, const tinygltf::Node& node, uint32_t no
 			uint32_t indexStart = static_cast<uint32_t>(loaderInfo.indexPos);
 			uint32_t indexCount = 0;
 			uint32_t vertexCount = 0;
-			glm::vec3 posMin{};
-			glm::vec3 posMax{};
 			bool hasSkin = false;
 			bool hasNormal = false;
 			bool hasTangent = false;
 			bool hasIndices = primitive.indices > -1;
+			auto sharedVertices = loaderInfo.vertexRanges.end();
+			if (CanShareVertices(primitive))
+			{
+				sharedVertices = loaderInfo.vertexRanges.find(GetVertexKey(primitive, *newNode));
+			}
+			const bool shareVertices = sharedVertices != loaderInfo.vertexRanges.end();
+
 			// Vertices
+			if (shareVertices && sharedVertices->second.start != UINT32_MAX)
+			{
+				vertexStart = sharedVertices->second.start;
+				vertexCount = sharedVertices->second.count;
+				hasNormal = hasTangent = true;
+			}
+			else
 			{
 				const float* bufferPos = nullptr;
 				const float* bufferNormals = nullptr;
@@ -647,8 +682,6 @@ void KGLTFLoader::LoadNode(Node* parent, const tinygltf::Node& node, uint32_t no
 				const tinygltf::Accessor& posAccessor = model.accessors[primitive.attributes.find("POSITION")->second];
 				const tinygltf::BufferView& posView = model.bufferViews[posAccessor.bufferView];
 				bufferPos = reinterpret_cast<const float*>(&(model.buffers[posView.buffer].data[posAccessor.byteOffset + posView.byteOffset]));
-				posMin = glm::vec3(posAccessor.minValues[0], posAccessor.minValues[1], posAccessor.minValues[2]);
-				posMax = glm::vec3(posAccessor.maxValues[0], posAccessor.maxValues[1], posAccessor.maxValues[2]);
 				vertexCount = static_cast<uint32_t>(posAccessor.count);
 				posByteStride = posAccessor.ByteStride(posView) ? (posAccessor.ByteStride(posView) / sizeof(float)) : tinygltf::GetNumComponentsInType(TINYGLTF_TYPE_VEC3);
 
@@ -804,6 +837,10 @@ void KGLTFLoader::LoadNode(Node* parent, const tinygltf::Node& node, uint32_t no
 				hasNormal = bufferNormals;
 				hasTangent = bufferTangents;
 			}
+			if (shareVertices)
+			{
+				sharedVertices->second = { vertexStart, vertexCount };
+			}
 
 			// Indices
 			if (hasIndices)
@@ -897,24 +934,30 @@ void KGLTFLoader::LoadNode(Node* parent, const tinygltf::Node& node, uint32_t no
 					const Vertex& v2 = VertexAt(i + 2);
 					if (v0.pos == v1.pos || v0.pos == v2.pos || v1.pos == v2.pos)
 						continue;
-					indices.push_back(GetVertexIndex(v0));
-					indices.push_back(GetVertexIndex(v1));
-					indices.push_back(GetVertexIndex(v2));
+					indices.push_back(shareVertices ? indexBuffer[indexStart + i] : GetVertexIndex(v0));
+					indices.push_back(shareVertices ? indexBuffer[indexStart + i + 1] : GetVertexIndex(v1));
+					indices.push_back(shareVertices ? indexBuffer[indexStart + i + 2] : GetVertexIndex(v2));
 				}
 
-				loaderInfo.vertexPos -= vertexCount;
+				if (!shareVertices)
+				{
+					loaderInfo.vertexPos -= vertexCount;
+				}
 				loaderInfo.indexPos -= indexCount;
 				if (indices.empty())
 					continue;
 
 				indexCount = static_cast<uint32_t>(indices.size());
-				vertexCount = (uint32_t)vertices.size();
-
-				if (loaderInfo.vertexPos + vertices.size() > loaderInfo.vertexBuffer.size())
+				if (!shareVertices)
 				{
-					loaderInfo.vertexBuffer.resize(loaderInfo.vertexPos + vertices.size());
+					vertexCount = static_cast<uint32_t>(vertices.size());
+					if (loaderInfo.vertexPos + vertices.size() > loaderInfo.vertexBuffer.size())
+					{
+						loaderInfo.vertexBuffer.resize(loaderInfo.vertexPos + vertices.size());
+					}
+					std::copy(vertices.begin(), vertices.end(), loaderInfo.vertexBuffer.begin() + loaderInfo.vertexPos);
+					loaderInfo.vertexPos += vertexCount;
 				}
-				std::copy(vertices.begin(), vertices.end(), loaderInfo.vertexBuffer.begin() + loaderInfo.vertexPos);
 
 				if (loaderInfo.indexPos + indexCount > loaderInfo.indexBuffer.size())
 				{
@@ -922,19 +965,19 @@ void KGLTFLoader::LoadNode(Node* parent, const tinygltf::Node& node, uint32_t no
 				}
 				std::copy(indices.begin(), indices.end(), loaderInfo.indexBuffer.begin() + loaderInfo.indexPos);
 
-				loaderInfo.vertexPos += vertexCount;
 				loaderInfo.indexPos += indexCount;
 
 				hasIndices = true;
 			}
 #endif
-			posMax = glm::vec3(FLT_MIN);
-			posMin = glm::vec3(FLT_MAX);
-			for (uint32_t i = 0; i < vertexCount; ++i)
+			glm::vec3 posMax(-FLT_MAX);
+			glm::vec3 posMin(FLT_MAX);
+			for (uint32_t i = 0; i < (hasIndices ? indexCount : vertexCount); ++i)
 			{
-				const glm::vec3& pos = loaderInfo.vertexBuffer[vertexStart + i].pos;
+				const uint32_t index = hasIndices ? loaderInfo.indexBuffer[indexStart + i] : vertexStart + i;
+				const glm::vec3& pos = loaderInfo.vertexBuffer[index].pos;
 				posMax = glm::max(posMax, pos);
-				posMin = glm::min(posMax, pos);
+				posMin = glm::min(posMin, pos);
 			}
 
 			std::vector<uint32_t> fakeIndexBuffer;
@@ -1424,6 +1467,7 @@ void KGLTFLoader::SetSceneDimensions()
 
 void KGLTFLoader::TransformMeshVertices()
 {
+	std::set<uint32_t> transformedRanges;
 	for (NodePtr node : m_LinearNodes)
 	{
 		if (node->mesh)
@@ -1434,6 +1478,10 @@ void KGLTFLoader::TransformMeshVertices()
 
 			for (PrimitivePtr primitive : node->mesh->primitives)
 			{
+				if (!transformedRanges.insert(primitive->firstvertex).second)
+				{
+					continue;
+				}
 				for (uint32_t i = 0; i < primitive->vertexCount; ++i)
 				{
 					Vertex& vert = loaderInfo.vertexBuffer[primitive->firstvertex + i];
@@ -1451,6 +1499,7 @@ void KGLTFLoader::TransformMeshVertices()
 
 bool KGLTFLoader::Import(const char* pszFile, const KAssetImportOption& importOption, KMeshRawData& result)
 {
+	loaderInfo.vertexRanges.clear();
 	if (!KFileTool::ParentFolder(pszFile, m_AssetFolder))
 	{
 		assert(false && "no asset folder");
@@ -1480,7 +1529,7 @@ bool KGLTFLoader::Import(const char* pszFile, const KAssetImportOption& importOp
 		// Get vertex and index buffer sizes up-front
 		for (size_t i = 0; i < scene.nodes.size(); i++)
 		{
-			if (!GetNodeProps(gltfModel.nodes[scene.nodes[i]], gltfModel, vertexCount, indexCount)) return false;
+			if (!GetNodeProps(nullptr, gltfModel.nodes[scene.nodes[i]], gltfModel, vertexCount, indexCount)) return false;
 		}
 
 		loaderInfo.vertexBuffer.resize(vertexCount);
@@ -1488,7 +1537,7 @@ bool KGLTFLoader::Import(const char* pszFile, const KAssetImportOption& importOp
 
 		for (size_t i = 0; i < scene.nodes.size(); i++)
 		{
-			const tinygltf::Node node = gltfModel.nodes[scene.nodes[i]];
+			const tinygltf::Node& node = gltfModel.nodes[scene.nodes[i]];
 			LoadNode(nullptr, node, scene.nodes[i], gltfModel, loaderInfo, 1.0f);
 		}
 		if (loaderInfo.vertexPos == 0)

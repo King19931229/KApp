@@ -199,6 +199,7 @@ VkDescriptorSet KVulkanComputePipeline::Alloc()
 {
 	bool newSet = false;
 	KVulkanDescriptorPoolAllocatedSetPtr allocation = static_cast<KVulkanRenderDevice*>(KRenderGlobal::RenderDevice)->GetDescriptorManager().Alloc(m_DescriptorTicket, 0, newSet);
+	if (!allocation) return VK_NULL_HANDLE;
 	VkDescriptorSet set = allocation->set;
 	if (newSet)
 	{
@@ -599,6 +600,7 @@ bool KVulkanComputePipeline::Execute(IKCommandBufferPtr primaryBuffer, uint32_t 
 	if (primaryBuffer && EnsurePipeline())
 	{
 		VkDescriptorSet dstSet = Alloc();
+		if (dstSet == VK_NULL_HANDLE) return false;
 
 		PreDispatch(primaryBuffer, dstSet, usage);
 
@@ -622,6 +624,7 @@ bool KVulkanComputePipeline::ExecuteIndirect(IKCommandBufferPtr primaryBuffer, I
 	if (primaryBuffer && EnsurePipeline())
 	{
 		VkDescriptorSet dstSet = Alloc();
+		if (dstSet == VK_NULL_HANDLE) return false;
 
 		PreDispatch(primaryBuffer, dstSet, usage);
 

@@ -106,6 +106,7 @@ VkDescriptorSet KVulkanRayTracePipeline::AllocDescriptorSet()
 
 	bool newSet = false;
 	KVulkanDescriptorPoolAllocatedSetPtr allocation = static_cast<KVulkanRenderDevice*>(KRenderGlobal::RenderDevice)->GetDescriptorManager().Request(m_Descriptor.ticket, newSet);
+	if (!allocation) return VK_NULL_HANDLE;
 	VkDescriptorSet set = allocation->set;
 	if (!newSet) return set;
 

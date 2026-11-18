@@ -107,12 +107,14 @@ protected:
 	int m_MultithreadCount;
 
 	bool m_PrevEnableAsyncCompute;
+	int m_PrevPeelingMethod;
 
 	bool m_DisplayCameraCube;
 	bool m_CameraOutdate;
 
 	bool UpdateCamera();
 	bool UpdateGlobal();
+	void ResizePeelingResources(uint32_t width, uint32_t height);
 
 	bool SwitchAsyncCompute(bool enableAsyncCompute);
 	bool ResetThreadNum(uint32_t threadNum);

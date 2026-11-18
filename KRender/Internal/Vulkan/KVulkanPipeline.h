@@ -71,17 +71,11 @@ class KVulkanPipeline : public KPipelineBase
 	friend class KVulkanPipelineHandle;
 	friend class KVulkanGraphicsDescriptorWriter;
 protected:
-	VkDescriptorSetLayout m_DescriptorSetLayout;
 	VkPipelineLayout m_PipelineLayout;
-	std::vector<VkDescriptorSetLayoutBinding> m_DescriptorSetLayoutBinding;
-
-	std::vector<VkWriteDescriptorSet> m_WriteDescriptorSet;
-	std::vector<VkDescriptorBufferInfo> m_BufferWriteInfo;
 
 	static constexpr uint32_t MAX_THREAD_SUPPORT = 512;
 	KVulkanDescriptorTicket* m_DescriptorTicket;
 
-	bool CreateDescriptionWrite();
 	bool DestroyDevice() override;
 	bool CreateLayout() override;
 public:
@@ -96,7 +90,7 @@ public:
 
 	inline VkPipelineLayout GetVkPipelineLayout() { return m_PipelineLayout; }
 
-	VkDescriptorSet AllocDescriptorSet(uint32_t threadIndex,
+	VkDescriptorSet AllocDescriptorSet(uint32_t threadIndex, VkCommandPool commandPool,
 		const KDynamicConstantBufferUsage** ppConstantUsage, uint32_t dynamicBufferUsageCount,
 		const KStorageBufferUsage** ppStorageUsage, uint32_t storageBufferUsageCount);
 };

@@ -34,6 +34,7 @@ protected:
 
 	static bool CompoentGroupFromVertexFormat(VertexFormat format, KAssetVertexComponentGroup& group);
 	void UpdateTriangleMesh();
+	void DiscardCPUGeometry();
 
 	bool InitFromImportResult(const KMeshRawData& result, const std::vector<VertexFormat>& formats, const std::string& label);
 public:

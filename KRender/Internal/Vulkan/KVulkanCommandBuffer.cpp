@@ -103,6 +103,11 @@ bool KVulkanCommandPool::UnInit()
 		for (IKCommandBufferPtr& buffer : block.secondary.buffers) static_cast<KVulkanCommandBuffer*>(buffer.get())->UnInit();
 		block.primary.buffers.clear();
 		block.secondary.buffers.clear();
+		if (KRenderGlobal::RenderDevice)
+		{
+			KVulkanRenderDevice* vulkanDevice = static_cast<KVulkanRenderDevice*>(KRenderGlobal::RenderDevice);
+			vulkanDevice->GetDescriptorManager().ReleaseCommandPool(block.pool);
+		}
 		vkDestroyCommandPool(KVulkanGlobal::device, block.pool, nullptr);
 	}
 	m_Blocks.clear();
@@ -397,7 +402,12 @@ bool KVulkanCommandBuffer::Render(const KRenderCommand& command)
 			storageUsages[storageBufferCount++] = &(command.meshStorageUsages[i]);
 		}
 
-		VkDescriptorSet descriptorSet = vulkanPipeline->AllocDescriptorSet(command.threadIndex, dynamicUsages.data(), dynamicBufferCount, storageUsages, storageBufferCount);
+		VkDescriptorSet descriptorSet = vulkanPipeline->AllocDescriptorSet(command.threadIndex, m_ParentPool,
+			dynamicUsages.data(), dynamicBufferCount, storageUsages, storageBufferCount);
+		if (pipeline == VK_NULL_HANDLE || descriptorSet == VK_NULL_HANDLE)
+		{
+			return false;
+		}
 
 		// 先绑定描述符，避免 GPUAV 覆盖上一笔绘制的检查记录
 		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, dynamicBufferCount, dynamicOffsets.data());

@@ -60,6 +60,26 @@ bool KMesh::UnInit()
 	return true;
 }
 
+static uint32_t GetMeshIndex(const void* pIndices, IndexType type, uint32_t index)
+{
+	return type == IT_16 ? static_cast<const uint16_t*>(pIndices)[index] : static_cast<const uint32_t*>(pIndices)[index];
+}
+
+static void AppendPickingTriangles(KTriangleMesh& mesh, const std::vector<glm::vec3>& positions,
+	const void* pIndices, IndexType type, uint32_t firstVertex, uint32_t count)
+{
+	ASSERT_RESULT(count % 3 == 0);
+	auto vertexAt = [&](uint32_t i) -> const glm::vec3&
+	{
+		return positions[pIndices ? GetMeshIndex(pIndices, type, i) : firstVertex + i];
+	};
+	for (uint32_t i = 0; i < count / 3; ++i)
+	{
+		mesh.triangles.emplace_back();
+		mesh.triangles.back().Init(vertexAt(i * 3), vertexAt(i * 3 + 1), vertexAt(i * 3 + 2));
+	}
+}
+
 void KMesh::UpdateTriangleMesh()
 {
 	if (!KRenderGlobal::InEditor)
@@ -68,89 +88,51 @@ void KMesh::UpdateTriangleMesh()
 	}
 
 	m_TriangleMesh.Destroy();
-	for (KSubMeshPtr& subMesh : m_SubMeshes)
+	auto formatIt = std::find(m_VertexData.vertexFormats.begin(), m_VertexData.vertexFormats.end(), VF_POINT_NORMAL_UV);
+	if (formatIt != m_VertexData.vertexFormats.end())
 	{
-		const KVertexData* vertexData = subMesh->m_pVertexData;
-
-		size_t idx = 0;
-		for (VertexFormat format : vertexData->vertexFormats)
+		const IKVertexBufferPtr& buffer = m_VertexData.vertexBuffers[formatIt - m_VertexData.vertexFormats.begin()];
+		std::vector<KVertexDefinition::POS_3F_NORM_3F_UV_2F> vertices(buffer->GetVertexCount());
+		if (buffer->GetBufferSize() == static_cast<uint64_t>(vertices.size()) * sizeof(vertices[0]) && buffer->Read(vertices.data()))
 		{
-			if (format == VF_POINT_NORMAL_UV)
+			std::vector<glm::vec3> positions(vertices.size());
+			for (size_t i = 0; i < vertices.size(); ++i)
 			{
-				IKVertexBufferPtr vertexBuffer = vertexData->vertexBuffers[idx];
+				positions[i] = vertices[i].POSITION;
+			}
+			size_t totalTriangles = 0;
+			for (const KSubMeshPtr& subMesh : m_SubMeshes)
+			{
+				totalTriangles += (subMesh->m_IndexDraw ? subMesh->m_IndexData.indexCount : m_VertexData.vertexCount) / 3;
+			}
+			m_TriangleMesh.triangles.reserve(totalTriangles);
 
-				std::vector<glm::vec3> vertices;
-				vertices.reserve(vertexBuffer->GetVertexCount());
-
-				{
-					std::vector<char> vertexDatas;
-					if (vertexBuffer->GetBufferSize() > vertexDatas.max_size()) return;
-					vertexDatas.resize(static_cast<size_t>(vertexBuffer->GetBufferSize()));
-					vertexBuffer->Read(vertexDatas.data());
-					KVertexDefinition::POS_3F_NORM_3F_UV_2F* pData = (KVertexDefinition::POS_3F_NORM_3F_UV_2F*)vertexDatas.data();
-					for (auto i = vertexData->vertexStart; i < vertexData->vertexCount; ++i)
-					{
-						vertices.push_back(pData[i].POSITION);
-					}
-				}
-
+			std::vector<char> indices;
+			for (const KSubMeshPtr& subMesh : m_SubMeshes)
+			{
 				if (subMesh->m_IndexDraw)
 				{
 					const KIndexData& indexData = subMesh->m_IndexData;
-					IKIndexBufferPtr indexBuffer = indexData.indexBuffer;
-
-					ASSERT_RESULT(indexBuffer->GetIndexCount() % 3 == 0);
-
-					std::vector<uint32_t> indices;
-
-					if (indexBuffer->GetIndexType() == IT_32)
+					const IndexType type = indexData.indexBuffer->GetIndexType();
+					const size_t indexSize = type == IT_16 ? sizeof(uint16_t) : sizeof(uint32_t);
+					indices.resize(indexSize * indexData.indexCount);
+					if (indexData.indexBuffer->Read(indices.data(), indexSize * indexData.indexStart, indices.size()))
 					{
-						indices.resize(indexBuffer->GetIndexCount());
-						indexBuffer->Read(indices.data());
-					}
-					else
-					{
-						indices.reserve(indexBuffer->GetIndexCount());
-
-						std::vector<uint16_t> indices16;
-						indices16.resize(indexBuffer->GetIndexCount());
-						indexBuffer->Read(indices16.data());
-
-						for (uint16_t idx : indices16)
-						{
-							indices.push_back(idx);
-						}
-					}
-
-					size_t triangleCount = indices.size() / 3;
-					m_TriangleMesh.triangles.reserve(triangleCount);
-
-					for (size_t i = 0; i < triangleCount; ++i)
-					{
-						KTriangle triangle;
-						triangle.Init({ vertices[indices[i * 3]], vertices[indices[i * 3 + 1]], vertices[indices[i * 3 + 2]] });
-						m_TriangleMesh.triangles.push_back(std::move(triangle));
+						AppendPickingTriangles(m_TriangleMesh, positions, indices.data(), type, 0, indexData.indexCount);
 					}
 				}
 				else
 				{
-					assert(vertices.size() % 3 == 0);
-
-					size_t triangleCount = vertices.size() / 3;
-					m_TriangleMesh.triangles.reserve(triangleCount);
-
-					for (size_t i = 0; i < triangleCount; ++i)
-					{
-						KTriangle triangle;
-						triangle.Init({ vertices[i * 3], vertices[i * 3 + 1], vertices[i * 3 + 2] });
-						m_TriangleMesh.triangles.push_back(std::move(triangle));
-					}
+					AppendPickingTriangles(m_TriangleMesh, positions, nullptr, IT_32, m_VertexData.vertexStart, m_VertexData.vertexCount);
 				}
 			}
-			++idx;
 		}
 	}
+	DiscardCPUGeometry();
+}
 
+void KMesh::DiscardCPUGeometry()
+{
 	for (KSubMeshPtr& subMesh : m_SubMeshes)
 	{
 		if (subMesh->m_IndexData.indexBuffer)
@@ -214,11 +196,11 @@ bool KMesh::InitFromImportResult(const KMeshRawData& result, const std::vector<V
 	{
 		const VertexFormat& format = m_VertexData.vertexFormats[i];
 		IKVertexBufferPtr& buffer = m_VertexData.vertexBuffers[i];
-		const KMeshRawData::VertexDataBuffer dataSource = result.verticesDatas[i];
+		const KMeshRawData::VertexDataBuffer& dataSource = result.verticesDatas[i];
 
 		ASSERT_RESULT(KRenderGlobal::RenderDevice->CreateVertexBuffer(buffer));
 
-		KVertexDefinition::VertexDetail detail = KVertexDefinition::GetVertexDetail(format);
+		const KVertexDefinition::VertexDetail& detail = KVertexDefinition::GetVertexDetail(format);
 
 		ASSERT_RESULT(buffer->InitMemory(result.vertexCount, detail.vertexSize, dataSource.data()));
 		ASSERT_RESULT(buffer->InitDevice(false));
@@ -227,7 +209,6 @@ bool KMesh::InitFromImportResult(const KMeshRawData& result, const std::vector<V
 
 		if (format == VF_POINT_NORMAL_UV)
 		{
-			const auto& detail = KVertexDefinition::GetVertexDetail(format);
 			auto it = std::find_if(detail.semanticDetails.cbegin(), detail.semanticDetails.cend(), [](const KVertexDefinition::VertexSemanticDetail& semanticDetail) { return semanticDetail.semantic == VS_POSITION; });
 			if (it != detail.semanticDetails.cend())
 			{
@@ -266,7 +247,17 @@ bool KMesh::InitFromImportResult(const KMeshRawData& result, const std::vector<V
 	}
 
 	IndexType indexType = result.index16Bit ? IT_16 : IT_32;
-	size_t indexSize = result.index16Bit ? 2 : 4;
+	const size_t indexSize = result.index16Bit ? sizeof(uint16_t) : sizeof(uint32_t);
+	const bool buildPickingMesh = KRenderGlobal::InEditor && std::find(formats.begin(), formats.end(), VF_POINT_NORMAL_UV) != formats.end();
+	if (buildPickingMesh)
+	{
+		size_t totalTriangles = 0;
+		for (const KMeshRawData::ModelPart& part : result.parts)
+		{
+			totalTriangles += (part.indexCount ? part.indexCount : part.vertexCount) / 3;
+		}
+		m_TriangleMesh.triangles.reserve(totalTriangles);
+	}
 
 	for (uint32_t i = 0; i < (uint32_t)m_SubMeshes.size(); ++i)
 	{
@@ -279,6 +270,7 @@ bool KMesh::InitFromImportResult(const KMeshRawData& result, const std::vector<V
 
 		indexData.indexStart = 0;
 		indexData.indexCount = subPart.indexCount;
+		const void* pIndices = subPart.indexCount ? POINTER_OFFSET(result.indicesData.data(), indexSize * subPart.indexBase) : nullptr;
 
 		KAABBBox bound;
 
@@ -288,22 +280,14 @@ bool KMesh::InitFromImportResult(const KMeshRawData& result, const std::vector<V
 			ASSERT_RESULT(indexData.indexBuffer->InitMemory(
 				indexType,
 				subPart.indexCount,
-				POINTER_OFFSET(result.indicesData.data(), indexSize * subPart.indexBase)
+				pIndices
 			));
 			ASSERT_RESULT(indexData.indexBuffer->InitDevice(false));
 			indexData.indexBuffer->SetDebugName((label + "_IB_" + std::to_string(i)).c_str());
 
 			for (uint32_t i = 0; i < subPart.indexCount; ++i)
 			{
-				uint32_t index = -1;
-				if (indexType == IT_16)
-				{
-					index = *(uint16_t*)POINTER_OFFSET(result.indicesData.data(), indexSize * (subPart.indexBase + i));
-				}
-				else
-				{
-					index = *(uint32_t*)POINTER_OFFSET(result.indicesData.data(), indexSize * (subPart.indexBase + i));
-				}
+				const uint32_t index = GetMeshIndex(pIndices, indexType, i);
 				assert(index < positions.size());
 				bound = bound.Merge(positions[index]);
 			}
@@ -317,9 +301,17 @@ bool KMesh::InitFromImportResult(const KMeshRawData& result, const std::vector<V
 		}
 
 		ASSERT_RESULT(subMesh->Init(&m_VertexData, indexData, material, bound, label + "_" + std::to_string(i)));
-		indexData.Reset();
+		if (buildPickingMesh)
+		{
+			const uint32_t count = indexData.indexCount ? indexData.indexCount : subPart.vertexCount;
+			AppendPickingTriangles(m_TriangleMesh, positions, pIndices, indexType, subPart.vertexBase, count);
+		}
 	}
 
+	if (KRenderGlobal::InEditor)
+	{
+		DiscardCPUGeometry();
+	}
 	return true;
 }
 
@@ -348,12 +340,13 @@ bool KMesh::InitFromAsset(const std::string& path)
 		{
 			return false;
 		}
+		// 导入结果已持有数据，上传前释放 Loader 的中间缓冲。
+		loader.reset();
 
 		if (InitFromImportResult(result, std::vector<VertexFormat>(formats, formats + ARRAY_SIZE(formats)), path))
 		{
 			m_Path = path;
 			m_Type = MRT_EXTERNAL_ASSET;
-			UpdateTriangleMesh();
 		}
 
 		return true;
@@ -413,7 +406,6 @@ bool KMesh::InitFromUserData(const KMeshRawData& userData, const std::string& la
 	{
 		m_Path = label;
 		m_Type = MRT_USER_DATA;
-		UpdateTriangleMesh();
 	}
 
 	return true;

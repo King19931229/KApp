@@ -2,7 +2,7 @@
 #include "KVulkanRenderDevice.h"
 #include "KBase/Publish/KInteger.h"
 #include "KVulkanPipelineLayout.h"
-#include "KVulkanBuffer.h"
+#include "KVulkanHeapAllocator.h"
 #include "KVulkanTexture.h"
 #include "KVulkanSampler.h"
 #include "KVulkanHelper.h"
@@ -15,8 +15,7 @@
 #include "KBase/Publish/KSectionEnterAssertGuard.h"
 
 KVulkanPipeline::KVulkanPipeline()
-	: m_DescriptorSetLayout(VK_NULL_HANDLE)
-	, m_PipelineLayout(VK_NULL_HANDLE)
+	: m_PipelineLayout(VK_NULL_HANDLE)
 	, m_DescriptorTicket(nullptr)
 {
 }
@@ -29,12 +28,7 @@ bool KVulkanPipeline::DestroyDevice()
 {
 	KPipelineBase::DestroyDevice();
 
-	m_DescriptorSetLayout = VK_NULL_HANDEL;
 	m_PipelineLayout = VK_NULL_HANDEL;
-	m_DescriptorSetLayoutBinding.clear();
-
-	m_WriteDescriptorSet.clear();
-	m_BufferWriteInfo.clear();
 
 	if (m_DescriptorTicket)
 	{
@@ -50,14 +44,20 @@ bool KVulkanPipeline::CreateLayout()
 	if (KPipelineBase::CreateLayout())
 	{
 		KVulkanPipelineLayout* vulkanPipelineLayout = (KVulkanPipelineLayout*)m_Layout.Get().get();
-		m_DescriptorSetLayout = vulkanPipelineLayout->GetDescriptorSetLayout();
 		m_PipelineLayout = vulkanPipelineLayout->GetPipelineLayout();
-		m_DescriptorSetLayoutBinding = vulkanPipelineLayout->GetDescriptorSetLayoutBinding();
-		CreateDescriptionWrite();
 		KVulkanDescriptorManager& manager = static_cast<KVulkanRenderDevice*>(KRenderGlobal::RenderDevice)->GetDescriptorManager();
-		m_DescriptorTicket = manager.Create(m_DescriptorSetLayout, m_DescriptorSetLayoutBinding, MAX_THREAD_SUPPORT, 512, true);
-		if (m_DescriptorTicket && !m_Name.empty()) manager.SetDebugName(m_DescriptorTicket, m_Name.c_str());
-		return m_DescriptorTicket != nullptr;
+		m_DescriptorTicket = manager.Create(vulkanPipelineLayout->GetDescriptorSetLayout(),
+			vulkanPipelineLayout->GetDescriptorSetLayoutBinding(), MAX_THREAD_SUPPORT, 512, true);
+		if (!m_DescriptorTicket)
+		{
+			DestroyDevice();
+			return false;
+		}
+		if (!m_Name.empty())
+		{
+			manager.SetDebugName(m_DescriptorTicket, m_Name.c_str());
+		}
+		return true;
 	}
 	else
 	{
@@ -65,53 +65,15 @@ bool KVulkanPipeline::CreateLayout()
 	}
 }
 
-bool KVulkanPipeline::CreateDescriptionWrite()
-{
-	m_WriteDescriptorSet.clear();
-	m_WriteDescriptorSet.reserve(m_Uniforms.size());
-
-	m_BufferWriteInfo.clear();
-	m_BufferWriteInfo.resize(m_Uniforms.size());
-
-	size_t idx = 0;
-	for (auto& pair : m_Uniforms)
-	{
-		uint32_t binding = pair.first;
-		KVulkanUniformBuffer* vulkanUniformBuffer = (KVulkanUniformBuffer*)pair.second.buffer.get();
-
-		VkDescriptorBufferInfo& bufferWrite = m_BufferWriteInfo[idx];
-		bufferWrite.buffer = vulkanUniformBuffer->GetVulkanHandle();
-		bufferWrite.offset = 0;
-		bufferWrite.range = (VkDeviceSize)vulkanUniformBuffer->GetBufferSize();
-
-		VkWriteDescriptorSet write = {};
-		write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		write.pNext = nullptr;
-		write.dstSet = VK_NULL_HANDLE;
-		write.dstBinding = binding;
-		write.dstArrayElement = 0;
-		write.descriptorCount = 1;
-		write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-
-		write.pBufferInfo = &bufferWrite;
-		write.pImageInfo = nullptr;
-		write.pTexelBufferView = nullptr;
-
-		m_WriteDescriptorSet.push_back(write);
-		++idx;
-	}
-
-	return true;
-}
-
-VkDescriptorSet KVulkanPipeline::AllocDescriptorSet(uint32_t threadIndex,
+VkDescriptorSet KVulkanPipeline::AllocDescriptorSet(uint32_t threadIndex, VkCommandPool commandPool,
 	const KDynamicConstantBufferUsage** ppConstantUsage, uint32_t dynamicBufferUsageCount,
 	const KStorageBufferUsage** ppStorageUsage, uint32_t storageBufferUsageCount)
 {
-	threadIndex = std::min(threadIndex, MAX_THREAD_SUPPORT - 1);
+	if (threadIndex >= MAX_THREAD_SUPPORT || commandPool == VK_NULL_HANDLE) return VK_NULL_HANDLE;
 	KVulkanDescriptorManager& manager = static_cast<KVulkanRenderDevice*>(KRenderGlobal::RenderDevice)->GetDescriptorManager();
 	bool newSet = false;
-	KVulkanDescriptorPoolAllocatedSetPtr allocation = manager.Alloc(m_DescriptorTicket, threadIndex, newSet);
+	KVulkanDescriptorPoolAllocatedSetPtr allocation = manager.Alloc(m_DescriptorTicket, threadIndex, newSet, commandPool);
+	if (!allocation || allocation->commandPool != commandPool) return VK_NULL_HANDLE;
 	return manager.GetGraphicsWriter(m_DescriptorTicket, threadIndex).UpdateDescriptorSet(this, allocation, newSet,
 		ppConstantUsage, dynamicBufferUsageCount, ppStorageUsage, storageBufferUsageCount);
 }
@@ -441,8 +403,20 @@ bool KVulkanPipelineHandle::Init(IKPipelineLayout* layout, IKRenderPass* renderP
 	pipelineInfo.basePipelineHandle = VK_NULL_HANDLE; // Optional
 	pipelineInfo.basePipelineIndex = -1; // Optional
 
-	VK_ASSERT_RESULT(vkCreateGraphicsPipelines(KVulkanGlobal::device, KVulkanGlobal::pipelineCache, 1, &pipelineInfo, nullptr, &m_GraphicsPipeline));
-
+	VkResult result = vkCreateGraphicsPipelines(KVulkanGlobal::device, KVulkanGlobal::pipelineCache, 1, &pipelineInfo, nullptr, &m_GraphicsPipeline);
+	if ((result == VK_ERROR_OUT_OF_DEVICE_MEMORY || result == VK_ERROR_OUT_OF_HOST_MEMORY) && KVulkanHeapAllocator::ReleaseUnusedPages())
+	{
+		if (m_GraphicsPipeline) vkDestroyPipeline(KVulkanGlobal::device, m_GraphicsPipeline, nullptr);
+		m_GraphicsPipeline = VK_NULL_HANDLE;
+		result = vkCreateGraphicsPipelines(KVulkanGlobal::device, KVulkanGlobal::pipelineCache, 1, &pipelineInfo, nullptr, &m_GraphicsPipeline);
+	}
+	if (result != VK_SUCCESS)
+	{
+		if (m_GraphicsPipeline) vkDestroyPipeline(KVulkanGlobal::device, m_GraphicsPipeline, nullptr);
+		m_GraphicsPipeline = VK_NULL_HANDLE;
+		VK_ASSERT_RESULT(result);
+		return false;
+	}
 	return true;
 }
 

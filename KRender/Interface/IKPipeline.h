@@ -1,6 +1,7 @@
 #pragma once
 #include "KRender/Interface/IKRenderConfig.h"
 #include "KBase/Publish/KReferenceHolder.h"
+#include <map>
 
 struct KPipelineState
 {
@@ -64,6 +65,7 @@ struct KPipelineBinding
 {
 	IKShaderPtr shaders[LAYOUT_SHADER_COUNT];
 	std::vector<VertexFormat> formats;
+	std::map<uint32_t, uint32_t> runtimeSamplerCounts;
 
 	KPipelineBinding()
 	{}

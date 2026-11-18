@@ -14,86 +14,52 @@ layout(std430, binding = BINDING_MATERIAL_PARAMETER) readonly buffer MaterialPar
 layout(std430, binding = BINDING_MATERIAL_TEXTURE_BINDING) readonly buffer MaterialTextureBindingPackBuffer { MaterialTextureBindingStruct MaterialTextureBinding[]; };
 layout(std430, binding = BINDING_MATERIAL_INDEX) readonly buffer MaterialIndexPackBuffer { uint MaterialIndex[]; };
 
-// TODO 重构GPUScene TextureIndex
-layout(binding = BINDING_TEXTURE0) uniform sampler2DArray textureArraySampler0;
-layout(binding = BINDING_TEXTURE1) uniform sampler2DArray textureArraySampler1;
-layout(binding = BINDING_TEXTURE2) uniform sampler2DArray textureArraySampler2;
-layout(binding = BINDING_TEXTURE3) uniform sampler2DArray textureArraySampler3;
-layout(binding = BINDING_TEXTURE4) uniform sampler2DArray textureArraySampler4;
-layout(binding = BINDING_TEXTURE5) uniform sampler2DArray textureArraySampler5;
+#extension GL_EXT_nonuniform_qualifier : require
+layout(binding = BINDING_TEXTURE0) uniform sampler2D materialTextures[];
 
 uint materialIndex = MaterialIndex[darwIndex];
 
-vec4 SampleTextureArray(in vec2 texCoord, in uint arrayIndex, in uint sliceIndex)
+vec4 SampleMaterialTexture(in vec2 texCoord, in uint slot)
 {
-	// 0.125K
-	if (arrayIndex == 0)
-	{
-		return texture(textureArraySampler0, vec3(texCoord, float(sliceIndex)));
-	}
-	// 0.25K
-	if (arrayIndex == 1)
-	{
-		return texture(textureArraySampler1, vec3(texCoord, float(sliceIndex)));
-	}
-	// 0.5K
-	if (arrayIndex == 2)
-	{
-		return texture(textureArraySampler2, vec3(texCoord, float(sliceIndex)));
-	}
-	// 1K
-	if (arrayIndex == 3)
-	{
-		return texture(textureArraySampler3, vec3(texCoord, float(sliceIndex)));
-	}
-	// 2K
-	if (arrayIndex == 4)
-	{
-		return texture(textureArraySampler4, vec3(texCoord, float(sliceIndex)));
-	}
-	// 4K
-	if (arrayIndex == 5)
-	{
-		return texture(textureArraySampler5, vec3(texCoord, float(sliceIndex)));
-	}
-	return vec4(0);
+	uint index = MaterialTextureBinding[materialIndex].binding[slot];
+	return index == 0xFFFFFFFFu ? vec4(0) : texture(materialTextures[nonuniformEXT(index)], texCoord);
 }
 
 vec4 SampleDiffuse(in vec2 texCoord)
 {
-	return SampleTextureArray(texCoord, MaterialTextureBinding[materialIndex].binding[0], MaterialTextureBinding[materialIndex].slice[0]);
+	return SampleMaterialTexture(texCoord, 0);
 }
 vec4 SampleDiffuseLod(in vec2 texCoord, float mip)
 {
-	// TODO
-	return SampleDiffuse(texCoord);
+	uint index = MaterialTextureBinding[materialIndex].binding[0];
+	return index == 0xFFFFFFFFu ? vec4(0) : textureLod(materialTextures[nonuniformEXT(index)], texCoord, mip);
 }
 
 vec4 SampleNormal(in vec2 texCoord)
 {
-	return SampleTextureArray(texCoord, MaterialTextureBinding[materialIndex].binding[1], MaterialTextureBinding[materialIndex].slice[1]);
+	return SampleMaterialTexture(texCoord, 1);
 }
 
 #if PBR_MATERIAL_SPECULAR_GLOSINESS
 vec4 SampleSpecularGlosiness(in vec2 texCoord)
 {
-	return SampleTextureArray(texCoord, MaterialTextureBinding[materialIndex].binding[2], MaterialTextureBinding[materialIndex].slice[2]);
+	return SampleMaterialTexture(texCoord, 2);
 }
 #else
 vec4 SampleMetalRoughness(in vec2 texCoord)
 {
-	return SampleTextureArray(texCoord, MaterialTextureBinding[materialIndex].binding[2], MaterialTextureBinding[materialIndex].slice[2]);
+	return SampleMaterialTexture(texCoord, 2);
 }
 #endif
 
 vec4 SampleEmissive(in vec2 texCoord)
 {
-	return SampleTextureArray(texCoord, MaterialTextureBinding[materialIndex].binding[3], MaterialTextureBinding[materialIndex].slice[3]);
+	return SampleMaterialTexture(texCoord, 3);
 }
 
 vec4 SampleAO(in vec2 texCoord)
 {
-	return SampleTextureArray(texCoord, MaterialTextureBinding[materialIndex].binding[4], MaterialTextureBinding[materialIndex].slice[4]);
+	return SampleMaterialTexture(texCoord, 4);
 }
 
 struct ShadingStruct

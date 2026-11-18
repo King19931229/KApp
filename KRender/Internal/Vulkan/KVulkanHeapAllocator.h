@@ -25,4 +25,6 @@ namespace KVulkanHeapAllocator
 	bool Alloc(VkDeviceSize size, VkDeviceSize alignment, uint32_t memoryTypeIndex, VkMemoryPropertyFlags memoryUsage, VkBufferUsageFlags bufferUsage, bool noShared, AllocInfo& info);
 	bool Free(const AllocInfo& data);
 	bool Tick();
+	// 回收已无活动分配的内存页
+	VkDeviceSize ReleaseUnusedPages();
 }
