@@ -76,7 +76,7 @@ bool KRenderScene::InitRenderResource(const KCamera* camera)
 	KRenderGlobal::VirtualGeometryManager.CreateVirtualGeometryScene(m_VGScene);
 	m_VGScene->Init(&KRenderGlobal::Scene, camera);
 
-	KRenderGlobal::GPUScene.Init(this, camera);
+	KRenderGlobal::GPUScene.Init(this);
 
 	KRenderGlobal::RTAO.Init(KRenderGlobal::Scene.GetRayTraceScene().get());
 

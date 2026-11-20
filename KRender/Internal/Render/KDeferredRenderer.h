@@ -33,10 +33,10 @@ protected:
 
 	const class KCamera* m_Camera;
 
-	void BuildMaterialSubMeshInstance(DeferredRenderStage renderStage, const std::vector<IKEntity*>& cullRes, std::vector<KMaterialSubMeshInstance>& instances);
+	void BuildMaterialSubMeshInstance(DeferredRenderStage renderStage, const std::vector<IKEntity*>& cullRes, std::vector<KMaterialSubMeshInstance>& instances, const KMeshLODView* lodView);
 
-	void PopulateRenderCommand(DeferredRenderStage deferredRenderStage, const std::vector<IKEntity*>& cullRes, KRenderCommandList& renderCommands);
-	void ExecuteRenderPass(KRHICommandList& commandList, DeferredRenderStage deferredRenderStage, const std::vector<IKEntity*>& cullRes);
+	void PopulateRenderCommand(DeferredRenderStage deferredRenderStage, const std::vector<IKEntity*>& cullRes, KRenderCommandList& renderCommands, const KMeshLODView* lodView);
+	void ExecuteRenderPass(KRHICommandList& commandList, DeferredRenderStage deferredRenderStage, const std::vector<IKEntity*>& cullRes, const KMeshLODView* lodView = nullptr, bool gpuScene = false);
 
 	void RecreateRenderPass(uint32_t width, uint32_t heigh);
 	void RecreatePipeline();
@@ -52,7 +52,7 @@ public:
 	void RemoveCallFunc(DeferredRenderStage stage, RenderPassCallFuncType* func);
 	
 	void PrePass(KRHICommandList& commandList, const std::vector<IKEntity*>& cullRes);
-	void MainBasePass(KRHICommandList& commandList, const std::vector<IKEntity*>& cullRes);
+	void MainBasePass(KRHICommandList& commandList, const std::vector<IKEntity*>& cullRes, const KMeshLODView& lodView, bool gpuScene);
 	void PostBasePass(KRHICommandList& commandList);
 	void DeferredLighting(KRHICommandList& commandList);
 	void ForwardOpaque(KRHICommandList& commandList, const std::vector<IKEntity*>& cullRes);

@@ -1,4 +1,5 @@
 #include "KRenderUtil.h"
+#include "KMeshLODView.h"
 #include "KBase/Publish/KInteger.h"
 #include "Internal/KRenderGlobal.h"
 #include "Internal/ECS/Component/KTransformComponent.h"
@@ -65,9 +66,10 @@ namespace KRenderUtil
 		}
 	}
 
-	void CalculateInstancesByMaterial(const std::vector<IKEntity*>& entities, std::vector<KMaterialSubMeshInstance>& instances)
+	static void CalculateMaterialInstances(const std::vector<IKEntity*>& entities, std::vector<KMaterialSubMeshInstance>& instances,
+		const KMeshLODView* lodView, uint32_t targetBinding, const IKTexturePtr& virtualTexture)
 	{
-		std::map<std::tuple<KSubMeshPtr, IKMaterialPtr>, size_t> materialSubMeshIndexMap;
+		std::map<std::pair<KSubMeshPtr, IKMaterialPtr>, size_t> materialSubMeshIndexMap;
 
 		for (IKEntity* entity : entities)
 		{
@@ -76,61 +78,53 @@ namespace KRenderUtil
 			if (entity->GetComponent(CT_RENDER, (IKComponentBase**)&render) && entity->GetComponent(CT_TRANSFORM, (IKComponentBase**)&transform))
 			{
 				const std::vector<KMaterialSubMeshPtr>& materialSubMeshes = render->GetMaterialSubMeshs();
+				const auto* levels = lodView ? lodView->GetLevels(entity->GetID()) : nullptr;
+				const KConstantDefinition::OBJECT& finalTransform = transform->FinalTransform_RenderThread();
+				const glm::mat4 curTransform = glm::transpose(finalTransform.MODEL);
+				const glm::mat4 prevTransform = glm::transpose(finalTransform.PRVE_MODEL);
 
-				for (size_t i = 0; i < materialSubMeshes.size(); ++i)
+				for (size_t slot = 0; slot < materialSubMeshes.size(); ++slot)
 				{
-					size_t index = 0;
-					KSubMeshPtr subMesh = materialSubMeshes[i]->GetSubMesh();
-					KMaterialRef material = materialSubMeshes[i]->GetMaterial();
-
-					std::tuple<KSubMeshPtr, IKMaterialPtr> pair = std::make_tuple(subMesh, *material);
-
-					auto it = materialSubMeshIndexMap.find(pair);
-					if (it != materialSubMeshIndexMap.end())
+					const auto& binding = materialSubMeshes[slot];
+					const auto subMesh = binding->GetSubMesh();
+					const auto material = binding->GetMaterial();
+					if (!subMesh || !material || !subMesh->GetDrawElementCount())
 					{
-						index = it->second;
+						continue;
 					}
-					else
+					if (virtualTexture)
 					{
-						index = instances.size();
-						materialSubMeshIndexMap[pair] = index;
-						instances.push_back({ materialSubMeshes[i], {} });
+						const auto textureBinding = material->GetTextureBinding();
+						if (!textureBinding->GetIsVirtualTexture(targetBinding) || textureBinding->GetTexture(targetBinding) != virtualTexture)
+						{
+							continue;
+						}
 					}
 
-					KMaterialSubMeshInstance& subMeshInstance = instances[index];
+					const uint32_t lodLevel = levels ? (*levels)[slot] : 0;
+					const auto& geometry = lodLevel ? subMesh->GetReducedLODs()[lodLevel - 1] : subMesh;
+					const auto batch = materialSubMeshIndexMap.emplace(std::make_pair(geometry, *material), instances.size());
+					if (batch.second)
+					{
+						instances.push_back({ binding, {}, lodLevel });
+					}
 
-					const KConstantDefinition::OBJECT& finalTransform = transform->FinalTransform_RenderThread();
-					glm::mat4 curTransform = glm::transpose(finalTransform.MODEL);
-					glm::mat4 prevTransform = glm::transpose(finalTransform.PRVE_MODEL);
-					subMeshInstance.instanceData.push_back(KVertexDefinition::INSTANCE_DATA_MATRIX4F(curTransform[0], curTransform[1], curTransform[2], prevTransform[0], prevTransform[1], prevTransform[2]));
+					instances[batch.first->second].instanceData.emplace_back(curTransform[0], curTransform[1], curTransform[2], prevTransform[0], prevTransform[1], prevTransform[2]);
 				}
 			}
 		}
 	}
 
-	void CalculateInstancesByVirtualTexture(const std::vector<IKEntity*>& entities, uint32_t targetBinding, IKTexturePtr virtualTexture, std::vector<KMaterialSubMeshInstance>& instances)
+	void CalculateInstancesByMaterial(const std::vector<IKEntity*>& entities, std::vector<KMaterialSubMeshInstance>& instances, const KMeshLODView* lodView)
 	{
-		for (IKEntity* entity : entities)
-		{
-			KRenderComponent* render = nullptr;
-			KTransformComponent* transform = nullptr;
-			if (entity->GetComponent(CT_RENDER, (IKComponentBase**)&render) && entity->GetComponent(CT_TRANSFORM, (IKComponentBase**)&transform))
-			{
-				const std::vector<KMaterialSubMeshPtr>& materialSubMeshes = render->GetMaterialSubMeshs();
-				for (size_t i = 0; i < materialSubMeshes.size(); ++i)
-				{
-					KMaterialRef material = materialSubMeshes[i]->GetMaterial();
-					IKMaterialTextureBindingPtr textureBinding = material->GetTextureBinding();
+		CalculateMaterialInstances(entities, instances, lodView, 0, nullptr);
+	}
 
-					if (textureBinding->GetIsVirtualTexture(targetBinding) && textureBinding->GetTexture(targetBinding) == virtualTexture)
-					{
-						const KConstantDefinition::OBJECT& finalTransform = transform->FinalTransform_RenderThread();
-						glm::mat4 curTransform = glm::transpose(finalTransform.MODEL);
-						glm::mat4 prevTransform = glm::transpose(finalTransform.PRVE_MODEL);
-						instances.push_back({ materialSubMeshes[i], {KVertexDefinition::INSTANCE_DATA_MATRIX4F(curTransform[0], curTransform[1], curTransform[2], prevTransform[0], prevTransform[1], prevTransform[2])} });
-					}
-				}
-			}
+	void CalculateInstancesByVirtualTexture(const std::vector<IKEntity*>& entities, uint32_t targetBinding, IKTexturePtr virtualTexture, std::vector<KMaterialSubMeshInstance>& instances, const KMeshLODView& lodView)
+	{
+		if (virtualTexture)
+		{
+			CalculateMaterialInstances(entities, instances, &lodView, targetBinding, virtualTexture);
 		}
 	}
 

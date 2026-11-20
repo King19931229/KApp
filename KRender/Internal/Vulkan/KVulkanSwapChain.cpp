@@ -35,7 +35,7 @@ bool KVulkanSwapChain::QuerySwapChainSupport()
 {
 	SwapChainSupportDetails details = {};
 
-	vkGetPhysicalDeviceSurfaceCapabilitiesKHR(KVulkanGlobal::physicalDevice, m_Surface, &details.capabilities);
+	VK_CHECK_OOM(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(KVulkanGlobal::physicalDevice, m_Surface, &details.capabilities));
 
 	uint32_t formatCount = 0;
 	VK_ASSERT_RESULT(vkGetPhysicalDeviceSurfaceFormatsKHR(KVulkanGlobal::physicalDevice, m_Surface, &formatCount, nullptr));
@@ -47,7 +47,7 @@ bool KVulkanSwapChain::QuerySwapChainSupport()
 	}
 
 	uint32_t presentModeCount = 0;
-	vkGetPhysicalDeviceSurfacePresentModesKHR(KVulkanGlobal::physicalDevice, m_Surface, &presentModeCount, nullptr);
+	VK_CHECK_OOM(vkGetPhysicalDeviceSurfacePresentModesKHR(KVulkanGlobal::physicalDevice, m_Surface, &presentModeCount, nullptr));
 
 	if (presentModeCount != 0)
 	{
@@ -425,7 +425,7 @@ bool KVulkanSwapChain::WaitForInFlightFrame(uint32_t& completedFrameNum)
 	// 这个Wait保证Queue已经被执行完
 	KVulkanFence* vulkanFence = static_cast<KVulkanFence*>(m_InFlightFence.get());
 	VkFence fence = vulkanFence->GetVkFence();
-	VkResult vkResult = vkWaitForFences(KVulkanGlobal::device, 1, &fence, VK_TRUE, UINT64_MAX);
+	VkResult vkResult = VK_CHECK_OOM(vkWaitForFences(KVulkanGlobal::device, 1, &fence, VK_TRUE, UINT64_MAX));
 	VK_ASSERT_RESULT(vkResult);
 	if (vkResult != VK_SUCCESS || !vulkanFence->TakeFrameNum(completedFrameNum)) return false;
 	static_cast<KVulkanRenderDevice*>(KRenderGlobal::RenderDevice)->ReleaseFrameResources(completedFrameNum);
@@ -437,7 +437,7 @@ SwapChainAcquireResult KVulkanSwapChain::AcquireNextImage(uint32_t& imageIndex)
 	// 获取可用交换链Image索引 促发交换链Image可用信号量
 	VkSemaphore singalSemaphore = ((KVulkanSemaphore*)m_ImageAvailableSemaphore.get())->GetVkSemaphore();
 	uint32_t acquiredImageIndex = 0;
-	VkResult vkResult = vkAcquireNextImageKHR(KVulkanGlobal::device, m_SwapChain, UINT64_MAX, singalSemaphore, VK_NULL_HANDLE, &acquiredImageIndex);
+	VkResult vkResult = VK_CHECK_OOM(vkAcquireNextImageKHR(KVulkanGlobal::device, m_SwapChain, UINT64_MAX, singalSemaphore, VK_NULL_HANDLE, &acquiredImageIndex));
 	if (vkResult == VK_SUCCESS || vkResult == VK_SUBOPTIMAL_KHR)
 	{
 		imageIndex = acquiredImageIndex;
@@ -488,7 +488,7 @@ void KVulkanSwapChain::PresentQueue(bool& needResize)
 	vkAcquireNextImageKHR获取到的imageIndex只保证该Image不是正在Present
 	但并不能保证该Image没有准备提交的绘制命令
 	*/
-	vkQueueWaitIdle(m_PresentQueue);
+	VK_CHECK_OOM(vkQueueWaitIdle(m_PresentQueue));
 #endif
 
 	for (KDevicePresentCallback* callback : m_PostPresentCallback)
@@ -501,7 +501,7 @@ void KVulkanSwapChain::PresentQueue(bool& needResize)
 	if (vkResult == VK_ERROR_OUT_OF_DATE_KHR || vkResult == VK_SUBOPTIMAL_KHR)
 	{
 		VkSurfaceCapabilitiesKHR surfaceCapabilities;
-		needResize = (vkGetPhysicalDeviceSurfaceCapabilitiesKHR(KVulkanGlobal::physicalDevice, m_Surface, &surfaceCapabilities) != VK_ERROR_SURFACE_LOST_KHR);
+		needResize = (VK_CHECK_OOM(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(KVulkanGlobal::physicalDevice, m_Surface, &surfaceCapabilities)) != VK_ERROR_SURFACE_LOST_KHR);
 	}
 	else
 	{
@@ -607,7 +607,7 @@ bool KVulkanSwapChain::CreateSurface()
 		surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
 		surfaceCreateInfo.hinstance = (HINSTANCE)hInstance;
 		surfaceCreateInfo.hwnd = (HWND)hwnd;
-		if (vkCreateWin32SurfaceKHR(KVulkanGlobal::instance, &surfaceCreateInfo, nullptr, &m_Surface) == VK_SUCCESS)
+		if (VK_CHECK_OOM(vkCreateWin32SurfaceKHR(KVulkanGlobal::instance, &surfaceCreateInfo, nullptr, &m_Surface)) == VK_SUCCESS)
 		{
 			return true;
 		}
@@ -619,7 +619,7 @@ bool KVulkanSwapChain::CreateSurface()
 		VkAndroidSurfaceCreateInfoKHR surfaceCreateInfo = {};
 		surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR;
 		surfaceCreateInfo.window = app->window;
-		if (vkCreateAndroidSurfaceKHR(m_Instance, &surfaceCreateInfo, NULL, &m_Surface) == VK_SUCCESS)
+		if (VK_CHECK_OOM(vkCreateAndroidSurfaceKHR(m_Instance, &surfaceCreateInfo, NULL, &m_Surface)) == VK_SUCCESS)
 		{
 			return true;
 		}

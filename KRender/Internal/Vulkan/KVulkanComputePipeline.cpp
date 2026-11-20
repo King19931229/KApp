@@ -281,7 +281,7 @@ bool KVulkanComputePipeline::CreateLayout()
 	descriptorSetLayoutCI.pBindings = m_LayoutBindings.data();
 	descriptorSetLayoutCI.bindingCount = (uint32_t)m_LayoutBindings.size();
 
-	if (vkCreateDescriptorSetLayout(KVulkanGlobal::device, &descriptorSetLayoutCI, nullptr, &m_DescriptorLayout) != VK_SUCCESS)
+	if (VK_CHECK_OOM(vkCreateDescriptorSetLayout(KVulkanGlobal::device, &descriptorSetLayoutCI, nullptr, &m_DescriptorLayout)) != VK_SUCCESS)
 	{
 		return false;
 	}
@@ -291,7 +291,7 @@ bool KVulkanComputePipeline::CreateLayout()
 	pipelineLayoutCI.setLayoutCount = 1;
 	pipelineLayoutCI.pSetLayouts = &m_DescriptorLayout;
 
-	if (vkCreatePipelineLayout(KVulkanGlobal::device, &pipelineLayoutCI, nullptr, &m_PipelineLayout) != VK_SUCCESS) return false;
+	if (VK_CHECK_OOM(vkCreatePipelineLayout(KVulkanGlobal::device, &pipelineLayoutCI, nullptr, &m_PipelineLayout)) != VK_SUCCESS) return false;
 	m_DescriptorTicket = static_cast<KVulkanRenderDevice*>(KRenderGlobal::RenderDevice)->GetDescriptorManager().Create(m_DescriptorLayout, m_LayoutBindings, 1, 8, false);
 	return m_DescriptorTicket != nullptr;
 }
@@ -311,7 +311,7 @@ bool KVulkanComputePipeline::CreatePipeline()
 	createInfo.stage = shaderCreateInfo;
 
 	VkPipeline pipeline = VK_NULL_HANDLE;
-	if (vkCreateComputePipelines(KVulkanGlobal::device, KVulkanGlobal::pipelineCache, 1, &createInfo, nullptr, &pipeline) != VK_SUCCESS)
+	if (VK_CHECK_OOM(vkCreateComputePipelines(KVulkanGlobal::device, KVulkanGlobal::pipelineCache, 1, &createInfo, nullptr, &pipeline)) != VK_SUCCESS)
 	{
 		if (pipeline != VK_NULL_HANDLE) vkDestroyPipeline(KVulkanGlobal::device, pipeline, nullptr);
 		KG_LOGE(LM_RENDER, "Compute pipeline creation failed <%s>", m_ComputeShader->GetPath());

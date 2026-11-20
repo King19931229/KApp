@@ -5,6 +5,8 @@
 #include "Internal/Render/KRHICommandList.h"
 #include <queue>
 
+class KMeshLODView;
+
 struct KVirtualTextureTile
 {
 	uint32_t x = -1;
@@ -156,7 +158,7 @@ public:
 	bool Init(const std::string& path, uint32_t tileNum, uint32_t virtualId);
 	bool UnInit();
 
-	bool FeedbackRender(KRHICommandList& commandList, IKRenderPassPtr renderPass, uint32_t targetBinding, const std::vector<IKEntity*>& cullRes);
+	bool FeedbackRender(KRHICommandList& commandList, IKRenderPassPtr renderPass, uint32_t targetBinding, const std::vector<IKEntity*>& cullRes, const KMeshLODView& lodView);
 	bool UpdateTexture(KRHICommandList& commandList);
 
 	void BeginRequest();

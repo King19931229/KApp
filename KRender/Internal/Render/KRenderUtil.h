@@ -5,10 +5,13 @@
 #include "Internal/ECS/Component/KRenderComponent.h"
 #include "Internal/VirtualTexture/KVirtualTexture.h"
 
+class KMeshLODView;
+
 struct KMaterialSubMeshInstance
 {
 	KMaterialSubMeshPtr materialSubMesh;
 	std::vector<KVertexDefinition::INSTANCE_DATA_MATRIX4F> instanceData;
+	uint32_t lodLevel = 0;
 };
 
 typedef std::function<bool(const KMaterialSubMeshInstance&, const KMaterialSubMeshInstance&)> KMaterialSubMeshInstanceCompareFunction;
@@ -18,8 +21,8 @@ namespace KRenderUtil
 	void UnRegisterRenderComponentCallback(RenderComponentObserverFunc* callback);
 
 	void CalculateInstancesByMesh(const std::vector<IKEntity*>& entities, std::vector<KMaterialSubMeshInstance>& instances);
-	void CalculateInstancesByMaterial(const std::vector<IKEntity*>& entities, std::vector<KMaterialSubMeshInstance>& instances);
-	void CalculateInstancesByVirtualTexture(const std::vector<IKEntity*>& entities, uint32_t targetBinding, IKTexturePtr virtualTexture, std::vector<KMaterialSubMeshInstance>& instances);
+	void CalculateInstancesByMaterial(const std::vector<IKEntity*>& entities, std::vector<KMaterialSubMeshInstance>& instances, const KMeshLODView* lodView = nullptr);
+	void CalculateInstancesByVirtualTexture(const std::vector<IKEntity*>& entities, uint32_t targetBinding, IKTexturePtr virtualTexture, std::vector<KMaterialSubMeshInstance>& instances, const KMeshLODView& lodView);
 
 	void GetInstances(const std::vector<IKEntity*>& entities, std::vector<KMaterialSubMeshInstance>& instances, KMaterialSubMeshInstanceCompareFunction comp);
 

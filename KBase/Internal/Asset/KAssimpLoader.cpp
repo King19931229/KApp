@@ -135,11 +135,18 @@ bool KAssimpLoader::ImportAiScene(const aiScene* scene, const KAssetImportOption
 
 		vertexCount += scene->mMeshes[i]->mNumVertices;
 
+		float opacity = 1.0f;
+		if (scene->mMaterials[paiMesh->mMaterialIndex]->Get(AI_MATKEY_OPACITY, opacity) == aiReturn_SUCCESS && opacity < 1.0f)
+		{
+			part.material.alphaMode = MAM_BLEND;
+			part.material.baseColorFactor.a = opacity;
+		}
+
 		aiColor3D pColor[6];
 
 		if (aiReturn_SUCCESS == scene->mMaterials[paiMesh->mMaterialIndex]->Get(AI_MATKEY_COLOR_DIFFUSE, pColor[0]))
 		{
-			part.material.extension.diffuseFactor = glm::vec4(pColor[0].r, pColor[0].g, pColor[0].b, 1.0f);
+			part.material.extension.diffuseFactor = glm::vec4(pColor[0].r, pColor[0].g, pColor[0].b, opacity);
 		}
 		if (aiReturn_SUCCESS == scene->mMaterials[paiMesh->mMaterialIndex]->Get(AI_MATKEY_COLOR_SPECULAR, pColor[1]))
 		{
@@ -329,7 +336,7 @@ bool KAssimpLoader::ImportAiScene(const aiScene* scene, const KAssetImportOption
 	result.vertexCount = vertexCount;
 	result.indexCount = indexCount;
 
-	if (indexCount < 0xFFFF)
+	if (vertexCount <= 65536)
 	{
 		std::vector<uint16_t> index16Buffer;
 		index16Buffer.resize(indexCount);

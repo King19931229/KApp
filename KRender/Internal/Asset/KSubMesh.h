@@ -7,6 +7,7 @@
 #include "KBase/Publish/KDebugUtility.h"
 #include "Meshlet/KMeshlet.h"
 
+#include <array>
 #include <functional>
 
 class KMesh;
@@ -15,14 +16,19 @@ class KSubMesh
 	friend class KMesh;
 	friend class KMeshSerializerV0;
 	friend class KMaterialSubMesh;
+public:
+	static constexpr uint32_t LOD_COUNT = 3;
 protected:
 	KMesh*						m_pParent;
 	KMaterialRef				m_Material;
 	DebugPrimitive				m_DebugPrimitive;
 
 	const KVertexData*			m_pVertexData;
+	std::unique_ptr<KVertexData>	m_VertexRange;
 	KIndexData					m_IndexData;
 	bool						m_IndexDraw;
+	bool						m_OwnIndexBuffer;
+	std::array<std::shared_ptr<KSubMesh>, LOD_COUNT - 1> m_ReducedLODs;
 
 	KAABBBox					m_Bound;
 
@@ -53,6 +59,10 @@ public:
 	inline DebugPrimitive GetDebugPrimitive() const { return m_DebugPrimitive; }
 	inline IKAccelerationStructurePtr GetIKAccelerationStructure() { return m_AccelerationStructure; }
 	inline const KVertexData* GetVertexData() const { return m_pVertexData; }
+	uint32_t GetDrawElementCount() const;
+	const auto& GetReducedLODs() const { return m_ReducedLODs; }
+	uint32_t ResolveLOD(uint32_t level) const;
+	const KSubMesh* GetLOD(uint32_t level) const;
 	inline void GetIndexData(KIndexData& indexData, bool& indexDraw) const
 	{
 		indexData = m_IndexData;

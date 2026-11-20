@@ -591,6 +591,10 @@ bool KGLTFLoader::GetNodeProps(Node* parent, const tinygltf::Node& node, const t
 		for (size_t i = 0; i < mesh.primitives.size(); i++)
 		{
 			const auto& primitive = mesh.primitives[i];
+			if (primitive.mode != TINYGLTF_MODE_TRIANGLES && primitive.mode != -1)
+			{
+				continue;
+			}
 			if (!CanShareVertices(primitive) ||
 				loaderInfo.vertexRanges.emplace(GetVertexKey(primitive, current), VertexRange()).second)
 			{
@@ -634,6 +638,10 @@ void KGLTFLoader::LoadNode(Node* parent, const tinygltf::Node& node, uint32_t no
 		for (size_t j = 0; j < mesh.primitives.size(); j++)
 		{
 			const tinygltf::Primitive& primitive = mesh.primitives[j];
+			if (primitive.mode != TINYGLTF_MODE_TRIANGLES && primitive.mode != -1)
+			{
+				continue;
+			}
 			uint32_t vertexStart = static_cast<uint32_t>(loaderInfo.vertexPos);
 			uint32_t indexStart = static_cast<uint32_t>(loaderInfo.indexPos);
 			uint32_t indexCount = 0;
@@ -1393,7 +1401,7 @@ bool KGLTFLoader::ConvertIntoResult(const KAssetImportOption& importOption, KMes
 	}
 
 	result.indexCount = (uint32_t)loaderInfo.indexBuffer.size();
-	if (result.indexCount >= 65536)
+	if (result.vertexCount > 65536)
 	{
 		result.index16Bit = false;
 		result.indicesData.resize(result.indexCount * sizeof(loaderInfo.indexBuffer[0]));

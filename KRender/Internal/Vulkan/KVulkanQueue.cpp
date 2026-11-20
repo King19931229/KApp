@@ -108,7 +108,7 @@ bool KVulkanFence::Wait()
 {
 	if (m_Fences.size() > 0)
 	{
-		VkResult result = vkWaitForFences(KVulkanGlobal::device, 1, &m_Fences[KRenderGlobal::CurrentInFlightFrameIndex].handle, VK_TRUE, UINT64_MAX);
+		VkResult result = VK_CHECK_OOM(vkWaitForFences(KVulkanGlobal::device, 1, &m_Fences[KRenderGlobal::CurrentInFlightFrameIndex].handle, VK_TRUE, UINT64_MAX));
 		return result == VK_SUCCESS;
 	}
 	return false;
@@ -118,7 +118,7 @@ bool KVulkanFence::Reset()
 {
 	if (m_Fences.size() > 0)
 	{
-		VkResult result = vkResetFences(KVulkanGlobal::device, 1, &m_Fences[KRenderGlobal::CurrentInFlightFrameIndex].handle);
+		VkResult result = VK_CHECK_OOM(vkResetFences(KVulkanGlobal::device, 1, &m_Fences[KRenderGlobal::CurrentInFlightFrameIndex].handle));
 		return result == VK_SUCCESS;
 	}
 	return false;

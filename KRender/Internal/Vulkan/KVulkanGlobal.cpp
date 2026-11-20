@@ -9,19 +9,19 @@ namespace KVulkanGlobal
 	VkResult QueueSubmit(VkQueue queue, uint32_t submitCount, const VkSubmitInfo* submits, VkFence fence)
 	{
 		std::lock_guard<std::mutex> lock(queueMutex);
-		return vkQueueSubmit(queue, submitCount, submits, fence);
+		return VK_CHECK_OOM(vkQueueSubmit(queue, submitCount, submits, fence));
 	}
 
 	VkResult QueuePresent(VkQueue queue, const VkPresentInfoKHR* presentInfo)
 	{
 		std::lock_guard<std::mutex> lock(queueMutex);
-		return vkQueuePresentKHR(queue, presentInfo);
+		return VK_CHECK_OOM(vkQueuePresentKHR(queue, presentInfo));
 	}
 
 	VkResult DeviceWaitIdle(VkDevice device)
 	{
 		std::lock_guard<std::mutex> lock(queueMutex);
-		return vkDeviceWaitIdle(device);
+		return VK_CHECK_OOM(vkDeviceWaitIdle(device));
 	}
 
 	std::vector<uint32_t> resourceSharingFamilyIndices;

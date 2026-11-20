@@ -96,7 +96,21 @@ void main()
 
 	vec3 mirrorPos = vec3(screenCoord, hitDepth);
 	vec2 motion = ComputeMotion(mirrorPos);
-	vec2 hitoryUV = screenCoord + motion;
+	vec4 currentGeometry = texture(gbuffer0, screenCoord);
+	float currentDepth = DecodeDepth(currentGeometry);
+	vec4 previousPosition = camera.prevViewProj * vec4(DecodePosition(currentGeometry, screenCoord), 1.0);
+	float previousDepth = previousPosition.w > 0.0
+		? NonLinearDepthToLinearDepth(object.prevProj, previousPosition.z / previousPosition.w) : 0.0;
+	float depthThreshold = fwidth(previousDepth);
+	vec2 surfaceMotion = DecodeMotion(texture(gbuffer1, screenCoord));
+	vec2 surfaceHistoryUV = screenCoord + surfaceMotion;
+	if (previousPosition.w > 0.0)
+	{
+		vec2 cameraUV = 0.5 * previousPosition.xy / previousPosition.w + vec2(0.5);
+		if (length((surfaceHistoryUV - cameraUV) * screenSize) > 0.75)
+			motion = surfaceMotion;
+	}
+	vec2 historyUV = screenCoord + motion;
 
 	vec4 history = vec4(0);
 	vec4 historySquared = vec4(0);
@@ -109,24 +123,20 @@ void main()
 #endif
 
 	const float motionSigma = 1.0 + 2.0 * (1.0 - roughness);
-	const float depthSigma = 1.0;
+	const float depthSigma = 2.0;
 	const float depthWeightCutoff = 0.5;
 	const float normalSigma = 1.1;
 	const float normalSigmaExponent = 32.0;
 
 	float motionLength = length(motion);
 
-	float motionWeight = pow(clamp(1.0 - 8.0 * motionLength, 0.0, 1.0), motionSigma);
+	float motionWeight = pow(clamp(1.0 - 2.0 * motionLength, 0.0, 1.0), motionSigma);
 	float depthWeight = 1.0;
 	float normalWeight = 1.0;
 
-	if (roughness < 0.1 && dot(motionLength, motionLength) > 4 * dot(invScreenSize, invScreenSize))
-	{
-		motionWeight = 0;
-	}
-
-	if (object.historyValid == 0 || any(isnan(hitoryUV))
-		|| hitoryUV.x < invScreenSize.x || hitoryUV.y < invScreenSize.y || hitoryUV.x > (1 - invScreenSize.x) || hitoryUV.y > (1 - invScreenSize.y))
+	if (object.historyValid == 0 || previousPosition.w <= 0.0 || any(isnan(historyUV))
+		|| !all(greaterThanEqual(surfaceHistoryUV, vec2(0.0))) || !all(lessThan(surfaceHistoryUV, vec2(1.0)))
+		|| any(lessThan(historyUV, invScreenSize)) || any(greaterThan(historyUV, 1.0 - invScreenSize)))
 	{
 		history = vec4(0);
 		historySquared = vec4(0);
@@ -135,9 +145,9 @@ void main()
 	}
 	else
 	{
-		history = texture(historyImage, hitoryUV);
-		historySquared = texture(historySquaredImage, hitoryUV);
-		historyTssp = 255.0 * texture(histroyTsppImage, hitoryUV).r;
+		history = texture(historyImage, historyUV);
+		historySquared = texture(historySquaredImage, historyUV);
+		historyTssp = 255.0 * texture(histroyTsppImage, historyUV).r;
 	}
 
 	vec4 mean = vec4(0);
@@ -151,25 +161,16 @@ void main()
 	{
 		// normal and depth weight
 		{
-			vec4 gbuffer0Data;
+			vec3 currentVSNormal = normalize(DecodeNormalViewSpace(currentGeometry));
+			vec4 historyGeometry = texture(historyNormalDepthImage, surfaceHistoryUV);
+			float historyDepth = DecodeDepth(historyGeometry);
+			vec3 historyVSNormal = normalize(DecodeNormalViewSpace(historyGeometry));
 
-			gbuffer0Data = texture(gbuffer0, screenCoord);
-			float currentDepth = DecodeDepth(gbuffer0Data);
-			vec3 currentVSNormal = normalize(DecodeNormalViewSpace(gbuffer0Data));
-			vec4 previousPosition = camera.prevViewProj * vec4(DecodePosition(gbuffer0Data, screenCoord), 1.0);
-			float previousDepth = previousPosition.w > 0 ? NonLinearDepthToLinearDepth(object.prevProj, previousPosition.z / previousPosition.w) : 0;
-
-			gbuffer0Data = previousPosition.w > 0 ? texture(historyNormalDepthImage, 0.5 * previousPosition.xy / previousPosition.w + vec2(0.5)) : gbuffer0Data;
-			float historyDepth = DecodeDepth(gbuffer0Data);
-			vec3 historyVSNormal = normalize(DecodeNormalViewSpace(gbuffer0Data));
-
-			vec2 dxdy = vec2(dFdx(previousDepth), dFdy(previousDepth));
-			float depthThreshold = dot(vec2(1.0), abs(dxdy));
 			vec4 precisionPosition = camera.prevViewProj * vec4(DecodePosition(vec4(0, 0, 0, currentDepth + FloatPrecision(currentDepth, 5, 10)), screenCoord), 1.0);
 			float depthFloatPrecision = abs(NonLinearDepthToLinearDepth(object.prevProj, precisionPosition.z / precisionPosition.w) - previousDepth) + FloatPrecision(historyDepth, 5, 10);
 
 			float depthTolerance = depthSigma * depthThreshold + depthFloatPrecision;
-			depthWeight = previousPosition.w > 0 ? min(depthTolerance / (abs(historyDepth - previousDepth) + depthFloatPrecision), 1) : 0;
+			depthWeight = min(depthTolerance / (abs(historyDepth - previousDepth) + depthFloatPrecision), 1.0);
 			depthWeight *= float(depthWeight >= depthWeightCutoff);
 
 			normalWeight = pow(clamp(normalSigma * dot(currentVSNormal, historyVSNormal), 0.0, 1.0), normalSigmaExponent);

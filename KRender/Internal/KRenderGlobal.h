@@ -127,6 +127,7 @@ namespace KRenderGlobal
 	extern bool EnableAsyncLoad;
 	extern bool EnableAsyncShaderCompile;
 	extern bool EnableGPUScene;
+	extern int StaticMeshLODOverride;
 	extern bool EnableAsyncCompute;
 	extern bool EnablePeeling;
 	extern bool InEditor;

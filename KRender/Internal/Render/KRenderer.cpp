@@ -170,12 +170,25 @@ bool KRenderer::Render(uint32_t chainImageIndex)
 	std::vector<IKEntity*> cullRes;
 	m_Scene->GetVisibleEntities(*m_Camera, cullRes);
 
+	IKRenderWindow* window = m_SwapChain->GetWindow();
+	auto& view = m_LODViews[window];
+	if (view.scene != m_Scene || view.camera != m_Camera)
+	{
+		view = { m_Scene, m_Camera, {} };
+	}
+	view.selection.Update(cullRes, *m_Camera, KRenderGlobal::StaticMeshLODOverride);
+
 	m_RHICommandList.SetCommandBuffer(m_Shadow.pool->Request(CBL_PRIMARY));
+	bool gpuScene = false;
 
 	m_RHICommandList.BeginRecord();
 	{
-		KRenderGlobal::VirtualTextureManager.Update(m_RHICommandList, cullRes);
-		KRenderGlobal::GPUScene.Execute(m_RHICommandList);
+		KRenderGlobal::VirtualTextureManager.Update(m_RHICommandList, cullRes, view.selection);
+		gpuScene = KRenderGlobal::GPUScene.Execute(m_RHICommandList, m_Scene, *m_Camera, view.selection);
+		if (window == KRenderGlobal::MainWindow)
+		{
+			m_MainUsesGPUScene = gpuScene;
+		}
 
 		KRenderGlobal::CascadedShadowMap.UpdateShadowMap(m_RHICommandList);
 
@@ -217,7 +230,7 @@ bool KRenderer::Render(uint32_t chainImageIndex)
 		KRenderGlobal::VirtualTextureManager.InitFeedbackTarget(m_RHICommandList);
 		KRenderGlobal::VirtualGeometryManager.ExecuteMain(m_RHICommandList);
 		KRenderGlobal::DeferredRenderer.PrePass(m_RHICommandList, cullRes);
-		KRenderGlobal::DeferredRenderer.MainBasePass(m_RHICommandList, cullRes);
+		KRenderGlobal::DeferredRenderer.MainBasePass(m_RHICommandList, cullRes, view.selection, gpuScene);
 
 		KRenderGlobal::GBuffer.TransitionDepthStencil(m_RHICommandList, m_PreGraphics.queue, m_PreGraphics.queue, PIPELINE_STAGE_EARLY_FRAGMENT_TESTS | PIPELINE_STAGE_LATE_FRAGMENT_TESTS, PIPELINE_STAGE_FRAGMENT_SHADER | PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 		{
@@ -403,12 +416,10 @@ bool KRenderer::Init(const KRendererInitContext& initContext)
 	m_BasePassMainCallFunc = [](IKRenderPassPtr renderPass, KRHICommandList& commandList)
 	{
 		KRenderGlobal::Scene.GetVirtualGeometryScene()->BasePassMain(renderPass, commandList);
-		KRenderGlobal::GPUScene.BasePassMain(renderPass, commandList);
 	};
 	m_BasePassPostCallFunc = [](IKRenderPassPtr renderPass, KRHICommandList& commandList)
 	{
 		KRenderGlobal::Scene.GetVirtualGeometryScene()->BasePassPost(renderPass, commandList);
-		KRenderGlobal::GPUScene.BasePassPost(renderPass, commandList);
 	};
 
 	m_DebugCallFunc = [](IKRenderPassPtr renderPass, KRHICommandList& commandList)
@@ -547,6 +558,8 @@ bool KRenderer::UnInit()
 	m_SwapChain = nullptr;
 	m_UIOverlay = nullptr;
 	m_CameraCube = nullptr;
+	m_LODViews.clear();
+	m_MainUsesGPUScene = false;
 
 	m_Shadow.UnInit();
 	m_PreGraphics.UnInit();
@@ -561,6 +574,12 @@ bool KRenderer::UnInit()
 	m_RHIThread = nullptr;
 
 	return true;
+}
+
+KMeshLODSelectionStats KRenderer::GetLODStats() const
+{
+	const auto view = m_LODViews.find(KRenderGlobal::MainWindow);
+	return view != m_LODViews.end() ? view->second.selection.GetStats() : KMeshLODSelectionStats{};
 }
 
 bool KRenderer::SetCameraCubeDisplay(bool display)
@@ -626,6 +645,7 @@ bool KRenderer::RemoveCallback(IKRenderWindow* window)
 	}
 	if (window)
 	{
+		m_LODViews.erase(window);
 		if (m_WindowRenderCB.erase(window))
 		{
 			return true;

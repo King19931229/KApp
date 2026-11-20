@@ -129,7 +129,7 @@ protected:
 	void RecyleVirtualID(uint32_t ID);
 
 	void HandleFeedbackResult();
-	void FeedbackRender(KRHICommandList& commandList, const std::vector<IKEntity*>& cullRes);
+	void FeedbackRender(KRHICommandList& commandList, const std::vector<IKEntity*>& cullRes, const KMeshLODView& lodView);
 	void DispatchFeedbackAnalyze(KRHICommandList& commandList);
 	void ProcessPhysicalUpdate(KRHICommandList& commandList);
 public:
@@ -140,7 +140,7 @@ public:
 	bool UnInit();
 
 	bool Acqiure(const std::string& path, uint32_t tileNum, KVirtualTextureResourceRef& ref);
-	bool Update(KRHICommandList& commandList, const std::vector<IKEntity*>& cullRes);
+	bool Update(KRHICommandList& commandList, const std::vector<IKEntity*>& cullRes, const KMeshLODView& lodView);
 	bool InitFeedbackTarget(KRHICommandList& commandList);
 
 	bool Reload();

@@ -5,6 +5,8 @@
 #include "Internal/Asset/KMaterialSubMesh.h"
 #include "Internal/Render/KRHICommandList.h"
 
+class KMeshLODView;
+
 struct KGPUSceneInstance
 {
 	glm::mat4 transform;
@@ -90,7 +92,6 @@ protected:
 	};
 
 	IKRenderScene* m_Scene;
-	const KCamera* m_Camera;
 
 	struct SubMeshItem
 	{
@@ -132,18 +133,26 @@ protected:
 
 	std::vector<KGPUSceneInstance> m_Instances;
 	std::vector<KGPUSceneMeshState> m_MeshStates;
+	uint64_t m_MegaBufferRebuilds = 0;
+	uint32_t m_LastDrawFrame = UINT32_MAX;
+
+	struct EntitySubMesh
+	{
+		KMaterialSubMeshPtr binding;
+		size_t slot = 0;
+		std::array<uint32_t, KSubMesh::LOD_COUNT> meshIndices{};
+		uint32_t megaShaderIndex = 0;
+		uint32_t shaderDrawIndex = 0;
+	};
 
 	struct SceneEntity
 	{
+		IKEntity::IDType id = 0;
 		uint32_t index = 0;
 		KAABBBox localBound;
 		glm::mat4 prevTransform;
 		glm::mat4 transform;
-		std::vector<KMaterialSubMeshPtr> materialSubMeshes;
-		std::vector<uint32_t> subMeshIndices;
-		std::vector<uint32_t> materialIndices;
-		std::vector<uint32_t> megaShaderIndices;
-		std::vector<uint32_t> shaderDrawIndices;
+		std::vector<EntitySubMesh> subMeshes;
 	};
 	typedef std::shared_ptr<SceneEntity> SceneEntityPtr;
 	std::unordered_map<IKEntity*, SceneEntityPtr> m_EntityMap;
@@ -206,7 +215,7 @@ protected:
 	bool RemoveEntity(IKEntity* entity);
 
 	void RebuildDirtyBuffer();
-	void UpdateInstanceDataBuffer(KRHICommandList& commandList);
+	void UpdateInstanceDataBuffer(KRHICommandList& commandList, const KMeshLODView& lodView);
 
 	void RebuildEntityDataIndex();
 	void RebuildMegaBuffer();
@@ -222,13 +231,14 @@ public:
 	KGPUScene();
 	~KGPUScene();
 
-	bool Init(IKRenderScene* scene, const KCamera* camera);
+	bool Init(IKRenderScene* scene);
 	bool UnInit();
 
-	bool Execute(KRHICommandList& commandList);
+	bool Execute(KRHICommandList& commandList, IKRenderScene* scene, const KCamera& camera, const KMeshLODView& lodView);
 
-	bool BasePassMain(IKRenderPassPtr renderPass, KRHICommandList& commandList);
-	bool BasePassPost(IKRenderPassPtr renderPass, KRHICommandList& commandList);
+	void AppendBasePassCommands(IKRenderPassPtr renderPass, KRHICommandList& commandList, KRenderCommandList& commands);
+	uint64_t GetMegaBufferRebuilds() const { return m_MegaBufferRebuilds; }
+	bool ReadBasePassTriangles(uint64_t& triangles) const;
 
 	void Reload();
 };

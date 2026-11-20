@@ -12,6 +12,9 @@ int main(int argc, char** argv)
 	commandLine.AddInt("frames", 120, "Number of headless frames");
 	commandLine.AddString("scene", "", "Scene file to load");
 	commandLine.AddString("output", "", "Save the final headless frame as PNG");
+	commandLine.AddString("bake-lod", "", "Bake LOD1 and LOD2 for a local glTF, GLB or OBJ");
+	commandLine.AddString("lod", "auto", "Static mesh LOD mode (auto, 0, 1 or 2)");
+	commandLine.AddBool("gpu-scene", false, false, "Enable GPUScene");
 	commandLine.AddBool("help", false, false, "Show command-line help");
 	if (!commandLine.Parse(argc, argv))
 	{
@@ -23,6 +26,30 @@ int main(int argc, char** argv)
 		printf("%s", commandLine.GetHelp().c_str());
 		return 0;
 	}
+	if (commandLine.Has("bake-lod"))
+	{
+		if (commandLine.GetString("bake-lod").empty() || commandLine.Has("headless") || commandLine.Has("scene")
+			|| commandLine.Has("output") || commandLine.Has("frames") || commandLine.Has("width") || commandLine.Has("height")
+			|| commandLine.Has("lod") || commandLine.Has("gpu-scene"))
+		{
+			fprintf(stderr, "--bake-lod requires a local asset path and runs independently of rendering options\n");
+			return 2;
+		}
+		std::string error;
+		if (!KRenderApplication::BakeStaticMeshLOD(commandLine.GetString("bake-lod"), error))
+		{
+			fprintf(stderr, "%s\n", error.c_str());
+			return 1;
+		}
+		return 0;
+	}
+	const auto& lod = commandLine.GetString("lod");
+	if (lod != "auto" && lod != "0" && lod != "1" && lod != "2")
+	{
+		fprintf(stderr, "--lod must be auto, 0, 1 or 2\n");
+		return 2;
+	}
+	KRenderApplication::SetStaticMeshOptions(lod == "auto" ? -1 : lod[0] - '0', commandLine.GetBool("gpu-scene"));
 	const bool headless = commandLine.GetBool("headless");
 	const int width = commandLine.GetInt("width"), height = commandLine.GetInt("height");
 	const int frames = commandLine.GetInt("frames");

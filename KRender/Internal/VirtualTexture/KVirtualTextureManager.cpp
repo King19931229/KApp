@@ -539,7 +539,7 @@ void KVirtualTextureManager::UpdateBuffer(KRHICommandList& commandList)
 	}
 }
 
-void KVirtualTextureManager::FeedbackRender(KRHICommandList& commandList, const std::vector<IKEntity*>& cullRes)
+void KVirtualTextureManager::FeedbackRender(KRHICommandList& commandList, const std::vector<IKEntity*>& cullRes, const KMeshLODView& lodView)
 {
 	commandList.Transition(m_FeedbackTarget->GetFrameBuffer(), PIPELINE_STAGE_FRAGMENT_SHADER, PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_COLOR_ATTACHMENT);
 
@@ -552,7 +552,7 @@ void KVirtualTextureManager::FeedbackRender(KRHICommandList& commandList, const 
 		for (auto& pair : m_TextureMap)
 		{
 			KVirtualTextureResourceRef resource = pair.second;
-			resource->FeedbackRender(commandList, m_FeedbackPass, m_CurrentTargetBinding, cullRes);
+			resource->FeedbackRender(commandList, m_FeedbackPass, m_CurrentTargetBinding, cullRes, lodView);
 		}
 
 		commandList.EndRenderPass();
@@ -695,13 +695,13 @@ bool KVirtualTextureManager::InitFeedbackTarget(KRHICommandList& commandList)
 	return true;
 }
 
-bool KVirtualTextureManager::Update(KRHICommandList& commandList, const std::vector<IKEntity*>& cullRes)
+bool KVirtualTextureManager::Update(KRHICommandList& commandList, const std::vector<IKEntity*>& cullRes, const KMeshLODView& lodView)
 {
 	UpdateBuffer(commandList);
 	LRUSortTile();
 	HandleFeedbackResult();
 	ProcessPhysicalUpdate(commandList);
-	FeedbackRender(commandList, cullRes);
+	FeedbackRender(commandList, cullRes, lodView);
 	DispatchFeedbackAnalyze(commandList);
 	return true;
 }

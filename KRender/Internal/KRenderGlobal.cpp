@@ -63,6 +63,7 @@ namespace KRenderGlobal
 	bool EnableAsyncLoad = true;
 	bool EnableAsyncShaderCompile = true;
 	bool EnableGPUScene = false;
+	int StaticMeshLODOverride = -1;
 	bool EnableAsyncCompute = false;
 	bool EnablePeeling = false;
 	bool InEditor = false;

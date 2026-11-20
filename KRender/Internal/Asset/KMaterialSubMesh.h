@@ -47,7 +47,7 @@ public:
 	bool Init(KSubMeshPtr subMesh, KMaterialRef material);
 	bool InitDebug(KSubMeshPtr subMesh, DebugPrimitive primtive);
 	bool UnInit();
-	bool GetRenderCommand(RenderStage stage, KRenderCommand& command);
+	bool GetRenderCommand(RenderStage stage, KRenderCommand& command, uint32_t lodLevel = 0);
 
 	inline KSubMeshPtr GetSubMesh() { return m_SubMesh; }
 	inline KMaterialRef GetMaterial() { return m_Material; }

@@ -24,15 +24,10 @@ void main()
 	float cocLimitRatio = object.dofParams2[0];
 	float cocMin = cocMax * cocLimitRatio;
 
-	vec4 gbuffer0Data = texture(gbuffer0, screenCoord);
-	float depth = LinearDepthToNonLinearDepth(camera.proj, DecodeDepth(gbuffer0Data));
-	vec3 originVSPos = DecodePositionViewSpace(gbuffer0Data, screenCoord);
-
-	float dis = -originVSPos.z;
+	ivec2 pixel = ivec2(screenCoord * vec2(textureSize(gbuffer0, 0)));
+	float depth = DecodeDepth(texelFetch(gbuffer0, pixel, 0));
+	float dis = -LinearDepthToViewZ(camera.proj, depth);
 	float coc = aperture * abs(dis - focusDistance) * focalLength / (dis * (focusDistance - focalLength));
-	// min coc cut
-	coc *= float(coc > cocMin);
-	// normalize
-	coc = (coc - cocMin) / (cocMax - cocMin);
-	cocImage = vec4(coc);
+	float cocRange = cocMax - cocMin;
+	cocImage = vec4(cocRange > 0.0 ? clamp((coc - cocMin) / cocRange, 0.0, 1.0) : 0.0);
 }

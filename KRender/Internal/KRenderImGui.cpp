@@ -179,6 +179,19 @@ void KRenderImGui::Run()
 			ImGui::Checkbox("AsyncCompute", &KRenderGlobal::EnableAsyncCompute);
 			ImGui::Checkbox("RHIImmediate", &KRenderGlobal::EnableRHIImmediate);
 			ImGui::Checkbox("UseGPUScene", &KRenderGlobal::EnableGPUScene);
+			int lodMode = KRenderGlobal::StaticMeshLODOverride + 1;
+			if (ImGui::Combo("Static mesh LOD", &lodMode, "Auto\0LOD0\0LOD1\0LOD2\0"))
+			{
+				KRenderGlobal::StaticMeshLODOverride = lodMode - 1;
+			}
+			const auto& lodStats = KRenderGlobal::Renderer.GetLODStats();
+			for (uint32_t level = 0; level < KSubMesh::LOD_COUNT; ++level)
+			{
+				ImGui::Text("LOD%u  %llu submeshes  %llu triangles", level,
+					static_cast<unsigned long long>(lodStats.subMeshes[level]),
+					static_cast<unsigned long long>(lodStats.triangles[level]));
+			}
+			ImGui::Text("MegaBuffer rebuilds  %llu", static_cast<unsigned long long>(KRenderGlobal::GPUScene.GetMegaBufferRebuilds()));
 			ImGui::Checkbox("EnablePeeling", &KRenderGlobal::EnablePeeling);
 			ImGui::Checkbox("MultithreadRender", &KRenderGlobal::EnableMultithreadRender);
 			ImGui::SliderInt("MultithreadCount", &KRenderGlobal::Renderer.GetMultithreadCount(), 1, 128);

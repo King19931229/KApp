@@ -34,7 +34,7 @@ static VkDescriptorPool CreateNativeDescriptorPool(const std::vector<VkDescripto
 	info.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
 	VkDescriptorPool pool = VK_NULL_HANDLE;
 	result = vkCreateDescriptorPool(KVulkanGlobal::device, &info, nullptr, &pool);
-	if ((result == VK_ERROR_OUT_OF_DEVICE_MEMORY || result == VK_ERROR_OUT_OF_HOST_MEMORY) && KVulkanHeapAllocator::ReleaseUnusedPages())
+	if (KVulkanIsOOM(result) && KVulkanHeapAllocator::ReleaseUnusedPages())
 	{
 		result = vkCreateDescriptorPool(KVulkanGlobal::device, &info, nullptr, &pool);
 	}
@@ -79,7 +79,7 @@ VkDescriptorPool KVulkanDescriptorArena::Acquire(uint32_t count)
 	}
 	if (!pool)
 	{
-		VK_ASSERT_RESULT(result);
+		VK_ASSERT_RESULT_WITH_CALL(result, "vkCreateDescriptorPool");
 		return VK_NULL_HANDLE;
 	}
 	m_Pages.push_back({ pool, capacity, count });
@@ -305,13 +305,13 @@ VkDescriptorSet KVulkanDescriptorPool::AllocDescriptorSet(VkDescriptorPool pool)
 
 	VkDescriptorSet newSet = VK_NULL_HANDLE;
 	VkResult result = vkAllocateDescriptorSets(KVulkanGlobal::device, &allocInfo, &newSet);
-	if ((result == VK_ERROR_OUT_OF_DEVICE_MEMORY || result == VK_ERROR_OUT_OF_HOST_MEMORY) && KVulkanHeapAllocator::ReleaseUnusedPages())
+	if (KVulkanIsOOM(result) && KVulkanHeapAllocator::ReleaseUnusedPages())
 	{
 		result = vkAllocateDescriptorSets(KVulkanGlobal::device, &allocInfo, &newSet);
 	}
 	if (result != VK_SUCCESS)
 	{
-		VK_ASSERT_RESULT(result);
+		VK_ASSERT_RESULT_WITH_CALL(result, "vkAllocateDescriptorSets");
 		return VK_NULL_HANDLE;
 	}
 
@@ -324,7 +324,7 @@ VkDescriptorPool KVulkanDescriptorPool::CreateDescriptorPool(uint32_t maxCount)
 	VkDescriptorPool newPool = CreateNativeDescriptorPool(m_PoolSizes, maxCount, result);
 	if (result != VK_SUCCESS)
 	{
-		VK_ASSERT_RESULT(result);
+		VK_ASSERT_RESULT_WITH_CALL(result, "vkCreateDescriptorPool");
 		return VK_NULL_HANDLE;
 	}
 	return newPool;

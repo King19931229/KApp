@@ -255,10 +255,10 @@ bool KVirtualTexture::UnInit()
 	return true;
 }
 
-bool KVirtualTexture::FeedbackRender(KRHICommandList& commandList, IKRenderPassPtr renderPass, uint32_t targetBinding, const std::vector<IKEntity*>& cullRes)
+bool KVirtualTexture::FeedbackRender(KRHICommandList& commandList, IKRenderPassPtr renderPass, uint32_t targetBinding, const std::vector<IKEntity*>& cullRes, const KMeshLODView& lodView)
 {
 	std::vector<KMaterialSubMeshInstance> subMeshInstances;
-	KRenderUtil::CalculateInstancesByVirtualTexture(cullRes, targetBinding, m_TableTexture, subMeshInstances);
+	KRenderUtil::CalculateInstancesByVirtualTexture(cullRes, targetBinding, m_TableTexture, subMeshInstances, lodView);
 
 	for (KMaterialSubMeshInstance& subMeshInstance : subMeshInstances)
 	{
@@ -268,7 +268,7 @@ bool KVirtualTexture::FeedbackRender(KRHICommandList& commandList, IKRenderPassP
 		if (instances.size() > 1)
 		{
 			KRenderCommand command;
-			if (subMeshInstance.materialSubMesh->GetRenderCommand(RENDER_STAGE_VIRTUAL_TEXTURE_FEEDBACK_INSTANCE, command))
+			if (subMeshInstance.materialSubMesh->GetRenderCommand(RENDER_STAGE_VIRTUAL_TEXTURE_FEEDBACK_INSTANCE, command, subMeshInstance.lodLevel))
 			{
 				if (!KRenderUtil::AssignShadingParameter(command, subMeshInstance.materialSubMesh->GetMaterial()))
 				{
@@ -309,7 +309,7 @@ bool KVirtualTexture::FeedbackRender(KRHICommandList& commandList, IKRenderPassP
 			for (size_t idx = 0; idx < instances.size(); ++idx)
 			{
 				KRenderCommand command;
-				if (subMeshInstance.materialSubMesh->GetRenderCommand(RENDER_STAGE_VIRTUAL_TEXTURE_FEEDBACK, command))
+				if (subMeshInstance.materialSubMesh->GetRenderCommand(RENDER_STAGE_VIRTUAL_TEXTURE_FEEDBACK, command, subMeshInstance.lodLevel))
 				{
 					if (!KRenderUtil::AssignShadingParameter(command, subMeshInstance.materialSubMesh->GetMaterial()))
 					{

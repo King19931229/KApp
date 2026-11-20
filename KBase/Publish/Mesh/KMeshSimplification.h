@@ -230,6 +230,7 @@ public:
 	inline int32_t& GetMinVertexCount() { return m_MinVertexCount; }
 	inline int32_t& GetMaxVertexCount() { return m_MaxVertexCount; }
 	inline int32_t& GetCurVertexCount() { return m_CurVertexCount; }
+	int32_t GetMinTriangleCount() const { return m_MinTriangleCount; }
 
 	bool Simplify(MeshSimplifyTarget target, int32_t targetCount, std::vector<KMeshProcessorVertex>& vertices, std::vector<uint32_t>& indices, std::vector<uint32_t>& materialIndices, float& error);
 };

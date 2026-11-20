@@ -404,7 +404,7 @@ bool KVulkanPipelineHandle::Init(IKPipelineLayout* layout, IKRenderPass* renderP
 	pipelineInfo.basePipelineIndex = -1; // Optional
 
 	VkResult result = vkCreateGraphicsPipelines(KVulkanGlobal::device, KVulkanGlobal::pipelineCache, 1, &pipelineInfo, nullptr, &m_GraphicsPipeline);
-	if ((result == VK_ERROR_OUT_OF_DEVICE_MEMORY || result == VK_ERROR_OUT_OF_HOST_MEMORY) && KVulkanHeapAllocator::ReleaseUnusedPages())
+	if (KVulkanIsOOM(result) && KVulkanHeapAllocator::ReleaseUnusedPages())
 	{
 		if (m_GraphicsPipeline) vkDestroyPipeline(KVulkanGlobal::device, m_GraphicsPipeline, nullptr);
 		m_GraphicsPipeline = VK_NULL_HANDLE;
@@ -414,7 +414,7 @@ bool KVulkanPipelineHandle::Init(IKPipelineLayout* layout, IKRenderPass* renderP
 	{
 		if (m_GraphicsPipeline) vkDestroyPipeline(KVulkanGlobal::device, m_GraphicsPipeline, nullptr);
 		m_GraphicsPipeline = VK_NULL_HANDLE;
-		VK_ASSERT_RESULT(result);
+		VK_ASSERT_RESULT_WITH_CALL(result, "vkCreateGraphicsPipelines");
 		return false;
 	}
 	return true;

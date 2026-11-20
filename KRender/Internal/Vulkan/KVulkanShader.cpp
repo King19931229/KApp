@@ -471,7 +471,7 @@ KVulkanShader::ShaderInitResult KVulkanShader::InitFromStringImpl(const char* co
 	createInfo.codeSize = len;
 	createInfo.pCode = reinterpret_cast<const uint32_t*>(code);
 
-	if (vkCreateShaderModule(device, &createInfo, nullptr, pModule) == VK_SUCCESS)
+	if (VK_CHECK_OOM(vkCreateShaderModule(device, &createInfo, nullptr, pModule)) == VK_SUCCESS)
 	{
 		InitConstant();
 		KVulkanHelper::DebugUtilsSetObjectName(device, (uint64_t)(*pModule), VK_OBJECT_TYPE_SHADER_MODULE, GetPath());

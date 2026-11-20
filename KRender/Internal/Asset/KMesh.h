@@ -28,14 +28,24 @@ protected:
 	KVertexData m_VertexData;
 	std::vector<KSubMeshPtr> m_SubMeshes;
 	std::vector<KMaterialRef> m_SubMaterials;
+	struct LODBuffers
+	{
+		KVertexData vertices;
+		IKIndexBufferPtr indices;
+	};
+	std::array<LODBuffers, KSubMesh::LOD_COUNT - 1> m_LODBuffers;
 	KTriangleMesh m_TriangleMesh;
 	std::string m_Path;
 	MeshResourceType m_Type;
 
-	static bool CompoentGroupFromVertexFormat(VertexFormat format, KAssetVertexComponentGroup& group);
 	void UpdateTriangleMesh();
 	void DiscardCPUGeometry();
+	struct LODCache;
+	void LoadLODs(const KMeshRawData& source);
+	void UnInitLODs();
 
+	static constexpr std::array<VertexFormat, 3> AssetVertexFormats = { VF_POINT_NORMAL_UV, VF_COLOR0, VF_TANGENT_BINORMAL };
+	static bool ImportAsset(const std::string& path, KMeshRawData& result);
 	bool InitFromImportResult(const KMeshRawData& result, const std::vector<VertexFormat>& formats, const std::string& label);
 public:
 	KMesh();
@@ -49,6 +59,7 @@ public:
 	inline const std::vector<KMaterialRef>& GetSubMaterials() const { return m_SubMaterials; }
 
 	bool SaveAsFile(const std::string& path) const;
+	static bool BakeLOD(const std::string& path, std::string& error);
 	bool InitFromFile(const std::string& path);
 	bool InitFromAsset(const std::string& path);
 	bool InitFromUserData(const KMeshRawData& userData, const std::string& label);

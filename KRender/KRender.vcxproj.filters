@@ -204,6 +204,9 @@
     <ClInclude Include="Internal\Asset\KMesh.h">
       <Filter>Internal\Asset</Filter>
     </ClInclude>
+    <ClInclude Include="Internal\Render\KMeshLODView.h">
+      <Filter>Internal\Render</Filter>
+    </ClInclude>
     <ClInclude Include="Internal\KRenderGlobal.h">
       <Filter>Internal</Filter>
     </ClInclude>
@@ -683,6 +686,12 @@
     </ClCompile>
     <ClCompile Include="Internal\Asset\KMesh.cpp">
       <Filter>Internal\Asset</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\Asset\KMeshLOD.cpp">
+      <Filter>Internal\Asset</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\Render\KMeshLODView.cpp">
+      <Filter>Internal\Render</Filter>
     </ClCompile>
     <ClCompile Include="Internal\KRenderGlobal.cpp">
       <Filter>Internal</Filter>

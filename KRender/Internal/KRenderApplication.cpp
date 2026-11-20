@@ -18,6 +18,17 @@
 
 namespace KRenderApplication
 {
+	bool BakeStaticMeshLOD(const std::string& path, std::string& error)
+	{
+		return KMesh::BakeLOD(path, error);
+	}
+
+	void SetStaticMeshOptions(int lodOverride, bool gpuScene)
+	{
+		KRenderGlobal::StaticMeshLODOverride = lodOverride;
+		KRenderGlobal::EnableGPUScene = gpuScene;
+	}
+
 	bool PreparePaths(std::string& scene, std::string& output, std::string& error)
 	{
 		error.clear();

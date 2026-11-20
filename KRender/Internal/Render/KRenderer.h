@@ -12,6 +12,7 @@
 #include "KBase/Publish/KRunableThread.h"
 #include "Publish/KCamera.h"
 #include "KRHICommandList.h"
+#include "KMeshLODView.h"
 
 class KRenderer;
 
@@ -69,6 +70,14 @@ protected:
 	RenderPassCallFuncType m_DebugCallFunc;
 	RenderPassCallFuncType m_ForegroundCallFunc;
 	std::unordered_map<IKRenderWindow*, OnWindowRenderCallback*> m_WindowRenderCB;
+	struct LODView
+	{
+		IKRenderScene* scene = nullptr;
+		const KCamera* camera = nullptr;
+		KMeshLODView selection;
+	};
+	std::unordered_map<IKRenderWindow*, LODView> m_LODViews;
+	bool m_MainUsesGPUScene = false;
 	
 	KRHICommandList m_RHICommandList;
 
@@ -136,6 +145,8 @@ public:
 	bool RemoveCallback(IKRenderWindow* window) override;
 
 	int& GetMultithreadCount() { return m_MultithreadCount; }
+	KMeshLODSelectionStats GetLODStats() const;
+	bool MainUsesGPUScene() const { return m_MainUsesGPUScene; }
 
 	KRHICommandList& GetRHICommandList() { return m_RHICommandList; }
 

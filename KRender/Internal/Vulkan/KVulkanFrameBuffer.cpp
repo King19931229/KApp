@@ -407,7 +407,7 @@ bool KVulkanFrameBuffer::Readback(void* pDest, size_t size)
 		vkGetImageSubresourceLayout(KVulkanGlobal::device, m_Image, &subresource, &layout);
 
 		void* pSrc = m_AllocInfo.pMapped;
-		if (!pSrc && vkMapMemory(KVulkanGlobal::device, m_AllocInfo.vkMemroy, m_AllocInfo.vkOffset, layout.offset + layout.size, 0, &pSrc) != VK_SUCCESS)
+		if (!pSrc && VK_CHECK_OOM(vkMapMemory(KVulkanGlobal::device, m_AllocInfo.vkMemroy, m_AllocInfo.vkOffset, layout.offset + layout.size, 0, &pSrc)) != VK_SUCCESS)
 		{
 			return false;
 		}

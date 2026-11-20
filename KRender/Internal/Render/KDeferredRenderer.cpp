@@ -14,24 +14,23 @@ struct KDeferredRenderStageDescription
 	DeferredRenderStage stage;
 	RenderStage renderStage;
 	RenderStage instanceRenderStage;
-	bool allowGPUScene;
 	bool allowMultithread;
 	const char* debugMarker;
 };
 
 constexpr KDeferredRenderStageDescription GDeferredRenderStageDescription[DRS_STAGE_COUNT] =
 {
-	{DRS_STAGE_PRE_PASS, RENDER_STAGE_PRE_Z, RENDER_STAGE_PRE_Z_INSTANCE, false, false, "PrePass"},
-	{DRS_STAGE_MAIN_BASE_PASS, RENDER_STAGE_BASEPASS, RENDER_STAGE_BASEPASS_INSTANCE, true, true, "MainBasePass"},
-	{DRS_STAGE_POST_BASE_PASS, RENDER_STAGE_BASEPASS, RENDER_STAGE_BASEPASS_INSTANCE, true, true, "PostBasePass" },
-	{DRS_STAGE_DEFERRED_LIGHTING, RENDER_STAGE_UNKNOWN, RENDER_STAGE_UNKNOWN, false, false, "LightingPass"},
-	{DRS_STAGE_FORWARD_OPAQUE, RENDER_STAGE_OPAQUE, RENDER_STAGE_UNKNOWN, true, true, "ForwardOpaquePass"},
-	{DRS_STATE_COPY_OPAQUE_COLOR, RENDER_STAGE_UNKNOWN, RENDER_STAGE_UNKNOWN, false, false, "CopyOpaqueColor"},
-	{DRS_STAGE_FORWARD_TRANSPRANT, RENDER_STAGE_TRANSPRANT, RENDER_STAGE_UNKNOWN, false, false, "ForwardTransprantPass"},
-	{DRS_STATE_SKY, RENDER_STAGE_UNKNOWN, RENDER_STAGE_UNKNOWN, false, false, "SkyPass"},
-	{DRS_STATE_POSTPROCESS_RESULT, RENDER_STAGE_UNKNOWN, RENDER_STAGE_UNKNOWN, false, false, "PostProcessResult"},
-	{DRS_STATE_DEBUG_OBJECT, RENDER_STAGE_UNKNOWN, RENDER_STAGE_UNKNOWN, false, false, "DebugObjectPass"},
-	{DRS_STATE_FOREGROUND, RENDER_STAGE_UNKNOWN, RENDER_STAGE_UNKNOWN, false, false, "ForegroundPass"}
+	{DRS_STAGE_PRE_PASS, RENDER_STAGE_PRE_Z, RENDER_STAGE_PRE_Z_INSTANCE, false, "PrePass"},
+	{DRS_STAGE_MAIN_BASE_PASS, RENDER_STAGE_BASEPASS, RENDER_STAGE_BASEPASS_INSTANCE, true, "MainBasePass"},
+	{DRS_STAGE_POST_BASE_PASS, RENDER_STAGE_BASEPASS, RENDER_STAGE_BASEPASS_INSTANCE, true, "PostBasePass" },
+	{DRS_STAGE_DEFERRED_LIGHTING, RENDER_STAGE_UNKNOWN, RENDER_STAGE_UNKNOWN, false, "LightingPass"},
+	{DRS_STAGE_FORWARD_OPAQUE, RENDER_STAGE_OPAQUE, RENDER_STAGE_UNKNOWN, true, "ForwardOpaquePass"},
+	{DRS_STATE_COPY_OPAQUE_COLOR, RENDER_STAGE_UNKNOWN, RENDER_STAGE_UNKNOWN, false, "CopyOpaqueColor"},
+	{DRS_STAGE_FORWARD_TRANSPRANT, RENDER_STAGE_TRANSPRANT, RENDER_STAGE_UNKNOWN, false, "ForwardTransprantPass"},
+	{DRS_STATE_SKY, RENDER_STAGE_UNKNOWN, RENDER_STAGE_UNKNOWN, false, "SkyPass"},
+	{DRS_STATE_POSTPROCESS_RESULT, RENDER_STAGE_UNKNOWN, RENDER_STAGE_UNKNOWN, false, "PostProcessResult"},
+	{DRS_STATE_DEBUG_OBJECT, RENDER_STAGE_UNKNOWN, RENDER_STAGE_UNKNOWN, false, "DebugObjectPass"},
+	{DRS_STATE_FOREGROUND, RENDER_STAGE_UNKNOWN, RENDER_STAGE_UNKNOWN, false, "ForegroundPass"}
 };
 
 static_assert(GDeferredRenderStageDescription[DRS_STAGE_PRE_PASS].stage == DRS_STAGE_PRE_PASS, "check");
@@ -417,11 +416,11 @@ void KDeferredRenderer::RecreatePipeline()
 	}
 }
 
-void KDeferredRenderer::BuildMaterialSubMeshInstance(DeferredRenderStage renderStage, const std::vector<IKEntity*>& cullRes, std::vector<KMaterialSubMeshInstance>& instances)
+void KDeferredRenderer::BuildMaterialSubMeshInstance(DeferredRenderStage renderStage, const std::vector<IKEntity*>& cullRes, std::vector<KMaterialSubMeshInstance>& instances, const KMeshLODView* lodView)
 {
 	if (renderStage == DRS_STAGE_MAIN_BASE_PASS)
 	{
-		KRenderUtil::CalculateInstancesByMaterial(cullRes, instances);
+		KRenderUtil::CalculateInstancesByMaterial(cullRes, instances, lodView);
 	}
 	else if(renderStage == DRS_STAGE_FORWARD_TRANSPRANT)
 	{
@@ -444,7 +443,7 @@ void KDeferredRenderer::BuildMaterialSubMeshInstance(DeferredRenderStage renderS
 	}
 }
 
-void KDeferredRenderer::PopulateRenderCommand(DeferredRenderStage deferredRenderStage, const std::vector<IKEntity*>& cullRes, KRenderCommandList& renderCommands)
+void KDeferredRenderer::PopulateRenderCommand(DeferredRenderStage deferredRenderStage, const std::vector<IKEntity*>& cullRes, KRenderCommandList& renderCommands, const KMeshLODView* lodView)
 {
 	RenderStage renderStage = GDeferredRenderStageDescription[deferredRenderStage].renderStage;
 	RenderStage instanceRenderStage = GDeferredRenderStageDescription[deferredRenderStage].instanceRenderStage;
@@ -452,7 +451,7 @@ void KDeferredRenderer::PopulateRenderCommand(DeferredRenderStage deferredRender
 	renderCommands.clear();
 
 	std::vector<KMaterialSubMeshInstance> subMeshInstances;
-	BuildMaterialSubMeshInstance(deferredRenderStage, cullRes, subMeshInstances);
+	BuildMaterialSubMeshInstance(deferredRenderStage, cullRes, subMeshInstances, lodView);
 
 	for (KMaterialSubMeshInstance& subMeshInstance : subMeshInstances)
 	{
@@ -463,7 +462,7 @@ void KDeferredRenderer::PopulateRenderCommand(DeferredRenderStage deferredRender
 		if (instanceRenderStage != RENDER_STAGE_UNKNOWN && instances.size() > 1)
 		{
 			KRenderCommand command;
-			if (!subMeshInstance.materialSubMesh->GetRenderCommand(instanceRenderStage, command))
+			if (!subMeshInstance.materialSubMesh->GetRenderCommand(instanceRenderStage, command, subMeshInstance.lodLevel))
 			{
 				continue;
 			}
@@ -514,7 +513,7 @@ void KDeferredRenderer::PopulateRenderCommand(DeferredRenderStage deferredRender
 		else
 		{
 			KRenderCommand baseCommand;
-			if (!subMeshInstance.materialSubMesh->GetRenderCommand(renderStage, baseCommand))
+			if (!subMeshInstance.materialSubMesh->GetRenderCommand(renderStage, baseCommand, subMeshInstance.lodLevel))
 			{
 				continue;
 			}
@@ -567,19 +566,21 @@ void KDeferredRenderer::PopulateRenderCommand(DeferredRenderStage deferredRender
 	}
 }
 
-void KDeferredRenderer::ExecuteRenderPass(KRHICommandList& commandList, DeferredRenderStage deferredRenderStage, const std::vector<IKEntity*>& cullRes)
+void KDeferredRenderer::ExecuteRenderPass(KRHICommandList& commandList, DeferredRenderStage deferredRenderStage, const std::vector<IKEntity*>& cullRes, const KMeshLODView* lodView, bool gpuScene)
 {
 	IKRenderPassPtr renderPass = m_RenderPass[deferredRenderStage];
 
 	const char* debugMarker = GDeferredRenderStageDescription[deferredRenderStage].debugMarker;
 	commandList.BeginDebugMarker(debugMarker, glm::vec4(1));
 
-	bool allowGPUScene = GDeferredRenderStageDescription[deferredRenderStage].allowGPUScene;
-
 	KRenderCommandList renderCmdList;
-	if (!KRenderGlobal::EnableGPUScene || !allowGPUScene)
+	if (gpuScene)
 	{
-		PopulateRenderCommand(deferredRenderStage, cullRes, renderCmdList);
+		KRenderGlobal::GPUScene.AppendBasePassCommands(renderPass, commandList, renderCmdList);
+	}
+	else
+	{
+		PopulateRenderCommand(deferredRenderStage, cullRes, renderCmdList, lodView);
 	}
 
 	bool allowMultithread = GDeferredRenderStageDescription[deferredRenderStage].allowMultithread;
@@ -718,9 +719,9 @@ void KDeferredRenderer::PrePass(KRHICommandList& commandList, const std::vector<
 {
 }
 
-void KDeferredRenderer::MainBasePass(KRHICommandList& commandList, const std::vector<IKEntity*>& cullRes)
+void KDeferredRenderer::MainBasePass(KRHICommandList& commandList, const std::vector<IKEntity*>& cullRes, const KMeshLODView& lodView, bool gpuScene)
 {
-	ExecuteRenderPass(commandList, DRS_STAGE_MAIN_BASE_PASS, cullRes);
+	ExecuteRenderPass(commandList, DRS_STAGE_MAIN_BASE_PASS, cullRes, &lodView, gpuScene);
 }
 
 void KDeferredRenderer::PostBasePass(KRHICommandList& commandList)

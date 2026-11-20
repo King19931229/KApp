@@ -260,11 +260,10 @@ float KDepthOfField::CalcDofFar(float C)
 
 bool KDepthOfField::Execute(KRHICommandList& commandList)
 {
-	float aperture = m_FocalLength / m_FStop;
-
 	m_CoCLimitRatio = std::min(1.0f - 1e-3f, m_CoCLimitRatio);
 	m_FocalLength = std::max(0.001f, std::min(m_FocusDistance - 1.0f, m_FocalLength));
 	m_NearRange = std::max(0.001f, std::min(m_FocusDistance - 1.0f, m_NearRange));
+	float aperture = m_FocalLength / m_FStop;
 
 	// Furthest CoC
 	float furthestCoC = aperture * m_FocalLength / (m_FocusDistance - m_FocalLength);
@@ -307,7 +306,7 @@ bool KDepthOfField::Execute(KRHICommandList& commandList)
 	objectData.dofParams2[0] = m_CoCLimitRatio;
 	objectData.dofParams2[1] = N;
 	objectData.dofParams2[2] = F;
-	objectData.dofParams2[3] = 1.0f;
+	objectData.dofParams2[3] = 1.0f / m_FStop;
 
 	commandList.BeginDebugMarker("DOF", glm::vec4(1));
 	commandList.Transition(KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET0)->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);

@@ -276,7 +276,6 @@ uniform VirtualTextureFeedback_DYN_UNIFORM
 	uvec4 miscs2;
 } virtual_feedback;
 
-in vec4 gl_FragCoord;
 void WriteVirtualFeedback(vec2 uv, uint binding)
 {
 	uint virtualTargetBinding = virtual_feedback.miscs.x;
@@ -357,7 +356,6 @@ vec4 SRGBtoLINEAR(vec4 srgbIn, bool decoded)
 #endif //MANUAL_SRGB
 }
 
-in vec4 gl_FragCoord;
 MaterialPixelParameters ComputeMaterialPixelParameters(
 	  vec3 worldPos
 	, vec3 prevWorldPos

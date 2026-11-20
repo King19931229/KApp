@@ -57,13 +57,13 @@ bool KVulkanQuery::GetResultSync(uint32_t& result)
 	if (m_QueryPool != VK_NULL_HANDLE)
 	{
 		ASSERT_RESULT(KVulkanGlobal::deviceReady);
-		VkResult vkResult = vkGetQueryPoolResults(KVulkanGlobal::device,
+		VkResult vkResult = VK_CHECK_OOM(vkGetQueryPoolResults(KVulkanGlobal::device,
 			m_QueryPool,
 			0, 1,
 			sizeof(samples),
 			&samples,
 			sizeof(samples),
-			VK_QUERY_RESULT_WAIT_BIT);
+			VK_QUERY_RESULT_WAIT_BIT));
 
 		// VK_QUERY_RESULT_WAIT_BIT 返回值必须是 VK_SUCCESS
 		VK_ASSERT_RESULT(vkResult);
@@ -79,13 +79,13 @@ bool KVulkanQuery::GetResultAsync(uint32_t& result)
 	if (m_QueryPool != VK_NULL_HANDLE)
 	{
 		ASSERT_RESULT(KVulkanGlobal::deviceReady);
-		VkResult vkResult = vkGetQueryPoolResults(KVulkanGlobal::device,
+		VkResult vkResult = VK_CHECK_OOM(vkGetQueryPoolResults(KVulkanGlobal::device,
 			m_QueryPool,
 			0, 1,
 			sizeof(samples),
 			&samples,
 			sizeof(samples),
-			VK_QUERY_RESULT_PARTIAL_BIT);
+			VK_QUERY_RESULT_PARTIAL_BIT));
 		
 		result = samples;
 

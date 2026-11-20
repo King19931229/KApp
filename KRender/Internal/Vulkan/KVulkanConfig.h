@@ -5,6 +5,7 @@
 #endif
 #include <stdio.h>
 #include <assert.h>
+#include <cstdlib>
 
 
 // Custom define for better code readability
@@ -26,6 +27,8 @@ static const char* VK_ERROR_STRING(VkResult errorCode)
 		STR(INCOMPLETE);
 		STR(ERROR_OUT_OF_HOST_MEMORY);
 		STR(ERROR_OUT_OF_DEVICE_MEMORY);
+		STR(ERROR_OUT_OF_POOL_MEMORY);
+		STR(ERROR_FRAGMENTED_POOL);
 		STR(ERROR_INITIALIZATION_FAILED);
 		STR(ERROR_DEVICE_LOST);
 		STR(ERROR_MEMORY_MAP_FAILED);
@@ -48,10 +51,29 @@ default:
 	}
 }
 
-#define VK_ASSERT_RESULT(exp)\
+inline bool KVulkanIsOOM(VkResult result)
+{
+	return result == VK_ERROR_OUT_OF_DEVICE_MEMORY || result == VK_ERROR_OUT_OF_HOST_MEMORY;
+}
+
+static inline VkResult KVulkanCheckOOM(VkResult result, const char* call, const char* file, int line)
+{
+	if (KVulkanIsOOM(result))
+	{
+		fprintf(stderr, "Vulkan Failure:[%s] File:[%s] Line:[%d] Call:[%s]\n", VK_ERROR_STRING(result), file, line, call);
+		fflush(stderr);
+		std::_Exit(EXIT_FAILURE);
+	}
+	return result;
+}
+
+#define VK_CHECK_OOM(exp) KVulkanCheckOOM((exp), #exp, __FILE__, __LINE__)
+
+#define VK_ASSERT_RESULT(exp) VK_ASSERT_RESULT_WITH_CALL(exp, #exp)
+#define VK_ASSERT_RESULT_WITH_CALL(exp, call)\
 do\
 {\
-	VkResult result##__LINE__ = (VkResult)(exp);\
+	VkResult result##__LINE__ = KVulkanCheckOOM((VkResult)(exp), call, __FILE__, __LINE__);\
 	if(result##__LINE__ != VK_SUCCESS)\
 	{\
 		printf("Vulkan Failure:[%s] File:[%s] Line:[%d]\n", VK_ERROR_STRING(result##__LINE__), __FILE__, __LINE__);\

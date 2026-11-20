@@ -459,7 +459,7 @@ bool KMaterialSubMesh::CreateFixedPipeline(RenderStage stage, IKPipelinePtr& pip
 	}
 }
 
-bool KMaterialSubMesh::GetRenderCommand(RenderStage stage, KRenderCommand& command)
+bool KMaterialSubMesh::GetRenderCommand(RenderStage stage, KRenderCommand& command, uint32_t lodLevel)
 {
 	if (stage >= RENDER_STAGE_COUNT)
 	{
@@ -503,7 +503,7 @@ bool KMaterialSubMesh::GetRenderCommand(RenderStage stage, KRenderCommand& comma
 				}
 
 				// 绑定PhysicalTexture
-				if (hasVirtualTexture)
+				if (hasVirtualTexture && !voxelStage)
 				{
 					for (uint8_t i = 0; i < MAX_VIRTUAL_PHYSICAL_TEXTURE_BINDING; ++i)
 					{
@@ -525,18 +525,17 @@ bool KMaterialSubMesh::GetRenderCommand(RenderStage stage, KRenderCommand& comma
 			m_PipelinesPreqReady[stage] = true;
 		}
 
-		const KVertexData* vertexData = m_SubMesh->m_pVertexData;
-		const KIndexData* indexData = &m_SubMesh->m_IndexData;
-		const bool& indexDraw = m_SubMesh->m_IndexDraw;
+		const KSubMesh* geometry = m_SubMesh->GetLOD(lodLevel);
+		if (!geometry->GetDrawElementCount())
+		{
+			return false;
+		}
 
-		ASSERT_RESULT(vertexData);
-		ASSERT_RESULT(!indexDraw || indexData);
-
-		command.vertexData = vertexData;
-		command.indexData = indexData;
+		command.vertexData = geometry->m_pVertexData;
+		command.indexData = &geometry->m_IndexData;
 		command.textureBinding = textureBinding;
 		command.pipeline = pipeline;
-		command.indexDraw = indexDraw;
+		command.indexDraw = geometry->m_IndexDraw;
 
 		if (stage >= RENDER_STAGE_OPAQUE_MESH && stage <= RENDER_STAGE_OPAQUE_MESH)
 		{

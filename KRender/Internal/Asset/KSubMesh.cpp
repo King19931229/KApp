@@ -11,6 +11,7 @@ KSubMesh::KSubMesh(KMesh* parent)
 	m_DebugPrimitive(DEBUG_PRIMITIVE_TRIANGLE),
 	m_pVertexData(nullptr),
 	m_IndexDraw(true),
+	m_OwnIndexBuffer(true),
 	m_AccelerationStructure(nullptr),
 	m_NeedAccelerationStructure(true),
 	m_NeedMeshlet(false)
@@ -70,15 +71,54 @@ bool KSubMesh::InitDebug(DebugPrimitive primtive, const KVertexData* vertexData,
 bool KSubMesh::UnInit()
 {
 	m_pVertexData = nullptr;
+	m_VertexRange.reset();
 	m_Material.Release();
-	m_IndexData.Destroy();
 	DestroyAccelerationStructure();
 	DestroyMeshlet();
+	if (m_OwnIndexBuffer)
+	{
+		m_IndexData.Destroy();
+	}
+	else
+	{
+		m_IndexData.Reset();
+	}
+	m_OwnIndexBuffer = true;
 	return true;
+}
+
+uint32_t KSubMesh::GetDrawElementCount() const
+{
+	if (!m_pVertexData || !m_pVertexData->vertexCount)
+	{
+		return 0;
+	}
+	return m_IndexDraw ? m_IndexData.indexCount : m_pVertexData->vertexCount;
+}
+
+uint32_t KSubMesh::ResolveLOD(uint32_t level) const
+{
+	level = std::min(level, LOD_COUNT - 1);
+	while (level && !m_ReducedLODs[level - 1])
+	{
+		--level;
+	}
+	return level;
+}
+
+const KSubMesh* KSubMesh::GetLOD(uint32_t level) const
+{
+	level = ResolveLOD(level);
+	return level ? m_ReducedLODs[level - 1].get() : this;
 }
 
 bool KSubMesh::CreateAccelerationStructure()
 {
+	if (!m_NeedAccelerationStructure)
+	{
+		return true;
+	}
+
 	if (m_AccelerationStructure)
 	{
 		return true;

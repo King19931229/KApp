@@ -110,10 +110,10 @@ void main()
 		// This is last frame scene color, we have to reproject
 		gbuffer1Data = texture(gbuffer1, hitResult.xy);
 		motion = DecodeMotion(gbuffer1Data);
-		hitResult.xy += motion;
+		vec2 prevHitUV = hitResult.xy + motion;
 
 		vec4 hitColor;
-		hitColor.xyz = texture(sceneColorImage, hitResult.xy).rgb;
+		hitColor.xyz = texture(sceneColorImage, prevHitUV).rgb;
 		hitColor.w = pdf;
 #if SSR_SUPPRESS_OVER_BRGHT
 		hitColor.xyz /= 1.0 + GetLuminance(hitColor.xyz);

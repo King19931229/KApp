@@ -29,8 +29,12 @@ bool KNativeFileSystem::UnInit()
 bool KNativeFileSystem::SetRoot(const std::string& root)
 {
 	m_Root = root;
-	KFileTool::AbsPath(m_Root, m_AbsRoot);
-	return true;
+#if defined(_WIN32)
+	const bool absolute = root.size() >= 3 && root[1] == ':' && (root[2] == '/' || root[2] == '\\');
+#else
+	const bool absolute = !root.empty() && root.front() == '/';
+#endif
+	return absolute ? KFileTool::TrimPath(root, m_AbsRoot) : KFileTool::AbsPath(root, m_AbsRoot);
 }
 
 bool KNativeFileSystem::GetRoot(std::string& root)

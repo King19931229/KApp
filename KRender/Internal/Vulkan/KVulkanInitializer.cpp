@@ -236,7 +236,7 @@ namespace KVulkanInitializer
 		accelerationStructureCreate_info.buffer = accelerationStructure.buffer;
 		accelerationStructureCreate_info.size = buildSizeInfo.accelerationStructureSize;
 		accelerationStructureCreate_info.type = type;
-		KVulkanGlobal::vkCreateAccelerationStructureKHR(KVulkanGlobal::device, &accelerationStructureCreate_info, nullptr, &accelerationStructure.handle);
+		VK_CHECK_OOM(KVulkanGlobal::vkCreateAccelerationStructureKHR(KVulkanGlobal::device, &accelerationStructureCreate_info, nullptr, &accelerationStructure.handle));
 
 		// AS device address
 		VkAccelerationStructureDeviceAddressInfoKHR accelerationDeviceAddressInfo{};

@@ -3,11 +3,11 @@
 #include "Internal/ECS/Component/KRenderComponent.h"
 #include "Internal/ECS/Component/KTransformComponent.h"
 #include "Internal/KRenderGlobal.h"
+#include "Internal/Render/KMeshLODView.h"
 #include "Internal/Render/KRenderUtil.h"
 
 KGPUScene::KGPUScene()
 	: m_Scene(nullptr)
-	, m_Camera(nullptr)
 	, m_DataDirtyBits(0)
 {
 #define GPUSCENE_BINDING_TO_STR(x) #x
@@ -37,6 +37,7 @@ KGPUScene::SceneEntityPtr KGPUScene::CreateEntity(IKEntity* entity)
 	else
 	{
 		SceneEntityPtr sceneEntity(KNEW SceneEntity());
+		sceneEntity->id = entity->GetID();
 		sceneEntity->index = (uint32_t)m_EntityMap.size();
 		m_Entities.push_back(sceneEntity);
 		m_EntityMap.insert({ entity, sceneEntity });
@@ -286,14 +287,12 @@ void KGPUScene::RemoveSubMesh(KSubMeshPtr subMesh)
 	if (removeIndex != -1)
 	{
 		m_DataDirtyBits |= MEGA_BUFFER_DIRTY;
-		for (auto& pair : m_SubMeshToIndex)
+		if (removeIndex != m_SubMeshes.size() - 1)
 		{
-			if (pair.second > removeIndex)
-			{
-				pair.second -= 1;
-			}
+			m_SubMeshes[removeIndex] = std::move(m_SubMeshes.back());
+			m_SubMeshToIndex.at(m_SubMeshes[removeIndex].subMesh) = removeIndex;
 		}
-		m_SubMeshes.erase(m_SubMeshes.begin() + removeIndex);
+		m_SubMeshes.pop_back();
 	}
 }
 
@@ -368,24 +367,32 @@ void KGPUScene::RemoveMegaShader(KSubMeshPtr subMesh, IKMaterialPtr material)
 
 bool KGPUScene::AddEntity(IKEntity* entity, const KAABBBox& localBound, const glm::mat4& transform, const std::vector<KMaterialSubMeshPtr>& subMeshes)
 {
-	if (entity)
+	if (entity && !GetEntity(entity))
 	{
 		SceneEntityPtr sceneEntity = CreateEntity(entity);
 		sceneEntity->prevTransform = transform;
 		sceneEntity->transform = transform;
-		sceneEntity->materialSubMeshes.reserve(subMeshes.size());
-		for (KMaterialSubMeshPtr materialSubMesh : subMeshes)
+		sceneEntity->subMeshes.reserve(subMeshes.size());
+		for (size_t slot = 0; slot < subMeshes.size(); ++slot)
 		{
-			if (materialSubMesh->GetSubMesh() && materialSubMesh->GetMaterial())
+			const auto& binding = subMeshes[slot];
+			const auto base = binding->GetSubMesh();
+			const auto material = binding->GetMaterial();
+			if (!base || !material || material->GetShadingMode() != MSM_OPAQUE || !base->GetDrawElementCount())
 			{
-				sceneEntity->materialSubMeshes.push_back(materialSubMesh);
+				continue;
 			}
-		}
-		for (KMaterialSubMeshPtr materialSubMesh : sceneEntity->materialSubMeshes)
-		{
-			CreateOrGetSubMeshIndex(materialSubMesh->GetSubMesh(), true);
-			CreateOrGetMaterialIndex(materialSubMesh->GetMaterial().Get(), true);
-			CreateOrGetMegaShaderIndex(materialSubMesh->GetSubMesh(), materialSubMesh->GetMaterial().Get(), true);
+			sceneEntity->subMeshes.push_back({ binding, slot });
+			CreateOrGetSubMeshIndex(base, true);
+			for (const auto& lod : base->GetReducedLODs())
+			{
+				if (lod)
+				{
+					CreateOrGetSubMeshIndex(lod, true);
+				}
+			}
+			CreateOrGetMaterialIndex(material.Get(), true);
+			CreateOrGetMegaShaderIndex(base, material.Get(), true);
 		}
 		sceneEntity->localBound = localBound;
 		m_DataDirtyBits |= INSTANCE_DIRTY;
@@ -418,11 +425,20 @@ bool KGPUScene::RemoveEntity(IKEntity* entity)
 		assert(index < m_Entities.size());
 
 		SceneEntityPtr sceneEntity = m_Entities[index];
-		for (KMaterialSubMeshPtr materialSubMesh : sceneEntity->materialSubMeshes)
+		for (const auto& subMesh : sceneEntity->subMeshes)
 		{
-			RemoveSubMesh(materialSubMesh->GetSubMesh());
-			RemoveMaterial(materialSubMesh->GetMaterial().Get());
-			RemoveMegaShader(materialSubMesh->GetSubMesh(), materialSubMesh->GetMaterial().Get());
+			const auto base = subMesh.binding->GetSubMesh();
+			for (const auto& lod : base->GetReducedLODs())
+			{
+				if (lod)
+				{
+					RemoveSubMesh(lod);
+				}
+			}
+			const auto material = subMesh.binding->GetMaterial();
+			RemoveSubMesh(base);
+			RemoveMaterial(material.Get());
+			RemoveMegaShader(base, material.Get());
 		}
 
 		for (uint32_t i = index + 1; i < m_Entities.size(); ++i)
@@ -443,29 +459,29 @@ void KGPUScene::RebuildEntityDataIndex()
 		megaShader.materialIndices.clear();
 	}
 
-	for (SceneEntityPtr sceneEntity : m_Entities)
+	for (const auto& sceneEntity : m_Entities)
 	{
-		sceneEntity->subMeshIndices.resize(sceneEntity->materialSubMeshes.size());
-		sceneEntity->materialIndices.resize(sceneEntity->materialSubMeshes.size());
-		sceneEntity->megaShaderIndices.resize(sceneEntity->materialSubMeshes.size());
-		sceneEntity->shaderDrawIndices.resize(sceneEntity->materialSubMeshes.size());
-
-		for (size_t i = 0; i < sceneEntity->materialSubMeshes.size(); ++i)
+		for (auto& subMesh : sceneEntity->subMeshes)
 		{
-			KMaterialSubMeshPtr materialSubMesh = sceneEntity->materialSubMeshes[i];
-			sceneEntity->subMeshIndices[i] = CreateOrGetSubMeshIndex(materialSubMesh->GetSubMesh(), false);
-			sceneEntity->materialIndices[i] = CreateOrGetMaterialIndex(materialSubMesh->GetMaterial().Get(), false);
-			sceneEntity->megaShaderIndices[i] = CreateOrGetMegaShaderIndex(materialSubMesh->GetSubMesh(), materialSubMesh->GetMaterial().Get(), false);
-			// Assign mega shader material index
-			MegaShaderItem& megaShader = m_MegaShaders[sceneEntity->megaShaderIndices[i]];
-			sceneEntity->shaderDrawIndices[i] = (uint32_t)megaShader.materialIndices.size();
-			megaShader.materialIndices.push_back(sceneEntity->materialIndices[i]);
+			const auto base = subMesh.binding->GetSubMesh();
+			const auto material = subMesh.binding->GetMaterial();
+			subMesh.meshIndices[0] = CreateOrGetSubMeshIndex(base, false);
+			for (uint32_t level = 1; level < KSubMesh::LOD_COUNT; ++level)
+			{
+				const auto& lod = base->GetReducedLODs()[level - 1];
+				subMesh.meshIndices[level] = lod ? CreateOrGetSubMeshIndex(lod, false) : subMesh.meshIndices[level - 1];
+			}
+			subMesh.megaShaderIndex = CreateOrGetMegaShaderIndex(base, material.Get(), false);
+			MegaShaderItem& megaShader = m_MegaShaders[subMesh.megaShaderIndex];
+			subMesh.shaderDrawIndex = static_cast<uint32_t>(megaShader.materialIndices.size());
+			megaShader.materialIndices.push_back(CreateOrGetMaterialIndex(material.Get(), false));
 		}
 	}
 }
 
 void KGPUScene::RebuildMegaBuffer()
 {
+	++m_MegaBufferRebuilds;
 	std::unordered_map<IKVertexBufferPtr, uint32_t> vertexBufferOffsets[VF_SCENE_COUNT];
 	std::unordered_map<IKIndexBufferPtr, uint32_t> indexBufferOffsets;
 	std::unordered_map<uint32_t, uint32_t> generatedIndexOffsets;
@@ -621,7 +637,7 @@ void KGPUScene::RebuildMeshStateBuffer()
 	{
 		KAABBBox subMeshBound = subMeshItem.subMesh->GetBound();
 
-		KGPUSceneMeshState newMeshState;
+		KGPUSceneMeshState newMeshState{};
 
 		newMeshState.boundCenter = glm::vec4(subMeshBound.GetCenter(), 0);
 		newMeshState.boundHalfExtend = glm::vec4(subMeshBound.GetExtend() * 0.5f, 0);
@@ -740,12 +756,12 @@ void KGPUScene::RebuildInstance()
 		newInstance.prevTransform = entity->prevTransform;
 		newInstance.transform = entity->transform;
 	
-		for (size_t i = 0; i < entity->materialSubMeshes.size(); ++i)
+		for (const auto& subMesh : entity->subMeshes)
 		{
 			newInstance.miscs[KGPUSceneInstance::ENEITY_INDEX] = entity->index;
-			newInstance.miscs[KGPUSceneInstance::SUBMESH_INDEX] = entity->subMeshIndices[i];
-			newInstance.miscs[KGPUSceneInstance::MEGA_SHADER_INDEX] = entity->megaShaderIndices[i];
-			newInstance.miscs[KGPUSceneInstance::SHADER_DRAW_INDEX] = entity->shaderDrawIndices[i];
+			newInstance.miscs[KGPUSceneInstance::SUBMESH_INDEX] = subMesh.meshIndices[0];
+			newInstance.miscs[KGPUSceneInstance::MEGA_SHADER_INDEX] = subMesh.megaShaderIndex;
+			newInstance.miscs[KGPUSceneInstance::SHADER_DRAW_INDEX] = subMesh.shaderDrawIndex;
 			m_Instances.push_back(newInstance);
 		}
 	}
@@ -1000,16 +1016,15 @@ void KGPUScene::InitializePipelines()
 	}
 }
 
-bool KGPUScene::Init(IKRenderScene* scene, const KCamera* camera)
+bool KGPUScene::Init(IKRenderScene* scene)
 {
 	UnInit();
-	if (scene && camera)
+	if (scene)
 	{
 		InitializeBuffers();
 		InitializePipelines();
 
 		m_Scene = scene;
-		m_Camera = camera;
 
 		m_Scene->RegisterEntityObserver(&m_OnSceneChangedFunc);
 	}
@@ -1031,9 +1046,6 @@ bool KGPUScene::UnInit()
 	m_Materials.clear();
 	m_MaterialToIndex.clear();
 
-	m_Materials.clear();
-	m_MaterialToIndex.clear();
-
 	for (MegaShaderItem& megaShader : m_MegaShaders)
 	{
 		for (uint32_t i = 0; i < GPUSCENE_RENDER_STAGE_COUNT; ++i)
@@ -1051,8 +1063,12 @@ bool KGPUScene::UnInit()
 
 	m_EntityMap.clear();
 	m_Entities.clear();
+	m_Instances.clear();
+	m_MeshStates.clear();
 
 	m_DataDirtyBits = 0;
+	m_MegaBufferRebuilds = 0;
+	m_LastDrawFrame = UINT32_MAX;
 
 	for (uint32_t i = 0; i < VF_SCENE_COUNT; ++i)
 	{
@@ -1107,7 +1123,7 @@ void KGPUScene::RebuildDirtyBuffer()
 	m_DataDirtyBits = 0;
 }
 
-void KGPUScene::UpdateInstanceDataBuffer(KRHICommandList& commandList)
+void KGPUScene::UpdateInstanceDataBuffer(KRHICommandList& commandList, const KMeshLODView& lodView)
 {
 	if (m_Instances.size() > 0)
 	{
@@ -1115,36 +1131,37 @@ void KGPUScene::UpdateInstanceDataBuffer(KRHICommandList& commandList)
 		IKStorageBufferPtr instanceDataBuffer = m_InstanceDataBuffers[frameIndex];
 		assert(instanceDataBuffer->GetBufferSize() >= m_Instances.size() * sizeof(KGPUSceneInstance));
 
-		for (KGPUSceneInstance& instance : m_Instances)
+		size_t instanceIndex = 0;
+		for (const auto& entity : m_Entities)
 		{
-			uint32_t entityIndex = instance.miscs[KGPUSceneInstance::ENEITY_INDEX];
-			SceneEntityPtr sceneEntity = m_Entities[entityIndex];
-			instance.prevTransform = sceneEntity->prevTransform;
-			instance.transform = sceneEntity->transform;
+			const auto* levels = lodView.GetLevels(entity->id);
+			for (const auto& subMesh : entity->subMeshes)
+			{
+				auto& instance = m_Instances[instanceIndex++];
+				instance.prevTransform = entity->prevTransform;
+				instance.transform = entity->transform;
+				const uint32_t level = levels ? (*levels)[subMesh.slot] : 0;
+				instance.miscs[KGPUSceneInstance::SUBMESH_INDEX] = subMesh.meshIndices[level];
+			}
 		}
 
 		commandList.UpdateStorageBuffer(instanceDataBuffer, m_Instances.data(), 0, (uint32_t)(m_Instances.size() * sizeof(KGPUSceneInstance)));
 	}
 }
 
-bool KGPUScene::Execute(KRHICommandList& commandList)
+bool KGPUScene::Execute(KRHICommandList& commandList, IKRenderScene* scene, const KCamera& camera, const KMeshLODView& lodView)
 {
-	if (!KRenderGlobal::EnableGPUScene)
+	if (!KRenderGlobal::EnableGPUScene || scene != m_Scene || m_SubMeshes.empty())
 	{
-		return true;
-	}
-
-	if (m_SubMeshes.empty())
-	{
-		m_Instances.clear();
-		return true;
+		return false;
 	}
 
 	RebuildDirtyBuffer();
-	UpdateInstanceDataBuffer(commandList);
+	UpdateInstanceDataBuffer(commandList, lodView);
 
 	uint32_t currentFrameIndex = KRenderGlobal::CurrentInFlightFrameIndex;
 	uint32_t megaShaderNum = (uint32_t)m_MegaShaders.size();
+	const uint32_t instanceGroups = (static_cast<uint32_t>(m_Instances.size()) + GPUSCENE_GROUP_SIZE - 1) / GPUSCENE_GROUP_SIZE;
 
 	commandList.BeginDebugMarker("GPUScene", glm::vec4(1));
 
@@ -1160,7 +1177,6 @@ bool KGPUScene::Execute(KRHICommandList& commandList)
 
 	{
 		commandList.BeginDebugMarker("GPUScene_InstanceCull", glm::vec4(1));
-		uint32_t numDispatch = ((uint32_t)m_Instances.size() + GPUSCENE_GROUP_SIZE - 1) / GPUSCENE_GROUP_SIZE;
 		struct
 		{
 			glm::mat4 view;
@@ -1171,9 +1187,9 @@ bool KGPUScene::Execute(KRHICommandList& commandList)
 		} cameraObjectUsage;
 		static_assert((sizeof(cameraObjectUsage) % 16) == 0, "Size must be a multiple of 16");
 
-		cameraObjectUsage.view = m_Camera->GetViewMatrix();
-		cameraObjectUsage.proj = m_Camera->GetProjectiveMatrix();
-		cameraObjectUsage.viewProj = m_Camera->GetProjectiveMatrix() * m_Camera->GetViewMatrix();
+		cameraObjectUsage.view = camera.GetViewMatrix();
+		cameraObjectUsage.proj = camera.GetProjectiveMatrix();
+		cameraObjectUsage.viewProj = cameraObjectUsage.proj * cameraObjectUsage.view;
 		cameraObjectUsage.instanceCount = (uint32_t)m_Instances.size();
 
 		KDynamicConstantBufferUsage objectUsage;
@@ -1182,7 +1198,7 @@ bool KGPUScene::Execute(KRHICommandList& commandList)
 
 		KRenderGlobal::DynamicConstantBufferManager.Alloc(&cameraObjectUsage, objectUsage);
 
-		commandList.Execute(m_InstanceCullPipelines[currentFrameIndex], numDispatch, 1, 1, &objectUsage);
+		commandList.Execute(m_InstanceCullPipelines[currentFrameIndex], instanceGroups, 1, 1, &objectUsage);
 		commandList.EndDebugMarker();
 	}
 
@@ -1226,7 +1242,7 @@ bool KGPUScene::Execute(KRHICommandList& commandList)
 
 			KRenderGlobal::DynamicConstantBufferManager.Alloc(&megaShaderUsage, objectUsage);
 
-			commandList.ExecuteIndirect(megaShader.calcDrawArgsPipelines[currentFrameIndex], m_DispatchArgsBuffers[currentFrameIndex], &objectUsage);
+			commandList.Execute(megaShader.calcDrawArgsPipelines[currentFrameIndex], instanceGroups, 1, 1, &objectUsage);
 
 			commandList.EndDebugMarker();
 		}
@@ -1240,16 +1256,10 @@ bool KGPUScene::Execute(KRHICommandList& commandList)
 	return true;
 }
 
-bool KGPUScene::BasePassMain(IKRenderPassPtr renderPass, KRHICommandList& commandList)
+void KGPUScene::AppendBasePassCommands(IKRenderPassPtr renderPass, KRHICommandList& commandList, KRenderCommandList& commands)
 {
-	if (!KRenderGlobal::EnableGPUScene)
-	{
-		return true;
-	}
-
-	commandList.BeginDebugMarker("GPUScene_BasePass_Main", glm::vec4(1));
-
 	uint32_t frameIndex = KRenderGlobal::CurrentInFlightFrameIndex;
+	m_LastDrawFrame = frameIndex;
 
 	KGPUSceneDrawParameter drawParameter;
 
@@ -1270,7 +1280,7 @@ bool KGPUScene::BasePassMain(IKRenderPassPtr renderPass, KRHICommandList& comman
 
 		{
 			std::vector<char> datas;
-			if (megaShader.parametersBuffers[frameIndex]->GetBufferSize() > datas.max_size()) return false;
+			if (megaShader.parametersBuffers[frameIndex]->GetBufferSize() > datas.max_size()) continue;
 			datas.resize(static_cast<size_t>(megaShader.parametersBuffers[frameIndex]->GetBufferSize()));
 			void* pData = datas.data();
 
@@ -1305,26 +1315,40 @@ bool KGPUScene::BasePassMain(IKRenderPassPtr renderPass, KRHICommandList& comman
 			command.indirectArgsBuffer = megaShader.indirectDrawArgsBuffers[frameIndex];
 			if (!command.pipeline->GetHandle(renderPass, command.pipelineHandle))
 			{
-				return false;
+				continue;
 			}
 			command.indexDraw = false;
 			command.indirectDraw = true;
 			command.indirectOffset = 0;
 			command.indirectCount = (uint32_t)m_Instances.size();
-			commandList.Render(command);
+			commands.push_back(std::move(command));
 		}
 	}
-
-	commandList.EndDebugMarker();
-
-	return true;
 }
 
-bool KGPUScene::BasePassPost(IKRenderPassPtr renderPass, KRHICommandList& commandList)
+bool KGPUScene::ReadBasePassTriangles(uint64_t& triangles) const
 {
-	if (!KRenderGlobal::EnableGPUScene)
+	triangles = 0;
+	if (m_LastDrawFrame == UINT32_MAX)
 	{
-		return true;
+		return false;
+	}
+	std::vector<std::array<uint32_t, 4>> args(m_Instances.size());
+	for (const auto& shader : m_MegaShaders)
+	{
+		if (!shader.darwPipelines[GPUSCENE_RENDER_STAGE_BASEPASS_MAIN][m_LastDrawFrame])
+		{
+			continue;
+		}
+		const auto& buffer = shader.indirectDrawArgsBuffers[m_LastDrawFrame];
+		if (!buffer->Read(args.data(), 0, uint64_t(args.size()) * sizeof(args[0])))
+		{
+			return false;
+		}
+		for (const auto& draw : args)
+		{
+			triangles += uint64_t(draw[0] / 3) * draw[1];
+		}
 	}
 	return true;
 }

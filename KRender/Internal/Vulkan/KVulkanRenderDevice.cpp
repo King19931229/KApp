@@ -164,7 +164,7 @@ static VkResult CreateDebugUtilsMessengerEXT(
 	PFN_vkCreateDebugUtilsMessengerEXT func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
 	if (func != nullptr)
 	{
-		return func(instance, pCreateInfo, pAllocator, pDebugMessenger);
+		return KVulkanCheckOOM(func(instance, pCreateInfo, pAllocator, pDebugMessenger), "vkCreateDebugUtilsMessengerEXT", __FILE__, __LINE__);
 	}
 	else
 	{
@@ -201,7 +201,7 @@ static VkResult CreateDebugReportCallbackEXT(
 	PFN_vkCreateDebugReportCallbackEXT func = (PFN_vkCreateDebugReportCallbackEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugReportCallbackEXT");
 	if (func != nullptr)
 	{
-		return func(instance, pCreateInfo, pAllocator, debugReport);
+		return KVulkanCheckOOM(func(instance, pCreateInfo, pAllocator, debugReport), "vkCreateDebugReportCallbackEXT", __FILE__, __LINE__);
 	}
 	else
 	{
@@ -255,10 +255,10 @@ KVulkanRenderDevice::~KVulkanRenderDevice()
 bool KVulkanRenderDevice::CheckValidationLayerAvailable(int32_t& candidateIdx)
 {
 	uint32_t layerCount;
-	vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
+	VK_CHECK_OOM(vkEnumerateInstanceLayerProperties(&layerCount, nullptr));
 
 	std::vector<VkLayerProperties> availableLayers(layerCount);
-	vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
+	VK_CHECK_OOM(vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data()));
 
 	candidateIdx = -1;
 
@@ -376,11 +376,11 @@ KVulkanRenderDevice::PhysicalDevice KVulkanRenderDevice::GetPhysicalDeviceProper
 
 	// Get list of supported extensions
 	uint32_t extCount = 0;
-	vkEnumerateDeviceExtensionProperties(vkDevice, nullptr, &extCount, nullptr);
+	VK_CHECK_OOM(vkEnumerateDeviceExtensionProperties(vkDevice, nullptr, &extCount, nullptr));
 	if (extCount > 0)
 	{
 		std::vector<VkExtensionProperties> extensions(extCount);
-		if (vkEnumerateDeviceExtensionProperties(vkDevice, nullptr, &extCount, &extensions.front()) == VK_SUCCESS)
+		if (VK_CHECK_OOM(vkEnumerateDeviceExtensionProperties(vkDevice, nullptr, &extCount, &extensions.front())) == VK_SUCCESS)
 		{
 			for (const auto& ext : extensions)
 			{
@@ -434,11 +434,11 @@ bool KVulkanRenderDevice::PickPhysicsDevice()
 {
 	VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
 	uint32_t deviceCount = 0;
-	vkEnumeratePhysicalDevices(m_Instance, &deviceCount, nullptr);
+	VK_CHECK_OOM(vkEnumeratePhysicalDevices(m_Instance, &deviceCount, nullptr));
 	if (deviceCount > 0)
 	{
 		std::vector<VkPhysicalDevice> vkDevices(deviceCount);
-		vkEnumeratePhysicalDevices(m_Instance, &deviceCount, vkDevices.data());
+		VK_CHECK_OOM(vkEnumeratePhysicalDevices(m_Instance, &deviceCount, vkDevices.data()));
 
 		std::vector<PhysicalDevice> devices;
 
@@ -1050,7 +1050,7 @@ bool KVulkanRenderDevice::CreateLogicalDevice()
 			createInfo.enabledLayerCount = 0;
 		}
 
-		if (vkCreateDevice(m_PhysicalDevice.device, &createInfo, nullptr, &m_Device) == VK_SUCCESS)
+		if (VK_CHECK_OOM(vkCreateDevice(m_PhysicalDevice.device, &createInfo, nullptr, &m_Device)) == VK_SUCCESS)
 		{
 			KVulkanHelper::DebugUtilsSetObjectName(m_Device, (uint64_t)m_Device, VK_OBJECT_TYPE_DEVICE, "VulkanDevice");
 			return true;
@@ -1080,7 +1080,7 @@ bool KVulkanRenderDevice::CreateCommandPool()
 	// 为Transient所用
 	poolInfo.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
 
-	if (vkCreateCommandPool(m_Device, &poolInfo, nullptr, &m_GraphicCommandPool) == VK_SUCCESS)
+	if (VK_CHECK_OOM(vkCreateCommandPool(m_Device, &poolInfo, nullptr, &m_GraphicCommandPool)) == VK_SUCCESS)
 	{
 		return true;
 	}
@@ -1304,9 +1304,9 @@ bool KVulkanRenderDevice::Init(IKRenderWindow* window)
 			// 输出验证层版本
 			std::vector<VkLayerProperties> availableLayers;
 			uint32_t layerCount = 0;
-			vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
+			VK_CHECK_OOM(vkEnumerateInstanceLayerProperties(&layerCount, nullptr));
 			availableLayers.resize(layerCount);
-			vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
+			VK_CHECK_OOM(vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data()));
 
 			for (uint32_t i = 0; i < createInfo.enabledLayerCount; ++i)
 			{
@@ -1350,7 +1350,7 @@ bool KVulkanRenderDevice::Init(IKRenderWindow* window)
 	createInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
 	createInfo.ppEnabledExtensionNames = extensions.data();
 
-	if (vkCreateInstance(&createInfo, nullptr, &m_Instance) == VK_SUCCESS)
+	if (VK_CHECK_OOM(vkCreateInstance(&createInfo, nullptr, &m_Instance)) == VK_SUCCESS)
 	{
 		if (!SetupDebugMessenger())
 			return false;

@@ -84,6 +84,13 @@ namespace KVulkanHeapAllocator
 		}
 	};
 
+	struct AllocationStatus
+	{
+		VkResult result = VK_SUCCESS;
+		const char* call = nullptr;
+		int line = 0;
+	};
+
 	struct MemoryHeap;
 	struct PageInfo
 	{
@@ -163,7 +170,7 @@ namespace KVulkanHeapAllocator
 #endif
 		}
 
-		BlockInfo* Alloc(VkDeviceSize sizeToFit, VkDeviceSize alignment)
+		BlockInfo* Alloc(VkDeviceSize sizeToFit, VkDeviceSize alignment, AllocationStatus& status)
 		{
 			if(sizeToFit > size)
 			{
@@ -192,7 +199,8 @@ namespace KVulkanHeapAllocator
 						allocInfo.pNext = &allocFlagsInfo;
 					}
 
-					if (vkAllocateMemory(DEVICE, &allocInfo, nullptr, &vkMemroy) != VK_SUCCESS)
+					status = { vkAllocateMemory(DEVICE, &allocInfo, nullptr, &vkMemroy), "vkAllocateMemory", __LINE__ };
+					if (status.result != VK_SUCCESS)
 					{
 						vkMemroy = VK_NULL_HANDLE;
 						return nullptr;
@@ -202,7 +210,8 @@ namespace KVulkanHeapAllocator
 					if (persistentMap)
 					{
 						assert(!pMapped);
-						if (vkMapMemory(DEVICE, vkMemroy, 0, size, 0, &pMapped) != VK_SUCCESS)
+						status = { vkMapMemory(DEVICE, vkMemroy, 0, size, 0, &pMapped), "vkMapMemory", __LINE__ };
+						if (status.result != VK_SUCCESS)
 						{
 							pMapped = nullptr;
 							Clear();
@@ -564,14 +573,14 @@ namespace KVulkanHeapAllocator
 			return newSize;
 		}
 
-		BlockInfo* Alloc(VkDeviceSize sizeToFit, VkDeviceSize alignment, bool persistentMap, bool noShared, MemoryAllocateType type)
+		BlockInfo* Alloc(VkDeviceSize sizeToFit, VkDeviceSize alignment, bool persistentMap, bool noShared, MemoryAllocateType type, AllocationStatus& status)
 		{
 			std::lock_guard<decltype(ALLOC_FREE_LOCK)> guard(ALLOC_FREE_LOCK);
 
 			if (noShared)
 			{
 				PageInfo* pPage = KNEW PageInfo(this, vkDevice, sizeToFit, type, memoryTypeIndex, memoryHeapIndex, persistentMap, noShared);
-				BlockInfo* pBlock = pPage->Alloc(sizeToFit, alignment);
+				BlockInfo* pBlock = pPage->Alloc(sizeToFit, alignment, status);
 				if (!pBlock)
 				{
 					SAFE_DELETE(pPage);
@@ -632,11 +641,11 @@ namespace KVulkanHeapAllocator
 					VkDeviceSize newPageSize = std::min(pPage->size, std::max(minSize, MIN_PAGE_SIZE[memoryHeapIndex]));
 					Split(pPage, newPageSize);
 				}
-				BlockInfo* pBlock = pPage->Alloc(sizeToFit, alignment);
+				BlockInfo* pBlock = pPage->Alloc(sizeToFit, alignment, status);
 				if (!pBlock && pPage->vkMemroy == VK_NULL_HANDLE && minSize < pPage->size)
 				{
 					Split(pPage, minSize);
-					pBlock = pPage->Alloc(sizeToFit, alignment);
+					pBlock = pPage->Alloc(sizeToFit, alignment, status);
 				}
 
 				Check();
@@ -949,11 +958,13 @@ namespace KVulkanHeapAllocator
 
 			bool persistentMap = memoryUsage & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
 
-			info.internalData = pHeap->Alloc(size, alignment, persistentMap, noShared, type);
+			AllocationStatus status;
+			info.internalData = pHeap->Alloc(size, alignment, persistentMap, noShared, type, status);
 			if (!info.internalData)
 			{
 				std::fprintf(stderr, "Vulkan allocation failed: bytes=%llu heap=%u type=%u\n",
 					(unsigned long long)size, pHeap->memoryHeapIndex, memoryTypeIndex);
+				KVulkanCheckOOM(status.result, status.call, __FILE__, status.line);
 			}
 
 			if(info.internalData)

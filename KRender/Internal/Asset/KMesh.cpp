@@ -47,11 +47,12 @@ bool KMesh::InitFromFile(const std::string& path)
 
 bool KMesh::UnInit()
 {
-	m_VertexData.Destroy();
+	UnInitLODs();
 	for(KSubMeshPtr& subMesh : m_SubMeshes)
 	{
 		subMesh->UnInit();
 	}
+	m_VertexData.Destroy();
 	m_SubMeshes.clear();
 	m_SubMaterials.clear();
 	m_Path.clear();
@@ -103,7 +104,7 @@ void KMesh::UpdateTriangleMesh()
 			size_t totalTriangles = 0;
 			for (const KSubMeshPtr& subMesh : m_SubMeshes)
 			{
-				totalTriangles += (subMesh->m_IndexDraw ? subMesh->m_IndexData.indexCount : m_VertexData.vertexCount) / 3;
+				totalTriangles += subMesh->GetDrawElementCount() / 3;
 			}
 			m_TriangleMesh.triangles.reserve(totalTriangles);
 
@@ -123,7 +124,8 @@ void KMesh::UpdateTriangleMesh()
 				}
 				else
 				{
-					AppendPickingTriangles(m_TriangleMesh, positions, nullptr, IT_32, m_VertexData.vertexStart, m_VertexData.vertexCount);
+					const KVertexData& vertexData = *subMesh->GetVertexData();
+					AppendPickingTriangles(m_TriangleMesh, positions, nullptr, IT_32, vertexData.vertexStart, vertexData.vertexCount);
 				}
 			}
 		}
@@ -147,34 +149,19 @@ void KMesh::DiscardCPUGeometry()
 	}
 }
 
-bool KMesh::CompoentGroupFromVertexFormat(VertexFormat format, KAssetVertexComponentGroup& group)
+void KMesh::UnInitLODs()
 {
-	group.clear();
-	switch (format)
+	for (const auto& subMesh : m_SubMeshes)
 	{
-	case VF_POINT_NORMAL_UV:
-		group.push_back(AVC_POSITION_3F);
-		group.push_back(AVC_NORMAL_3F);
-		group.push_back(AVC_UV_2F);
-		return true;
-	case VF_UV2:
-		group.push_back(AVC_UV2_2F);
-		return true;
-	case VF_COLOR0:
-	case VF_COLOR1:
-	case VF_COLOR2:
-	case VF_COLOR3:
-	case VF_COLOR4:
-	case VF_COLOR5:
-		group.push_back((AssetVertexComponent)(AVC_COLOR0_3F + (format - VF_COLOR0)));
-		return true;
-	case VF_TANGENT_BINORMAL:
-		group.push_back(AVC_TANGENT_3F);
-		group.push_back(AVC_BINORMAL_3F);
-		return true;
-	default:
-		assert(false && "unsupport format");
-		return false;
+		if (subMesh)
+		{
+			SAFE_UNINIT_CONTAINER(subMesh->m_ReducedLODs);
+		}
+	}
+	for (auto& buffers : m_LODBuffers)
+	{
+		buffers.vertices.Destroy();
+		SAFE_UNINIT(buffers.indices);
 	}
 }
 
@@ -301,6 +288,14 @@ bool KMesh::InitFromImportResult(const KMeshRawData& result, const std::vector<V
 		}
 
 		ASSERT_RESULT(subMesh->Init(&m_VertexData, indexData, material, bound, label + "_" + std::to_string(i)));
+		if (!indexData.indexCount && (subPart.vertexBase || subPart.vertexCount != m_VertexData.vertexCount))
+		{
+			subMesh->m_VertexRange = std::make_unique<KVertexData>(m_VertexData);
+			subMesh->m_VertexRange->vertexStart = subPart.vertexBase;
+			subMesh->m_VertexRange->vertexCount = subPart.vertexCount;
+			subMesh->m_VertexRange->bound = bound;
+			subMesh->m_pVertexData = subMesh->m_VertexRange.get();
+		}
 		if (buildPickingMesh)
 		{
 			const uint32_t count = indexData.indexCount ? indexData.indexCount : subPart.vertexCount;
@@ -315,43 +310,33 @@ bool KMesh::InitFromImportResult(const KMeshRawData& result, const std::vector<V
 	return true;
 }
 
+bool KMesh::ImportAsset(const std::string& path, KMeshRawData& result)
+{
+	KAssetImportOption option;
+	option.components = {
+		{ AVC_POSITION_3F, AVC_NORMAL_3F, AVC_UV_2F },
+		{ AVC_COLOR0_3F },
+		{ AVC_TANGENT_3F, AVC_BINORMAL_3F }
+	};
+	IKAssetLoaderPtr loader = KAssetLoader::GetLoader(path.c_str());
+	return loader && loader->Import(path.c_str(), option, result);
+}
+
 bool KMesh::InitFromAsset(const std::string& path)
 {
 	UnInit();
 
-	IKAssetLoaderPtr loader = KAssetLoader::GetLoader(path.c_str());
-	if(loader)
+	KMeshRawData result;
+	if (!ImportAsset(path, result) ||
+		!InitFromImportResult(result, { AssetVertexFormats.begin(), AssetVertexFormats.end() }, path))
 	{
-		KAssetImportOption option;
-		KMeshRawData result;
-
-		VertexFormat formats[] = { VF_POINT_NORMAL_UV, VF_COLOR0, VF_TANGENT_BINORMAL };
-		for(VertexFormat format : formats)
-		{
-			KAssetVertexComponentGroup group;
-			if(!CompoentGroupFromVertexFormat(format, group))
-			{
-				return false;
-			}
-			option.components.push_back(std::move(group));
-		}
-
-		if(!loader->Import(path.c_str(), option, result))
-		{
-			return false;
-		}
-		// 导入结果已持有数据，上传前释放 Loader 的中间缓冲。
-		loader.reset();
-
-		if (InitFromImportResult(result, std::vector<VertexFormat>(formats, formats + ARRAY_SIZE(formats)), path))
-		{
-			m_Path = path;
-			m_Type = MRT_EXTERNAL_ASSET;
-		}
-
-		return true;
+		UnInit();
+		return false;
 	}
-	return false;
+	m_Path = path;
+	m_Type = MRT_EXTERNAL_ASSET;
+	LoadLODs(result);
+	return true;
 }
 
 bool KMesh::InitFromUserData(const KMeshRawData& userData, const std::string& label)

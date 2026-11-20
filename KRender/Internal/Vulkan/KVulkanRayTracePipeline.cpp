@@ -327,7 +327,7 @@ bool KVulkanRayTracePipeline::CreateShaderBindingTables()
 	rayTracingPipelineCI.pGroups = m_ShaderGroups.data();
 	rayTracingPipelineCI.maxPipelineRayRecursionDepth = 4;
 	rayTracingPipelineCI.layout = m_Pipeline.layout;
-	if (KVulkanGlobal::vkCreateRayTracingPipelinesKHR(KVulkanGlobal::device, VK_NULL_HANDLE, VK_NULL_HANDLE, 1, &rayTracingPipelineCI, nullptr, &m_Pipeline.pipeline) != VK_SUCCESS) return false;
+	if (VK_CHECK_OOM(KVulkanGlobal::vkCreateRayTracingPipelinesKHR(KVulkanGlobal::device, VK_NULL_HANDLE, VK_NULL_HANDLE, 1, &rayTracingPipelineCI, nullptr, &m_Pipeline.pipeline)) != VK_SUCCESS) return false;
 
 	const uint32_t handleSize = KVulkanGlobal::rayTracingPipelineProperties.shaderGroupHandleSize;
 	const uint32_t handleSizeAligned = KNumerical::AlignedSize(KVulkanGlobal::rayTracingPipelineProperties.shaderGroupHandleSize, KVulkanGlobal::rayTracingPipelineProperties.shaderGroupHandleAlignment);
@@ -335,7 +335,7 @@ bool KVulkanRayTracePipeline::CreateShaderBindingTables()
 	const uint32_t sbtSize = groupCount * handleSizeAligned;
 
 	std::vector<uint8_t> shaderHandleStorage(sbtSize);
-	if (KVulkanGlobal::vkGetRayTracingShaderGroupHandlesKHR(KVulkanGlobal::device, m_Pipeline.pipeline, 0, groupCount, sbtSize, shaderHandleStorage.data()) != VK_SUCCESS) return false;
+	if (VK_CHECK_OOM(KVulkanGlobal::vkGetRayTracingShaderGroupHandlesKHR(KVulkanGlobal::device, m_Pipeline.pipeline, 0, groupCount, sbtSize, shaderHandleStorage.data())) != VK_SUCCESS) return false;
 
 	CreateShaderBindingTable(m_ShaderBindingTables.raygen, 1);
 	CreateShaderBindingTable(m_ShaderBindingTables.miss, 1);
@@ -351,7 +351,7 @@ bool KVulkanRayTracePipeline::CreateShaderBindingTables()
 		}
 		else
 		{
-			vkMapMemory(KVulkanGlobal::device, m_ShaderBindingTables.raygen.allocInfo.vkMemroy, m_ShaderBindingTables.raygen.allocInfo.vkOffset, VK_WHOLE_SIZE, 0, &m_ShaderBindingTables.raygen.mapped);
+			VK_CHECK_OOM(vkMapMemory(KVulkanGlobal::device, m_ShaderBindingTables.raygen.allocInfo.vkMemroy, m_ShaderBindingTables.raygen.allocInfo.vkOffset, VK_WHOLE_SIZE, 0, &m_ShaderBindingTables.raygen.mapped));
 			memcpy(m_ShaderBindingTables.raygen.mapped, shaderHandleStorage.data() + (VkDeviceSize)handleSizeAligned * handleIndex, (VkDeviceSize)handleSize);
 			vkUnmapMemory(KVulkanGlobal::device, m_ShaderBindingTables.raygen.allocInfo.vkMemroy);
 		}
@@ -366,7 +366,7 @@ bool KVulkanRayTracePipeline::CreateShaderBindingTables()
 		}
 		else
 		{
-			vkMapMemory(KVulkanGlobal::device, m_ShaderBindingTables.miss.allocInfo.vkMemroy, m_ShaderBindingTables.miss.allocInfo.vkOffset, VK_WHOLE_SIZE, 0, &m_ShaderBindingTables.miss.mapped);
+			VK_CHECK_OOM(vkMapMemory(KVulkanGlobal::device, m_ShaderBindingTables.miss.allocInfo.vkMemroy, m_ShaderBindingTables.miss.allocInfo.vkOffset, VK_WHOLE_SIZE, 0, &m_ShaderBindingTables.miss.mapped));
 			memcpy(m_ShaderBindingTables.miss.mapped, shaderHandleStorage.data() + (VkDeviceSize)handleSizeAligned * handleIndex, (VkDeviceSize)handleSize);
 			vkUnmapMemory(KVulkanGlobal::device, m_ShaderBindingTables.miss.allocInfo.vkMemroy);
 		}
@@ -381,7 +381,7 @@ bool KVulkanRayTracePipeline::CreateShaderBindingTables()
 		}
 		else
 		{
-			vkMapMemory(KVulkanGlobal::device, m_ShaderBindingTables.hit.allocInfo.vkMemroy, m_ShaderBindingTables.hit.allocInfo.vkOffset, VK_WHOLE_SIZE, 0, &m_ShaderBindingTables.hit.mapped);
+			VK_CHECK_OOM(vkMapMemory(KVulkanGlobal::device, m_ShaderBindingTables.hit.allocInfo.vkMemroy, m_ShaderBindingTables.hit.allocInfo.vkOffset, VK_WHOLE_SIZE, 0, &m_ShaderBindingTables.hit.mapped));
 			memcpy(m_ShaderBindingTables.hit.mapped, shaderHandleStorage.data() + (VkDeviceSize)handleSizeAligned * handleIndex, (VkDeviceSize)handleSize);
 			vkUnmapMemory(KVulkanGlobal::device, m_ShaderBindingTables.hit.allocInfo.vkMemroy);
 		}
