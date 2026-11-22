@@ -23,6 +23,7 @@ KVulkanBufferTicket* KVulkanBufferManager::Create(VkBufferUsageFlags usages, con
 			m_Tickets.pop_back();
 			return nullptr;
 		}
+		ticket.current = { &ticket.buffers.back().buffer, bufferSize };
 	}
 	return &ticket;
 }
@@ -40,7 +41,11 @@ KVulkanBuffer& KVulkanBufferManager::Request(KVulkanBufferTicket* ticket, const 
 	KVulkanBufferTicket::Allocation* available = nullptr;
 	for (auto& allocation : ticket->buffers)
 	{
-		if (allocation.occupied && allocation.frameNum == frameNum) return allocation.buffer;
+		if (allocation.occupied && allocation.frameNum == frameNum)
+		{
+			available = &allocation;
+			break;
+		}
 		if (!allocation.occupied && !available) available = &allocation;
 	}
 	if (!available)
@@ -55,6 +60,7 @@ KVulkanBuffer& KVulkanBufferManager::Request(KVulkanBufferTicket* ticket, const 
 	}
 	available->frameNum = frameNum;
 	available->occupied = true;
+	ticket->current = { &available->buffer, ticket->bufferSize };
 	return available->buffer;
 }
 
@@ -127,9 +133,9 @@ void KVulkanBufferManager::Release(uint32_t frameNum)
 			if (allocation.occupied && allocation.frameNum == frameNum)
 			{
 				allocation.occupied = false;
-				if (ticket.upload.buffer == &allocation.buffer)
+				if (!ticket.bufferSize && ticket.current.buffer == &allocation.buffer)
 				{
-					ticket.upload = {};
+					ticket.current = {};
 				}
 			}
 		}

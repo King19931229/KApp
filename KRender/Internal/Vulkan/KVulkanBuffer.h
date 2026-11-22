@@ -134,70 +134,88 @@ public:
 	VkDeviceAddress GetDeviceAddress() const;
 };
 
-class KVulkanStorageBuffer : public KStorageBufferBase
+class KVulkanBufferBase
 {
+	VkBufferUsageFlagBits m_Usage;
 protected:
 	KVulkanBuffer m_Buffer;
-	std::shared_ptr<KVulkanBuffer> m_ReferencedBuffer;
-	KVulkanBufferTicket* m_UploadTicket;
+	KVulkanBufferTicket* m_Ticket = nullptr;
+	KVulkanBuffer* m_MappedBuffer = nullptr;
 
-	void UnInitUpload();
-	KVulkanBuffer& GetVulkanBuffer();
+	explicit KVulkanBufferBase(VkBufferUsageFlagBits usage);
+	~KVulkanBufferBase() = default;
+
+	bool InitBuffer(bool hostVisible, bool persistent, VkBufferUsageFlags extraUsages = 0);
+	bool UnInitBuffer();
+	virtual KVulkanBuffer& GetFixedBuffer() { return m_Buffer; }
+	virtual uint64_t GetLogicalSize() const = 0;
+	virtual const std::vector<char>& GetInitialData() const = 0;
+	KVulkanBuffer* GetMemoryBuffer(bool readback = false);
+	KVulkanBuffer* GetVulkanBuffer();
+
+	bool SetDebugName(const char* pName);
+	bool Map(void** ppData, MapAccess access);
+	bool UnMap();
+	bool Write(const void* pData);
+	bool Write(const void* pData, uint64_t offset, uint64_t size);
+	bool Read(void* pData);
+	bool Read(void* pData, uint64_t offset, uint64_t size);
+	uint64_t GetBufferSize();
 public:
-	KVulkanStorageBuffer();
-	virtual ~KVulkanStorageBuffer();
-
-	bool InitFromVertexBuffer(IKVertexBufferPtr pSource) override;
-	virtual bool InitDevice(bool indirect, bool hostVisible);
-	virtual bool UnInit();
-
-	virtual bool SetDebugName(const char* pName);
-
-	virtual bool IsIndirect();
-
-	virtual bool Map(void** ppData, MapAccess access = MA_READ_WRITE);
-	virtual bool UnMap();
-	virtual bool Write(const void* pData);
-	virtual bool Write(const void* pData, uint64_t offset, uint64_t size);
-	virtual bool Read(void* pData);
-	virtual bool Read(void* pData, uint64_t offset, uint64_t size);
-
-	virtual bool CopyFrom(IKStorageBufferPtr pSource);
-	virtual bool CopyTo(IKStorageBufferPtr pDest);
-
 	bool RecordUpload(KVulkanCommandBuffer& commandBuffer, const void* data, uint64_t offset, uint64_t size);
-	virtual uint64_t GetBufferSize() override;
 	VkBuffer GetVulkanHandle();
 	uint32_t GetUniqueID() const;
 };
 
-class KVulkanUniformBuffer : public KUniformBufferBase
+class KVulkanStorageBuffer : public KStorageBufferBase, public KVulkanBufferBase
 {
 protected:
-	KVulkanBufferTicket* m_Ticket;
-	KVulkanBuffer* m_MappedBuffer;
-	KVulkanBuffer& GetVulkanBuffer();
+	std::shared_ptr<KVulkanBuffer> m_ReferencedBuffer;
+
+	KVulkanBuffer& GetFixedBuffer() override;
+	uint64_t GetLogicalSize() const override { return m_BufferSize; }
+	const std::vector<char>& GetInitialData() const override { return m_Data; }
+public:
+	KVulkanStorageBuffer();
+
+	bool InitFromVertexBuffer(IKVertexBufferPtr pSource) override;
+	bool InitDevice(bool indirect, bool hostVisible, bool persistent = true) override;
+	bool UnInit() override;
+
+	bool SetDebugName(const char* pName) override { return KVulkanBufferBase::SetDebugName(pName); }
+	uint64_t GetBufferSize() override { return KVulkanBufferBase::GetBufferSize(); }
+	bool Map(void** ppData, MapAccess access = MA_READ_WRITE) override { return KVulkanBufferBase::Map(ppData, access); }
+	bool UnMap() override { return KVulkanBufferBase::UnMap(); }
+	bool Write(const void* pData) override { return KVulkanBufferBase::Write(pData); }
+	bool Write(const void* pData, uint64_t offset, uint64_t size) override { return KVulkanBufferBase::Write(pData, offset, size); }
+	bool Read(void* pData) override { return KVulkanBufferBase::Read(pData); }
+	bool Read(void* pData, uint64_t offset, uint64_t size) override { return KVulkanBufferBase::Read(pData, offset, size); }
+
+	bool CopyFrom(IKStorageBufferPtr pSource) override;
+	bool CopyTo(IKStorageBufferPtr pDest) override;
+};
+
+class KVulkanUniformBuffer : public KUniformBufferBase, public KVulkanBufferBase
+{
+protected:
+	uint64_t GetLogicalSize() const override { return m_BufferSize; }
+	const std::vector<char>& GetInitialData() const override { return m_Data; }
 public:
 	KVulkanUniformBuffer();
-	virtual ~KVulkanUniformBuffer();
 
-	virtual bool InitDevice();
-	virtual bool UnInit();
+	bool InitDevice(bool persistent = false) override;
+	bool UnInit() override;
 
-	virtual bool SetDebugName(const char* pName);
+	bool SetDebugName(const char* pName) override { return KVulkanBufferBase::SetDebugName(pName); }
+	uint64_t GetBufferSize() override { return KVulkanBufferBase::GetBufferSize(); }
+	bool Map(void** ppData, MapAccess access = MA_READ_WRITE) override { return KVulkanBufferBase::Map(ppData, access); }
+	bool UnMap() override { return KVulkanBufferBase::UnMap(); }
+	bool Write(const void* pData) override { return KVulkanBufferBase::Write(pData); }
+	bool Write(const void* pData, uint64_t offset, uint64_t size) override { return KVulkanBufferBase::Write(pData, offset, size); }
+	bool Read(void* pData) override { return KVulkanBufferBase::Read(pData); }
+	bool Read(void* pData, uint64_t offset, uint64_t size) override { return KVulkanBufferBase::Read(pData, offset, size); }
 
-	virtual bool Map(void** ppData, MapAccess access = MA_READ_WRITE);
-	virtual bool UnMap();
-	virtual bool Write(const void* pData);
-	virtual bool Write(const void* pData, uint64_t offset, uint64_t size);
-	virtual bool Read(void* pData);
-	virtual bool Read(void* pData, uint64_t offset, uint64_t size);
-
-	virtual bool Reference(void **ppData);
-
-	virtual bool CopyFrom(IKUniformBufferPtr pSource);
-	virtual bool CopyTo(IKUniformBufferPtr pDest);
-
-	VkBuffer GetVulkanHandle();
-	uint32_t GetUniqueID() const;
+	bool Reference(void **ppData) override;
+	bool CopyFrom(IKUniformBufferPtr pSource) override;
+	bool CopyTo(IKUniformBufferPtr pDest) override;
 };

@@ -248,13 +248,17 @@ bool KVulkanComputePipeline::CreateLayout()
 		else if (binding.type == BindingInfo::UNIFROM_BUFFER)
 		{
 			type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-			newWrite = PopulateUniformBufferWrite(binding, VK_NULL_HANDLE, location);
+			newWrite.descriptorCount = 1;
 		}
 		else if(binding.type == BindingInfo::STORAGE_BUFFER)
 		{
 			type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-			newWrite = PopulateStorageBufferWrite(binding, VK_NULL_HANDLE, location);
-			if (!binding.dynamicWrite && newWrite.pBufferInfo->buffer == VK_NULL_HANDLE) return false;
+			newWrite.descriptorCount = 1;
+			if (!binding.dynamicWrite)
+			{
+				newWrite = PopulateStorageBufferWrite(binding, VK_NULL_HANDLE, location);
+				if (newWrite.pBufferInfo->buffer == VK_NULL_HANDLE) return false;
+			}
 		}
 		else if (binding.type == BindingInfo::DYNAMIC_UNIFROM_BUFFER)
 		{

@@ -16,7 +16,7 @@ struct KVulkanBufferTicket
 	{
 		KVulkanBuffer* buffer = nullptr;
 		uint64_t size = 0;
-	} upload;
+	} current;
 	VkBufferUsageFlags usages = 0;
 	uint64_t bufferSize = 0;
 	bool hostVisible = false;

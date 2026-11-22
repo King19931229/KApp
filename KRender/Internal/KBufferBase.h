@@ -75,7 +75,7 @@ public:
 	// 初始化内存数据 通常用于异步IO
 	virtual bool InitMemory(uint64_t bufferSize, const void* pInitData);
 
-	virtual bool InitDevice(bool indirect, bool hostVisible)  = 0;
+	virtual bool InitDevice(bool indirect, bool hostVisible, bool persistent = true) = 0;
 	virtual bool UnInit() = 0;
 
 	virtual bool IsIndirect() { return m_bIndirect; }
@@ -104,7 +104,7 @@ public:
 	// 初始化内存数据 通常用于异步IO
 	virtual bool InitMemory(uint64_t bufferSize, const void* pInitData);
 
-	virtual bool InitDevice() = 0;
+	virtual bool InitDevice(bool persistent = false) = 0;
 	virtual bool UnInit() = 0;
 
 	virtual bool Map(void** ppData, MapAccess access = MA_READ_WRITE) = 0;

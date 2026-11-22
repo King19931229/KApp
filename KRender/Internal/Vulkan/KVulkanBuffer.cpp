@@ -591,14 +591,175 @@ VkDeviceAddress KVulkanIndexBuffer::GetDeviceAddress() const
 	return m_Buffer.GetDeviceAddress();
 }
 
-// KVulkanStorageBuffer
-KVulkanStorageBuffer::KVulkanStorageBuffer()
-	: KStorageBufferBase()
-	, m_UploadTicket(nullptr)
+// KVulkanBufferBase
+KVulkanBufferBase::KVulkanBufferBase(VkBufferUsageFlagBits usage)
+	: m_Usage(usage)
 {
 }
 
-KVulkanStorageBuffer::~KVulkanStorageBuffer()
+bool KVulkanBufferBase::InitBuffer(bool hostVisible, bool persistent, VkBufferUsageFlags extraUsages)
+{
+	if (!persistent || m_Ticket)
+	{
+		UnInitBuffer();
+	}
+	const uint64_t bufferSize = GetLogicalSize();
+	if (!bufferSize) return false;
+
+	const VkBufferUsageFlags usages = m_Usage | extraUsages;
+	const auto& initialData = GetInitialData();
+	const void* data = initialData.empty() ? nullptr : initialData.data();
+	if (persistent)
+	{
+		m_MappedBuffer = nullptr;
+		return m_Buffer.InitDevice(usages, data, bufferSize, hostVisible);
+	}
+
+	auto& bufferManager = static_cast<KVulkanRenderDevice*>(KRenderGlobal::RenderDevice)->GetBufferManager();
+	m_Ticket = bufferManager.Create(usages, data, bufferSize, hostVisible);
+	if (m_Ticket && !m_Buffer.GetDebugName().empty())
+	{
+		bufferManager.SetDebugName(m_Ticket, m_Buffer.GetDebugName().c_str());
+	}
+	return m_Ticket != nullptr;
+}
+
+bool KVulkanBufferBase::UnInitBuffer()
+{
+	if (m_Ticket)
+	{
+		static_cast<KVulkanRenderDevice*>(KRenderGlobal::RenderDevice)->GetBufferManager().Destroy(m_Ticket);
+		m_Ticket = nullptr;
+	}
+	m_MappedBuffer = nullptr;
+	return m_Buffer.UnInit();
+}
+
+bool KVulkanBufferBase::SetDebugName(const char* pName)
+{
+	if (m_Ticket)
+	{
+		static_cast<KVulkanRenderDevice*>(KRenderGlobal::RenderDevice)->GetBufferManager().SetDebugName(m_Ticket, pName);
+	}
+	return m_Buffer.SetDebugName(pName);
+}
+
+KVulkanBuffer* KVulkanBufferBase::GetMemoryBuffer(bool readback)
+{
+	if (!m_Ticket) return &GetFixedBuffer();
+	if (!m_Ticket->bufferSize) return nullptr;
+	// Read the last storage allocation without borrowing for the current frame.
+	if (readback && m_Usage == VK_BUFFER_USAGE_STORAGE_BUFFER_BIT) return m_Ticket->current.buffer;
+
+	const auto& initialData = GetInitialData();
+	const void* data = initialData.empty() ? nullptr : initialData.data();
+	return &static_cast<KVulkanRenderDevice*>(KRenderGlobal::RenderDevice)->GetBufferManager().Request(m_Ticket, data);
+}
+
+KVulkanBuffer* KVulkanBufferBase::GetVulkanBuffer()
+{
+	return m_Ticket && !m_Ticket->bufferSize ? m_Ticket->current.buffer : GetMemoryBuffer();
+}
+
+bool KVulkanBufferBase::Map(void** ppData, MapAccess access)
+{
+	ASSERT_RESULT(!m_MappedBuffer);
+	KVulkanBuffer* buffer = GetMemoryBuffer();
+	if (!buffer || !buffer->Map(ppData, access)) return false;
+	m_MappedBuffer = buffer;
+	return true;
+}
+
+bool KVulkanBufferBase::UnMap()
+{
+	ASSERT_RESULT(m_MappedBuffer);
+	if (!m_MappedBuffer->UnMap()) return false;
+	m_MappedBuffer = nullptr;
+	return true;
+}
+
+bool KVulkanBufferBase::Write(const void* pData)
+{
+	KVulkanBuffer* buffer = GetMemoryBuffer();
+	return buffer && buffer->Write(pData);
+}
+
+bool KVulkanBufferBase::Write(const void* pData, uint64_t offset, uint64_t size)
+{
+	KVulkanBuffer* buffer = GetMemoryBuffer();
+	return buffer && buffer->Write(pData, offset, size);
+}
+
+bool KVulkanBufferBase::Read(void* pData)
+{
+	KVulkanBuffer* buffer = GetMemoryBuffer(true);
+	return buffer && buffer->Read(pData);
+}
+
+bool KVulkanBufferBase::Read(void* pData, uint64_t offset, uint64_t size)
+{
+	KVulkanBuffer* buffer = GetMemoryBuffer(true);
+	return buffer && buffer->Read(pData, offset, size);
+}
+
+bool KVulkanBufferBase::RecordUpload(KVulkanCommandBuffer& commandBuffer, const void* data, uint64_t offset, uint64_t size)
+{
+	if (m_Ticket)
+	{
+		if (m_Ticket->bufferSize) return false;
+		m_Ticket->current = {};
+	}
+
+	const auto& limits = KVulkanGlobal::deviceProperties.limits;
+	const uint64_t maxRange = m_Usage == VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT ? limits.maxUniformBufferRange : limits.maxStorageBufferRange;
+	VkCommandBuffer cmdBuf = commandBuffer.GetVkHandle();
+	if (cmdBuf == VK_NULL_HANDLE || commandBuffer.GetVkBufferLevel() != VK_COMMAND_BUFFER_LEVEL_PRIMARY ||
+		offset || !data || !size || size > maxRange || GetLogicalSize())
+	{
+		return false;
+	}
+
+	KVulkanBufferManager& bufferManager = static_cast<KVulkanRenderDevice*>(KRenderGlobal::RenderDevice)->GetBufferManager();
+	if (!m_Ticket)
+	{
+		m_Ticket = bufferManager.Create(m_Usage, false);
+		bufferManager.SetDebugName(m_Ticket, m_Buffer.GetDebugName().c_str());
+	}
+
+	KVulkanBuffer* buffer = bufferManager.RequestUpload(m_Ticket, size, commandBuffer.GetFrameNum());
+	if (!buffer || !buffer->RecordUpload(cmdBuf, data, size))
+	{
+		return false;
+	}
+
+	const VkAccessFlags access = m_Usage == VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT ? VK_ACCESS_UNIFORM_READ_BIT : VK_ACCESS_SHADER_READ_BIT;
+	KVulkanInitializer::TransitionBufferCmdBuffer(buffer->GetVulkanHandle(), size,
+		VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+		VK_ACCESS_TRANSFER_WRITE_BIT, access, cmdBuf);
+	m_Ticket->current = { buffer, size };
+	return true;
+}
+
+uint64_t KVulkanBufferBase::GetBufferSize()
+{
+	return m_Ticket && !m_Ticket->bufferSize ? m_Ticket->current.size : GetLogicalSize();
+}
+
+VkBuffer KVulkanBufferBase::GetVulkanHandle()
+{
+	KVulkanBuffer* buffer = GetVulkanBuffer();
+	return buffer ? buffer->GetVulkanHandle() : VK_NULL_HANDLE;
+}
+
+uint32_t KVulkanBufferBase::GetUniqueID() const
+{
+	KVulkanBuffer* buffer = const_cast<KVulkanBufferBase*>(this)->GetVulkanBuffer();
+	return buffer ? buffer->GetUniqueID() : 0;
+}
+
+// KVulkanStorageBuffer
+KVulkanStorageBuffer::KVulkanStorageBuffer()
+	: KVulkanBufferBase(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT)
 {
 }
 
@@ -622,122 +783,27 @@ bool KVulkanStorageBuffer::InitFromVertexBuffer(IKVertexBufferPtr pSource)
 	return true;
 }
 
-bool KVulkanStorageBuffer::InitDevice(bool indirect, bool hostVisible)
+bool KVulkanStorageBuffer::InitDevice(bool indirect, bool hostVisible, bool persistent)
 {
-	UnInitUpload();
 	m_ReferencedBuffer.reset();
-	KStorageBufferBase::InitDevice(indirect, hostVisible);
-
-	VkBufferUsageFlags usageFlags = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
-	if (indirect)
-	{
-		usageFlags |= VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT;
-	}
-	if (!m_Buffer.InitDevice(usageFlags, m_Data.data(), m_BufferSize, hostVisible)) return false;
+	KStorageBufferBase::InitDevice(indirect, hostVisible, persistent);
+	if (!InitBuffer(hostVisible, persistent, indirect ? VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT : 0)) return false;
 	m_Data.clear();
 	m_Data.shrink_to_fit();
 	return true;
 }
 
-void KVulkanStorageBuffer::UnInitUpload()
-{
-	if (m_UploadTicket)
-	{
-		static_cast<KVulkanRenderDevice*>(KRenderGlobal::RenderDevice)->GetBufferManager().Destroy(m_UploadTicket);
-		m_UploadTicket = nullptr;
-	}
-}
-
 bool KVulkanStorageBuffer::UnInit()
 {
-	UnInitUpload();
 	m_ReferencedBuffer.reset();
 	KStorageBufferBase::UnInit();
 	m_Data.shrink_to_fit();
-	return m_Buffer.UnInit();
+	return UnInitBuffer();
 }
 
-bool KVulkanStorageBuffer::SetDebugName(const char* pName)
-{
-	if (m_UploadTicket)
-	{
-		static_cast<KVulkanRenderDevice*>(KRenderGlobal::RenderDevice)->GetBufferManager().SetDebugName(m_UploadTicket, pName);
-	}
-	return m_Buffer.SetDebugName(pName);
-}
-
-bool KVulkanStorageBuffer::IsIndirect()
-{
-	return m_bIndirect;
-}
-
-KVulkanBuffer& KVulkanStorageBuffer::GetVulkanBuffer()
+KVulkanBuffer& KVulkanStorageBuffer::GetFixedBuffer()
 {
 	return m_ReferencedBuffer ? *m_ReferencedBuffer : m_Buffer;
-}
-
-bool KVulkanStorageBuffer::Map(void** ppData, MapAccess access)
-{
-	return GetVulkanBuffer().Map(ppData, access);
-}
-
-bool KVulkanStorageBuffer::UnMap()
-{
-	return GetVulkanBuffer().UnMap();
-}
-
-bool KVulkanStorageBuffer::Write(const void* pData)
-{
-	return GetVulkanBuffer().Write(pData);
-}
-
-bool KVulkanStorageBuffer::Write(const void* pData, uint64_t offset, uint64_t size)
-{
-	return GetVulkanBuffer().Write(pData, offset, size);
-}
-
-bool KVulkanStorageBuffer::Read(void* pData)
-{
-	return GetVulkanBuffer().Read(pData);
-}
-
-bool KVulkanStorageBuffer::Read(void* pData, uint64_t offset, uint64_t size)
-{
-	return GetVulkanBuffer().Read(pData, offset, size);
-}
-
-bool KVulkanStorageBuffer::RecordUpload(KVulkanCommandBuffer& commandBuffer, const void* data, uint64_t offset, uint64_t size)
-{
-	if (m_UploadTicket)
-	{
-		m_UploadTicket->upload = {};
-	}
-
-	VkCommandBuffer cmdBuf = commandBuffer.GetVkHandle();
-	if (cmdBuf == VK_NULL_HANDLE || commandBuffer.GetVkBufferLevel() != VK_COMMAND_BUFFER_LEVEL_PRIMARY ||
-		offset || !data || !size || size > KVulkanGlobal::deviceProperties.limits.maxStorageBufferRange || m_BufferSize)
-	{
-		return false;
-	}
-
-	KVulkanBufferManager& bufferManager = static_cast<KVulkanRenderDevice*>(KRenderGlobal::RenderDevice)->GetBufferManager();
-	if (!m_UploadTicket)
-	{
-		m_UploadTicket = bufferManager.Create(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, false);
-		bufferManager.SetDebugName(m_UploadTicket, m_Buffer.GetDebugName().c_str());
-	}
-
-	KVulkanBuffer* buffer = bufferManager.RequestUpload(m_UploadTicket, size, commandBuffer.GetFrameNum());
-	if (!buffer || !buffer->RecordUpload(cmdBuf, data, size))
-	{
-		return false;
-	}
-
-	KVulkanInitializer::TransitionBufferCmdBuffer(buffer->GetVulkanHandle(), size,
-		VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-		VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, cmdBuf);
-	m_UploadTicket->upload = { buffer, size };
-	return true;
 }
 
 bool KVulkanStorageBuffer::CopyFrom(IKStorageBufferPtr pSource)
@@ -750,115 +816,28 @@ bool KVulkanStorageBuffer::CopyTo(IKStorageBufferPtr pDest)
 	return false;
 }
 
-uint64_t KVulkanStorageBuffer::GetBufferSize()
-{
-	return m_UploadTicket ? m_UploadTicket->upload.size : m_BufferSize;
-}
-
-VkBuffer KVulkanStorageBuffer::GetVulkanHandle()
-{
-	if (m_UploadTicket)
-	{
-		KVulkanBuffer* buffer = m_UploadTicket->upload.buffer;
-		return buffer ? buffer->GetVulkanHandle() : VK_NULL_HANDLE;
-	}
-	return GetVulkanBuffer().GetVulkanHandle();
-}
-
-uint32_t KVulkanStorageBuffer::GetUniqueID() const
-{
-	return m_ReferencedBuffer ? m_ReferencedBuffer->GetUniqueID() : m_Buffer.GetUniqueID();
-}
-
 // KVulkanUniformBuffer
 KVulkanUniformBuffer::KVulkanUniformBuffer()
-	: KUniformBufferBase()
-	, m_Ticket(nullptr)
-	, m_MappedBuffer(nullptr)
+	: KVulkanBufferBase(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT)
 {
 }
 
-KVulkanUniformBuffer::~KVulkanUniformBuffer()
+bool KVulkanUniformBuffer::InitDevice(bool persistent)
 {
-}
-
-bool KVulkanUniformBuffer::InitDevice()
-{
-	UnInit();
-	m_Ticket = static_cast<KVulkanRenderDevice*>(KRenderGlobal::RenderDevice)->GetBufferManager().Create(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, m_Data.data(), m_BufferSize, true);
-	return m_Ticket != nullptr;
+	return InitBuffer(true, persistent);
 }
 
 bool KVulkanUniformBuffer::UnInit()
 {
-	if (m_Ticket)
-	{
-		static_cast<KVulkanRenderDevice*>(KRenderGlobal::RenderDevice)->GetBufferManager().Destroy(m_Ticket);
-		m_Ticket = nullptr;
-	}
-	m_MappedBuffer = nullptr;
-	return true;
-}
-
-bool KVulkanUniformBuffer::SetDebugName(const char* pName)
-{
-	if (m_Ticket) static_cast<KVulkanRenderDevice*>(KRenderGlobal::RenderDevice)->GetBufferManager().SetDebugName(m_Ticket, pName);
-	return true;
-}
-
-KVulkanBuffer& KVulkanUniformBuffer::GetVulkanBuffer()
-{
-	return static_cast<KVulkanRenderDevice*>(KRenderGlobal::RenderDevice)->GetBufferManager().Request(m_Ticket, m_Data.data());
-}
-
-bool KVulkanUniformBuffer::Map(void** ppData, MapAccess access)
-{
-	ASSERT_RESULT(!m_MappedBuffer);
-	KVulkanBuffer& buffer = GetVulkanBuffer();
-	if (!buffer.Map(ppData, access)) return false;
-	m_MappedBuffer = &buffer;
-	return true;
-}
-
-bool KVulkanUniformBuffer::UnMap()
-{
-	ASSERT_RESULT(m_MappedBuffer);
-	if (!m_MappedBuffer->UnMap()) return false;
-	m_MappedBuffer = nullptr;
-	return true;
-}
-
-bool KVulkanUniformBuffer::Write(const void* pData)
-{
-	KVulkanBuffer& buffer = GetVulkanBuffer();
-	return buffer.Write(pData);
-}
-
-bool KVulkanUniformBuffer::Write(const void* pData, uint64_t offset, uint64_t size)
-{
-	KVulkanBuffer& buffer = GetVulkanBuffer();
-	return buffer.Write(pData, offset, size);
-}
-
-bool KVulkanUniformBuffer::Read(void* pData)
-{
-	KVulkanBuffer& buffer = GetVulkanBuffer();
-	return buffer.Read(pData);
-}
-
-bool KVulkanUniformBuffer::Read(void* pData, uint64_t offset, uint64_t size)
-{
-	KVulkanBuffer& buffer = GetVulkanBuffer();
-	return buffer.Read(pData, offset, size);
+	return UnInitBuffer();
 }
 
 bool KVulkanUniformBuffer::Reference(void **ppData)
 {
 	ASSERT_RESULT(ppData != nullptr);
-	if(m_Ticket && GetVulkanHandle() != VK_NULL_HANDEL)
+	if (m_BufferSize && GetVulkanHandle() != VK_NULL_HANDLE)
 	{
 		ASSERT_RESULT(m_Data.size() == m_BufferSize);
-		ASSERT_RESULT(m_BufferSize > 0);
 		*ppData = m_Data.data();
 		return true;
 	}
@@ -877,16 +856,4 @@ bool KVulkanUniformBuffer::CopyFrom(IKUniformBufferPtr pSource)
 bool KVulkanUniformBuffer::CopyTo(IKUniformBufferPtr pDest)
 {
 	return false;
-}
-
-VkBuffer KVulkanUniformBuffer::GetVulkanHandle()
-{
-	KVulkanBuffer& buffer = GetVulkanBuffer();
-	return buffer.GetVulkanHandle();
-}
-
-uint32_t KVulkanUniformBuffer::GetUniqueID() const
-{
-	KVulkanBuffer& buffer = const_cast<KVulkanUniformBuffer*>(this)->GetVulkanBuffer();
-	return buffer.GetUniqueID();
 }

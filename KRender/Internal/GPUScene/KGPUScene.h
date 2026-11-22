@@ -137,11 +137,11 @@ protected:
 		IKShaderPtr shadowFS[2];
 		bool doubleSided = false;
 		bool hasVirtualTexture = false;
-		std::vector<IKPipelinePtr> darwPipelines[GPUSCENE_RENDER_STAGE_COUNT];
-		std::vector<IKStorageBufferPtr> parametersBuffers;
+		IKPipelinePtr darwPipelines[GPUSCENE_RENDER_STAGE_COUNT];
+		IKStorageBufferPtr parametersBuffer;
 		IKStorageBufferPtr materialIndicesBuffer;
-		std::vector<IKStorageBufferPtr> indirectDrawArgsBuffers;
-		std::vector<IKComputePipelinePtr> calcDrawArgsPipelines;
+		IKStorageBufferPtr indirectDrawArgsBuffer;
+		IKComputePipelinePtr calcDrawArgsPipeline;
 		std::vector<uint32_t> materialIndices;
 		uint32_t parameterDataSize = 0;
 		uint32_t parameterDataCount = 0;
@@ -154,7 +154,7 @@ protected:
 	std::vector<KGPUSceneInstance> m_Instances;
 	std::vector<KGPUSceneMeshState> m_MeshStates;
 	uint64_t m_MegaBufferRebuilds = 0;
-	uint32_t m_LastDrawFrame = UINT32_MAX;
+	bool m_HasBasePassDrawArgs = false;
 
 	// Each view owns its compute outputs until its draws have completed.
 	// Main-view buffers above remain intact while all shadow cascades execute.
@@ -165,10 +165,10 @@ protected:
 		std::vector<IKStorageBufferPtr> indirectArgs;
 		std::vector<IKComputePipelinePtr> calcDrawArgs;
 		std::vector<IKPipelinePtr> drawPipelines;
+		bool hasDrawArgs = false;
 	};
-	// key = cascade * 2 + static; each entry has NumFramesInFlight slots.
-	std::unordered_map<uint32_t, std::vector<ShadowDrawSet>> m_ShadowDrawSets;
-	std::unordered_map<uint32_t, uint32_t> m_LastShadowDrawFrames;
+	// key = cascade * 2 + static
+	std::unordered_map<uint32_t, ShadowDrawSet> m_ShadowDrawSets;
 
 	struct EntitySubMesh
 	{
@@ -204,18 +204,18 @@ protected:
 	std::vector<IKFrameBufferPtr> m_MaterialTextureImages;
 	std::vector<IKSamplerPtr> m_MaterialTextureSamplers;
 
-	std::vector<IKStorageBufferPtr> m_SceneStateBuffers;
-	std::vector<IKStorageBufferPtr> m_InstanceDataBuffers;
-	std::vector<IKStorageBufferPtr> m_GroupDataBuffers;
-	std::vector<IKStorageBufferPtr> m_DispatchArgsBuffers;
-	std::vector<IKStorageBufferPtr> m_InstanceCullResultBuffers;
-	std::vector<IKStorageBufferPtr> m_MegaShaderStateBuffers;
+	IKStorageBufferPtr m_SceneStateBuffer;
+	IKStorageBufferPtr m_InstanceDataBuffer;
+	IKStorageBufferPtr m_GroupDataBuffer;
+	IKStorageBufferPtr m_DispatchArgsBuffer;
+	IKStorageBufferPtr m_InstanceCullResultBuffer;
+	IKStorageBufferPtr m_MegaShaderStateBuffer;
 
-	std::vector<IKComputePipelinePtr> m_InitStatePipelines;
-	std::vector<IKComputePipelinePtr> m_InstanceCullPipelines;
-	std::vector<IKComputePipelinePtr> m_CalcDispatchArgsPipelines;
-	std::vector<IKComputePipelinePtr> m_GroupAllocatePipelines;
-	std::vector<IKComputePipelinePtr> m_GroupScatterPipelines;
+	IKComputePipelinePtr m_InitStatePipeline;
+	IKComputePipelinePtr m_InstanceCullPipeline;
+	IKComputePipelinePtr m_CalcDispatchArgsPipeline;
+	IKComputePipelinePtr m_GroupAllocatePipeline;
+	IKComputePipelinePtr m_GroupScatterPipeline;
 
 	KShaderCompileEnvironment m_ComputeBindingEnv;
 
@@ -256,7 +256,7 @@ protected:
 	void UpdateMaterialParameterBuffers(KRHICommandList& commandList);
 	void UnInitShadowDrawSets();
 	void UnInitShadowDrawSet(ShadowDrawSet& drawSet);
-	bool InitializeShadowDrawSet(ShadowDrawSet& drawSet, uint32_t frameIndex, bool isStatic);
+	bool InitializeShadowDrawSet(ShadowDrawSet& drawSet, bool isStatic);
 
 	void RebuildEntityDataIndex();
 	void RebuildMegaBuffer();
@@ -280,7 +280,7 @@ public:
 	void AppendBasePassCommands(IKRenderPassPtr renderPass, KRenderCommandList& commands);
 	void PrepareShadowCommands(KRHICommandList& commandList, IKRenderPassPtr renderPass, uint32_t cascadeIndex, bool isStatic,
 		const KGPUSceneShadowCullParameters& parameters, KRenderCommandList& commands);
-	bool ReadShadowPassTriangles(uint32_t cascadeIndex, bool isStatic, uint64_t& triangles, uint32_t* frameSlot = nullptr) const;
+	bool ReadShadowPassTriangles(uint32_t cascadeIndex, bool isStatic, uint64_t& triangles) const;
 	uint64_t GetMegaBufferRebuilds() const { return m_MegaBufferRebuilds; }
 	bool ReadBasePassTriangles(uint64_t& triangles) const;
 
