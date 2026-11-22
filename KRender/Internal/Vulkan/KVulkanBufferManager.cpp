@@ -14,14 +14,22 @@ KVulkanBufferTicket* KVulkanBufferManager::Create(VkBufferUsageFlags usages, con
 	ticket.usages = usages;
 	ticket.bufferSize = bufferSize;
 	ticket.hostVisible = hostVisible;
-	ticket.buffers.emplace_back();
-	if (!ticket.buffers.back().buffer.InitDevice(usages, data, bufferSize, hostVisible))
+	if (bufferSize)
 	{
-		ticket.buffers.back().buffer.UnInit();
-		m_Tickets.pop_back();
-		return nullptr;
+		ticket.buffers.emplace_back();
+		if (!ticket.buffers.back().buffer.InitDevice(usages, data, bufferSize, hostVisible))
+		{
+			ticket.buffers.back().buffer.UnInit();
+			m_Tickets.pop_back();
+			return nullptr;
+		}
 	}
 	return &ticket;
+}
+
+KVulkanBufferTicket* KVulkanBufferManager::Create(VkBufferUsageFlags usages, bool hostVisible)
+{
+	return Create(usages, nullptr, 0, hostVisible);
 }
 
 KVulkanBuffer& KVulkanBufferManager::Request(KVulkanBufferTicket* ticket, const void* initialData)
@@ -48,6 +56,39 @@ KVulkanBuffer& KVulkanBufferManager::Request(KVulkanBufferTicket* ticket, const 
 	available->frameNum = frameNum;
 	available->occupied = true;
 	return available->buffer;
+}
+
+KVulkanBuffer* KVulkanBufferManager::RequestUpload(KVulkanBufferTicket* ticket, uint64_t size, uint32_t frameNum)
+{
+	std::lock_guard<decltype(m_Lock)> lockGuard(m_Lock);
+	if (!ticket || ticket->retired || !size) return nullptr;
+
+	auto available = ticket->buffers.end();
+	for (auto it = ticket->buffers.begin(); it != ticket->buffers.end(); ++it)
+	{
+		if (it->occupied) continue;
+		if (it->buffer.GetBufferSize() >= size)
+		{
+			available = it;
+			break;
+		}
+		if (available == ticket->buffers.end()) available = it;
+	}
+	if (available == ticket->buffers.end()) available = ticket->buffers.emplace(available);
+
+	KVulkanBuffer& buffer = available->buffer;
+	if (buffer.GetBufferSize() < size)
+	{
+		if (!buffer.InitDevice(ticket->usages, nullptr, size, ticket->hostVisible)) return nullptr;
+		if (!ticket->name.empty())
+		{
+			size_t index = std::distance(ticket->buffers.begin(), available);
+			buffer.SetDebugName((ticket->name + "_" + std::to_string(index)).c_str());
+		}
+	}
+	available->frameNum = frameNum;
+	available->occupied = true;
+	return &buffer;
 }
 
 void KVulkanBufferManager::DestroyUnusedTickets()
@@ -83,7 +124,14 @@ void KVulkanBufferManager::Release(uint32_t frameNum)
 	{
 		for (auto& allocation : ticket.buffers)
 		{
-			if (allocation.occupied && allocation.frameNum == frameNum) allocation.occupied = false;
+			if (allocation.occupied && allocation.frameNum == frameNum)
+			{
+				allocation.occupied = false;
+				if (ticket.upload.buffer == &allocation.buffer)
+				{
+					ticket.upload = {};
+				}
+			}
 		}
 	}
 	DestroyUnusedTickets();

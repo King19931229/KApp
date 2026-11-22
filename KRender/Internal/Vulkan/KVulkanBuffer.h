@@ -5,6 +5,7 @@
 #include <atomic>
 
 struct KVulkanBufferTicket;
+class KVulkanCommandBuffer;
 
 class KVulkanStageBuffer
 {
@@ -23,6 +24,7 @@ public:
 	bool Map(void** ppData);
 	bool UnMap();
 	bool Write(const void* pData);
+	bool Write(const void* pData, uint64_t size);
 	bool Read(void* pData);
 
 	inline VkBuffer GetVulkanHandle() { return m_vkBuffer; }
@@ -51,15 +53,18 @@ public:
 	bool UnInit();
 
 	bool SetDebugName(const char* pName);
+	inline const std::string& GetDebugName() const { return m_DebugName; }
 
 	bool Map(void** ppData, MapAccess access = MA_READ_WRITE);
 	bool UnMap();
 	bool Write(const void* pData);
 	bool Write(const void* pData, uint64_t offset, uint64_t size);
+	bool RecordUpload(VkCommandBuffer commandBuffer, const void* data, uint64_t size);
 	bool Read(void* pData);
 	bool Read(void* pData, uint64_t offset, uint64_t size);
 
 	inline bool IsHostVisible() const { return m_bHostVisible; }
+	inline uint64_t GetBufferSize() const { return m_BufferSize; }
 	inline VkBuffer GetVulkanHandle() { return m_vkBuffer; }
 	inline uint32_t GetUniqueID() const { return m_UniqueID; }
 
@@ -134,6 +139,9 @@ class KVulkanStorageBuffer : public KStorageBufferBase
 protected:
 	KVulkanBuffer m_Buffer;
 	std::shared_ptr<KVulkanBuffer> m_ReferencedBuffer;
+	KVulkanBufferTicket* m_UploadTicket;
+
+	void UnInitUpload();
 	KVulkanBuffer& GetVulkanBuffer();
 public:
 	KVulkanStorageBuffer();
@@ -157,6 +165,8 @@ public:
 	virtual bool CopyFrom(IKStorageBufferPtr pSource);
 	virtual bool CopyTo(IKStorageBufferPtr pDest);
 
+	bool RecordUpload(KVulkanCommandBuffer& commandBuffer, const void* data, uint64_t offset, uint64_t size);
+	virtual uint64_t GetBufferSize() override;
 	VkBuffer GetVulkanHandle();
 	uint32_t GetUniqueID() const;
 };

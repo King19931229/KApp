@@ -134,11 +134,10 @@ protected:
 	std::vector<uint32_t> m_TableInfo;
 	std::vector<KVirtualTextureTableUpdate> m_PendingTableUpdates;
 
-	std::vector<IKComputePipelinePtr> m_MipUpdateComputePipelines;
-	std::vector<IKStorageBufferPtr> m_MipUpdateStorages;
-
-	std::vector<std::vector<IKStorageBufferPtr>> m_TableUpdateStorages;
-	std::vector<std::vector<IKComputePipelinePtr>> m_TableUpdateComputePipelines;
+	IKStorageBufferPtr m_MipUpdateStorage;
+	std::vector<IKStorageBufferPtr> m_TableUpdateStorages;
+	IKComputePipelinePtr m_MipUpdateComputePipeline;
+	std::vector<IKComputePipelinePtr> m_TableUpdateComputePipelines;
 
 	uint32_t m_VirtualID = 0;
 

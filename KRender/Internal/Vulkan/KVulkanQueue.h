@@ -1,5 +1,7 @@
 #pragma once
 #include "Interface/IKQueue.h"
+#include <atomic>
+#include <mutex>
 #include "KVulkanConfig.h"
 
 class KVulkanSemaphore : public IKSemaphore
@@ -26,12 +28,13 @@ public:
 		bool submitted = false;
 	};
 protected:
-	struct Fence
-	{
-		VkFence handle = VK_NULL_HANDLE;
-		Payload payload;
-	};
-	std::vector<Fence> m_Fences;
+	mutable std::mutex m_Mutex;
+	mutable std::atomic<Status> m_Status{ Status::Pending };
+	VkFence m_Handle = VK_NULL_HANDLE;
+	Payload m_Payload;
+
+	void UpdateStatus() const;
+	bool WaitLocked();
 public:
 	KVulkanFence();
 	~KVulkanFence();
@@ -41,12 +44,16 @@ public:
 	virtual bool SetDebugName(const char* name);
 	virtual bool Wait();
 	virtual bool Reset();
+	Status GetStatus() const override;
 
-	VkFence GetVkFence();
-	void SetFrameNum(uint32_t frameNum);
-	bool TakeFrameNum(uint32_t& frameNum);
-	std::vector<Payload> GetFramePayloads() const;
-	void SetFramePayloads(const std::vector<Payload>& payloads);
+	VkResult Submit(VkQueue queue, const VkSubmitInfo& info, uint32_t frameNum);
+	void SetFailed();
+	bool WaitForFrame(uint32_t& frameNum);
+
+	static bool InitSlots(std::vector<IKFencePtr>& fences, const char* name);
+	static bool ResetSlot(IKFencePtr& fence);
+	static std::vector<Payload> GetFramePayloads(const std::vector<IKFencePtr>& fences);
+	static void SetFramePayloads(const std::vector<IKFencePtr>& fences, const std::vector<Payload>& payloads);
 };
 
 struct KVulkanQueue : public IKQueue

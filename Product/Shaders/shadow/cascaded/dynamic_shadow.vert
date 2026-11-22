@@ -1,11 +1,17 @@
 #include "public.h"
 
+#ifdef GPU_SCENE
+#include "shading/vertexinput.h"
+layout(location = GPUSCENE_DRAW_INDEX_LOCATION) out flat uint out_darwIndex;
+#else
 layout(location = POSITION) in vec3 position;
 layout(location = NORMAL) in vec3 normal;
 layout(location = TEXCOORD0) in vec2 texcoord0;
+#endif
 
 layout(location = 0) out vec2 out_texCoord;
 
+#if !defined(GPU_SCENE)
 #if !INSTANCE_INPUT
 layout(binding = BINDING_OBJECT)
 uniform Object_DYN_UNIFORM
@@ -27,10 +33,14 @@ uniform Object_DYN_UNIFORM
 	uint index;
 } object;
 #endif
+#endif
 
 void main()
 {
-#if !INSTANCE_INPUT
+#ifdef GPU_SCENE
+	out_darwIndex = darwIndex;
+	gl_Position = dynamic_cascaded.light_view_proj[gpuscene.cascadeIndex] * worldMatrix * vec4(position, 1.0);
+#elif !INSTANCE_INPUT
 	gl_Position = dynamic_cascaded.light_view_proj[object.index] * object.model * vec4(position, 1.0);
 #else
 	gl_Position = dynamic_cascaded.light_view_proj[object.index] * transpose(mat4(world_row0, world_row1, world_row2, vec4(0, 0, 0, 1))) * vec4(position, 1.0);

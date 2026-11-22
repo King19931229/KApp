@@ -35,7 +35,6 @@
     <ClInclude Include="Interface\IKRenderCommand.h" />
     <ClInclude Include="Interface\IKRenderCore.h" />
     <ClInclude Include="Interface\IKRenderDevice.h" />
-    <ClInclude Include="Interface\IKRenderDispatcher.h" />
     <ClInclude Include="Interface\IKRenderer.h" />
     <ClInclude Include="Interface\IKRenderPass.h" />
     <ClInclude Include="Interface\IKRenderTarget.h" />
@@ -43,6 +42,7 @@
     <ClInclude Include="Interface\IKResource.h" />
     <ClInclude Include="Interface\IKSampler.h" />
     <ClInclude Include="Interface\IKRenderScene.h" />
+    <ClInclude Include="Interface\IKTerrain.h" />
     <ClInclude Include="Interface\IKShader.h" />
     <ClInclude Include="Interface\IKRenderConfig.h" />
     <ClInclude Include="Interface\IKBuffer.h" />
@@ -57,7 +57,6 @@
     <ClInclude Include="Internal\Asset\KSubMesh.h" />
     <ClInclude Include="Internal\Asset\KTriangleMesh.h" />
     <ClInclude Include="Internal\Asset\Material\KMaterialParameter.h" />
-    <ClInclude Include="Internal\Asset\Material\KMaterialShader.h" />
     <ClInclude Include="Internal\Asset\Material\KMaterialTextureBinding.h" />
     <ClInclude Include="Internal\Asset\Material\KMaterialValue.h" />
     <ClInclude Include="Internal\Asset\Meshlet\KMeshlet.h" />
@@ -328,9 +327,12 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="Interface\KShaderBinding.inl" />
+    <None Include="Interface\KVertexFormat.inl" />
     <None Include="Interface\KVertexSemantic.inl" />
+    <None Include="Internal\GPUScene\KGPUSceneBinding.inl" />
     <None Include="Internal\Object\KRTAOBinding.inl" />
     <None Include="Internal\VirtualGeometry\KVirtualGeomertyBinding.inl" />
+    <None Include="Internal\VirtualTexture\KVirtualTextureBinding.inl" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{CF39F7A8-164C-4E82-9CC0-6308AE16C1D6}</ProjectGuid>

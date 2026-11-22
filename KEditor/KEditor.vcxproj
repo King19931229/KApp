@@ -30,6 +30,18 @@
     <ClCompile Include="Entity\KEEntitySelector.cpp" />
     <ClCompile Include="Resource\KEResourcePorter.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Command\KECommand.h" />
+    <ClInclude Include="Command\KECommandInvoker.h" />
+    <ClInclude Include="Entity\KEEntityCommand.h" />
+    <ClInclude Include="Entity\KEEntityManipulator.h" />
+    <ClInclude Include="Entity\KEEntityNamePool.h" />
+    <ClInclude Include="Entity\KEEntitySelector.h" />
+    <ClInclude Include="ImGui\KEImGuiEditor.h" />
+    <ClInclude Include="KEditorConfig.h" />
+    <ClInclude Include="KEditorGlobal.h" />
+    <ClInclude Include="Resource\KEResourcePorter.h" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{F203B998-D821-44D7-B960-2F3E22DA6259}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>

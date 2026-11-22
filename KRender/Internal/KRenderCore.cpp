@@ -314,7 +314,7 @@ bool KRenderCore::Init(IKRenderDevicePtr& device, IKRenderWindowPtr& window, KRe
 			m_DebugConsole = KNEW KDebugConsole();
 			m_DebugConsole->Init();
 
-			m_Camera.SetNear(20.0f);
+			m_Camera.SetNear(0.1f);
 			m_Camera.SetFar(5000.0f);
 			m_Camera.SetCustomLockYAxis(glm::vec3(0, 1, 0));
 			m_Camera.SetLockYEnable(true);
@@ -476,13 +476,13 @@ void KRenderCore::Update()
 
 void KRenderCore::Render()
 {
+	auto& commandList = KRenderGlobal::Renderer.GetRHICommandList();
+	commandList.Flush(RHICommandFlush::FlushRHIThread);
+
 	if (m_bTickShouldEnd)
 	{
 		return;
 	}
-
-	auto& commandList = KRenderGlobal::Renderer.GetRHICommandList();
-	commandList.Flush(RHICommandFlush::FlushRHIThread);
 
 	IKSwapChain* mainSwapChain = m_MainWindow->GetSwapChain();
 	IKUIOverlay* uiOverlay = m_MainWindow->GetUIOverlay();
@@ -540,6 +540,8 @@ void KRenderCore::Render()
 		return;
 	}
 
+	const IKFencePtr mainFence = mainSwapChain->GetInFlightFence();
+	commandList.SetPresentFence(mainFence);
 	KRenderGlobal::Statistics.BeginDrawFrame(KRenderGlobal::CurrentFrameNum);
 	Update();
 
@@ -548,15 +550,25 @@ void KRenderCore::Render()
 		KRenderGlobal::Renderer.SetUIOverlay(uiOverlay);
 
 		KRenderGlobal::Renderer.Update();
-		if (KRenderGlobal::Renderer.Execute(chainImageIndex))
+		if (KRenderGlobal::Renderer.Execute(chainImageIndex, mainFence))
 		{
-			commandList.Present(mainSwapChain, [this](IKSwapChain* swapChain, bool needResize)
+			commandList.Present(mainSwapChain, [this](IKSwapChain*, bool needResize, bool submitted)
 			{
+				if (!submitted)
+				{
+					m_bTickShouldEnd = true;
+					return;
+				}
 				m_bSwapChainResized = needResize;
 				++KRenderGlobal::CurrentFrameNum;
 				// Advance only after this frame's RHI commands have executed.
 				KRenderGlobal::CurrentInFlightFrameIndex = (KRenderGlobal::CurrentInFlightFrameIndex + 1) % KRenderGlobal::NumFramesInFlight;
 			});
+		}
+		else
+		{
+			commandList.SetPresentFence(nullptr);
+			m_bTickShouldEnd = true;
 		}
 	}
 
@@ -567,6 +579,10 @@ void KRenderCore::Render()
 
 	for (IKRenderWindow* window : m_SecordaryWindows)
 	{
+		if (m_bTickShouldEnd)
+		{
+			break;
+		}
 		IKSwapChain* secordarySwapChain = window->GetSwapChain();
 		uint32_t width = 0, height = 0;
 		if (!secordarySwapChain || window->IsMinimized() || !window->GetSize(width, height) || !width || !height)
@@ -596,24 +612,33 @@ void KRenderCore::Render()
 			continue;
 		}
 
+		const IKFencePtr secondaryFence = secordarySwapChain->GetInFlightFence();
+		commandList.SetPresentFence(secondaryFence);
 		KRenderGlobal::Renderer.SetSwapChain(secordarySwapChain);
 		KRenderGlobal::Renderer.SetUIOverlay(secondaryUI);
 		if (secondaryUI)
 		{
 			secondaryUI->StartNewFrame();
 			secondaryUI->EndNewFrame();
-			secondaryUI->Update();
 		}
 		KRenderGlobal::Renderer.Update();
-		if (!KRenderGlobal::Renderer.Execute(chainImageIndex))
+		if (!KRenderGlobal::Renderer.Execute(chainImageIndex, secondaryFence))
 		{
+			commandList.SetPresentFence(nullptr);
 			KG_LOGE(LM_RENDER, "Failed to render acquired secondary swapchain image");
 			m_bTickShouldEnd = true;
 			break;
 		}
 
 		bool resized = false;
-		commandList.Present(secordarySwapChain, [&resized](IKSwapChain* swapChain, bool needResize) { resized = needResize; });
+		commandList.Present(secordarySwapChain, [this, &resized](IKSwapChain*, bool needResize, bool submitted)
+		{
+			resized = needResize;
+			if (!submitted)
+			{
+				m_bTickShouldEnd = true;
+			}
+		});
 		FLUSH_INFLIGHT_RENDER_JOB();
 		if (resized && secondaryUI)
 		{
@@ -624,6 +649,7 @@ void KRenderCore::Render()
 	KRenderGlobal::Renderer.SetUIOverlay(uiOverlay);
 	// Publish in submission order, after both the main and secondary windows.
 	commandList.AddLowLevelRenderJob([](IKCommandBufferPtr) { KRenderGlobal::Statistics.EndDrawFrame(); });
+	commandList.Flush(RHICommandFlush::DispatchToRHIThread);
 }
 
 bool KRenderCore::Tick()
@@ -879,7 +905,6 @@ bool KRenderCore::UpdateUIOverlay()
 		(*callback)();
 	}
 	ui->EndNewFrame();
-	ui->Update();
 	return true;
 }
 

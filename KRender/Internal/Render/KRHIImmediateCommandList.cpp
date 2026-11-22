@@ -154,7 +154,7 @@ void KRHIImmediateCommandList::UpdateUniformBuffer(IKUniformBufferPtr uniformBuf
 	uniformBuffer->UnMap();
 }
 
-void KRHIImmediateCommandList::UpdateStorageBuffer(IKStorageBufferPtr storageBuffer, void* data, uint32_t offset, uint32_t size)
+void KRHIImmediateCommandList::UpdateStorageBuffer(IKStorageBufferPtr storageBuffer, const void* data, uint64_t offset, uint64_t size)
 {
 	storageBuffer->Write(data, offset, size);
 }

@@ -127,6 +127,7 @@
     <ClInclude Include="Publish\Mesh\KVirtualGeometryBuilder.h" />
     <ClInclude Include="Publish\Mesh\KMeshProcessor.h" />
     <ClInclude Include="Publish\Mesh\KMeshSimplification.h" />
+    <ClInclude Include="Publish\Mesh\KQuadric.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Internal\Asset\KAssimpIOHooker.cpp" />

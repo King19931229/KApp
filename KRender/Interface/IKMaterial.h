@@ -98,6 +98,8 @@ struct IKMaterial
 	virtual IKShaderPtr GetVSGPUSceneShader(const VertexFormat* formats, uint32_t count) = 0;
 	virtual IKShaderPtr GetFSShader(const VertexFormat* formats, uint32_t count) = 0;
 	virtual IKShaderPtr GetFSGPUSceneShader(const VertexFormat* formats, uint32_t count) = 0;
+	virtual IKShaderPtr GetVSGPUSceneCSMShader(const VertexFormat* formats, uint32_t count, bool staticCSM) = 0;
+	virtual IKShaderPtr GetFSGPUSceneCSMShader(const VertexFormat* formats, uint32_t count, bool staticCSM) = 0;
 
 	virtual IKShaderPtr GetVSVirtualFeedbackShader(const VertexFormat* formats, uint32_t count) = 0;
 	virtual IKShaderPtr GetVSInstanceVirtualFeedbackShader(const VertexFormat* formats, uint32_t count) = 0;

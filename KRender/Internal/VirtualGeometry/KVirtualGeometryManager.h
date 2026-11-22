@@ -100,6 +100,7 @@ public:
 	bool RemoveVirtualGeometryScene(IKVirtualGeometryScenePtr& scene);
 
 	bool ExecuteMain(KRHICommandList& commandList);
+	bool HasPostOcclusionWork() const;
 	bool ExecutePost(KRHICommandList& commandList);
 
 	IKStorageBufferPtr GetStreamingRequestPipeline(uint32_t frameIndex);

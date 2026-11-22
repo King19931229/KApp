@@ -423,16 +423,19 @@ RHICOMMAND_DEFINE(KUpdateStorageBufferCmd)
 {
 	IKStorageBufferPtr storageBuffer;
 	std::vector<char> data;
-	uint32_t offset;
-	uint32_t size;
+	uint64_t offset;
+	uint64_t size;
 
-	KUpdateStorageBufferCmd(IKStorageBufferPtr inStorageBuffer, void* inData, uint32_t inOffset, uint32_t inSize)
+	KUpdateStorageBufferCmd(IKStorageBufferPtr inStorageBuffer, const void* inData, uint64_t inOffset, uint64_t inSize)
 		: storageBuffer(inStorageBuffer)
 		, offset(inOffset)
 		, size(inSize)
 	{
-		data.resize(size);
-		memcpy(data.data(), inData, inSize);
+		if (inData && size && size <= data.max_size())
+		{
+			data.resize(static_cast<size_t>(size));
+			memcpy(data.data(), inData, data.size());
+		}
 	}
 
 	virtual void Execute(KRHICommandList& commandList) override;
@@ -486,7 +489,7 @@ RHICOMMAND_DEFINE(KAddLowLevelRenderJobCmd)
 	LowLevelRenderJobType job;
 	KAddLowLevelRenderJobCmd(IKCommandBufferPtr inCommandBuffer, LowLevelRenderJobType inJob)
 		: commandBuffer(inCommandBuffer)
-		, job(inJob)
+		, job(std::move(inJob))
 	{}
 	virtual void Execute(KRHICommandList& commandList) override;
 };
@@ -518,14 +521,16 @@ RHICOMMAND_DEFINE(KRenderDeviceTickCmd)
 	virtual void Execute(KRHICommandList & commandList) override;
 };
 
-typedef std::function<void(IKSwapChain*, bool needResize)> SwapChainResizeCallbackType;
+typedef std::function<void(IKSwapChain*, bool needResize, bool submitted)> SwapChainPresentCallbackType;
 RHICOMMAND_DEFINE(KSwapChainPresentCmd)
 {
 	IKSwapChain* swapChain;
-	SwapChainResizeCallbackType callback;
+	IKFencePtr fence;
+	SwapChainPresentCallbackType callback;
 
-	KSwapChainPresentCmd(IKSwapChain* inSwapChain, SwapChainResizeCallbackType inCallback)
+	KSwapChainPresentCmd(IKSwapChain* inSwapChain, IKFencePtr inFence, SwapChainPresentCallbackType inCallback)
 		: swapChain(inSwapChain)
+		, fence(std::move(inFence))
 		, callback(inCallback)
 	{}
 	virtual void Execute(KRHICommandList& commandList) override;
@@ -601,7 +606,7 @@ struct KRHICommandListBase
 	virtual void TransitionMipmap(IKFrameBufferPtr buf, uint32_t mipmap, PipelineStages srcStages, PipelineStages dstStages, ImageLayout oldLayout, ImageLayout newLayout) = 0;
 	virtual void Blit(IKFrameBufferPtr src, IKFrameBufferPtr dest) = 0;
 	virtual void UpdateUniformBuffer(IKUniformBufferPtr uniformBuffer, void* data, uint32_t offset, uint32_t size) = 0;
-	virtual void UpdateStorageBuffer(IKStorageBufferPtr storageBuffer, void* data, uint32_t offset, uint32_t size) = 0;
+	virtual void UpdateStorageBuffer(IKStorageBufferPtr storageBuffer, const void* data, uint64_t offset, uint64_t size) = 0;
 };
 
 struct KRHIImmediateCommandList : public KRHICommandListBase
@@ -652,7 +657,7 @@ public:
 	void Blit(IKFrameBufferPtr src, IKFrameBufferPtr dest);
 
 	void UpdateUniformBuffer(IKUniformBufferPtr uniformBuffer, void* data, uint32_t offset, uint32_t size);
-	void UpdateStorageBuffer(IKStorageBufferPtr storageBuffer, void* data, uint32_t offset, uint32_t size);
+	void UpdateStorageBuffer(IKStorageBufferPtr storageBuffer, const void* data, uint64_t offset, uint64_t size);
 };
 
 class KRHICommandList : public KRHICommandListBase
@@ -660,6 +665,7 @@ class KRHICommandList : public KRHICommandListBase
 protected:
 	std::vector<IKCommandPoolPtr> m_ThreadCommandPools;
 	IKCommandBufferPtr m_CommandBuffer;
+	IKFencePtr m_PresentFence;
 	KRenderJobExecuteThreadPool* m_MultiThreadPool;
 	KRHICommandBasePtr m_CommandHead;
 	KRHICommandBasePtr* m_CommandNext;
@@ -737,7 +743,7 @@ public:
 	void Blit(IKFrameBufferPtr src, IKFrameBufferPtr dest);
 
 	void UpdateUniformBuffer(IKUniformBufferPtr uniformBuffer, void* data, uint32_t offset, uint32_t size);
-	void UpdateStorageBuffer(IKStorageBufferPtr storageBuffer, void* data, uint32_t offset, uint32_t size);
+	void UpdateStorageBuffer(IKStorageBufferPtr storageBuffer, const void* data, uint64_t offset, uint64_t size);
 
 	void BeginThreadedRender(uint32_t threadNum, IKRenderPassPtr renderPass, KRenderCommandList&& renderCmdList);
 	void EndThreadedRender();
@@ -749,9 +755,13 @@ public:
 
 	void QueueSubmit(IKQueuePtr queue, std::vector<KSemaphoreWaitInfo> waits, std::vector<IKSemaphorePtr> singals, IKFencePtr fence);
 
+	// Requests made while recording one window share its Present fence.
+	void SetPresentFence(IKFencePtr fence) { m_PresentFence = std::move(fence); }
+	IKFencePtr RegisterFrameCompletionFence();
+
 	void TickRenderDevice();
 
-	void Present(IKSwapChain* swapChain, SwapChainResizeCallbackType callback);
+	void Present(IKSwapChain* swapChain, SwapChainPresentCallbackType callback);
 
 	void InternalCurrentThreadedContext(uint32_t threadNum, IKCommandBufferPtr commandBuffer, const std::vector<IKCommandPoolPtr>& threadCommandPools, KRenderJobExecuteThreadPool* threadPool, IKRenderPassPtr renderPass, KRenderCommandList&& renderCmdList);
 	void InternalSetThreadRenderJob(uint32_t threadIndex, ThreadRenderJobType job);

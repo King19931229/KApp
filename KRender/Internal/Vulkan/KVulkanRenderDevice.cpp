@@ -19,6 +19,7 @@
 #include "KVulkanUIOverlay.h"
 #include "KVulkanGlobal.h"
 #include "KVulkanHeapAllocator.h"
+#include "Internal/Window/KHeadlessSwapChain.h"
 
 #include "KBase/Interface/IKLog.h"
 #include <cstdlib>
@@ -1953,14 +1954,17 @@ bool KVulkanRenderDevice::RecreateSwapChain(IKSwapChain* swapChain)
 			return false;
 		}
 
-		KVulkanGlobal::DeviceWaitIdle(m_Device);
-		auto payloads = static_cast<KVulkanFence*>(swapChain->GetInFlightFence().get())->GetFramePayloads();
-
-		swapChain->UnInit();
-		swapChain->Init(window);
-		static_cast<KVulkanFence*>(swapChain->GetInFlightFence().get())->SetFramePayloads(payloads);
-
-		return true;
+		const VkResult result = KVulkanGlobal::DeviceWaitIdle(m_Device);
+		VK_ASSERT_RESULT(result);
+		if (result != VK_SUCCESS)
+		{
+			return false;
+		}
+		if (window->GetType() == RENDER_WINDOW_HEADLESS)
+		{
+			return static_cast<KHeadlessSwapChain*>(swapChain)->Recreate();
+		}
+		return static_cast<KVulkanSwapChain*>(swapChain)->Recreate();
 	}
 	return false;
 }

@@ -40,7 +40,7 @@ protected:
 	IKSemaphorePtr m_ImageAvailableSemaphore;
 	// 这个信号量是给完成交换链Image后促发用的
 	IKSemaphorePtr m_RenderFinishedSemaphore;
-	IKFencePtr m_InFlightFence;
+	std::vector<IKFencePtr> m_InFlightFences;
 	SwapChainSupportDetails m_SwapChainSupportDetails;
 	std::vector<FrameBuffer> m_FrameBuffers;
 	std::vector<IKRenderPassPtr> m_RenderPasses;
@@ -72,6 +72,7 @@ public:
 
 	virtual bool Init(IKRenderWindow* window);
 	virtual bool UnInit();
+	bool Recreate();
 	virtual IKRenderWindow* GetWindow();
 	virtual uint32_t GetFrameInFlight();
 

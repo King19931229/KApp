@@ -1,0 +1,53 @@
+#include "gpuscene_define.h"
+#include "gpuscene_binding.h"
+#include "wave.h"
+
+// Must match KGPUSceneShadowCullParameters.
+layout(binding = GPUSCENE_BINDING_OBJECT)
+uniform Shadow_DYN_UNIFORM
+{
+	mat4 viewProj;
+	vec4 litMin;
+	vec4 litMax;
+	vec4 receiverMin;
+	vec4 receiverMax;
+	uint instanceCount;
+	uint isStatic;
+	uint clipToReceiver;
+	uint noReceivers;
+} shadow;
+
+layout(local_size_x = GPUSCENE_GROUP_SIZE, local_size_y = 1, local_size_z = 1) in;
+void main()
+{
+	uint instanceIndex = gl_GlobalInvocationID.x;
+	if (instanceIndex >= shadow.instanceCount || shadow.noReceivers != 0) return;
+	if (InstanceData[instanceIndex].boundMin.w != float(shadow.isStatic)) return;
+
+	// Match the CPU caster query: a world-space AABB intersecting the lit box.
+	vec3 worldMin = InstanceData[instanceIndex].boundMin.xyz;
+	vec3 worldMax = InstanceData[instanceIndex].boundMax.xyz;
+	if (any(greaterThan(worldMin, shadow.litMax.xyz)) || any(lessThan(worldMax, shadow.litMin.xyz))) return;
+
+	if (shadow.clipToReceiver != 0)
+	{
+		// Apply the same affine AABB transform and receiver test as the CPU path.
+		vec3 clipMin = shadow.viewProj[3].xyz;
+		vec3 clipMax = clipMin;
+		for (int axis = 0; axis < 3; ++axis)
+		{
+			vec3 a = shadow.viewProj[axis].xyz * worldMin[axis];
+			vec3 b = shadow.viewProj[axis].xyz * worldMax[axis];
+			clipMin += min(a, b);
+			clipMax += max(a, b);
+		}
+		if (any(greaterThan(clipMin, shadow.receiverMax.xyz)) ||
+			any(lessThan(clipMax.xy, shadow.receiverMin.xy))) return;
+	}
+
+	uint visibleIndex = 0;
+	INTERLOCK_ADD(SceneStateData[0].instanceCount, 1, visibleIndex);
+	uint shaderIndex = InstanceData[instanceIndex].miscs[2];
+	INTERLOCK_ADD_ONLY(MegaShaderState[shaderIndex].instanceCount, 1);
+	InstanceCullResult[visibleIndex] = instanceIndex;
+}

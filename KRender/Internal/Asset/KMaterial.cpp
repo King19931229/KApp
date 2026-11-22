@@ -194,6 +194,17 @@ IKShaderPtr KMaterial::GetVSGPUSceneShader(const VertexFormat* formats, uint32_t
 	return m_ShaderMap.GetVSGPUSceneShader(formats, count);
 }
 
+IKShaderPtr KMaterial::GetVSGPUSceneCSMShader(const VertexFormat* formats, uint32_t count, bool staticCSM)
+{
+	return (staticCSM ? m_StaticCSMShaderMap : m_DynamicCSMShaderMap).GetVSGPUSceneShader(formats, count);
+}
+
+IKShaderPtr KMaterial::GetFSGPUSceneCSMShader(const VertexFormat* formats, uint32_t count, bool staticCSM)
+{
+	KTextureBinding textureBinding = ConvertToTextureBinding(m_TextureBinding.get());
+	return (staticCSM ? m_StaticCSMShaderMap : m_DynamicCSMShaderMap).GetFSGPUSceneShader(formats, count, &textureBinding);
+}
+
 IKShaderPtr KMaterial::GetVSVirtualFeedbackShader(const VertexFormat* formats, uint32_t count)
 {
 	return m_VirtualFeedbackShaderMap.GetVSShader(formats, count);

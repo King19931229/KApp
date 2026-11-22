@@ -439,7 +439,7 @@ void KDeferredRenderer::BuildMaterialSubMeshInstance(DeferredRenderStage renderS
 			return lhsDis > rhsDis;
 		};
 
-		KRenderUtil::GetInstances(cullRes, instances, comp);
+		KRenderUtil::GetInstances(cullRes, instances, RENDER_STAGE_TRANSPRANT, comp);
 	}
 }
 
@@ -576,7 +576,7 @@ void KDeferredRenderer::ExecuteRenderPass(KRHICommandList& commandList, Deferred
 	KRenderCommandList renderCmdList;
 	if (gpuScene)
 	{
-		KRenderGlobal::GPUScene.AppendBasePassCommands(renderPass, commandList, renderCmdList);
+		KRenderGlobal::GPUScene.AppendBasePassCommands(renderPass, renderCmdList);
 	}
 	else
 	{

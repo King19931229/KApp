@@ -104,7 +104,7 @@ protected:
 	bool UpdateDynamicWrite(VkDescriptorSet dstSet, const KDynamicConstantBufferUsage* usage = nullptr);
 	bool SetupBarrier(IKCommandBufferPtr buffer, bool input);
 
-	void PreDispatch(IKCommandBufferPtr primaryBuffer, VkDescriptorSet dstSet, const KDynamicConstantBufferUsage* usage);
+	bool PreDispatch(IKCommandBufferPtr primaryBuffer, VkDescriptorSet dstSet, const KDynamicConstantBufferUsage* usage);
 	void PostDispatch(IKCommandBufferPtr primaryBuffer);
 public:
 	KVulkanComputePipeline();

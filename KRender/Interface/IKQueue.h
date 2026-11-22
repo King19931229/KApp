@@ -10,11 +10,14 @@ struct IKSemaphore
 
 struct IKFence
 {
+	enum class Status { Pending, Signaled, Failed };
+
 	virtual bool Init(bool singaled) = 0;
 	virtual bool UnInit() = 0;
 	virtual bool SetDebugName(const char* name) = 0;
 	virtual bool Wait() = 0;
 	virtual bool Reset() = 0;
+	virtual Status GetStatus() const = 0;
 };
 
 struct KSemaphoreWaitInfo

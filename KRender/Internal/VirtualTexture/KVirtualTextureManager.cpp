@@ -87,9 +87,6 @@ bool KVirtualTextureManager::Init(uint32_t tileSize, uint32_t tileDimension, uin
 	m_UsedTileHead = nullptr;
 	m_FreeTileHead = &m_PhysicalTiles[0];
 
-	uint32_t frameNum = KRenderGlobal::NumFramesInFlight;
-	m_PendingSourceTextures.resize(frameNum);
-
 	KRenderGlobal::RenderDevice->CreateRenderTarget(m_PhysicalContentTarget);
 	m_PhysicalContentTarget->InitFromColor(m_SizeWithPadding, m_SizeWithPadding, 1, m_NumMips, PF_R8G8B8A8_UNORM);
 	m_PhysicalContentTarget->GetFrameBuffer()->SetDebugName("VirtualTexturePhysicalContent");
@@ -628,13 +625,16 @@ void KVirtualTextureManager::ProcessPhysicalUpdate(KRHICommandList& commandList)
 {
 	commandList.Transition(m_PhysicalContentTarget->GetFrameBuffer(), PIPELINE_STAGE_FRAGMENT_SHADER, PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_COLOR_ATTACHMENT);
 
-	uint32_t frameIdx = KRenderGlobal::CurrentInFlightFrameIndex;
-	m_PendingSourceTextures[frameIdx].clear();
+	m_PendingSourceTextures.erase(std::remove_if(m_PendingSourceTextures.begin(), m_PendingSourceTextures.end(),
+		[](const PendingSourceTextures& pending) { return pending.fence->GetStatus() == IKFence::Status::Signaled; }),
+		m_PendingSourceTextures.end());
+	PendingSourceTextures* pending = nullptr;
 
 	KRenderCommand command;
 	command.vertexData = &KRenderGlobal::QuadDataProvider.GetVertexData();
 	command.indexData = &KRenderGlobal::QuadDataProvider.GetIndexData();
 	command.indexDraw = true;
+	command.pipeline = m_UploadContentPipeline;
 
 	uint32_t tileSizeWithPadding = m_TileSize + 2 * m_PaddingSize;
 
@@ -651,9 +651,19 @@ void KVirtualTextureManager::ProcessPhysicalUpdate(KRHICommandList& commandList)
 			for (const KVirtualTexturePhysicalUpdate& update : updates)
 			{
 				KTextureRef texture;
-				if (KRenderGlobal::TextureManager.Acquire(update.sourceTexture.c_str(), texture, false))
+				if (KRenderGlobal::TextureManager.Acquire(update.sourceTexture.c_str(), texture, false) &&
+					command.pipeline->GetHandle(m_UploadContentMipPasses[mip], command.pipelineHandle))
 				{
-					m_PendingSourceTextures[frameIdx].push_back(texture);
+					if (!pending)
+					{
+						auto fence = commandList.RegisterFrameCompletionFence();
+						if (m_PendingSourceTextures.empty() || m_PendingSourceTextures.back().fence != fence)
+						{
+							m_PendingSourceTextures.push_back({ fence, {} });
+						}
+						pending = &m_PendingSourceTextures.back();
+					}
+					pending->textures.push_back(texture);
 
 					KViewPortArea viewport;
 					viewport.x = tileSizeWithPadding * update.location.x;
@@ -661,13 +671,13 @@ void KVirtualTextureManager::ProcessPhysicalUpdate(KRHICommandList& commandList)
 					viewport.width = tileSizeWithPadding;
 					viewport.height = tileSizeWithPadding;
 
-					m_UploadContentPipeline->SetSampler(SHADER_BINDING_TEXTURE0, texture->GetFrameBuffer(), *m_PhysicalUpdateSampler, true);
-
-					command.pipeline = m_UploadContentPipeline;
-					command.pipeline->GetHandle(m_UploadContentMipPasses[mip], command.pipelineHandle);
-
 					commandList.SetViewport(viewport);
-					commandList.Render(command);
+					commandList.AddLowLevelRenderJob([command, image = texture->GetFrameBuffer(),
+						sampler = *m_PhysicalUpdateSampler](IKCommandBufferPtr buffer)
+					{
+						command.pipeline->SetSampler(SHADER_BINDING_TEXTURE0, image, sampler, true);
+						buffer->Render(command);
+					});
 				}
 			}
 

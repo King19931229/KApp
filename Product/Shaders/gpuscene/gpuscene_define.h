@@ -2,14 +2,15 @@
 #define GPUSCENE_DEFINE_H
 
 #define GPUSCENE_GROUP_SIZE 64
+#define GPUSCENE_DRAW_INDEX_LOCATION 12
 
 // Must match KGPUSceneInstance
 struct InstanceStruct
 {
 	mat4 transform;
 	mat4 prevTransform;
-	vec4 boundCenter;
-	vec4 boundHalfExtend;
+	vec4 boundMin;
+	vec4 boundMax;
 	uvec4 miscs;
 };
 

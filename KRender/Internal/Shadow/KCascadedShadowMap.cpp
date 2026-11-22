@@ -107,7 +107,8 @@ IKRenderTargetPtr KCascadedShadowMapCasterPass::GetDynamicTarget(uint32_t cascad
 	return nullptr;
 }
 
-void KCascadedShadowMap::ExecuteCasterUpdate(KRHICommandList& commandList, std::function<IKRenderTargetPtr(uint32_t, bool)> getCascadedTarget)
+void KCascadedShadowMap::ExecuteCasterUpdate(KRHICommandList& commandList, std::function<IKRenderTargetPtr(uint32_t, bool)> getCascadedTarget,
+	const KMeshLODView* lodView, bool gpuScene)
 {
 	if (m_StaticShouldUpdate)
 	{
@@ -121,6 +122,12 @@ void KCascadedShadowMap::ExecuteCasterUpdate(KRHICommandList& commandList, std::
 			renderPass->SetClearDepthStencil({ 1.0f, 0 });
 			ASSERT_RESULT(renderPass->Init());
 
+			KRenderCommandList commands;
+			if (m_Enable && gpuScene)
+			{
+				KRenderGlobal::GPUScene.PrepareShadowCommands(commandList, renderPass, cascadedIndex, true,
+					MakeGPUSceneCullParameters(m_StaticCascadeds[cascadedIndex]), commands);
+			}
 			commandList.BeginDebugMarker("CSM_Static_" + std::to_string(cascadedIndex), glm::vec4(1));
 
 			if (KRenderGlobal::EnableMultithreadRender)
@@ -130,7 +137,7 @@ void KCascadedShadowMap::ExecuteCasterUpdate(KRHICommandList& commandList, std::
 
 			if (m_Enable)
 			{
-				UpdateRT(commandList, renderPass, cascadedIndex, true);
+				UpdateRT(commandList, renderPass, cascadedIndex, true, lodView, std::move(commands));
 			}
 
 			commandList.EndRenderPass();
@@ -153,6 +160,12 @@ void KCascadedShadowMap::ExecuteCasterUpdate(KRHICommandList& commandList, std::
 			renderPass->SetClearDepthStencil({ 1.0f, 0 });
 			ASSERT_RESULT(renderPass->Init());
 
+			KRenderCommandList commands;
+			if (m_Enable && gpuScene)
+			{
+				KRenderGlobal::GPUScene.PrepareShadowCommands(commandList, renderPass, cascadedIndex, false,
+					MakeGPUSceneCullParameters(m_DynamicCascadeds[cascadedIndex]), commands);
+			}
 			commandList.BeginDebugMarker("CSM_Dynamic_" + std::to_string(cascadedIndex), glm::vec4(1));
 
 			if (KRenderGlobal::EnableMultithreadRender)
@@ -162,7 +175,7 @@ void KCascadedShadowMap::ExecuteCasterUpdate(KRHICommandList& commandList, std::
 
 			if (m_Enable)
 			{
-				UpdateRT(commandList, renderPass, cascadedIndex, false);
+				UpdateRT(commandList, renderPass, cascadedIndex, false, lodView, std::move(commands));
 			}
 
 			commandList.EndRenderPass();
@@ -1044,6 +1057,8 @@ bool KCascadedShadowMap::UnInit()
 	SAFE_UNINIT(m_ReceiverPass);
 
 	m_MainCamera = nullptr;
+	m_StaticLODs.clear();
+	m_StaticShouldUpdate = true;
 
 	return true;
 }
@@ -1070,10 +1085,11 @@ bool KCascadedShadowMap::Resize(uint32_t width, uint32_t height)
 	return true;
 }
 
-void KCascadedShadowMap::PopulateRenderCommand(uint32_t cascadedIndex, bool isStatic, const std::vector<IKEntity*>& litCullRes, std::vector<KRenderCommand>& commands)
+void KCascadedShadowMap::PopulateRenderCommand(uint32_t cascadedIndex, bool isStatic, const std::vector<IKEntity*>& litCullRes,
+	const KMeshLODView* lodView, KRenderCommandList& commands)
 {
 	std::vector<KMaterialSubMeshInstance> instances;
-	KRenderUtil::CalculateInstancesByMaterial(litCullRes, instances);
+	KRenderUtil::CalculateInstancesByMaterial(litCullRes, instances, lodView);
 
 	// 准备Instance数据
 	for (KMaterialSubMeshInstance& subMeshInstance : instances)
@@ -1086,7 +1102,7 @@ void KCascadedShadowMap::PopulateRenderCommand(uint32_t cascadedIndex, bool isSt
 		if (instances.size() > 1)
 		{
 			RenderStage stage = isStatic ? RENDER_STAGE_CASCADED_SHADOW_STATIC_GEN_INSTANCE : RENDER_STAGE_CASCADED_SHADOW_DYNAMIC_GEN_INSTANCE;
-			if (materialSubMesh->GetRenderCommand(stage, command))
+			if (materialSubMesh->GetRenderCommand(stage, command, subMeshInstance.lodLevel))
 			{
 				if (!KRenderUtil::AssignShadingParameter(command, materialSubMesh->GetMaterial()))
 				{
@@ -1127,7 +1143,7 @@ void KCascadedShadowMap::PopulateRenderCommand(uint32_t cascadedIndex, bool isSt
 		else
 		{
 			RenderStage stage = isStatic ? RENDER_STAGE_CASCADED_SHADOW_STATIC_GEN : RENDER_STAGE_CASCADED_SHADOW_DYNAMIC_GEN;
-			if (materialSubMesh->GetRenderCommand(stage, command))
+			if (materialSubMesh->GetRenderCommand(stage, command, subMeshInstance.lodLevel))
 			{
 				if (!KRenderUtil::AssignShadingParameter(command, materialSubMesh->GetMaterial()))
 				{
@@ -1179,7 +1195,52 @@ void KCascadedShadowMap::FilterRenderComponent(std::vector<IKEntity*>& in, bool 
 	in = std::move(out);
 }
 
-bool KCascadedShadowMap::PopulateRenderCommandList(uint32_t cascadedIndex, bool isStatic, KRenderCommandList& commandList)
+KAABBBox KCascadedShadowMap::CalculateReceiverBox(const Cascade& cascade) const
+{
+	std::vector<IKEntity*> receivers;
+	KRenderGlobal::Scene.GetVisibleEntities(cascade.frustumBox, receivers);
+	KAABBBox receiverBox;
+	for (IKEntity* entity : receivers)
+	{
+		KRenderComponent* render = nullptr;
+		KAABBBox bound;
+		if (entity->GetComponent(CT_RENDER, &render) && render->IsOcclusionVisible() && entity->GetBound(bound))
+		{
+			receiverBox = receiverBox.Merge(bound);
+		}
+	}
+	if (receiverBox.IsDefault())
+	{
+		receiverBox = receiverBox.Transform(cascade.viewProjMatrix);
+		const KAABBBox frustumBox = cascade.frustumBox.Transform(cascade.viewProjMatrix);
+		const glm::vec3 min = glm::max(receiverBox.GetMin(), frustumBox.GetMin());
+		const glm::vec3 max = glm::max(min, glm::min(receiverBox.GetMax(), frustumBox.GetMax()));
+		receiverBox.InitFromMinMax(min, max);
+	}
+	return receiverBox;
+}
+
+KGPUSceneShadowCullParameters KCascadedShadowMap::MakeGPUSceneCullParameters(const Cascade& cascade) const
+{
+	KGPUSceneShadowCullParameters parameters;
+	parameters.viewProj = cascade.viewProjMatrix;
+	parameters.litMin = glm::vec4(cascade.litBox.GetMin(), 0);
+	parameters.litMax = glm::vec4(cascade.litBox.GetMax(), 0);
+	if (m_MinimizeShadowDraw)
+	{
+		const KAABBBox receiverBox = CalculateReceiverBox(cascade);
+		parameters.clipToReceiver = 1;
+		parameters.noReceivers = !receiverBox.IsDefault();
+		if (receiverBox.IsDefault())
+		{
+			parameters.receiverMin = glm::vec4(receiverBox.GetMin(), 0);
+			parameters.receiverMax = glm::vec4(receiverBox.GetMax(), 0);
+		}
+	}
+	return parameters;
+}
+
+bool KCascadedShadowMap::PopulateRenderCommandList(uint32_t cascadedIndex, bool isStatic, const KMeshLODView* lodView, KRenderCommandList& commandList)
 {
 	Cascade* cascadeds = isStatic ? m_StaticCascadeds.data() : m_DynamicCascadeds.data();
 	size_t numCascaded = isStatic ? m_StaticCascadeds.size() : m_DynamicCascadeds.size();
@@ -1193,50 +1254,8 @@ bool KCascadedShadowMap::PopulateRenderCommandList(uint32_t cascadedIndex, bool 
 
 		if (m_MinimizeShadowDraw)
 		{
-			std::vector<IKEntity*> frustumCullRes;
-			KRenderGlobal::Scene.GetVisibleEntities(cascaded.frustumBox, frustumCullRes);
-
 			std::vector<IKEntity*> newLitCullRes;
-
-			KAABBBox receiverBox;
-			for (IKEntity* entity : frustumCullRes)
-			{
-				KRenderComponent* render = nullptr;
-				if (entity->GetComponent(CT_RENDER, &render))
-				{
-					if (!render->IsOcclusionVisible())
-					{
-						continue;
-					}
-					KAABBBox bound;
-					if (entity && entity->GetBound(bound))
-					{
-						receiverBox = receiverBox.Merge(bound);
-					}
-				}
-			}
-
-			// 这里算出的receiverBox要与frustumBox结合算出最紧密的receiverBox
-			if (receiverBox.IsDefault())
-			{
-				receiverBox = receiverBox.Transform(cascaded.viewProjMatrix);
-
-				KAABBBox frustumBox = cascaded.frustumBox;
-				frustumBox = frustumBox.Transform(cascaded.viewProjMatrix);
-
-				const glm::vec3& receiverMin = receiverBox.GetMin();
-				const glm::vec3& receiverMax = receiverBox.GetMax();
-
-				const glm::vec3& frustumBoxMin = frustumBox.GetMin();
-				const glm::vec3& frustumBoxMax = frustumBox.GetMax();
-
-				glm::vec3 min = glm::max(receiverMin, frustumBoxMin);
-				glm::vec3 max = glm::min(receiverMax, frustumBoxMax);
-
-				max = glm::max(max, min);
-
-				receiverBox.InitFromMinMax(min, max);
-			}
+			const KAABBBox receiverBox = CalculateReceiverBox(cascaded);
 
 			// 判断哪些caster会投影到receiverBox上
 			if (receiverBox.IsDefault())
@@ -1270,22 +1289,25 @@ bool KCascadedShadowMap::PopulateRenderCommandList(uint32_t cascadedIndex, bool 
 		}
 
 		FilterRenderComponent(litCullRes, isStatic);
-		PopulateRenderCommand(cascadedIndex, isStatic, litCullRes, commandList);
+		PopulateRenderCommand(cascadedIndex, isStatic, litCullRes, lodView, commandList);
 
 		return true;
 	}
 	return false;
 }
 
-bool KCascadedShadowMap::UpdateRT(KRHICommandList& commandList, IKRenderPassPtr renderPass, uint32_t cascadedIndex, bool isStatic)
+bool KCascadedShadowMap::UpdateRT(KRHICommandList& commandList, IKRenderPassPtr renderPass, uint32_t cascadedIndex, bool isStatic,
+	const KMeshLODView* lodView, KRenderCommandList&& renderCmdList)
 {
 	Cascade* cascadeds = isStatic ? m_StaticCascadeds.data() : m_DynamicCascadeds.data();
 	size_t numCascaded = isStatic ? m_StaticCascadeds.size() : m_DynamicCascadeds.size();
 
 	if (cascadedIndex < numCascaded)
 	{
-		KRenderCommandList renderCmdList;
-		PopulateRenderCommandList(cascadedIndex, isStatic, renderCmdList);
+		if (renderCmdList.empty())
+		{
+			PopulateRenderCommandList(cascadedIndex, isStatic, lodView, renderCmdList);
+		}
 
 		if (KRenderGlobal::EnableMultithreadRender)
 		{
@@ -1391,8 +1413,14 @@ bool KCascadedShadowMap::CombineMask(KRHICommandList& commandList)
 	return true;
 }
 
-bool KCascadedShadowMap::UpdateShadowMap(KRHICommandList& commandList)
+bool KCascadedShadowMap::UpdateShadowMap(KRHICommandList& commandList, const KMeshLODView& lodView)
 {
+	const auto& staticLODs = lodView.GetStaticLevels();
+	if (m_StaticLODs != staticLODs)
+	{
+		m_StaticLODs = staticLODs;
+		m_StaticShouldUpdate = true;
+	}
 	UpdateDynamicCascades();
 	UpdateStaticCascades();
 
@@ -1422,7 +1450,7 @@ bool KCascadedShadowMap::UpdateShadowMap(KRHICommandList& commandList)
 	return true;
 }
 
-bool KCascadedShadowMap::UpdateCasters(KRHICommandList& commandList)
+bool KCascadedShadowMap::UpdateCasters(KRHICommandList& commandList, const KMeshLODView& lodView, bool gpuScene)
 {
 	ExecuteCasterUpdate(commandList, [this](uint32_t cascadedIndex, bool isStatic)->IKRenderTargetPtr
 	{
@@ -1434,7 +1462,7 @@ bool KCascadedShadowMap::UpdateCasters(KRHICommandList& commandList)
 		{
 			return m_DynamicCascadeds[cascadedIndex].rendertarget;
 		}
-	});
+	}, &lodView, gpuScene);
 	return true;
 }
 

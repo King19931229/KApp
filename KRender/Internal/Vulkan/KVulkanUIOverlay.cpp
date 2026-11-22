@@ -9,6 +9,7 @@
 #include "KVulkanRenderPass.h"
 #include "KVulkanFrameBuffer.h"
 #include "KVulkanGlobal.h"
+#include "KVulkanRenderDevice.h"
 
 #include "Internal/KRenderGlobal.h"
 
@@ -23,9 +24,21 @@ KVulkanUIOverlay::~KVulkanUIOverlay()
 {
 }
 
+bool KVulkanUIOverlay::UnInit()
+{
+	if (m_VertexTicket)
+	{
+		auto& bufferManager = static_cast<KVulkanRenderDevice*>(KRenderGlobal::RenderDevice)->GetBufferManager();
+		bufferManager.Destroy(m_VertexTicket);
+		bufferManager.Destroy(m_IndexTicket);
+		m_VertexTicket = nullptr;
+		m_IndexTicket = nullptr;
+	}
+	return KUIOverlayBase::UnInit();
+}
+
 bool KVulkanUIOverlay::Draw(IKRenderPassPtr renderPass, KRHICommandList& commandList)
 {
-	unsigned int imageIndex = KRenderGlobal::CurrentInFlightFrameIndex;
 	ImDrawData* drawData = &((ImGuiContext*)m_UIContext)->Viewports[0]->DrawDataP;
 	if (!drawData->Valid || drawData->CmdListsCount == 0)
 	{
@@ -57,18 +70,23 @@ bool KVulkanUIOverlay::Draw(IKRenderPassPtr renderPass, KRHICommandList& command
 		snapshot->lists.emplace_back(copy, [](ImDrawList* list) { IM_DELETE(list); });
 	}
 	IKPipelinePtr pipeline = m_Pipeline;
-	IKVertexBufferPtr vertexBuffer = m_VertexBuffers[imageIndex];
-	IKIndexBufferPtr indexBuffer = m_IndexBuffers[imageIndex];
+	if (!m_VertexTicket)
+	{
+		auto& bufferManager = static_cast<KVulkanRenderDevice*>(KRenderGlobal::RenderDevice)->GetBufferManager();
+		m_VertexTicket = bufferManager.Create(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, true);
+		m_IndexTicket = bufferManager.Create(VK_BUFFER_USAGE_INDEX_BUFFER_BIT, true);
+	}
+	const uint64_t vertexBytes = uint64_t(drawData->TotalVtxCount) * sizeof(ImDrawVert);
+	const uint64_t indexBytes = uint64_t(drawData->TotalIdxCount) * sizeof(ImDrawIdx);
 
-	commandList.AddLowLevelRenderJob([snapshot, renderPass, pipeline, vertexBuffer, indexBuffer](IKCommandBufferPtr inCommandBuffer)
+	commandList.AddLowLevelRenderJob([snapshot, renderPass, pipeline, vertexTicket = m_VertexTicket, indexTicket = m_IndexTicket,
+		vertexBytes, indexBytes](IKCommandBufferPtr inCommandBuffer)
 	{
 		KVulkanCommandBuffer* vulkanCommandBuffer = (KVulkanCommandBuffer*)inCommandBuffer.get();
 		const VkCommandBuffer commandBuffer = vulkanCommandBuffer->GetVkHandle();
 		int32_t vertexOffset = 0;
 		uint32_t indexOffset = 0;
 		KVulkanPipeline* vulkanPipeline = (KVulkanPipeline*)pipeline.get();
-		KVulkanVertexBuffer* vulkanVertexBuffer = (KVulkanVertexBuffer*)vertexBuffer.get();
-		KVulkanIndexBuffer* vulkanIndexBuffer = (KVulkanIndexBuffer*)indexBuffer.get();
 
 		IKPipelineHandlePtr pipelineHandle = nullptr;
 		if (vulkanPipeline->GetHandle(renderPass, pipelineHandle))
@@ -78,8 +96,40 @@ bool KVulkanUIOverlay::Draw(IKRenderPassPtr renderPass, KRHICommandList& command
 			const PrimitiveTopology topology = vulkanHandle->GetPrimitiveTopology();
 
 			VkPipelineLayout pipelineLayout = vulkanPipeline->GetVkPipelineLayout();
-			VkBuffer vkVertexBufferHandle = vulkanVertexBuffer->GetVulkanHandle();
 			if (snapshot->displaySize.x <= 0.0f || snapshot->displaySize.y <= 0.0f) return;
+
+			VkBuffer vkVertexBufferHandle = VK_NULL_HANDLE;
+			VkBuffer vkIndexBufferHandle = VK_NULL_HANDLE;
+			if (vertexBytes && indexBytes)
+			{
+				auto& bufferManager = static_cast<KVulkanRenderDevice*>(KRenderGlobal::RenderDevice)->GetBufferManager();
+				const uint32_t frameNum = vulkanCommandBuffer->GetFrameNum();
+				KVulkanBuffer* vertexBuffer = bufferManager.RequestUpload(vertexTicket, vertexBytes, frameNum);
+				KVulkanBuffer* indexBuffer = bufferManager.RequestUpload(indexTicket, indexBytes, frameNum);
+				if (!vertexBuffer || !indexBuffer) return;
+
+				void* mapped = nullptr;
+				if (!vertexBuffer->Map(&mapped, MA_WRITE_DISCARD)) return;
+				auto* vertices = static_cast<ImDrawVert*>(mapped);
+				for (const auto& list : snapshot->lists)
+				{
+					if (list->VtxBuffer.empty()) continue;
+					memcpy(vertices, list->VtxBuffer.Data, list->VtxBuffer.Size * sizeof(ImDrawVert));
+					vertices += list->VtxBuffer.Size;
+				}
+				if (!vertexBuffer->UnMap() || !indexBuffer->Map(&mapped, MA_WRITE_DISCARD)) return;
+				auto* indices = static_cast<ImDrawIdx*>(mapped);
+				for (const auto& list : snapshot->lists)
+				{
+					if (list->IdxBuffer.empty()) continue;
+					memcpy(indices, list->IdxBuffer.Data, list->IdxBuffer.Size * sizeof(ImDrawIdx));
+					indices += list->IdxBuffer.Size;
+				}
+				if (!indexBuffer->UnMap()) return;
+				vkVertexBufferHandle = vertexBuffer->GetVulkanHandle();
+				vkIndexBufferHandle = indexBuffer->GetVulkanHandle();
+			}
+
 			const int framebufferWidth = (int)(snapshot->displaySize.x * snapshot->framebufferScale.x);
 			const int framebufferHeight = (int)(snapshot->displaySize.y * snapshot->framebufferScale.y);
 			PushConstBlock push;
@@ -89,9 +139,12 @@ bool KVulkanUIOverlay::Draw(IKRenderPassPtr renderPass, KRHICommandList& command
 			{
 				vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vkPipeline);
 				vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(push), &push);
-				VkDeviceSize offsets[1] = { 0 };
-				vkCmdBindVertexBuffers(commandBuffer, 0, 1, &vkVertexBufferHandle, offsets);
-				vkCmdBindIndexBuffer(commandBuffer, vulkanIndexBuffer->GetVulkanHandle(), 0, vulkanIndexBuffer->GetVulkanIndexType());
+				if (vkVertexBufferHandle != VK_NULL_HANDLE)
+				{
+					VkDeviceSize offset = 0;
+					vkCmdBindVertexBuffers(commandBuffer, 0, 1, &vkVertexBufferHandle, &offset);
+					vkCmdBindIndexBuffer(commandBuffer, vkIndexBufferHandle, 0, sizeof(ImDrawIdx) == 2 ? VK_INDEX_TYPE_UINT16 : VK_INDEX_TYPE_UINT32);
+				}
 			};
 			setupState();
 
@@ -107,6 +160,7 @@ bool KVulkanUIOverlay::Draw(IKRenderPassPtr renderPass, KRHICommandList& command
 						else pcmd->UserCallback(cmd_list, pcmd);
 						continue;
 					}
+					if (vkVertexBufferHandle == VK_NULL_HANDLE) continue;
 					auto texture = snapshot->textures.find((uint64_t)pcmd->GetTexID());
 					if (texture == snapshot->textures.end()) continue;
 					int minX = std::max(0, (int)((pcmd->ClipRect.x - snapshot->displayPos.x) * snapshot->framebufferScale.x));

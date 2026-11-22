@@ -2,7 +2,6 @@
 
 #include "Interface/IKRenderDevice.h"
 #include "Interface/IKPipeline.h"
-#include "Interface/IKBuffer.h"
 #include "Interface/IKTexture.h"
 #include "Interface/IKSampler.h"
 #include "Interface/IKRenderWindow.h"
@@ -109,17 +108,6 @@ bool KUIOverlayBase::Init()
 
 	KRenderGlobal::RenderDevice->CreatePipeline(m_Pipeline);
 
-	size_t numImages = KRenderGlobal::NumFramesInFlight;
-
-	m_IndexBuffers.resize(numImages);
-	m_VertexBuffers.resize(numImages);
-
-	for(size_t i = 0; i < numImages; ++i)
-	{
-		KRenderGlobal::RenderDevice->CreateIndexBuffer(m_IndexBuffers[i]);
-		KRenderGlobal::RenderDevice->CreateVertexBuffer(m_VertexBuffers[i]);
-	}
-
 	InitImgui();
 	PrepareResources();
 	PreparePipeline();
@@ -137,20 +125,6 @@ bool KUIOverlayBase::UnInit()
 		m_InputEvents.clear();
 	}
 	UnInitImgui();
-
-	for(IKIndexBufferPtr indexBuffer : m_IndexBuffers)
-	{
-		indexBuffer->UnInit();
-		indexBuffer = nullptr;
-	}
-	m_IndexBuffers.clear();
-
-	for(IKVertexBufferPtr vertexBuffer : m_VertexBuffers)
-	{
-		vertexBuffer->UnInit();
-		vertexBuffer = nullptr;
-	}
-	m_VertexBuffers.clear();
 
 	m_VertexShader.Release();
 
@@ -248,64 +222,6 @@ void KUIOverlayBase::PreparePipeline()
 
 	pipeline->CreateConstantBlock(ST_VERTEX, sizeof(m_PushConstBlock));
 	ASSERT_RESULT(pipeline->Init());
-}
-
-bool KUIOverlayBase::Update()
-{
-	unsigned int imageIndex = KRenderGlobal::CurrentInFlightFrameIndex;
-	
-	ImDrawData* imDrawData = &((ImGuiContext*)m_UIContext)->Viewports[0]->DrawDataP;
-	bool updateCmdBuffers = false;
-
-	if (!imDrawData->Valid)
-	{
-		return true;
-	};
-
-	if(imDrawData->TotalVtxCount == 0 || imDrawData->TotalIdxCount == 0)
-	{
-		return true;
-	}
-
-	size_t vertexBufferSize = imDrawData->TotalVtxCount * sizeof(ImDrawVert);
-	size_t indexBufferSize = imDrawData->TotalIdxCount * sizeof(ImDrawIdx);
-
-	if(vertexBufferSize > m_VertexBuffers[imageIndex]->GetBufferSize())
-	{
-		m_VertexBuffers[imageIndex]->UnInit();
-		m_VertexBuffers[imageIndex]->InitMemory(imDrawData->TotalVtxCount, sizeof(ImDrawVert), nullptr);
-		m_VertexBuffers[imageIndex]->InitDevice(true);
-	}
-
-	if(indexBufferSize > m_IndexBuffers[imageIndex]->GetBufferSize())
-	{
-		m_IndexBuffers[imageIndex]->UnInit();
-		m_IndexBuffers[imageIndex]->InitMemory(sizeof(ImDrawIdx) == 2 ? IT_16 : IT_32, imDrawData->TotalIdxCount, nullptr);
-		m_IndexBuffers[imageIndex]->InitDevice(true);
-	}
-
-	ImDrawVert* vtxDst = nullptr;
-	ImDrawIdx* idxDst  = nullptr;
-
-	ASSERT_RESULT(m_VertexBuffers[imageIndex]->Map((void**)&vtxDst));
-	for (int n = 0; n < imDrawData->CmdListsCount; n++)
-	{
-		const ImDrawList* cmd_list = imDrawData->CmdLists[n];
-		memcpy(vtxDst, cmd_list->VtxBuffer.Data, cmd_list->VtxBuffer.Size * sizeof(ImDrawVert));
-		vtxDst += cmd_list->VtxBuffer.Size;
-	}
-	ASSERT_RESULT(m_VertexBuffers[imageIndex]->UnMap());
-
-	ASSERT_RESULT(m_IndexBuffers[imageIndex]->Map((void**)&idxDst));
-	for (int n = 0; n < imDrawData->CmdListsCount; n++)
-	{
-		const ImDrawList* cmd_list = imDrawData->CmdLists[n];
-		memcpy(idxDst, cmd_list->IdxBuffer.Data, cmd_list->IdxBuffer.Size * sizeof(ImDrawIdx));
-		idxDst += cmd_list->IdxBuffer.Size;
-	}
-	ASSERT_RESULT(m_IndexBuffers[imageIndex]->UnMap());
-
-	return true;
 }
 
 bool KUIOverlayBase::Resize(uint32_t width, uint32_t height)

@@ -1,5 +1,6 @@
 #include "KVulkanBuffer.h"
 #include "KVulkanRenderDevice.h"
+#include "KVulkanCommandBuffer.h"
 #include "KVulkanHelper.h"
 #include "KVulkanInitializer.h"
 #include "KVulkanGlobal.h"
@@ -80,12 +81,16 @@ bool KVulkanStageBuffer::UnMap()
 
 bool KVulkanStageBuffer::Write(const void* pData)
 {
+	return Write(pData, m_BufferSize);
+}
+
+bool KVulkanStageBuffer::Write(const void* pData, uint64_t size)
+{
 	void* pMapData = nullptr;
-	if (Map(&pMapData))
+	if (size <= m_BufferSize && Map(&pMapData))
 	{
-		memcpy(pMapData, pData, static_cast<size_t>(m_BufferSize));
-		UnMap();
-		return true;
+		memcpy(pMapData, pData, static_cast<size_t>(size));
+		return UnMap();
 	}
 	return false;
 }
@@ -144,11 +149,11 @@ bool KVulkanBuffer::InitDevice(VkBufferUsageFlags usages, const void* pData, uin
 			, m_vkBuffer
 			, m_AllocInfo);
 
-		if (m_AllocInfo.pMapped)
+		if (pData && m_AllocInfo.pMapped)
 		{
 			memcpy(m_AllocInfo.pMapped, pData, (size_t)m_BufferSize);
 		}
-		else
+		else if (pData)
 		{
 			void* data = nullptr;
 			VK_ASSERT_RESULT(vkMapMemory(KVulkanGlobal::device, m_AllocInfo.vkMemroy, m_AllocInfo.vkOffset, m_BufferSize, 0, &data));
@@ -158,8 +163,11 @@ bool KVulkanBuffer::InitDevice(VkBufferUsageFlags usages, const void* pData, uin
 	}
 	else
 	{
-		m_StageBuffer.Init(m_BufferSize);
-		m_StageBuffer.Write(pData);
+		if (pData)
+		{
+			m_StageBuffer.Init(m_BufferSize);
+			m_StageBuffer.Write(pData);
+		}
 
 		VkBufferUsageFlags usageFlags = m_Usages | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 
@@ -168,8 +176,11 @@ bool KVulkanBuffer::InitDevice(VkBufferUsageFlags usages, const void* pData, uin
 			, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
 			, m_vkBuffer
 			, m_AllocInfo);
-		KVulkanInitializer::CopyVkBuffer(m_StageBuffer.GetVulkanHandle(), m_vkBuffer, (VkDeviceSize)m_BufferSize);
-		m_StageBuffer.UnInit();
+		if (pData)
+		{
+			KVulkanInitializer::CopyVkBuffer(m_StageBuffer.GetVulkanHandle(), m_vkBuffer, (VkDeviceSize)m_BufferSize);
+			m_StageBuffer.UnInit();
+		}
 	}
 
 	if (m_DebugName.c_str())
@@ -289,6 +300,17 @@ bool KVulkanBuffer::UnMap()
 bool KVulkanBuffer::Write(const void* pData)
 {
 	return Write(pData, 0, m_BufferSize);
+}
+
+bool KVulkanBuffer::RecordUpload(VkCommandBuffer commandBuffer, const void* data, uint64_t size)
+{
+	if (!data || !size || size > m_BufferSize || m_vkBuffer == VK_NULL_HANDLE || m_bHostVisible) return false;
+	if (m_StageBuffer.GetVulkanHandle() == VK_NULL_HANDLE && !m_StageBuffer.Init(m_BufferSize)) return false;
+	if (!m_StageBuffer.Write(data, size)) return false;
+
+	VkBufferCopy copy = { 0, 0, size };
+	vkCmdCopyBuffer(commandBuffer, m_StageBuffer.GetVulkanHandle(), m_vkBuffer, 1, &copy);
+	return true;
 }
 
 bool KVulkanBuffer::Write(const void* pData, uint64_t offset, uint64_t size)
@@ -572,6 +594,7 @@ VkDeviceAddress KVulkanIndexBuffer::GetDeviceAddress() const
 // KVulkanStorageBuffer
 KVulkanStorageBuffer::KVulkanStorageBuffer()
 	: KStorageBufferBase()
+	, m_UploadTicket(nullptr)
 {
 }
 
@@ -601,6 +624,7 @@ bool KVulkanStorageBuffer::InitFromVertexBuffer(IKVertexBufferPtr pSource)
 
 bool KVulkanStorageBuffer::InitDevice(bool indirect, bool hostVisible)
 {
+	UnInitUpload();
 	m_ReferencedBuffer.reset();
 	KStorageBufferBase::InitDevice(indirect, hostVisible);
 
@@ -615,8 +639,18 @@ bool KVulkanStorageBuffer::InitDevice(bool indirect, bool hostVisible)
 	return true;
 }
 
+void KVulkanStorageBuffer::UnInitUpload()
+{
+	if (m_UploadTicket)
+	{
+		static_cast<KVulkanRenderDevice*>(KRenderGlobal::RenderDevice)->GetBufferManager().Destroy(m_UploadTicket);
+		m_UploadTicket = nullptr;
+	}
+}
+
 bool KVulkanStorageBuffer::UnInit()
 {
+	UnInitUpload();
 	m_ReferencedBuffer.reset();
 	KStorageBufferBase::UnInit();
 	m_Data.shrink_to_fit();
@@ -625,6 +659,10 @@ bool KVulkanStorageBuffer::UnInit()
 
 bool KVulkanStorageBuffer::SetDebugName(const char* pName)
 {
+	if (m_UploadTicket)
+	{
+		static_cast<KVulkanRenderDevice*>(KRenderGlobal::RenderDevice)->GetBufferManager().SetDebugName(m_UploadTicket, pName);
+	}
 	return m_Buffer.SetDebugName(pName);
 }
 
@@ -668,6 +706,40 @@ bool KVulkanStorageBuffer::Read(void* pData, uint64_t offset, uint64_t size)
 	return GetVulkanBuffer().Read(pData, offset, size);
 }
 
+bool KVulkanStorageBuffer::RecordUpload(KVulkanCommandBuffer& commandBuffer, const void* data, uint64_t offset, uint64_t size)
+{
+	if (m_UploadTicket)
+	{
+		m_UploadTicket->upload = {};
+	}
+
+	VkCommandBuffer cmdBuf = commandBuffer.GetVkHandle();
+	if (cmdBuf == VK_NULL_HANDLE || commandBuffer.GetVkBufferLevel() != VK_COMMAND_BUFFER_LEVEL_PRIMARY ||
+		offset || !data || !size || size > KVulkanGlobal::deviceProperties.limits.maxStorageBufferRange || m_BufferSize)
+	{
+		return false;
+	}
+
+	KVulkanBufferManager& bufferManager = static_cast<KVulkanRenderDevice*>(KRenderGlobal::RenderDevice)->GetBufferManager();
+	if (!m_UploadTicket)
+	{
+		m_UploadTicket = bufferManager.Create(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, false);
+		bufferManager.SetDebugName(m_UploadTicket, m_Buffer.GetDebugName().c_str());
+	}
+
+	KVulkanBuffer* buffer = bufferManager.RequestUpload(m_UploadTicket, size, commandBuffer.GetFrameNum());
+	if (!buffer || !buffer->RecordUpload(cmdBuf, data, size))
+	{
+		return false;
+	}
+
+	KVulkanInitializer::TransitionBufferCmdBuffer(buffer->GetVulkanHandle(), size,
+		VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+		VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, cmdBuf);
+	m_UploadTicket->upload = { buffer, size };
+	return true;
+}
+
 bool KVulkanStorageBuffer::CopyFrom(IKStorageBufferPtr pSource)
 {
 	return false;
@@ -678,8 +750,18 @@ bool KVulkanStorageBuffer::CopyTo(IKStorageBufferPtr pDest)
 	return false;
 }
 
+uint64_t KVulkanStorageBuffer::GetBufferSize()
+{
+	return m_UploadTicket ? m_UploadTicket->upload.size : m_BufferSize;
+}
+
 VkBuffer KVulkanStorageBuffer::GetVulkanHandle()
 {
+	if (m_UploadTicket)
+	{
+		KVulkanBuffer* buffer = m_UploadTicket->upload.buffer;
+		return buffer ? buffer->GetVulkanHandle() : VK_NULL_HANDLE;
+	}
 	return GetVulkanBuffer().GetVulkanHandle();
 }
 

@@ -3,6 +3,7 @@
 #include "KDebugDrawer.h"
 #include "Internal/ECS/Component/KRenderComponent.h"
 #include "Internal/ECS/Component/KTransformComponent.h"
+#include <list>
 
 class KHiZOcclusion
 {
@@ -18,20 +19,29 @@ protected:
 	{
 		glm::vec3 pos;
 		glm::vec3 extent;
-		KRenderComponent* render;
-		Candidate()
-		{
-			render = nullptr;
-		}
+		KRenderComponent* render = nullptr;
+		std::weak_ptr<void> lifetime;
 	};
 
-	std::vector <IKTexturePtr> m_TempPositionTextures;
-	std::vector <IKTexturePtr> m_TempExtentTextures;
+	struct Batch
+	{
+		IKTexturePtr tempPosition;
+		IKTexturePtr tempExtent;
+		IKRenderTargetPtr position;
+		IKRenderTargetPtr extent;
+		IKRenderTargetPtr result;
+		IKPipelinePtr preparePipeline;
+		IKPipelinePtr executePipeline;
+		IKRenderPassPtr preparePass;
+		IKRenderPassPtr executePass;
+		KRTDebugDrawer debugDrawer;
+		IKFencePtr fence;
+		std::vector<Candidate> candidates;
+	};
 
-	std::vector<IKRenderTargetPtr> m_PositionTargets;
-	std::vector<IKRenderTargetPtr> m_ExtentTargets;
-	std::vector<IKRenderTargetPtr> m_ResultTargets;
-	std::vector<IKRenderTargetPtr> m_ResultReadbackTargets;
+	std::list<Batch> m_Batches;
+	Batch* m_CurrentBatch = nullptr;
+	IKRenderTargetPtr m_ReadbackTarget;
 
 	KShaderRef m_QuadVS;
 	KShaderRef m_PrepareCullFS;
@@ -39,24 +49,12 @@ protected:
 
 	KSamplerRef m_Sampler;
 
-	std::vector<IKPipelinePtr> m_PreparePipelines;
-	std::vector<IKPipelinePtr> m_ExecutePipelines;
-
-	std::vector<IKRenderPassPtr> m_PreparePasses;
-	std::vector<IKRenderPassPtr> m_ExecutePasses;
-
-	std::vector<KRTDebugDrawer> m_DebugDrawers;
-
-	std::vector<std::vector<Candidate>> m_Candidates;
-
-	uint32_t m_CandidateNum;
-	uint32_t m_BlockX;
-	uint32_t m_BlockY;
-
 	bool m_Enable;
 	bool m_EnableDebugDraw;
 
-	void PushCandidatesInformation(KRHICommandList& commandList);
+	void InitBatch(Batch& batch);
+	void ConfigurePipelines(Batch& batch);
+	void PushCandidatesInformation(KRHICommandList& commandList, Batch& batch);
 	void PullCandidatesResult();
 
 	uint32_t CalcBlockX(uint32_t idx);

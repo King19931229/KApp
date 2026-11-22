@@ -243,16 +243,12 @@ bool KVulkanSwapChain::CreateSyncObjects()
 {
 	KRenderGlobal::RenderDevice->CreateSemaphore(m_ImageAvailableSemaphore);
 	KRenderGlobal::RenderDevice->CreateSemaphore(m_RenderFinishedSemaphore);
-	KRenderGlobal::RenderDevice->CreateFence(m_InFlightFence);
 
 	m_ImageAvailableSemaphore->Init();
 	m_ImageAvailableSemaphore->SetDebugName("ImageAvailableSemaphore");
 	m_RenderFinishedSemaphore->Init();
 	m_RenderFinishedSemaphore->SetDebugName("RenderFinishedSemaphore");
-	m_InFlightFence->Init(true);
-	m_InFlightFence->SetDebugName("InFlightFence");
-
-	return true;
+	return KVulkanFence::InitSlots(m_InFlightFences, "InFlightFence");
 }
 
 bool KVulkanSwapChain::CreateFrameBuffers()
@@ -311,7 +307,8 @@ bool KVulkanSwapChain::DestroySyncObjects()
 {
 	SAFE_UNINIT(m_ImageAvailableSemaphore);
 	SAFE_UNINIT(m_RenderFinishedSemaphore);
-	SAFE_UNINIT(m_InFlightFence);
+	SAFE_UNINIT_CONTAINER(m_InFlightFences);
+	m_InFlightFences.clear();
 	return true;
 }
 
@@ -347,7 +344,11 @@ bool KVulkanSwapChain::Init(IKRenderWindow* window)
 
 	ASSERT_RESULT(CreateSurface());
 	ASSERT_RESULT(CreateSwapChain());
-	ASSERT_RESULT(CreateSyncObjects());
+	if (!CreateSyncObjects())
+	{
+		UnInit();
+		return false;
+	}
 	ASSERT_RESULT(CreateFrameBuffers());
 
 	return true;
@@ -365,6 +366,17 @@ bool KVulkanSwapChain::UnInit()
 	m_PostPresentCallback.clear();
 	m_SwapChainCallback.clear();
 
+	return true;
+}
+
+bool KVulkanSwapChain::Recreate()
+{
+	const auto payloads = KVulkanFence::GetFramePayloads(m_InFlightFences);
+	if (!Init(m_pWindow))
+	{
+		return false;
+	}
+	KVulkanFence::SetFramePayloads(m_InFlightFences, payloads);
 	return true;
 }
 
@@ -390,7 +402,7 @@ IKSemaphorePtr KVulkanSwapChain::GetRenderFinishSemaphore()
 
 IKFencePtr KVulkanSwapChain::GetInFlightFence()
 {
-	return m_InFlightFence;
+	return m_InFlightFences[KRenderGlobal::CurrentInFlightFrameIndex];
 }
 
 IKRenderPassPtr KVulkanSwapChain::GetRenderPass(uint32_t chainIndex)
@@ -423,11 +435,8 @@ IKFrameBufferPtr KVulkanSwapChain::GetDepthStencilFrameBuffer(uint32_t chainInde
 bool KVulkanSwapChain::WaitForInFlightFrame(uint32_t& completedFrameNum)
 {
 	// 这个Wait保证Queue已经被执行完
-	KVulkanFence* vulkanFence = static_cast<KVulkanFence*>(m_InFlightFence.get());
-	VkFence fence = vulkanFence->GetVkFence();
-	VkResult vkResult = VK_CHECK_OOM(vkWaitForFences(KVulkanGlobal::device, 1, &fence, VK_TRUE, UINT64_MAX));
-	VK_ASSERT_RESULT(vkResult);
-	if (vkResult != VK_SUCCESS || !vulkanFence->TakeFrameNum(completedFrameNum)) return false;
+	auto* fence = static_cast<KVulkanFence*>(GetInFlightFence().get());
+	if (!fence->WaitForFrame(completedFrameNum)) return false;
 	static_cast<KVulkanRenderDevice*>(KRenderGlobal::RenderDevice)->ReleaseFrameResources(completedFrameNum);
 	return true;
 }
@@ -440,6 +449,10 @@ SwapChainAcquireResult KVulkanSwapChain::AcquireNextImage(uint32_t& imageIndex)
 	VkResult vkResult = VK_CHECK_OOM(vkAcquireNextImageKHR(KVulkanGlobal::device, m_SwapChain, UINT64_MAX, singalSemaphore, VK_NULL_HANDLE, &acquiredImageIndex));
 	if (vkResult == VK_SUCCESS || vkResult == VK_SUBOPTIMAL_KHR)
 	{
+		if (!KVulkanFence::ResetSlot(m_InFlightFences[KRenderGlobal::CurrentInFlightFrameIndex]))
+		{
+			return SCAR_FAILED;
+		}
 		imageIndex = acquiredImageIndex;
 		m_CurrentImageIndex = acquiredImageIndex;
 		return SCAR_SUCCESS;

@@ -63,6 +63,7 @@ void KMeshLODView::Update(const std::vector<IKEntity*>& entities, const KCamera&
 	}
 	++m_Frame;
 	m_Stats = {};
+	m_StaticLevels.clear();
 
 	for (IKEntity* entity : entities)
 	{
@@ -117,6 +118,13 @@ void KMeshLODView::Update(const std::vector<IKEntity*>& entities, const KCamera&
 				++m_Stats.subMeshes[level];
 				m_Stats.triangles[level] += count / 3;
 			}
+		}
+		// Missing selections resolve to LOD0. Only reduced static geometry can
+		// change a cached shadow map when entering or leaving the main view.
+		if (transform->IsStatic() && std::any_of(selection.levels.begin(), selection.levels.end(),
+			[](uint8_t level) { return level != 0; }))
+		{
+			m_StaticLevels.emplace(entity->GetID(), selection.levels);
 		}
 	}
 	for (auto entry = m_Entities.begin(); entry != m_Entities.end();)

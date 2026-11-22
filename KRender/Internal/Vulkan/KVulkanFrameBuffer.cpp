@@ -391,7 +391,13 @@ bool KVulkanFrameBuffer::CopyToReadback(IKFrameBuffer* framebuffer)
 		}
 
 		KVulkanInitializer::TransitionImageLayout(src->m_Image, src->m_Format, 0, src->m_Layers, 0, src->m_Mipmaps, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, src->m_ImageLayout);
-		KVulkanInitializer::TransitionImageLayout(dest->m_Image, dest->m_Format, 0, dest->m_Layers, 0, dest->m_Mipmaps, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL);
+
+		VkCommandBuffer commandBuffer;
+		KVulkanInitializer::BeginSingleTimeCommand(KVulkanGlobal::graphicsCommandPool, commandBuffer);
+		KVulkanInitializer::TransitionImageLayoutCmdBuffer(dest->m_Image, dest->m_Format, 0, dest->m_Layers, 0, dest->m_Mipmaps,
+			VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_HOST_BIT,
+			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL, commandBuffer);
+		KVulkanInitializer::EndSingleTimeCommand(KVulkanGlobal::graphicsCommandPool, commandBuffer);
 
 		return true;
 	}

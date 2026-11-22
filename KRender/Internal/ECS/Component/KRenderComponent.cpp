@@ -251,6 +251,7 @@ bool KRenderComponent::UnInit()
 	ENQUEUE_RENDER_COMMAND(KRenderComponent_UnInit)([this]()
 	{
 		KRenderGlobal::Renderer.GetRHICommandList().Flush(RHICommandFlush::FlushRHIThread);
+		m_OcclusionLifetime.reset();
 
 		for (RenderComponentObserverFunc* callback : m_Callbacks)
 		{
@@ -276,6 +277,16 @@ bool KRenderComponent::UnInit()
 	});
 	FLUSH_RENDER_COMMAND();
 	return true;
+}
+
+std::weak_ptr<void> KRenderComponent::GetOcclusionLifetime()
+{
+	// Readback and invalidation both run on the render thread.
+	if (!m_OcclusionLifetime)
+	{
+		m_OcclusionLifetime = std::make_shared<char>(0);
+	}
+	return m_OcclusionLifetime;
 }
 
 bool KRenderComponent::InitAsDebugUtility(const KDebugUtilityInfo& info)

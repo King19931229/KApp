@@ -61,4 +61,6 @@ struct IKCommandBuffer
 	virtual bool TransitionMipmap(IKFrameBufferPtr buf, uint32_t mipmap, PipelineStages srcStages, PipelineStages dstStages, ImageLayout oldLayout, ImageLayout newLayout) = 0;
 
 	virtual bool Blit(IKFrameBufferPtr src, IKFrameBufferPtr dest) = 0;
+
+	virtual bool UpdateStorageBuffer(const IKStorageBufferPtr& storageBuffer, const void* data, uint64_t offset, uint64_t size) = 0;
 };

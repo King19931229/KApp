@@ -8,8 +8,10 @@
 #include "Interface/IKRenderScene.h"
 #include "Internal/FrameGraph/KFrameGraph.h"
 #include "Internal/Render/KRHICommandList.h"
+#include "Internal/Render/KMeshLODView.h"
 
 class KCascadedShadowMap;
+struct KGPUSceneShadowCullParameters;
 
 class KCascadedShadowMapCasterPass : public KFrameGraphPass
 {
@@ -167,6 +169,7 @@ protected:
 	bool m_MinimizeShadowDraw;
 
 	bool m_StaticShouldUpdate;
+	KMeshLODView::StaticLODSelection m_StaticLODs;
 	EntityObserverFunc m_OnSceneChanged;
 
 	void UpdateDynamicCascades();
@@ -174,17 +177,22 @@ protected:
 	void UpdateCascadesDebug();
 
 	bool GetDebugRenderCommand(KRenderCommandList& commands, bool isStatic);
-	void PopulateRenderCommand(uint32_t cascadedIndex, bool isStatic, const std::vector<IKEntity*>& litCullRes, std::vector<KRenderCommand>& commands);
+	void PopulateRenderCommand(uint32_t cascadedIndex, bool isStatic, const std::vector<IKEntity*>& litCullRes,
+		const KMeshLODView* lodView, KRenderCommandList& commands);
 	void FilterRenderComponent(std::vector<IKEntity*>& in, bool isStatic);
-	bool PopulateRenderCommandList(uint32_t cascadedIndex, bool isStatic, KRenderCommandList& commandList);
+	KAABBBox CalculateReceiverBox(const Cascade& cascade) const;
+	KGPUSceneShadowCullParameters MakeGPUSceneCullParameters(const Cascade& cascade) const;
+	bool PopulateRenderCommandList(uint32_t cascadedIndex, bool isStatic, const KMeshLODView* lodView, KRenderCommandList& commandList);
 
 	bool UpdatePipelineFromRTChanged();
 
-	bool UpdateRT(KRHICommandList& commandList, IKRenderPassPtr renderPass, uint32_t cascadedIndex, bool isStatic);
+	bool UpdateRT(KRHICommandList& commandList, IKRenderPassPtr renderPass, uint32_t cascadedIndex, bool isStatic,
+		const KMeshLODView* lodView, KRenderCommandList&& renderCmdList);
 	bool UpdateMask(KRHICommandList& commandList, bool isStatic);
 	bool CombineMask(KRHICommandList& commandList);
 
-	void ExecuteCasterUpdate(KRHICommandList& commandList, std::function<IKRenderTargetPtr(uint32_t, bool)> getCascadedTarget);
+	void ExecuteCasterUpdate(KRHICommandList& commandList, std::function<IKRenderTargetPtr(uint32_t, bool)> getCascadedTarget,
+		const KMeshLODView* lodView = nullptr, bool gpuScene = false);
 
 	enum MaskType
 	{
@@ -208,8 +216,8 @@ public:
 
 	bool Resize(uint32_t width, uint32_t height);
 
-	bool UpdateShadowMap(KRHICommandList& commandList);
-	bool UpdateCasters(KRHICommandList& commandList);
+	bool UpdateShadowMap(KRHICommandList& commandList, const KMeshLODView& lodView);
+	bool UpdateCasters(KRHICommandList& commandList, const KMeshLODView& lodView, bool gpuScene);
 	bool UpdateMask(KRHICommandList& commandList);
 
 	bool DebugRender(IKRenderPassPtr renderPass, std::vector<IKCommandBufferPtr>& buffers);
@@ -231,6 +239,7 @@ public:
 	inline bool& GetFixToScene() { return m_FixToScene; }
 	inline bool& GetFixTexel() { return m_FixTexel; }
 	inline bool& GetMinimizeShadowDraw() { return m_MinimizeShadowDraw; }
+	void InvalidateStatic() { m_StaticShouldUpdate = true; }
 
 	inline KCascadedShadowMapCasterPassPtr GetCasterPass() { return m_CasterPass; }
 	inline KCascadedShadowMapReceiverPassPtr GetReceiverPass() { return m_ReceiverPass; }

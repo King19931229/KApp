@@ -44,6 +44,8 @@ layout(binding = BINDING_OBJECT)
 uniform Object_DYN_UNIFORM
 {
 	uint megaShaderIndex;
+	uint cascadeIndex;
+	uvec2 padding;
 } gpuscene;
 
 uint groupIndex = gl_InstanceIndex < MegaShaderState[gpuscene.megaShaderIndex].instanceCount ? (MegaShaderState[gpuscene.megaShaderIndex].groupWriteOffset + gl_InstanceIndex) : 0;

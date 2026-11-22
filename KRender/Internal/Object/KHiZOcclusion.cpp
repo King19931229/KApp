@@ -2,10 +2,7 @@
 #include "Internal/KRenderGlobal.h"
 
 KHiZOcclusion::KHiZOcclusion()
-	: m_CandidateNum(0)
-	, m_BlockX(0)
-	, m_BlockY(0)
-	, m_Enable(false)
+	: m_Enable(false)
 	, m_EnableDebugDraw(false)
 {
 }
@@ -16,9 +13,17 @@ KHiZOcclusion::~KHiZOcclusion()
 
 bool KHiZOcclusion::Resize()
 {
-	for (size_t frameIdx = 0; frameIdx < m_PreparePipelines.size(); ++frameIdx)
+	for (Batch& batch : m_Batches)
 	{
-		IKPipelinePtr& pipeline = m_PreparePipelines[frameIdx];
+		ConfigurePipelines(batch);
+	}
+	return true;
+}
+
+void KHiZOcclusion::ConfigurePipelines(Batch& batch)
+{
+	{
+		IKPipelinePtr& pipeline = batch.preparePipeline;
 		pipeline->UnInit();
 		pipeline->SetVertexBinding(KRenderGlobal::QuadDataProvider.GetVertexFormat(), KRenderGlobal::QuadDataProvider.GetVertexFormatArraySize());
 		pipeline->SetShader(ST_VERTEX, *m_QuadVS);
@@ -32,15 +37,14 @@ bool KHiZOcclusion::Resize()
 		pipeline->SetColorWrite(true, true, true, true);
 		pipeline->SetDepthFunc(CF_LESS_OR_EQUAL, true, true);
 
-		pipeline->SetSampler(SHADER_BINDING_TEXTURE0, m_TempPositionTextures[frameIdx]->GetFrameBuffer(), *m_Sampler, true);
-		pipeline->SetSampler(SHADER_BINDING_TEXTURE1, m_TempExtentTextures[frameIdx]->GetFrameBuffer(), *m_Sampler, true);
+		pipeline->SetSampler(SHADER_BINDING_TEXTURE0, batch.tempPosition->GetFrameBuffer(), *m_Sampler, true);
+		pipeline->SetSampler(SHADER_BINDING_TEXTURE1, batch.tempExtent->GetFrameBuffer(), *m_Sampler, true);
 
 		pipeline->Init();
 	}
 
-	for(size_t frameIdx = 0; frameIdx < m_ExecutePipelines.size(); ++frameIdx)
 	{
-		IKPipelinePtr& pipeline = m_ExecutePipelines[frameIdx];
+		IKPipelinePtr& pipeline = batch.executePipeline;
 		pipeline->UnInit();
 		pipeline->SetVertexBinding(KRenderGlobal::QuadDataProvider.GetVertexFormat(), KRenderGlobal::QuadDataProvider.GetVertexFormatArraySize());
 		pipeline->SetShader(ST_VERTEX, *m_QuadVS);
@@ -57,14 +61,12 @@ bool KHiZOcclusion::Resize()
 		IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_CAMERA);
 		pipeline->SetConstantBuffer(SHADER_BINDING_CAMERA, ST_FRAGMENT, cameraBuffer);
 
-		pipeline->SetSampler(SHADER_BINDING_TEXTURE0, m_PositionTargets[frameIdx]->GetFrameBuffer(), *m_Sampler, true);
-		pipeline->SetSampler(SHADER_BINDING_TEXTURE1, m_ExtentTargets[frameIdx]->GetFrameBuffer(), *m_Sampler, true);
+		pipeline->SetSampler(SHADER_BINDING_TEXTURE0, batch.position->GetFrameBuffer(), *m_Sampler, true);
+		pipeline->SetSampler(SHADER_BINDING_TEXTURE1, batch.extent->GetFrameBuffer(), *m_Sampler, true);
 		pipeline->SetSampler(SHADER_BINDING_TEXTURE2, KRenderGlobal::HiZBuffer.GetMaxBuffer()->GetFrameBuffer(), KRenderGlobal::HiZBuffer.GetHiZSampler(), true);
 
 		pipeline->Init();
 	}
-
-	return true;
 }
 
 bool KHiZOcclusion::Init()
@@ -78,82 +80,49 @@ bool KHiZOcclusion::Init()
 	desc.magFilter = FM_NEAREST;
 	KRenderGlobal::SamplerManager.Acquire(desc, m_Sampler);
 
-	uint32_t frameNum = KRenderGlobal::NumFramesInFlight;
+	KRenderGlobal::RenderDevice->CreateRenderTarget(m_ReadbackTarget);
+	return m_ReadbackTarget->InitFromReadback(OCCLUSION_TARGRT_DIMENSION, OCCLUSION_TARGRT_DIMENSION, 1, 1, PF_R8_UNORM);
+}
 
-	m_TempPositionTextures.resize(frameNum);
-	m_TempExtentTextures.resize(frameNum);
+void KHiZOcclusion::InitBatch(Batch& batch)
+{
+	IKRenderDevice* device = KRenderGlobal::RenderDevice;
+	device->CreateTexture(batch.tempPosition);
+	device->CreateTexture(batch.tempExtent);
 
-	m_PositionTargets.resize(frameNum);
-	m_ExtentTargets.resize(frameNum);
-	m_ResultTargets.resize(frameNum);
-	m_ResultReadbackTargets.resize(frameNum);
+	device->CreateRenderTarget(batch.position);
+	device->CreateRenderTarget(batch.extent);
+	device->CreateRenderTarget(batch.result);
+	batch.position->InitFromColor(OCCLUSION_TARGRT_DIMENSION, OCCLUSION_TARGRT_DIMENSION, 1, 1, PF_R32G32B32A32_FLOAT);
+	batch.extent->InitFromColor(OCCLUSION_TARGRT_DIMENSION, OCCLUSION_TARGRT_DIMENSION, 1, 1, PF_R32G32B32A32_FLOAT);
+	batch.result->InitFromColor(OCCLUSION_TARGRT_DIMENSION, OCCLUSION_TARGRT_DIMENSION, 1, 1, PF_R8_UNORM);
 
-	m_PreparePipelines.resize(frameNum);
-	m_ExecutePipelines.resize(frameNum);
+	device->CreateRenderPass(batch.preparePass);
+	batch.preparePass->SetColorAttachment(0, batch.position->GetFrameBuffer());
+	batch.preparePass->SetColorAttachment(1, batch.extent->GetFrameBuffer());
+	batch.preparePass->SetClearColor(0, { 0.0f, 0.0f, 0.0f, 0.0f });
+	batch.preparePass->Init();
 
-	m_PreparePasses.resize(frameNum);
-	m_ExecutePasses.resize(frameNum);
+	device->CreateRenderPass(batch.executePass);
+	batch.executePass->SetColorAttachment(0, batch.result->GetFrameBuffer());
+	batch.executePass->SetClearColor(0, { 0.0f, 0.0f, 0.0f, 0.0f });
+	batch.executePass->Init();
 
-	m_Candidates.resize(frameNum);
-
-	for (size_t frameIdx = 0; frameIdx < m_ExecutePipelines.size(); ++frameIdx)
-	{
-		KRenderGlobal::RenderDevice->CreateTexture(m_TempPositionTextures[frameIdx]);
-		KRenderGlobal::RenderDevice->CreateTexture(m_TempExtentTextures[frameIdx]);
-
-		KRenderGlobal::RenderDevice->CreateRenderTarget(m_PositionTargets[frameIdx]);
-		KRenderGlobal::RenderDevice->CreateRenderTarget(m_ExtentTargets[frameIdx]);
-		KRenderGlobal::RenderDevice->CreateRenderTarget(m_ResultTargets[frameIdx]);
-		KRenderGlobal::RenderDevice->CreateRenderTarget(m_ResultReadbackTargets[frameIdx]);
-
-		m_PositionTargets[frameIdx]->InitFromColor(OCCLUSION_TARGRT_DIMENSION, OCCLUSION_TARGRT_DIMENSION, 1, 1, PF_R32G32B32A32_FLOAT);
-		m_ExtentTargets[frameIdx]->InitFromColor(OCCLUSION_TARGRT_DIMENSION, OCCLUSION_TARGRT_DIMENSION, 1, 1, PF_R32G32B32A32_FLOAT);
-		m_ResultTargets[frameIdx]->InitFromColor(OCCLUSION_TARGRT_DIMENSION, OCCLUSION_TARGRT_DIMENSION, 1, 1, PF_R8_UNORM);
-		m_ResultReadbackTargets[frameIdx]->InitFromReadback(OCCLUSION_TARGRT_DIMENSION, OCCLUSION_TARGRT_DIMENSION, 1, 1, PF_R8_UNORM);
-
-		KRenderGlobal::RenderDevice->CreatePipeline(m_PreparePipelines[frameIdx]);
-		KRenderGlobal::RenderDevice->CreatePipeline(m_ExecutePipelines[frameIdx]);
-
-		KRenderGlobal::RenderDevice->CreateRenderPass(m_PreparePasses[frameIdx]);
-		KRenderGlobal::RenderDevice->CreateRenderPass(m_ExecutePasses[frameIdx]);
-
-		m_PreparePasses[frameIdx]->SetColorAttachment(0, m_PositionTargets[frameIdx]->GetFrameBuffer());
-		m_PreparePasses[frameIdx]->SetColorAttachment(1, m_ExtentTargets[frameIdx]->GetFrameBuffer());
-		m_PreparePasses[frameIdx]->SetClearColor(0, { 0.0f, 0.0f, 0.0f, 0.0f });
-		m_PreparePasses[frameIdx]->Init();
-
-		m_ExecutePasses[frameIdx]->SetColorAttachment(0, m_ResultTargets[frameIdx]->GetFrameBuffer());
-		m_ExecutePasses[frameIdx]->SetClearColor(0, { 0.0f, 0.0f, 0.0f, 0.0f });
-		m_ExecutePasses[frameIdx]->Init();
-	}
-
-	Resize();
-
-	m_DebugDrawers.resize(frameNum);
-
-	for (size_t frameIdx = 0; frameIdx < m_ExecutePipelines.size(); ++frameIdx)
-	{
-		m_DebugDrawers[frameIdx].Init(m_ResultTargets[frameIdx]->GetFrameBuffer(), 0.8f, 0, 0.2f, 0.2f, false);
-	}
-
-	return true;
+	device->CreatePipeline(batch.preparePipeline);
+	device->CreatePipeline(batch.executePipeline);
+	ConfigurePipelines(batch);
+	batch.debugDrawer.Init(batch.result->GetFrameBuffer(), 0.8f, 0, 0.2f, 0.2f, false);
 }
 
 bool KHiZOcclusion::EnableDebugDraw()
 {
-	for (size_t frameIdx = 0; frameIdx < m_DebugDrawers.size(); ++frameIdx)
-	{
-		m_DebugDrawers[frameIdx].EnableDraw();
-	}
+	m_EnableDebugDraw = true;
 	return true;
 }
 
 bool KHiZOcclusion::DisableDebugDraw()
 {
-	for (size_t frameIdx = 0; frameIdx < m_DebugDrawers.size(); ++frameIdx)
-	{
-		m_DebugDrawers[frameIdx].DisableDraw();
-	}
+	m_EnableDebugDraw = false;
 	return true;
 }
 
@@ -169,38 +138,27 @@ bool& KHiZOcclusion::GetDebugDrawEnable()
 
 bool KHiZOcclusion::UnInit()
 {
-	for (size_t frameIdx = 0; frameIdx < m_DebugDrawers.size(); ++frameIdx)
+	for (Batch& batch : m_Batches)
 	{
-		m_DebugDrawers[frameIdx].UnInit();
+		batch.debugDrawer.UnInit();
+		SAFE_UNINIT(batch.preparePipeline);
+		SAFE_UNINIT(batch.executePipeline);
+		SAFE_UNINIT(batch.tempPosition);
+		SAFE_UNINIT(batch.tempExtent);
+		SAFE_UNINIT(batch.preparePass);
+		SAFE_UNINIT(batch.executePass);
+		SAFE_UNINIT(batch.position);
+		SAFE_UNINIT(batch.extent);
+		SAFE_UNINIT(batch.result);
 	}
-	m_DebugDrawers.clear();
+	m_Batches.clear();
+	m_CurrentBatch = nullptr;
+	SAFE_UNINIT(m_ReadbackTarget);
 
 	m_QuadVS.Release();
 	m_PrepareCullFS.Release();
 	m_ExecuteCullFS.Release();
-
 	m_Sampler.Release();
-
-	m_Candidates.clear();
-
-	SAFE_UNINIT_CONTAINER(m_PreparePipelines);
-	SAFE_UNINIT_CONTAINER(m_ExecutePipelines);
-
-	SAFE_UNINIT_CONTAINER(m_TempPositionTextures);
-	SAFE_UNINIT_CONTAINER(m_TempExtentTextures);
-
-	SAFE_UNINIT_CONTAINER(m_PreparePasses);
-	SAFE_UNINIT_CONTAINER(m_ExecutePasses);
-
-	SAFE_UNINIT_CONTAINER(m_PositionTargets);
-	SAFE_UNINIT_CONTAINER(m_ExtentTargets);
-	SAFE_UNINIT_CONTAINER(m_ResultTargets);
-	SAFE_UNINIT_CONTAINER(m_ResultReadbackTargets);
-
-	m_CandidateNum = 0;
-	m_BlockX = 0;
-	m_BlockY = 0;
-
 	return true;
 }
 
@@ -218,35 +176,48 @@ bool KHiZOcclusion::Reload()
 
 void KHiZOcclusion::PullCandidatesResult()
 {
-	uint32_t frameIdx = KRenderGlobal::CurrentInFlightFrameIndex;
-	std::vector<Candidate>& candidates = m_Candidates[frameIdx];
-
-	IKFrameBufferPtr src = m_ResultTargets[KRenderGlobal::CurrentInFlightFrameIndex]->GetFrameBuffer();
-	IKFrameBufferPtr dest = m_ResultReadbackTargets[KRenderGlobal::CurrentInFlightFrameIndex]->GetFrameBuffer();
-	src->CopyToReadback(dest.get());
-
-	std::vector<uint8_t> readback;
-	readback.resize(src->GetWidth() * src->GetHeight());
-	dest->Readback(readback.data(), readback.size() * sizeof(uint8_t));
-
-	for (uint32_t y = 0; y < OCCLUSION_TARGRT_DIMENSION; ++y)
+	for (Batch& batch : m_Batches)
 	{
-		for (uint32_t x = 0; x < OCCLUSION_TARGRT_DIMENSION; ++x)
+		if (!batch.fence)
 		{
-			uint8_t data = readback[y * OCCLUSION_TARGRT_DIMENSION + x];
-			uint32_t idx = XYToIndex(x, y);
-			if (idx < candidates.size())
+			continue;
+		}
+		const auto status = batch.fence->GetStatus();
+		if (status == IKFence::Status::Pending)
+		{
+			break;
+		}
+		if (status == IKFence::Status::Failed)
+		{
+			// Failure to submit the fence does not make the batch safe to reuse.
+			continue;
+		}
+
+		if (m_Enable)
+		{
+			IKFrameBufferPtr src = batch.result->GetFrameBuffer();
+			IKFrameBufferPtr dest = m_ReadbackTarget->GetFrameBuffer();
+			std::vector<uint8_t> readback(src->GetWidth() * src->GetHeight());
+			if (src->CopyToReadback(dest.get()) && dest->Readback(readback.data(), readback.size()))
 			{
-				candidates[idx].render->SetOcclusionVisible(data > 0);
+				for (uint32_t y = 0; y < OCCLUSION_TARGRT_DIMENSION; ++y)
+				{
+					for (uint32_t x = 0; x < OCCLUSION_TARGRT_DIMENSION; ++x)
+					{
+						uint32_t idx = XYToIndex(x, y);
+						if (idx < batch.candidates.size() && !batch.candidates[idx].lifetime.expired())
+						{
+							batch.candidates[idx].render->SetOcclusionVisible(readback[y * OCCLUSION_TARGRT_DIMENSION + x] > 0);
+						}
+					}
+				}
 			}
 		}
+		batch.tempPosition->UnInit();
+		batch.tempExtent->UnInit();
+		batch.candidates.clear();
+		batch.fence.reset();
 	}
-	candidates.clear();
-	m_CandidateNum = 0;
-	m_BlockX = 0;
-	m_BlockY = 0;
-	m_TempPositionTextures[KRenderGlobal::CurrentInFlightFrameIndex]->UnInit();
-	m_TempExtentTextures[KRenderGlobal::CurrentInFlightFrameIndex]->UnInit();
 }
 
 uint32_t KHiZOcclusion::CalcBlockX(uint32_t idx)
@@ -295,13 +266,11 @@ uint32_t KHiZOcclusion::XYToIndex(uint32_t x, uint32_t y)
 	return blockIdx * BLOCK_SIZE * BLOCK_SIZE + y * BLOCK_SIZE + x;
 }
 
-void KHiZOcclusion::PushCandidatesInformation(KRHICommandList& commandList)
+void KHiZOcclusion::PushCandidatesInformation(KRHICommandList& commandList, Batch& batch)
 {
-	uint32_t frameIdx = KRenderGlobal::CurrentInFlightFrameIndex;
-	std::vector<Candidate>& candidates = m_Candidates[frameIdx];
-
+	const auto& candidates = batch.candidates;
 	uint32_t dimensionX = OCCLUSION_TARGRT_DIMENSION;
-	uint32_t dimensionY = (m_BlockY + 1) * BLOCK_SIZE;
+	uint32_t dimensionY = (CalcBlockY((uint32_t)candidates.size() - 1) + 1) * BLOCK_SIZE;
 
 	std::vector<glm::vec4> posDatas;
 	std::vector<glm::vec4> extentDatas;
@@ -309,7 +278,7 @@ void KHiZOcclusion::PushCandidatesInformation(KRHICommandList& commandList)
 	posDatas.resize(dimensionX * dimensionY);
 	extentDatas.resize(dimensionX * dimensionY);
 
-	for (uint32_t idx = 0; idx < m_CandidateNum; ++idx)
+	for (uint32_t idx = 0; idx < candidates.size(); ++idx)
 	{
 		uint32_t x = CalcX(idx);
 		uint32_t y = CalcY(idx);
@@ -318,10 +287,10 @@ void KHiZOcclusion::PushCandidatesInformation(KRHICommandList& commandList)
 		extentDatas[y * OCCLUSION_TARGRT_DIMENSION + x] = glm::vec4(candidates[idx].extent, 1);
 	}
 
-	m_TempPositionTextures[frameIdx]->InitMemoryFromData(posDatas.data(), "HiZOCTempPos", dimensionX, dimensionY, 1, PF_R32G32B32A32_FLOAT, false, false, false);
-	m_TempExtentTextures[frameIdx]->InitMemoryFromData(extentDatas.data(), "HiZOCTempExtent", dimensionX, dimensionY, 1, PF_R32G32B32A32_FLOAT, false, false, false);
-	m_TempPositionTextures[frameIdx]->InitDevice(false);
-	m_TempExtentTextures[frameIdx]->InitDevice(false);
+	batch.tempPosition->InitMemoryFromData(posDatas.data(), "HiZOCTempPos", dimensionX, dimensionY, 1, PF_R32G32B32A32_FLOAT, false, false, false);
+	batch.tempExtent->InitMemoryFromData(extentDatas.data(), "HiZOCTempExtent", dimensionX, dimensionY, 1, PF_R32G32B32A32_FLOAT, false, false, false);
+	batch.tempPosition->InitDevice(false);
+	batch.tempExtent->InitDevice(false);
 
 	KRenderCommand command;
 
@@ -337,11 +306,11 @@ void KHiZOcclusion::PushCandidatesInformation(KRHICommandList& commandList)
 
 	commandList.BeginDebugMarker("PrepareHiZOC", glm::vec4(1));
 	{
-		commandList.BeginRenderPass(m_PreparePasses[frameIdx], SUBPASS_CONTENTS_INLINE);
+		commandList.BeginRenderPass(batch.preparePass, SUBPASS_CONTENTS_INLINE);
 		commandList.SetViewport(dataViewport);
 
-		command.pipeline = m_PreparePipelines[frameIdx];
-		command.pipeline->GetHandle(m_PreparePasses[frameIdx], command.pipelineHandle);
+		command.pipeline = batch.preparePipeline;
+		command.pipeline->GetHandle(batch.preparePass, command.pipelineHandle);
 
 		struct ObjectData
 		{
@@ -365,16 +334,16 @@ void KHiZOcclusion::PushCandidatesInformation(KRHICommandList& commandList)
 	}
 	commandList.EndDebugMarker();
 
-	commandList.Transition(m_PositionTargets[frameIdx]->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
-	commandList.Transition(m_ExtentTargets[frameIdx]->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+	commandList.Transition(batch.position->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+	commandList.Transition(batch.extent->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 
 	commandList.BeginDebugMarker("ExecuteHiZOC", glm::vec4(1));
 	{
-		commandList.BeginRenderPass(m_ExecutePasses[frameIdx], SUBPASS_CONTENTS_INLINE);
+		commandList.BeginRenderPass(batch.executePass, SUBPASS_CONTENTS_INLINE);
 		commandList.SetViewport(dataViewport);
 
-		command.pipeline = m_ExecutePipelines[frameIdx];
-		command.pipeline->GetHandle(m_ExecutePasses[frameIdx], command.pipelineHandle);
+		command.pipeline = batch.executePipeline;
+		command.pipeline->GetHandle(batch.executePass, command.pipelineHandle);
 
 		struct ObjectData
 		{
@@ -389,6 +358,7 @@ void KHiZOcclusion::PushCandidatesInformation(KRHICommandList& commandList)
 		objectUsage.range = sizeof(objectData);
 		KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, objectUsage);
 
+		command.dynamicConstantUsages.clear();
 		command.dynamicConstantUsages.push_back(objectUsage);
 
 		commandList.Render(command);
@@ -397,34 +367,34 @@ void KHiZOcclusion::PushCandidatesInformation(KRHICommandList& commandList)
 	}
 	commandList.EndDebugMarker();
 
-	commandList.Transition(m_ResultTargets[frameIdx]->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+	commandList.Transition(batch.result->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 }
 
 bool KHiZOcclusion::DebugRender(IKRenderPassPtr renderPass, KRHICommandList& commandList)
 {
-	if (m_EnableDebugDraw)
+	if (m_EnableDebugDraw && m_CurrentBatch)
 	{
-		m_DebugDrawers[KRenderGlobal::CurrentInFlightFrameIndex].EnableDraw();
-		return m_DebugDrawers[KRenderGlobal::CurrentInFlightFrameIndex].Render(renderPass, commandList);
+		m_CurrentBatch->debugDrawer.EnableDraw();
+		return m_CurrentBatch->debugDrawer.Render(renderPass, commandList);
 	}
-	else
-	{
-		m_DebugDrawers[KRenderGlobal::CurrentInFlightFrameIndex].DisableDraw();
-		return true;
-	}	
+	return true;
 }
 
 bool KHiZOcclusion::Execute(KRHICommandList& commandList, const std::vector<IKEntity*>& cullRes)
 {
+	m_CurrentBatch = nullptr;
+	PullCandidatesResult();
 	if (!m_Enable)
 	{
 		return true;
 	}
 
-	PullCandidatesResult();
-
-	std::vector<Candidate>& candidates = m_Candidates[KRenderGlobal::CurrentInFlightFrameIndex];
-
+	auto available = std::find_if(m_Batches.begin(), m_Batches.end(), [](const Batch& batch) { return !batch.fence; });
+	std::vector<Candidate> candidates;
+	if (available != m_Batches.end())
+	{
+		candidates.swap(available->candidates);
+	}
 	candidates.reserve(cullRes.size());
 
 	for (IKEntity* entity : cullRes)
@@ -433,19 +403,18 @@ bool KHiZOcclusion::Execute(KRHICommandList& commandList, const std::vector<IKEn
 		KTransformComponent* transform = nullptr;
 		if (entity->GetComponent(CT_RENDER, (IKComponentBase**)&render) && entity->GetComponent(CT_TRANSFORM, (IKComponentBase**)&transform))
 		{
-			glm::vec3 worldPos;
+			const glm::mat4& worldTransform = transform->GetFinal_RenderThread();
 			KAABBBox localBound;
-			KAABBBox worldBound;
-			worldPos = transform->GetPosition();
 			render->GetLocalBound(localBound);
-			worldBound = localBound.Transform(transform->GetFinal_RenderThread());
+			const KAABBBox worldBound = localBound.Transform(worldTransform);
 
 			Candidate newCandidate;
-			newCandidate.pos = worldPos;
+			newCandidate.pos = glm::vec3(worldTransform[3]);
 			newCandidate.extent = worldBound.GetExtend() * 0.5f;
 			newCandidate.render = render;
+			newCandidate.lifetime = render->GetOcclusionLifetime();
 
-			candidates.push_back(newCandidate);
+			candidates.push_back(std::move(newCandidate));
 		}
 	}
 
@@ -454,16 +423,27 @@ bool KHiZOcclusion::Execute(KRHICommandList& commandList, const std::vector<IKEn
 		candidates.resize(OCCLUSION_TARGRT_DIMENSION * OCCLUSION_TARGRT_DIMENSION);
 	}
 
-	m_CandidateNum = (uint32_t)candidates.size();
-	if (m_CandidateNum > 0)
+	if (!candidates.empty())
 	{
-		m_BlockX = CalcBlockX(m_CandidateNum - 1);
-		m_BlockY = CalcBlockY(m_CandidateNum - 1);
-		PushCandidatesInformation(commandList);
+		if (available == m_Batches.end())
+		{
+			m_Batches.emplace_back();
+			InitBatch(m_Batches.back());
+		}
+		else
+		{
+			// Consume results in submission order even when a batch is reused.
+			m_Batches.splice(m_Batches.end(), m_Batches, available);
+		}
+		Batch& batch = m_Batches.back();
+		batch.candidates.swap(candidates);
+		batch.fence = commandList.RegisterFrameCompletionFence();
+		PushCandidatesInformation(commandList, batch);
+		m_CurrentBatch = &batch;
 	}
-	else
+	else if (available != m_Batches.end())
 	{
-		commandList.Transition(m_ResultTargets[KRenderGlobal::CurrentInFlightFrameIndex]->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+		candidates.swap(available->candidates);
 	}
 
 	return true;

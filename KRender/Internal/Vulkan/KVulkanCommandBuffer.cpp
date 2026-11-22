@@ -835,6 +835,12 @@ bool KVulkanCommandBuffer::ResetQuery(IKQueryPtr query)
 	return false;
 }
 
+bool KVulkanCommandBuffer::UpdateStorageBuffer(const IKStorageBufferPtr& storageBuffer, const void* data, uint64_t offset, uint64_t size)
+{
+	KVulkanStorageBuffer* buffer = static_cast<KVulkanStorageBuffer*>(storageBuffer.get());
+	return buffer && buffer->RecordUpload(*this, data, offset, size);
+}
+
 bool KVulkanCommandBuffer::TransitionIndirect(IKStorageBufferPtr buf)
 {
 	VkCommandBuffer commandBuffer = GetVkHandle();

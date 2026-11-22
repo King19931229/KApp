@@ -19,7 +19,7 @@ protected:
 	IKQueuePtr m_Queue;
 	IKSemaphorePtr m_ImageAvailable;
 	IKSemaphorePtr m_RenderFinished;
-	IKFencePtr m_InFlightFence;
+	std::vector<IKFencePtr> m_InFlightFences;
 	std::vector<KDevicePresentCallback*> m_PrePresentCallbacks;
 	std::vector<KDevicePresentCallback*> m_PostPresentCallbacks;
 	std::vector<KSwapChainRecreateCallback*> m_RecreateCallbacks;
@@ -28,6 +28,7 @@ public:
 	~KHeadlessSwapChain() override;
 	bool Init(IKRenderWindow* window) override;
 	bool UnInit() override;
+	bool Recreate();
 	IKRenderWindow* GetWindow() override { return m_Window; }
 	uint32_t GetFrameInFlight() override { return (uint32_t)m_Frames.size(); }
 	uint32_t GetWidth() override { return m_Width; }
@@ -38,7 +39,7 @@ public:
 	void PresentQueue(bool& needResize) override;
 	IKSemaphorePtr GetImageAvailableSemaphore() override { return m_ImageAvailable; }
 	IKSemaphorePtr GetRenderFinishSemaphore() override { return m_RenderFinished; }
-	IKFencePtr GetInFlightFence() override { return m_InFlightFence; }
+	IKFencePtr GetInFlightFence() override;
 	IKRenderPassPtr GetRenderPass(uint32_t chainIndex) override;
 	IKFrameBufferPtr GetColorFrameBuffer(uint32_t chainIndex) override;
 	IKFrameBufferPtr GetDepthStencilFrameBuffer(uint32_t chainIndex) override;

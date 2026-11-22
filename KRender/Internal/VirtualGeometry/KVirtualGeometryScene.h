@@ -142,5 +142,6 @@ public:
 
 	bool Reload();
 
+	bool HasInstances() const { return !m_Instances.empty(); }
 	inline IKStorageBufferPtr GetInstanceBuffer() { return m_InstanceDataBuffer; }
 };

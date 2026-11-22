@@ -175,46 +175,29 @@ bool KVirtualTexture::Init(const std::string& path, uint32_t tileNum, uint32_t v
 
 	m_RootNode = new KVirtualTextureTileNode(0, 0, tileNum, tileNum, m_MaxMipLevel);
 
-	m_MipUpdateComputePipelines.resize(KRenderGlobal::NumFramesInFlight);
-	m_MipUpdateStorages.resize(KRenderGlobal::NumFramesInFlight);
+	KRenderGlobal::RenderDevice->CreateStorageBuffer(m_MipUpdateStorage);
+	m_MipUpdateStorage->SetDebugName(("VirtualTextureMipUpdateStorage_" + m_Path).c_str());
 
-	for (size_t i = 0; i < m_MipUpdateComputePipelines.size(); ++i)
+	KRenderGlobal::RenderDevice->CreateComputePipeline(m_MipUpdateComputePipeline);
+	m_MipUpdateComputePipeline->BindStorageBuffer(VIRTUAL_TEXTURE_BINDING_UPLOAD_INFO, m_MipUpdateStorage, COMPUTE_RESOURCE_IN, true);
+	m_MipUpdateComputePipeline->BindDynamicUniformBuffer(VIRTUAL_TEXTURE_BINDING_OBJECT);
+	m_MipUpdateComputePipeline->BindStorageImage(VIRTUAL_TEXTURE_BINDING_TABLE_IMAGE, m_TableTexture->GetFrameBuffer(), m_TableTexture->GetTextureFormat(), COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, 0, true);
+	m_MipUpdateComputePipeline->Init("virtualtexture/mip_update.comp", KRenderGlobal::VirtualTextureManager.GetCompileEnv(), KRenderGlobal::EnableAsyncShaderCompile);
+
+	m_TableUpdateStorages.resize(m_MaxMipLevel + 1);
+	m_TableUpdateComputePipelines.resize(m_MaxMipLevel + 1);
+	for (uint32_t mip = 0; mip <= m_MaxMipLevel; ++mip)
 	{
-		KRenderGlobal::RenderDevice->CreateStorageBuffer(m_MipUpdateStorages[i]);
+		IKStorageBufferPtr& storage = m_TableUpdateStorages[mip];
+		KRenderGlobal::RenderDevice->CreateStorageBuffer(storage);
+		storage->SetDebugName(("VirtualTextureTableUpdateStorage_" + std::to_string(mip) + "_" + m_Path).c_str());
 
-		m_MipUpdateStorages[i]->SetDebugName(std::string("VirtualTextureMipUpdateStorage_" + m_Path + "_" + std::to_string(i)).c_str());
-
-		KRenderGlobal::RenderDevice->CreateComputePipeline(m_MipUpdateComputePipelines[i]);
-
-		m_MipUpdateComputePipelines[i]->BindStorageBuffer(VIRTUAL_TEXTURE_BINDING_UPLOAD_INFO, m_MipUpdateStorages[i], COMPUTE_RESOURCE_IN, true);
-		m_MipUpdateComputePipelines[i]->BindDynamicUniformBuffer(VIRTUAL_TEXTURE_BINDING_OBJECT);
-		m_MipUpdateComputePipelines[i]->BindStorageImage(VIRTUAL_TEXTURE_BINDING_TABLE_IMAGE, m_TableTexture->GetFrameBuffer(), m_TableTexture->GetTextureFormat(), COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, 0, true);
-
-		m_MipUpdateComputePipelines[i]->Init("virtualtexture/mip_update.comp", KRenderGlobal::VirtualTextureManager.GetCompileEnv(), KRenderGlobal::EnableAsyncShaderCompile);
-	}
-
-	m_TableUpdateStorages.resize(KRenderGlobal::NumFramesInFlight);
-	m_TableUpdateComputePipelines.resize(KRenderGlobal::NumFramesInFlight);
-
-	for (size_t i = 0; i < m_TableUpdateComputePipelines.size(); ++i)
-	{
-		m_TableUpdateStorages[i].resize(m_MaxMipLevel + 1);
-		m_TableUpdateComputePipelines[i].resize(m_MaxMipLevel + 1);
-
-		for (uint32_t mip = 0; mip <= m_MaxMipLevel; ++mip)
-		{
-			KRenderGlobal::RenderDevice->CreateStorageBuffer(m_TableUpdateStorages[i][mip]);
-
-			m_TableUpdateStorages[i][mip]->SetDebugName(std::string("VirtualTextureTableUpdateStorage_" + std::to_string(mip) + "_" + m_Path + "_" + std::to_string(i)).c_str());
-
-			KRenderGlobal::RenderDevice->CreateComputePipeline(m_TableUpdateComputePipelines[i][mip]);
-
-			m_TableUpdateComputePipelines[i][mip]->BindStorageBuffer(VIRTUAL_TEXTURE_BINDING_UPLOAD_INFO, m_TableUpdateStorages[i][mip], COMPUTE_RESOURCE_IN, true);
-			m_TableUpdateComputePipelines[i][mip]->BindDynamicUniformBuffer(VIRTUAL_TEXTURE_BINDING_OBJECT);
-			m_TableUpdateComputePipelines[i][mip]->BindStorageImage(VIRTUAL_TEXTURE_BINDING_TABLE_IMAGE, m_TableTexture->GetFrameBuffer(), m_TableTexture->GetTextureFormat(), COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, mip, true);
-
-			m_TableUpdateComputePipelines[i][mip]->Init("virtualtexture/table_update.comp", KRenderGlobal::VirtualTextureManager.GetCompileEnv(), KRenderGlobal::EnableAsyncShaderCompile);
-		}
+		IKComputePipelinePtr& pipeline = m_TableUpdateComputePipelines[mip];
+		KRenderGlobal::RenderDevice->CreateComputePipeline(pipeline);
+		pipeline->BindStorageBuffer(VIRTUAL_TEXTURE_BINDING_UPLOAD_INFO, storage, COMPUTE_RESOURCE_IN, true);
+		pipeline->BindDynamicUniformBuffer(VIRTUAL_TEXTURE_BINDING_OBJECT);
+		pipeline->BindStorageImage(VIRTUAL_TEXTURE_BINDING_TABLE_IMAGE, m_TableTexture->GetFrameBuffer(), m_TableTexture->GetTextureFormat(), COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, mip, true);
+		pipeline->Init("virtualtexture/table_update.comp", KRenderGlobal::VirtualTextureManager.GetCompileEnv(), KRenderGlobal::EnableAsyncShaderCompile);
 	}
 	m_TableDebugDrawer.Init(m_TableTexture->GetFrameBuffer(), 0.5f, 0.5f, 0.5f, 0.5f, false);
 	// m_TableDebugDrawer.EnableDraw();
@@ -232,19 +215,10 @@ bool KVirtualTexture::UnInit()
 	SAFE_DELETE(m_RootNode);
 	SAFE_UNINIT(m_TableTexture);
 
-	SAFE_UNINIT_CONTAINER(m_MipUpdateStorages);
-	SAFE_UNINIT_CONTAINER(m_MipUpdateComputePipelines);
-
-	for (size_t i = 0; i < m_TableUpdateStorages.size(); ++i)
-	{
-		SAFE_UNINIT_CONTAINER(m_TableUpdateStorages[i]);
-	}
-	m_TableUpdateStorages.clear();
-	for (size_t i = 0; i < m_TableUpdateComputePipelines.size(); ++i)
-	{
-		SAFE_UNINIT_CONTAINER(m_TableUpdateComputePipelines[i]);
-	}
-	m_TableUpdateComputePipelines.clear();
+	SAFE_UNINIT(m_MipUpdateComputePipeline);
+	SAFE_UNINIT_CONTAINER(m_TableUpdateComputePipelines);
+	SAFE_UNINIT(m_MipUpdateStorage);
+	SAFE_UNINIT_CONTAINER(m_TableUpdateStorages);
 
 	m_HashedTileRequests.clear();
 	m_TableInfo.clear();
@@ -349,21 +323,10 @@ bool KVirtualTexture::FeedbackRender(KRHICommandList& commandList, IKRenderPassP
 
 bool KVirtualTexture::UpdateTexture(KRHICommandList& commandList)
 {
-	uint32_t frameIndex = KRenderGlobal::CurrentInFlightFrameIndex;
-
-	m_MipUpdateStorages[frameIndex]->UnInit();
-	for (uint32_t mip = 0; mip <= m_MaxMipLevel; ++mip)
-	{
-		m_TableUpdateStorages[frameIndex][mip]->UnInit();
-	}
-
 	if (m_PendingTableUpdates.size() > 0)
 	{
 		{
 			commandList.BeginDebugMarker(("VirtualTexture_UpdateMip_" + m_Path).c_str(), glm::vec4(1));
-
-			m_MipUpdateStorages[frameIndex]->InitMemory(m_PendingTableUpdates.size() * sizeof(KVirtualTextureTableUpdate), m_PendingTableUpdates.data());
-			m_MipUpdateStorages[frameIndex]->InitDevice(false, false);
 
 			struct
 			{
@@ -382,7 +345,15 @@ bool KVirtualTexture::UpdateTexture(KRHICommandList& commandList)
 			KRenderGlobal::DynamicConstantBufferManager.Alloc(&uploadUsage, objectUsage);
 
 			commandList.Transition(m_TableTexture->GetFrameBuffer(), PIPELINE_STAGE_FRAGMENT_SHADER, PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_GENERAL);
-			commandList.Execute(m_MipUpdateComputePipelines[frameIndex], (uint32_t)(m_PendingTableUpdates.size() + KVirtualTextureManager::GROUP_SIZE - 1) / KVirtualTextureManager::GROUP_SIZE, 1, 1, &objectUsage);
+			uint32_t numDispatch = (uint32_t)(m_PendingTableUpdates.size() + KVirtualTextureManager::GROUP_SIZE - 1) / KVirtualTextureManager::GROUP_SIZE;
+			commandList.AddLowLevelRenderJob([storage = m_MipUpdateStorage, pipeline = m_MipUpdateComputePipeline,
+				updates = m_PendingTableUpdates, numDispatch, objectUsage](IKCommandBufferPtr buffer)
+			{
+				if (buffer->UpdateStorageBuffer(storage, updates.data(), 0, uint64_t(updates.size()) * sizeof(KVirtualTextureTableUpdate)))
+				{
+					pipeline->Execute(buffer, numDispatch, 1, 1, &objectUsage);
+				}
+			});
 			commandList.Transition(m_TableTexture->GetFrameBuffer(), PIPELINE_STAGE_COMPUTE_SHADER, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_GENERAL, IMAGE_LAYOUT_SHADER_READ_ONLY);
 
 			commandList.EndDebugMarker();
@@ -429,9 +400,6 @@ bool KVirtualTexture::UpdateTexture(KRHICommandList& commandList)
 
 			commandList.BeginDebugMarker(("VirtualTexture_UpdateTable_" + std::to_string(mip) + "_" + m_Path).c_str(), glm::vec4(1));
 
-			m_TableUpdateStorages[frameIndex][mip]->InitMemory(pendingMipUpdates[mip].size() * sizeof(KVirtualTextureTableUpdate), pendingMipUpdates[mip].data());
-			m_TableUpdateStorages[frameIndex][mip]->InitDevice(false, false);
-
 			struct
 			{
 				glm::uvec4 dimension;
@@ -449,7 +417,15 @@ bool KVirtualTexture::UpdateTexture(KRHICommandList& commandList)
 			KRenderGlobal::DynamicConstantBufferManager.Alloc(&uploadUsage, objectUsage);
 
 			commandList.Transition(m_TableTexture->GetFrameBuffer(), PIPELINE_STAGE_FRAGMENT_SHADER, PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_GENERAL);
-			commandList.Execute(m_TableUpdateComputePipelines[frameIndex][mip], (uint32_t)(pendingMipUpdates[mip].size() + KVirtualTextureManager::GROUP_SIZE - 1) / KVirtualTextureManager::GROUP_SIZE, 1, 1, &objectUsage);
+			uint32_t numDispatch = (uint32_t)(pendingMipUpdates[mip].size() + KVirtualTextureManager::GROUP_SIZE - 1) / KVirtualTextureManager::GROUP_SIZE;
+			commandList.AddLowLevelRenderJob([storage = m_TableUpdateStorages[mip], pipeline = m_TableUpdateComputePipelines[mip],
+				updates = std::move(pendingMipUpdates[mip]), numDispatch, objectUsage](IKCommandBufferPtr buffer)
+			{
+				if (buffer->UpdateStorageBuffer(storage, updates.data(), 0, uint64_t(updates.size()) * sizeof(KVirtualTextureTableUpdate)))
+				{
+					pipeline->Execute(buffer, numDispatch, 1, 1, &objectUsage);
+				}
+			});
 			commandList.Transition(m_TableTexture->GetFrameBuffer(), PIPELINE_STAGE_COMPUTE_SHADER, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_GENERAL, IMAGE_LAYOUT_SHADER_READ_ONLY);
 
 			commandList.EndDebugMarker();

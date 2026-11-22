@@ -104,6 +104,8 @@ public:
 
 	virtual bool Blit(IKFrameBufferPtr src, IKFrameBufferPtr dest);
 
+	virtual bool UpdateStorageBuffer(const IKStorageBufferPtr& storageBuffer, const void* data, uint64_t offset, uint64_t size) override;
+
 	VkCommandBuffer GetVkHandle();
 	VkCommandPool GetVkPool() const { return m_ParentPool; }
 	uint32_t GetFrameNum() const { return m_FrameNum; }

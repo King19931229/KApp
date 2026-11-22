@@ -176,13 +176,18 @@ void KQueueSubmitCmd::Execute(KRHICommandList& commandList)
 
 void KSwapChainPresentCmd::Execute(KRHICommandList& commandList)
 {
+	if (fence->GetStatus() == IKFence::Status::Failed)
+	{
+		callback(swapChain, false, false);
+		return;
+	}
 	bool needResize = false;
 	swapChain->PresentQueue(needResize);
 	if (needResize)
 	{
 		KRenderGlobal::RenderDevice->RecreateSwapChain(swapChain);
 	}
-	callback(swapChain, needResize);
+	callback(swapChain, needResize, true);
 }
 
 void KUpdateUniformBufferCmd::Execute(KRHICommandList& commandList)
@@ -195,7 +200,10 @@ void KUpdateUniformBufferCmd::Execute(KRHICommandList& commandList)
 
 void KUpdateStorageBufferCmd::Execute(KRHICommandList& commandList)
 {
-	storageBuffer->Write(data.data(), offset, size);
+	if (storageBuffer)
+	{
+		storageBuffer->Write(data.empty() ? nullptr : data.data(), offset, size);
+	}
 }
 
 void KRenderCmd::Execute(KRHICommandList& commandList)
@@ -459,7 +467,7 @@ void KRHICommandList::UpdateUniformBuffer(IKUniformBufferPtr uniformBuffer, void
 	ExecuteOrInsertNextCommand(command);
 }
 
-void KRHICommandList::UpdateStorageBuffer(IKStorageBufferPtr storageBuffer, void* data, uint32_t offset, uint32_t size)
+void KRHICommandList::UpdateStorageBuffer(IKStorageBufferPtr storageBuffer, const void* data, uint64_t offset, uint64_t size)
 {
 	KRHICommandBasePtr command = KRHICommandBasePtr(KNEW KUpdateStorageBufferCmd(storageBuffer, data, offset, size));
 	ExecuteOrInsertNextCommand(command);
@@ -485,7 +493,7 @@ void KRHICommandList::SetThreadedRenderJob(uint32_t threadIndex, ThreadRenderJob
 
 void KRHICommandList::AddLowLevelRenderJob(LowLevelRenderJobType job)
 {
-	KRHICommandBasePtr command = KRHICommandBasePtr(KNEW KAddLowLevelRenderJobCmd(m_CommandBuffer, job));
+	KRHICommandBasePtr command = KRHICommandBasePtr(KNEW KAddLowLevelRenderJobCmd(m_CommandBuffer, std::move(job)));
 	ExecuteOrInsertNextCommand(command);
 }
 
@@ -505,9 +513,16 @@ void KRHICommandList::QueueSubmit(IKQueuePtr queue, std::vector<KSemaphoreWaitIn
 	ExecuteOrInsertNextCommand(command);
 }
 
-void KRHICommandList::Present(IKSwapChain* swapChain, SwapChainResizeCallbackType callback)
+IKFencePtr KRHICommandList::RegisterFrameCompletionFence()
 {
-	KRHICommandBasePtr command = KRHICommandBasePtr(KNEW KSwapChainPresentCmd(swapChain, callback));
+	ASSERT_RESULT(m_PresentFence);
+	return m_PresentFence;
+}
+
+void KRHICommandList::Present(IKSwapChain* swapChain, SwapChainPresentCallbackType callback)
+{
+	ASSERT_RESULT(m_PresentFence);
+	KRHICommandBasePtr command = KRHICommandBasePtr(KNEW KSwapChainPresentCmd(swapChain, std::move(m_PresentFence), callback));
 	ExecuteOrInsertNextCommand(command);
 }
 

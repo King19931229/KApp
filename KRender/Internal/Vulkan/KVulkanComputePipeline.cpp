@@ -254,6 +254,7 @@ bool KVulkanComputePipeline::CreateLayout()
 		{
 			type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
 			newWrite = PopulateStorageBufferWrite(binding, VK_NULL_HANDLE, location);
+			if (!binding.dynamicWrite && newWrite.pBufferInfo->buffer == VK_NULL_HANDLE) return false;
 		}
 		else if (binding.type == BindingInfo::DYNAMIC_UNIFROM_BUFFER)
 		{
@@ -431,6 +432,10 @@ bool KVulkanComputePipeline::UpdateDynamicWrite(VkDescriptorSet dstSet, const KD
 		else if (binding.type == BindingInfo::STORAGE_BUFFER)
 		{
 			newWrite = PopulateStorageBufferWrite(binding, dstSet, location);
+			if (newWrite.pBufferInfo->buffer == VK_NULL_HANDLE)
+			{
+				return false;
+			}
 		}
 		else if (binding.type == BindingInfo::DYNAMIC_UNIFROM_BUFFER)
 		{
@@ -564,7 +569,7 @@ bool KVulkanComputePipeline::SetupBarrier(IKCommandBufferPtr buffer, bool input)
 	return true;
 }
 
-void KVulkanComputePipeline::PreDispatch(IKCommandBufferPtr primaryBuffer, VkDescriptorSet dstSet, const KDynamicConstantBufferUsage* usage)
+bool KVulkanComputePipeline::PreDispatch(IKCommandBufferPtr primaryBuffer, VkDescriptorSet dstSet, const KDynamicConstantBufferUsage* usage)
 {
 	KVulkanCommandBuffer* commandBuffer = static_cast<KVulkanCommandBuffer*>(primaryBuffer.get());
 	VkCommandBuffer cmdBuf = commandBuffer->GetVkHandle();
@@ -579,7 +584,7 @@ void KVulkanComputePipeline::PreDispatch(IKCommandBufferPtr primaryBuffer, VkDes
 	}
 
 	// Update the descriptor
-	UpdateDynamicWrite(dstSet, usage);
+	if (!UpdateDynamicWrite(dstSet, usage)) return false;
 
 	// Synchronize resources read or written by this dispatch.
 	SetupBarrier(primaryBuffer, true);
@@ -587,6 +592,7 @@ void KVulkanComputePipeline::PreDispatch(IKCommandBufferPtr primaryBuffer, VkDes
 	// Preparing for the compute shader
 	vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_COMPUTE, m_Pipeline);
 	vkCmdBindDescriptorSets(cmdBuf, VK_PIPELINE_BIND_POINT_COMPUTE, m_PipelineLayout, 0, 1, &dstSet, dynamicBufferCount, &dynamicOffsets);
+	return true;
 }
 
 void KVulkanComputePipeline::PostDispatch(IKCommandBufferPtr primaryBuffer)
@@ -600,9 +606,7 @@ bool KVulkanComputePipeline::Execute(IKCommandBufferPtr primaryBuffer, uint32_t 
 	if (primaryBuffer && EnsurePipeline())
 	{
 		VkDescriptorSet dstSet = Alloc();
-		if (dstSet == VK_NULL_HANDLE) return false;
-
-		PreDispatch(primaryBuffer, dstSet, usage);
+		if (dstSet == VK_NULL_HANDLE || !PreDispatch(primaryBuffer, dstSet, usage)) return false;
 
 		// Dispatching the shader
 		KVulkanCommandBuffer* commandBuffer = static_cast<KVulkanCommandBuffer*>(primaryBuffer.get());
@@ -624,9 +628,7 @@ bool KVulkanComputePipeline::ExecuteIndirect(IKCommandBufferPtr primaryBuffer, I
 	if (primaryBuffer && EnsurePipeline())
 	{
 		VkDescriptorSet dstSet = Alloc();
-		if (dstSet == VK_NULL_HANDLE) return false;
-
-		PreDispatch(primaryBuffer, dstSet, usage);
+		if (dstSet == VK_NULL_HANDLE || !PreDispatch(primaryBuffer, dstSet, usage)) return false;
 
 		// Dispatching the shader
 		KVulkanCommandBuffer* commandBuffer = static_cast<KVulkanCommandBuffer*>(primaryBuffer.get());

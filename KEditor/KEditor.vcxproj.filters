@@ -17,6 +17,15 @@
     <ClCompile Include="Resource\KEResourcePorter.cpp"><Filter>Source Files</Filter></ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Command\KECommand.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="Command\KECommandInvoker.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="Entity\KEEntityCommand.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="Entity\KEEntityManipulator.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="Entity\KEEntityNamePool.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="Entity\KEEntitySelector.h"><Filter>Header Files</Filter></ClInclude>
     <ClInclude Include="ImGui\KEImGuiEditor.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="KEditorConfig.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="KEditorGlobal.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="Resource\KEResourcePorter.h"><Filter>Header Files</Filter></ClInclude>
   </ItemGroup>
 </Project>

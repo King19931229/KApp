@@ -11,8 +11,6 @@ protected:
 	void* m_UIContext;
 
 	IKPipelinePtr m_Pipeline;
-	std::vector<IKIndexBufferPtr> m_IndexBuffers;
-	std::vector<IKVertexBufferPtr> m_VertexBuffers;
 
 	KShaderRef m_VertexShader;
 	KShaderRef m_FragmentShader;
@@ -59,7 +57,6 @@ public:
 	virtual bool Init();
 	virtual bool UnInit();
 	virtual bool Resize(uint32_t width, uint32_t height);
-	virtual bool Update();
 	virtual bool Draw(IKRenderPassPtr renderPass, KRHICommandList& commandList) = 0;
 
 	virtual bool SetMousePosition(unsigned int x, unsigned int y);

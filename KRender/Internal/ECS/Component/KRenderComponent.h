@@ -24,6 +24,7 @@ protected:
 
 	bool m_UseMaterialTexture;
 	bool m_OcclusionVisible;
+	std::shared_ptr<void> m_OcclusionLifetime;
 
 	static constexpr const char* msType = "type";
 	static constexpr const char* msPath = "path"; 
@@ -82,6 +83,7 @@ public:
 	IKQueryPtr GetOCInstacneQuery();
 	bool SetOCInstanceQuery(IKQueryPtr query);
 
+	std::weak_ptr<void> GetOcclusionLifetime();
 	inline void SetOcclusionVisible(bool visible) { m_OcclusionVisible = visible; }
 	inline bool IsOcclusionVisible() const { return m_OcclusionVisible; }
 };

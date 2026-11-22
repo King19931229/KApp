@@ -27,16 +27,14 @@ bool KHeadlessSwapChain::Init(IKRenderWindow* window)
 	device->CreateQueue(m_Queue);
 	device->CreateSemaphore(m_ImageAvailable);
 	device->CreateSemaphore(m_RenderFinished);
-	device->CreateFence(m_InFlightFence);
 	if (!m_Queue->Init(QUEUE_GRAPHICS, 0) || !m_ImageAvailable->Init() ||
-		!m_RenderFinished->Init() || !m_InFlightFence->Init(true))
+		!m_RenderFinished->Init() || !KVulkanFence::InitSlots(m_InFlightFences, "HeadlessInFlightFence"))
 	{
 		UnInit();
 		return false;
 	}
 	m_ImageAvailable->SetDebugName("HeadlessImageAvailable");
 	m_RenderFinished->SetDebugName("HeadlessRenderFinished");
-	m_InFlightFence->SetDebugName("HeadlessInFlightFence");
 	m_Frames.resize(KRenderGlobal::NumFramesInFlight);
 	for (Frame& frame : m_Frames)
 	{
@@ -74,11 +72,11 @@ bool KHeadlessSwapChain::UnInit()
 		if (frame.depth) frame.depth->UnInit();
 	}
 	m_Frames.clear();
-	if (m_InFlightFence) m_InFlightFence->UnInit();
+	SAFE_UNINIT_CONTAINER(m_InFlightFences);
+	m_InFlightFences.clear();
 	if (m_ImageAvailable) m_ImageAvailable->UnInit();
 	if (m_RenderFinished) m_RenderFinished->UnInit();
 	if (m_Queue) m_Queue->UnInit();
-	m_InFlightFence = nullptr;
 	m_ImageAvailable = nullptr;
 	m_RenderFinished = nullptr;
 	m_Queue = nullptr;
@@ -88,11 +86,26 @@ bool KHeadlessSwapChain::UnInit()
 	return true;
 }
 
+bool KHeadlessSwapChain::Recreate()
+{
+	const auto payloads = KVulkanFence::GetFramePayloads(m_InFlightFences);
+	if (!Init(m_Window))
+	{
+		return false;
+	}
+	KVulkanFence::SetFramePayloads(m_InFlightFences, payloads);
+	return true;
+}
+
+IKFencePtr KHeadlessSwapChain::GetInFlightFence()
+{
+	return m_InFlightFences[KRenderGlobal::CurrentInFlightFrameIndex];
+}
+
 bool KHeadlessSwapChain::WaitForInFlightFrame(uint32_t& completedFrameNum)
 {
-	const bool waited = m_InFlightFence->Wait();
-	ASSERT_RESULT(waited);
-	if (!waited || !static_cast<KVulkanFence*>(m_InFlightFence.get())->TakeFrameNum(completedFrameNum)) return false;
+	auto* fence = static_cast<KVulkanFence*>(GetInFlightFence().get());
+	if (!fence->WaitForFrame(completedFrameNum)) return false;
 	static_cast<KVulkanRenderDevice*>(KRenderGlobal::RenderDevice)->ReleaseFrameResources(completedFrameNum);
 	return true;
 }
@@ -109,7 +122,8 @@ SwapChainAcquireResult KHeadlessSwapChain::AcquireNextImage(uint32_t& imageIndex
 		// Consume the previous render's binary semaphore before signaling it again.
 		waits.push_back({ m_RenderFinished, PIPELINE_STAGE_ALL_COMMANDS });
 	}
-	if (!m_Queue->Submit(nullptr, waits, { m_ImageAvailable }, nullptr)) return SCAR_FAILED;
+	if (!m_Queue->Submit(nullptr, waits, { m_ImageAvailable }, nullptr) ||
+		!KVulkanFence::ResetSlot(m_InFlightFences[slot])) return SCAR_FAILED;
 	imageIndex = m_CurrentImageIndex = slot;
 	return SCAR_SUCCESS;
 }

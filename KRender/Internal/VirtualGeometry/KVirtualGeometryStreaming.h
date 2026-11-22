@@ -101,13 +101,13 @@ protected:
 	IKStorageBufferPtr m_PageDataBuffer;
 
 	std::vector<IKStorageBufferPtr> m_StreamingRequestBuffers;
-	std::vector<IKStorageBufferPtr> m_PageUploadBuffers;
-	std::vector<IKStorageBufferPtr> m_ClusterFixupUploadBuffers;
-	std::vector<IKStorageBufferPtr> m_HierarchyFixupUploadBuffers;
 	std::vector<IKComputePipelinePtr> m_StreamingRequestClearPipelines;
-	std::vector<IKComputePipelinePtr> m_PageUploadPipelines;
-	std::vector<IKComputePipelinePtr> m_ClusterFixupUploadPipelines;
-	std::vector<IKComputePipelinePtr> m_HierarchyFixupUploadPipelines;
+	IKStorageBufferPtr m_PageUploadBuffer;
+	IKStorageBufferPtr m_ClusterFixupUploadBuffer;
+	IKStorageBufferPtr m_HierarchyFixupUploadBuffer;
+	IKComputePipelinePtr m_PageUploadPipeline;
+	IKComputePipelinePtr m_ClusterFixupUploadPipeline;
+	IKComputePipelinePtr m_HierarchyFixupUploadPipeline;
 
 	std::vector<KVirtualGeometryActivePage*> m_Pages;
 	std::vector<KVirtualGeometryPages> m_ResourcePages;

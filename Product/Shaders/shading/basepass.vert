@@ -29,7 +29,7 @@ layout(location = 11) out vec3 out_color5;
 #endif
 
 #ifdef GPU_SCENE
-layout(location = 12) out flat uint out_darwIndex;
+layout(location = GPUSCENE_DRAW_INDEX_LOCATION) out flat uint out_darwIndex;
 #endif
 
 void main()

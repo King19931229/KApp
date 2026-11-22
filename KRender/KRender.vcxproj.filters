@@ -351,6 +351,9 @@
     <ClInclude Include="Interface\IKRenderScene.h">
       <Filter>Interface</Filter>
     </ClInclude>
+    <ClInclude Include="Interface\IKTerrain.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
     <ClInclude Include="Internal\Scene\KRenderScene.h">
       <Filter>Internal\Scene</Filter>
     </ClInclude>
@@ -399,16 +402,10 @@
     <ClInclude Include="Internal\Manager\KInstanceBufferManager.h">
       <Filter>Internal\Manager</Filter>
     </ClInclude>
-    <ClInclude Include="Interface\IKRenderDispatcher.h">
-      <Filter>Interface</Filter>
-    </ClInclude>
     <ClInclude Include="Internal\Controller\KCameraPreviewController.h">
       <Filter>Internal\Controller</Filter>
     </ClInclude>
     <ClInclude Include="Internal\Asset\Material\KMaterialTextureBinding.h">
-      <Filter>Internal\Asset\Material</Filter>
-    </ClInclude>
-    <ClInclude Include="Internal\Asset\Material\KMaterialShader.h">
       <Filter>Internal\Asset\Material</Filter>
     </ClInclude>
     <ClInclude Include="Internal\FrameGraph\KFrameGraphPass.h">
@@ -1008,11 +1005,20 @@
     <None Include="Interface\KShaderBinding.inl">
       <Filter>Interface</Filter>
     </None>
+    <None Include="Interface\KVertexFormat.inl">
+      <Filter>Interface</Filter>
+    </None>
     <None Include="Internal\VirtualGeometry\KVirtualGeomertyBinding.inl">
       <Filter>Internal\VirtualGeometry</Filter>
     </None>
+    <None Include="Internal\GPUScene\KGPUSceneBinding.inl">
+      <Filter>Internal\GPUScene</Filter>
+    </None>
     <None Include="Internal\Object\KRTAOBinding.inl">
       <Filter>Internal\Object</Filter>
+    </None>
+    <None Include="Internal\VirtualTexture\KVirtualTextureBinding.inl">
+      <Filter>Internal\VirtualTexture</Filter>
     </None>
   </ItemGroup>
 </Project>

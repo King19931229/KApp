@@ -71,7 +71,12 @@ protected:
 
 	IKStorageBufferPtr m_VirtualTextureFeedbackBuffer;
 
-	std::vector<std::vector<KTextureRef>> m_PendingSourceTextures;
+	struct PendingSourceTextures
+	{
+		IKFencePtr fence;
+		std::vector<KTextureRef> textures;
+	};
+	std::vector<PendingSourceTextures> m_PendingSourceTextures;
 
 	IKRenderTargetPtr m_PhysicalContentTarget;
 	std::vector<IKRenderPassPtr> m_UploadContentMipPasses;

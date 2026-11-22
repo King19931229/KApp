@@ -24,7 +24,7 @@ namespace KRenderUtil
 	void CalculateInstancesByMaterial(const std::vector<IKEntity*>& entities, std::vector<KMaterialSubMeshInstance>& instances, const KMeshLODView* lodView = nullptr);
 	void CalculateInstancesByVirtualTexture(const std::vector<IKEntity*>& entities, uint32_t targetBinding, IKTexturePtr virtualTexture, std::vector<KMaterialSubMeshInstance>& instances, const KMeshLODView& lodView);
 
-	void GetInstances(const std::vector<IKEntity*>& entities, std::vector<KMaterialSubMeshInstance>& instances, KMaterialSubMeshInstanceCompareFunction comp);
+	void GetInstances(const std::vector<IKEntity*>& entities, std::vector<KMaterialSubMeshInstance>& instances, RenderStage stage, KMaterialSubMeshInstanceCompareFunction comp);
 
 	bool AssignRenderStageBinding(KRenderCommand& command, RenderStage renderStage, uint32_t debugOption);
 	bool AssignShadingParameter(KRenderCommand& command, KMaterialRef material);

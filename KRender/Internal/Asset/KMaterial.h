@@ -91,6 +91,8 @@ public:
 	virtual IKShaderPtr GetVSShader(const VertexFormat* formats, uint32_t count);
 	virtual IKShaderPtr GetVSInstanceShader(const VertexFormat* formats, uint32_t count);
 	virtual IKShaderPtr GetVSGPUSceneShader(const VertexFormat* formats, uint32_t count);
+	IKShaderPtr GetVSGPUSceneCSMShader(const VertexFormat* formats, uint32_t count, bool staticCSM) override;
+	IKShaderPtr GetFSGPUSceneCSMShader(const VertexFormat* formats, uint32_t count, bool staticCSM) override;
 	virtual IKShaderPtr GetVSVirtualFeedbackShader(const VertexFormat* formats, uint32_t count);
 	virtual IKShaderPtr GetVSInstanceVirtualFeedbackShader(const VertexFormat* formats, uint32_t count);
 

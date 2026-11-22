@@ -497,6 +497,21 @@ bool KVirtualGeometryManager::ExecuteMain(KRHICommandList& commandList)
 	return true;
 }
 
+bool KVirtualGeometryManager::HasPostOcclusionWork() const
+{
+	if (m_UseDoubleOcclusion)
+	{
+		for (const auto& scene : m_Scenes)
+		{
+			if (static_cast<const KVirtualGeometryScene&>(*scene).HasInstances())
+			{
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
 bool KVirtualGeometryManager::ExecutePost(KRHICommandList& commandList)
 {
 	for (IKVirtualGeometryScenePtr scene : m_Scenes)

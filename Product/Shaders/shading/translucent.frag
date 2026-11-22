@@ -12,7 +12,8 @@ layout(location = 5) in vec3 worldBinormal;
 #endif
 
 #ifdef GPU_SCENE
-layout(location = 12) in flat uint darwIndex;
+#include "gpuscene/gpuscene_define.h"
+layout(location = GPUSCENE_DRAW_INDEX_LOCATION) in flat uint darwIndex;
 #endif
 
 #define BINDING_STATIC_CSM0 BINDING_TEXTURE5

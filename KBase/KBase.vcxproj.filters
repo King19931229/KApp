@@ -283,6 +283,9 @@
     <ClInclude Include="Publish\Mesh\KMeshHash.h">
       <Filter>Publish\Mesh</Filter>
     </ClInclude>
+    <ClInclude Include="Publish\Mesh\KQuadric.h">
+      <Filter>Publish\Mesh</Filter>
+    </ClInclude>
     <ClInclude Include="Publish\KEvent.h">
       <Filter>Publish</Filter>
     </ClInclude>

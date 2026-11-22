@@ -21,7 +21,6 @@ struct IKUIOverlay
 	virtual bool Init() = 0;
 	virtual bool UnInit() = 0;
 	virtual bool Resize(uint32_t width, uint32_t height) = 0;
-	virtual bool Update() = 0;
 	virtual bool Draw(IKRenderPassPtr renderPass, class KRHICommandList& commandList) = 0;
 
 	virtual bool SetMousePosition(unsigned int x, unsigned int y) = 0;

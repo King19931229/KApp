@@ -153,8 +153,8 @@ public:
 	bool Update();
 	void ReleaseFrameResources(uint32_t frameNum);
 	void RemoveUnreferenced();
-	bool Render(uint32_t chainImageIndex);
-	bool Execute(uint32_t chainImageIndex);
+	bool Render(uint32_t chainImageIndex, const IKFencePtr& presentFence);
+	bool Execute(uint32_t chainImageIndex, const IKFencePtr& presentFence);
 
 	void OnSwapChainRecreate(uint32_t width, uint32_t height);
 };

@@ -37,7 +37,7 @@ KGPUScene::SceneEntityPtr KGPUScene::CreateEntity(IKEntity* entity)
 	else
 	{
 		SceneEntityPtr sceneEntity(KNEW SceneEntity());
-		sceneEntity->id = entity->GetID();
+		sceneEntity->entity = entity;
 		sceneEntity->index = (uint32_t)m_EntityMap.size();
 		m_Entities.push_back(sceneEntity);
 		m_EntityMap.insert({ entity, sceneEntity });
@@ -161,6 +161,16 @@ uint32_t KGPUScene::CreateOrGetMegaShaderIndex(KSubMeshPtr subMesh, IKMaterialPt
 		newItem.refCount = 1;
 		newItem.vsShader = material->GetVSGPUSceneShader(vertexData->vertexFormats.data(), static_cast<uint32_t>(vertexData->vertexFormats.size()));
 		newItem.fsShader = material->GetFSGPUSceneShader(vertexData->vertexFormats.data(), static_cast<uint32_t>(vertexData->vertexFormats.size()));
+		newItem.doubleSided = material->IsDoubleSide();
+		for (uint32_t shadowType = 0; shadowType < 2; ++shadowType)
+		{
+			newItem.shadowVS[shadowType] = material->GetVSGPUSceneCSMShader(vertexData->vertexFormats.data(), static_cast<uint32_t>(vertexData->vertexFormats.size()), shadowType != 0);
+			newItem.shadowFS[shadowType] = material->GetFSGPUSceneCSMShader(vertexData->vertexFormats.data(), static_cast<uint32_t>(vertexData->vertexFormats.size()), shadowType != 0);
+		}
+		for (uint8_t i = 0; i < MAX_MATERIAL_TEXTURE_BINDING; ++i)
+		{
+			newItem.hasVirtualTexture |= material->GetTextureBinding()->GetIsVirtualTexture(i);
+		}
 		newItem.parameterDataSize = constantInfo->size;
 		newItem.parameterDataCount = 0;
 
@@ -220,13 +230,7 @@ uint32_t KGPUScene::CreateOrGetMegaShaderIndex(KSubMeshPtr subMesh, IKMaterialPt
 				IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_CAMERA);
 				pipeline->SetConstantBuffer(SHADER_BINDING_CAMERA, ST_FRAGMENT, cameraBuffer);
 
-				bool hasVirtualTexture = false;
-				for (uint8_t i = 0; i < MAX_MATERIAL_TEXTURE_BINDING; ++i)
-				{
-					hasVirtualTexture |= material->GetTextureBinding()->GetIsVirtualTexture(i);
-				}
-
-				if (hasVirtualTexture)
+				if (newItem.hasVirtualTexture)
 				{
 					for (uint8_t i = 0; i < MAX_VIRTUAL_PHYSICAL_TEXTURE_BINDING; ++i)
 					{
@@ -365,7 +369,7 @@ void KGPUScene::RemoveMegaShader(KSubMeshPtr subMesh, IKMaterialPtr material)
 	}
 }
 
-bool KGPUScene::AddEntity(IKEntity* entity, const KAABBBox& localBound, const glm::mat4& transform, const std::vector<KMaterialSubMeshPtr>& subMeshes)
+bool KGPUScene::AddEntity(IKEntity* entity, const KAABBBox& worldBound, const glm::mat4& transform, const std::vector<KMaterialSubMeshPtr>& subMeshes)
 {
 	if (entity && !GetEntity(entity))
 	{
@@ -394,14 +398,14 @@ bool KGPUScene::AddEntity(IKEntity* entity, const KAABBBox& localBound, const gl
 			CreateOrGetMaterialIndex(material.Get(), true);
 			CreateOrGetMegaShaderIndex(base, material.Get(), true);
 		}
-		sceneEntity->localBound = localBound;
+		sceneEntity->worldBound = worldBound;
 		m_DataDirtyBits |= INSTANCE_DIRTY;
 		return true;
 	}
 	return false;
 }
 
-bool KGPUScene::TransformEntity(IKEntity* entity, const glm::mat4& transform)
+bool KGPUScene::TransformEntity(IKEntity* entity, const KAABBBox& worldBound, const glm::mat4& transform)
 {
 	if (entity)
 	{
@@ -410,6 +414,7 @@ bool KGPUScene::TransformEntity(IKEntity* entity, const glm::mat4& transform)
 		{
 			sceneEntity->prevTransform = transform;
 			sceneEntity->transform = transform;
+			sceneEntity->worldBound = worldBound;
 		}
 		return true;
 	}
@@ -425,6 +430,10 @@ bool KGPUScene::RemoveEntity(IKEntity* entity)
 		assert(index < m_Entities.size());
 
 		SceneEntityPtr sceneEntity = m_Entities[index];
+		if (sceneEntity->isStatic)
+		{
+			KRenderGlobal::CascadedShadowMap.InvalidateStatic();
+		}
 		for (const auto& subMesh : sceneEntity->subMeshes)
 		{
 			const auto base = subMesh.binding->GetSubMesh();
@@ -741,6 +750,8 @@ void KGPUScene::RebuildTextureBindings()
 			}
 		}
 	}
+	m_MaterialTextureImages = std::move(images);
+	m_MaterialTextureSamplers = std::move(samplers);
 }
 
 void KGPUScene::RebuildInstance()
@@ -751,8 +762,8 @@ void KGPUScene::RebuildInstance()
 	{
 		KGPUSceneInstance newInstance;
 
-		newInstance.boundCenter = glm::vec4(entity->localBound.GetCenter(), 0);
-		newInstance.boundHalfExtend = glm::vec4(entity->localBound.GetExtend() * 0.5f, 0);
+		newInstance.boundMin = glm::vec4(entity->worldBound.GetMin(), 0);
+		newInstance.boundMax = glm::vec4(entity->worldBound.GetMax(), 0);
 		newInstance.prevTransform = entity->prevTransform;
 		newInstance.transform = entity->transform;
 	
@@ -854,13 +865,13 @@ void KGPUScene::OnSceneChanged(EntitySceneOp op, IKEntity* entity)
 		ASSERT_RESULT(entity->GetComponent(CT_RENDER, &renderComponent));
 		ASSERT_RESULT(entity->GetComponent(CT_TRANSFORM, &transformComponent));
 		const glm::mat4& transform = transformComponent->GetFinal_RenderThread();
-		KAABBBox localBound;
-		entity->GetLocalBound(localBound);
 		renderComponent->RegisterCallback(&m_OnRenderComponentChangedFunc);
 		const std::vector<KMaterialSubMeshPtr>& subMeshes = renderComponent->GetMaterialSubMeshs();
 		if (subMeshes.size() > 0)
 		{
-			AddEntity(entity, localBound, transform, subMeshes);
+			KAABBBox worldBound;
+			entity->GetBound(worldBound);
+			AddEntity(entity, worldBound, transform, subMeshes);
 		}
 	}
 	if (op == ESO_REMOVE)
@@ -877,7 +888,9 @@ void KGPUScene::OnSceneChanged(EntitySceneOp op, IKEntity* entity)
 		KTransformComponent* transformComponent = nullptr;
 		ASSERT_RESULT(entity->GetComponent(CT_TRANSFORM, &transformComponent));
 		const glm::mat4& transform = transformComponent->GetFinal_RenderThread();
-		TransformEntity(entity, transform);
+		KAABBBox worldBound;
+		entity->GetBound(worldBound);
+		TransformEntity(entity, worldBound, transform);
 	}
 }
 
@@ -1033,6 +1046,9 @@ bool KGPUScene::Init(IKRenderScene* scene)
 
 bool KGPUScene::UnInit()
 {
+	UnInitShadowDrawSets();
+	m_MaterialTextureImages.clear();
+	m_MaterialTextureSamplers.clear();
 	if (m_Scene)
 	{
 		m_Scene->UnRegisterEntityObserver(&m_OnSceneChangedFunc);
@@ -1100,6 +1116,7 @@ void KGPUScene::RebuildDirtyBuffer()
 	if (m_DataDirtyBits)
 	{
 		FLUSH_INFLIGHT_RENDER_JOB();
+		UnInitShadowDrawSets();
 		RebuildEntityDataIndex();
 	}
 	if (m_DataDirtyBits & MEGA_BUFFER_DIRTY)
@@ -1134,12 +1151,22 @@ void KGPUScene::UpdateInstanceDataBuffer(KRHICommandList& commandList, const KMe
 		size_t instanceIndex = 0;
 		for (const auto& entity : m_Entities)
 		{
-			const auto* levels = lodView.GetLevels(entity->id);
+			if (entity->subMeshes.empty()) continue;
+			const auto* levels = lodView.GetLevels(entity->entity->GetID());
+			IKTransformComponent* transform = nullptr;
+			const bool isStatic = entity->entity->GetComponent(CT_TRANSFORM, &transform) && transform->IsStatic();
+			if (entity->isStatic != isStatic)
+			{
+				entity->isStatic = isStatic;
+				KRenderGlobal::CascadedShadowMap.InvalidateStatic();
+			}
 			for (const auto& subMesh : entity->subMeshes)
 			{
 				auto& instance = m_Instances[instanceIndex++];
 				instance.prevTransform = entity->prevTransform;
 				instance.transform = entity->transform;
+				instance.boundMin = glm::vec4(entity->worldBound.GetMin(), isStatic ? 1.0f : 0.0f);
+				instance.boundMax = glm::vec4(entity->worldBound.GetMax(), 0);
 				const uint32_t level = levels ? (*levels)[subMesh.slot] : 0;
 				instance.miscs[KGPUSceneInstance::SUBMESH_INDEX] = subMesh.meshIndices[level];
 			}
@@ -1158,6 +1185,7 @@ bool KGPUScene::Execute(KRHICommandList& commandList, IKRenderScene* scene, cons
 
 	RebuildDirtyBuffer();
 	UpdateInstanceDataBuffer(commandList, lodView);
+	UpdateMaterialParameterBuffers(commandList);
 
 	uint32_t currentFrameIndex = KRenderGlobal::CurrentInFlightFrameIndex;
 	uint32_t megaShaderNum = (uint32_t)m_MegaShaders.size();
@@ -1256,7 +1284,36 @@ bool KGPUScene::Execute(KRHICommandList& commandList, IKRenderScene* scene, cons
 	return true;
 }
 
-void KGPUScene::AppendBasePassCommands(IKRenderPassPtr renderPass, KRHICommandList& commandList, KRenderCommandList& commands)
+void KGPUScene::UpdateMaterialParameterBuffers(KRHICommandList& commandList)
+{
+	const uint32_t frameIndex = KRenderGlobal::CurrentInFlightFrameIndex;
+	for (const MegaShaderItem& megaShader : m_MegaShaders)
+	{
+		std::vector<char> data;
+		if (megaShader.parametersBuffers[frameIndex]->GetBufferSize() > data.max_size()) continue;
+		data.resize(static_cast<size_t>(megaShader.parametersBuffers[frameIndex]->GetBufferSize()));
+		void* destination = data.data();
+		for (uint32_t materialIndex : megaShader.materialIndices)
+		{
+			const auto material = m_Materials[materialIndex].material;
+			const auto parameter = material->GetParameter();
+			const auto constant = material->GetShadingInfo();
+			if (parameter && constant && constant->size)
+			{
+				for (const auto& member : constant->members)
+				{
+					const auto value = parameter->GetValue(member.name);
+					ASSERT_RESULT(value);
+					memcpy(POINTER_OFFSET(destination, member.offset), value->GetData(), member.size);
+				}
+			}
+			destination = POINTER_OFFSET(destination, megaShader.parameterDataSize);
+		}
+		commandList.UpdateStorageBuffer(megaShader.parametersBuffers[frameIndex], data.data(), 0, static_cast<uint32_t>(data.size()));
+	}
+}
+
+void KGPUScene::AppendBasePassCommands(IKRenderPassPtr renderPass, KRenderCommandList& commands)
 {
 	uint32_t frameIndex = KRenderGlobal::CurrentInFlightFrameIndex;
 	m_LastDrawFrame = frameIndex;
@@ -1279,36 +1336,6 @@ void KGPUScene::AppendBasePassCommands(IKRenderPassPtr renderPass, KRHICommandLi
 		KRenderGlobal::DynamicConstantBufferManager.Alloc(&drawParameter, objectUsage);
 
 		{
-			std::vector<char> datas;
-			if (megaShader.parametersBuffers[frameIndex]->GetBufferSize() > datas.max_size()) continue;
-			datas.resize(static_cast<size_t>(megaShader.parametersBuffers[frameIndex]->GetBufferSize()));
-			void* pData = datas.data();
-
-			for (uint32_t materialIndex : megaShader.materialIndices)
-			{
-				const MaterialItem& materialItem = m_Materials[materialIndex];
-				const IKMaterialPtr material = materialItem.material;
-				const IKMaterialParameterPtr parameter = material->GetParameter();
-				if (parameter)
-				{
-					const KShaderInformation::Constant* constant = material->GetShadingInfo();
-					if (constant && constant->size)
-					{
-						for (const KShaderInformation::Constant::ConstantMember& member : constant->members)
-						{
-							IKMaterialValuePtr value = parameter->GetValue(member.name);
-							ASSERT_RESULT(value);
-							memcpy(POINTER_OFFSET(pData, member.offset), value->GetData(), member.size);
-						}
-					}
-				}
-				pData = POINTER_OFFSET(pData, megaShader.parameterDataSize);
-			}
-			
-			commandList.UpdateStorageBuffer(megaShader.parametersBuffers[frameIndex], datas.data(), 0, (uint32_t)datas.size());
-		}
-
-		{
 			KRenderCommand command;
 			command.dynamicConstantUsages.push_back(objectUsage);
 			command.pipeline = megaShader.darwPipelines[GPUSCENE_RENDER_STAGE_BASEPASS_MAIN][frameIndex];
@@ -1324,6 +1351,253 @@ void KGPUScene::AppendBasePassCommands(IKRenderPassPtr renderPass, KRHICommandLi
 			commands.push_back(std::move(command));
 		}
 	}
+}
+
+void KGPUScene::UnInitShadowDrawSet(ShadowDrawSet& drawSet)
+{
+	SAFE_UNINIT_CONTAINER(drawSet.drawPipelines);
+	SAFE_UNINIT_CONTAINER(drawSet.calcDrawArgs);
+	SAFE_UNINIT(drawSet.initState);
+	SAFE_UNINIT(drawSet.instanceCull);
+	SAFE_UNINIT(drawSet.calcDispatchArgs);
+	SAFE_UNINIT(drawSet.groupAllocate);
+	SAFE_UNINIT(drawSet.groupScatter);
+	SAFE_UNINIT_CONTAINER(drawSet.indirectArgs);
+	SAFE_UNINIT(drawSet.sceneState);
+	SAFE_UNINIT(drawSet.cullResult);
+	SAFE_UNINIT(drawSet.groupData);
+	SAFE_UNINIT(drawSet.megaShaderState);
+	SAFE_UNINIT(drawSet.dispatchArgs);
+	drawSet = {};
+}
+
+void KGPUScene::UnInitShadowDrawSets()
+{
+	for (auto& view : m_ShadowDrawSets)
+	{
+		for (auto& drawSet : view.second) UnInitShadowDrawSet(drawSet);
+	}
+	m_ShadowDrawSets.clear();
+	m_LastShadowDrawFrames.clear();
+}
+
+bool KGPUScene::InitializeShadowDrawSet(ShadowDrawSet& drawSet, uint32_t frameIndex, bool isStatic)
+{
+	const uint32_t shadowType = isStatic ? 1u : 0u;
+	for (const auto& shader : m_MegaShaders)
+	{
+		if (!shader.shadowVS[shadowType] || !shader.shadowFS[shadowType]) return false;
+	}
+	const size_t capacity = std::max(size_t(GPUSCENE_GROUP_SIZE), KMath::SmallestPowerOf2GreaterEqualThan(m_Instances.size()));
+	auto createBuffer = [](IKStorageBufferPtr& buffer, uint64_t size, bool indirect, const char* name)
+	{
+		KRenderGlobal::RenderDevice->CreateStorageBuffer(buffer);
+		if (!buffer->InitMemory(size, nullptr) || !buffer->InitDevice(indirect, false)) return false;
+		buffer->SetDebugName(name);
+		return true;
+	};
+	if (!createBuffer(drawSet.sceneState, sizeof(KGPUSceneState), false, "GPUSceneShadowState") ||
+		!createBuffer(drawSet.cullResult, capacity * sizeof(uint32_t), false, "GPUSceneShadowCullResult") ||
+		!createBuffer(drawSet.groupData, capacity * sizeof(uint32_t), false, "GPUSceneShadowGroups") ||
+		!createBuffer(drawSet.megaShaderState, m_MegaShaders.size() * sizeof(KGPUSceneMegaShaderState), false, "GPUSceneShadowMegaShaderState") ||
+		!createBuffer(drawSet.dispatchArgs, sizeof(uint32_t) * 4, true, "GPUSceneShadowDispatchArgs")) return false;
+
+	KRenderGlobal::RenderDevice->CreateComputePipeline(drawSet.initState);
+	drawSet.initState->BindStorageBuffer(GPUSCENE_BINDING_SCENE_STATE, drawSet.sceneState, COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, true);
+	drawSet.initState->BindStorageBuffer(GPUSCENE_BINDING_MEGA_SHADER_STATE, drawSet.megaShaderState, COMPUTE_RESOURCE_OUT, true);
+	drawSet.initState->BindStorageBuffer(GPUSCENE_BINDING_INDIRECT_DISPATCH_ARGS, drawSet.dispatchArgs, COMPUTE_RESOURCE_OUT, true);
+	if (!drawSet.initState->Init("gpuscene/init_state.comp", m_ComputeBindingEnv, false)) return false;
+
+	KRenderGlobal::RenderDevice->CreateComputePipeline(drawSet.instanceCull);
+	drawSet.instanceCull->BindDynamicUniformBuffer(GPUSCENE_BINDING_OBJECT);
+	drawSet.instanceCull->BindStorageBuffer(GPUSCENE_BINDING_SCENE_STATE, drawSet.sceneState, COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, true);
+	drawSet.instanceCull->BindStorageBuffer(GPUSCENE_BINDING_INSTANCE_DATA, m_InstanceDataBuffers[frameIndex], COMPUTE_RESOURCE_IN, true);
+	drawSet.instanceCull->BindStorageBuffer(GPUSCENE_BINDING_INSTANCE_CULL_RESULT, drawSet.cullResult, COMPUTE_RESOURCE_OUT, true);
+	drawSet.instanceCull->BindStorageBuffer(GPUSCENE_BINDING_MEGA_SHADER_STATE, drawSet.megaShaderState, COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, true);
+	if (!drawSet.instanceCull->Init("gpuscene/shadow_instance_cull.comp", m_ComputeBindingEnv, false)) return false;
+
+	KRenderGlobal::RenderDevice->CreateComputePipeline(drawSet.calcDispatchArgs);
+	drawSet.calcDispatchArgs->BindStorageBuffer(GPUSCENE_BINDING_SCENE_STATE, drawSet.sceneState, COMPUTE_RESOURCE_IN, true);
+	drawSet.calcDispatchArgs->BindStorageBuffer(GPUSCENE_BINDING_INDIRECT_DISPATCH_ARGS, drawSet.dispatchArgs, COMPUTE_RESOURCE_OUT, true);
+	if (!drawSet.calcDispatchArgs->Init("gpuscene/calc_dispatch_args.comp", m_ComputeBindingEnv, false)) return false;
+
+	KRenderGlobal::RenderDevice->CreateComputePipeline(drawSet.groupAllocate);
+	drawSet.groupAllocate->BindStorageBuffer(GPUSCENE_BINDING_SCENE_STATE, drawSet.sceneState, COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, true);
+	drawSet.groupAllocate->BindStorageBuffer(GPUSCENE_BINDING_MEGA_SHADER_STATE, drawSet.megaShaderState, COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, true);
+	if (!drawSet.groupAllocate->Init("gpuscene/group_allocate.comp", m_ComputeBindingEnv, false)) return false;
+
+	KRenderGlobal::RenderDevice->CreateComputePipeline(drawSet.groupScatter);
+	drawSet.groupScatter->BindStorageBuffer(GPUSCENE_BINDING_SCENE_STATE, drawSet.sceneState, COMPUTE_RESOURCE_IN, true);
+	drawSet.groupScatter->BindStorageBuffer(GPUSCENE_BINDING_INSTANCE_DATA, m_InstanceDataBuffers[frameIndex], COMPUTE_RESOURCE_IN, true);
+	drawSet.groupScatter->BindStorageBuffer(GPUSCENE_BINDING_INSTANCE_CULL_RESULT, drawSet.cullResult, COMPUTE_RESOURCE_IN, true);
+	drawSet.groupScatter->BindStorageBuffer(GPUSCENE_BINDING_MEGA_SHADER_STATE, drawSet.megaShaderState, COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, true);
+	drawSet.groupScatter->BindStorageBuffer(GPUSCENE_BINDING_GROUP_DATA, drawSet.groupData, COMPUTE_RESOURCE_OUT, true);
+	if (!drawSet.groupScatter->Init("gpuscene/group_scatter.comp", m_ComputeBindingEnv, false)) return false;
+
+	drawSet.indirectArgs.resize(m_MegaShaders.size());
+	drawSet.calcDrawArgs.resize(m_MegaShaders.size());
+	drawSet.drawPipelines.resize(m_MegaShaders.size());
+	for (size_t i = 0; i < m_MegaShaders.size(); ++i)
+	{
+		const auto& shader = m_MegaShaders[i];
+		const uint32_t drawGroups = KMath::DivideAndRoundUp(shader.refCount, uint32_t(GPUSCENE_GROUP_SIZE));
+		const uint64_t argsSize = uint64_t(drawGroups) * GPUSCENE_GROUP_SIZE * 4 * sizeof(uint32_t);
+		if (!createBuffer(drawSet.indirectArgs[i], argsSize, true, "GPUSceneShadowDrawArgs")) return false;
+		auto& calculate = drawSet.calcDrawArgs[i];
+		KRenderGlobal::RenderDevice->CreateComputePipeline(calculate);
+		calculate->BindStorageBuffer(GPUSCENE_BINDING_SCENE_STATE, drawSet.sceneState, COMPUTE_RESOURCE_IN, true);
+		calculate->BindStorageBuffer(GPUSCENE_BINDING_INSTANCE_DATA, m_InstanceDataBuffers[frameIndex], COMPUTE_RESOURCE_IN, true);
+		calculate->BindStorageBuffer(GPUSCENE_BINDING_MESH_STATE, m_MegaBuffer.meshStateBuffer, COMPUTE_RESOURCE_IN, true);
+		calculate->BindStorageBuffer(GPUSCENE_BINDING_MEGA_SHADER_STATE, drawSet.megaShaderState, COMPUTE_RESOURCE_IN, true);
+		calculate->BindStorageBuffer(GPUSCENE_BINDING_GROUP_DATA, drawSet.groupData, COMPUTE_RESOURCE_IN, true);
+		calculate->BindStorageBuffer(GPUSCENE_BINDING_INDIRECT_DRAW_ARGS, drawSet.indirectArgs[i], COMPUTE_RESOURCE_OUT, true);
+		calculate->BindDynamicUniformBuffer(GPUSCENE_BINDING_OBJECT);
+		if (!calculate->Init("gpuscene/calc_draw_args.comp", m_ComputeBindingEnv, false)) return false;
+
+		auto& pipeline = drawSet.drawPipelines[i];
+		KRenderGlobal::RenderDevice->CreatePipeline(pipeline);
+		pipeline->SetVertexBinding(nullptr, 0);
+		pipeline->SetShader(ST_VERTEX, shader.shadowVS[shadowType]);
+		pipeline->SetShader(ST_FRAGMENT, shader.shadowFS[shadowType]);
+		pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
+		pipeline->SetBlendEnable(false);
+		pipeline->SetCullMode(shader.doubleSided ? CM_NONE : CM_BACK);
+		// CSM projection has no main-camera Y flip.
+		pipeline->SetFrontFace(FF_CLOCKWISE);
+		pipeline->SetPolygonMode(PM_FILL);
+		pipeline->SetColorWrite(false, false, false, false);
+		pipeline->SetDepthFunc(CF_LESS_OR_EQUAL, true, true);
+		pipeline->SetDepthBiasEnable(true);
+		for (uint32_t format = 0; format < VF_SCENE_COUNT; ++format)
+		{
+			pipeline->SetStorageBuffer(SHADER_BINDING_POINT_NORMAL_UV + format, ST_VERTEX, m_MegaBuffer.vertexBuffers[format]);
+		}
+		pipeline->SetStorageBuffer(SHADER_BINDING_INDEX, ST_VERTEX, m_MegaBuffer.indexBuffer);
+		pipeline->SetStorageBuffer(SHADER_BINDING_MESH_STATE, ST_VERTEX, m_MegaBuffer.meshStateBuffer);
+		pipeline->SetStorageBuffer(SHADER_BINDING_INSTANCE_DATA, ST_VERTEX, m_InstanceDataBuffers[frameIndex]);
+		pipeline->SetStorageBuffer(SHADER_BINDING_DRAWING_GROUP, ST_VERTEX, drawSet.groupData);
+		pipeline->SetStorageBuffer(SHADER_BINDING_MEGA_SHADER_STATE, ST_VERTEX, drawSet.megaShaderState);
+		pipeline->SetStorageBuffer(SHADER_BINDING_MATERIAL_PARAMETER, ST_FRAGMENT, shader.parametersBuffers[frameIndex]);
+		pipeline->SetStorageBuffer(SHADER_BINDING_MATERIAL_INDEX, ST_FRAGMENT, shader.materialIndicesBuffer);
+		pipeline->SetStorageBuffer(SHADER_BINDING_MATERIAL_TEXTURE_BINDING, ST_FRAGMENT, m_MaterialTextureBindingBuffer);
+		pipeline->SetSamplers(SHADER_BINDING_TEXTURE0, m_MaterialTextureImages, m_MaterialTextureSamplers, true);
+		const auto shadowBuffer = isStatic ? CBT_STATIC_CASCADED_SHADOW : CBT_DYNAMIC_CASCADED_SHADOW;
+		pipeline->SetConstantBuffer(shadowBuffer, ST_VERTEX, KRenderGlobal::FrameResourceManager.GetConstantBuffer(shadowBuffer));
+		pipeline->SetConstantBuffer(SHADER_BINDING_CAMERA, ST_FRAGMENT, KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_CAMERA));
+		if (shader.hasVirtualTexture)
+		{
+			for (uint8_t binding = 0; binding < MAX_VIRTUAL_PHYSICAL_TEXTURE_BINDING; ++binding)
+			{
+				pipeline->SetSampler(SHADER_BINDING_TEXTURE0 + MAX_MATERIAL_TEXTURE_BINDING + binding,
+					KRenderGlobal::VirtualTextureManager.GetPhysicalTextureFramebuffer(binding),
+					*KRenderGlobal::VirtualTextureManager.GetPhysicalTextureSampler(binding), true);
+			}
+			pipeline->SetStorageBuffer(SHADER_BINDING_VIRTUAL_TEXTURE_DESCRIPTION, ST_FRAGMENT, KRenderGlobal::VirtualTextureManager.GetVirtualTextrueDescriptionBuffer());
+			pipeline->SetStorageBuffer(SHADER_BINDING_VIRTUAL_TEXTURE_FEEDBACK_RESULT, ST_FRAGMENT, KRenderGlobal::VirtualTextureManager.GetVirtualTextureFeedbackBuffer());
+		}
+		pipeline->SetConstantBuffer(SHADER_BINDING_VIRTUAL_TEXTURE_CONSTANT, ST_FRAGMENT,
+			KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_VIRTUAL_TEXTURE_CONSTANT));
+		if (!pipeline->Init()) return false;
+	}
+	return true;
+}
+
+void KGPUScene::PrepareShadowCommands(KRHICommandList& commandList, IKRenderPassPtr renderPass, uint32_t cascadeIndex, bool isStatic,
+	const KGPUSceneShadowCullParameters& parameters, KRenderCommandList& commands)
+{
+	assert(commands.empty());
+	if (m_Instances.empty()) return;
+	const uint32_t frameIndex = KRenderGlobal::CurrentInFlightFrameIndex;
+	const uint32_t key = cascadeIndex * 2 + (isStatic ? 1u : 0u);
+	auto& lastDrawFrame = m_LastShadowDrawFrames[key];
+	lastDrawFrame = UINT32_MAX;
+	auto& frames = m_ShadowDrawSets[key];
+	if (frames.empty()) frames.resize(KRenderGlobal::NumFramesInFlight);
+	auto& drawSet = frames[frameIndex];
+	if (!drawSet.sceneState && !InitializeShadowDrawSet(drawSet, frameIndex, isStatic))
+	{
+		UnInitShadowDrawSet(drawSet);
+		return;
+	}
+
+	// Resolve every pipeline before dispatching. A failed pipeline leaves the
+	// whole cascade on the CPU path instead of submitting a partial shadow map.
+	commands.reserve(m_MegaShaders.size());
+	for (uint32_t shader = 0; shader < m_MegaShaders.size(); ++shader)
+	{
+		KRenderCommand command;
+		command.pipeline = drawSet.drawPipelines[shader];
+		if (!command.pipeline->GetHandle(renderPass, command.pipelineHandle))
+		{
+			commands.clear();
+			return;
+		}
+		KGPUSceneDrawParameter parameter;
+		parameter.megaShaderIndex = shader;
+		parameter.cascadeIndex = cascadeIndex;
+		KDynamicConstantBufferUsage usage;
+		usage.binding = SHADER_BINDING_OBJECT;
+		usage.range = sizeof(parameter);
+		KRenderGlobal::DynamicConstantBufferManager.Alloc(&parameter, usage);
+		command.dynamicConstantUsages.push_back(usage);
+		command.indirectDraw = true;
+		command.indirectArgsBuffer = drawSet.indirectArgs[shader];
+		command.indirectCount = m_MegaShaders[shader].refCount;
+		commands.push_back(std::move(command));
+	}
+
+	const uint32_t shaderCount = static_cast<uint32_t>(m_MegaShaders.size());
+	const uint32_t shaderGroups = KMath::DivideAndRoundUp(shaderCount, uint32_t(GPUSCENE_GROUP_SIZE));
+	const uint32_t instanceCount = static_cast<uint32_t>(m_Instances.size());
+	const uint32_t instanceGroups = KMath::DivideAndRoundUp(instanceCount, uint32_t(GPUSCENE_GROUP_SIZE));
+	drawSet.sceneState->Write(&shaderCount, MEMBER_OFFSET(KGPUSceneState, megaShaderNum), sizeof(shaderCount));
+	commandList.BeginDebugMarker("GPUScene_Shadow_" + std::to_string(key), glm::vec4(1));
+	commandList.Execute(drawSet.initState, shaderGroups, 1, 1, nullptr);
+	auto cull = parameters;
+	cull.instanceCount = instanceCount;
+	cull.isStatic = isStatic ? 1u : 0u;
+	KDynamicConstantBufferUsage cullUsage;
+	cullUsage.binding = GPUSCENE_BINDING_OBJECT;
+	cullUsage.range = sizeof(cull);
+	KRenderGlobal::DynamicConstantBufferManager.Alloc(&cull, cullUsage);
+	commandList.Execute(drawSet.instanceCull, instanceGroups, 1, 1, &cullUsage);
+	commandList.Execute(drawSet.calcDispatchArgs, 1, 1, 1, nullptr);
+	commandList.Execute(drawSet.groupAllocate, shaderGroups, 1, 1, nullptr);
+	commandList.ExecuteIndirect(drawSet.groupScatter, drawSet.dispatchArgs, nullptr);
+	for (uint32_t shader = 0; shader < shaderCount; ++shader)
+	{
+		const glm::uvec4 index(shader, 0, 0, 0);
+		KDynamicConstantBufferUsage usage;
+		usage.binding = GPUSCENE_BINDING_OBJECT;
+		usage.range = sizeof(index);
+		KRenderGlobal::DynamicConstantBufferManager.Alloc(&index, usage);
+		const uint32_t drawGroups = KMath::DivideAndRoundUp(m_MegaShaders[shader].refCount, uint32_t(GPUSCENE_GROUP_SIZE));
+		commandList.Execute(drawSet.calcDrawArgs[shader], drawGroups, 1, 1, &usage);
+	}
+	commandList.PipelineMemoryBarrier(PIPELINE_STAGE_COMPUTE_SHADER,
+		PIPELINE_STAGE_DRAW_INDIRECT | PIPELINE_STAGE_VERTEX_SHADER);
+	commandList.EndDebugMarker();
+	lastDrawFrame = frameIndex;
+}
+
+bool KGPUScene::ReadShadowPassTriangles(uint32_t cascadeIndex, bool isStatic, uint64_t& triangles, uint32_t* frameSlot) const
+{
+	triangles = 0;
+	const uint32_t key = cascadeIndex * 2 + (isStatic ? 1u : 0u);
+	const auto frame = m_LastShadowDrawFrames.find(key);
+	const auto view = m_ShadowDrawSets.find(key);
+	if (frame == m_LastShadowDrawFrames.end() || frame->second == UINT32_MAX || view == m_ShadowDrawSets.end()) return false;
+	const auto& drawSet = view->second[frame->second];
+	std::vector<std::array<uint32_t, 4>> args;
+	for (size_t shader = 0; shader < drawSet.indirectArgs.size(); ++shader)
+	{
+		args.resize(m_MegaShaders[shader].refCount);
+		const auto& buffer = drawSet.indirectArgs[shader];
+		if (!buffer->Read(args.data(), 0, uint64_t(args.size()) * sizeof(args[0]))) return false;
+		for (const auto& draw : args) triangles += uint64_t(draw[0] / 3) * draw[1];
+	}
+	if (frameSlot) *frameSlot = frame->second;
+	return true;
 }
 
 bool KGPUScene::ReadBasePassTriangles(uint64_t& triangles) const

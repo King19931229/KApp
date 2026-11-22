@@ -3,6 +3,7 @@
 #include "KVulkanGlobal.h"
 #include "KVulkanHelper.h"
 #include "Internal/KRenderGlobal.h"
+#include "KBase/Interface/IKLog.h"
 
 KVulkanSemaphore::KVulkanSemaphore()
 {
@@ -70,99 +71,216 @@ KVulkanFence::~KVulkanFence()
 bool KVulkanFence::Init(bool singaled)
 {
 	UnInit();
-	m_Fences.resize(KRenderGlobal::NumFramesInFlight);
-	for (size_t i = 0; i < m_Fences.size(); ++i)
-	{		
-		VkFenceCreateInfo fenceInfo = {};
-		fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-		fenceInfo.flags = singaled ? VK_FENCE_CREATE_SIGNALED_BIT : VK_FLAGS_NONE;
-		fenceInfo.pNext = nullptr;
-		VK_ASSERT_RESULT(vkCreateFence(KVulkanGlobal::device, &fenceInfo, nullptr, &m_Fences[i].handle));
-	}
-	return true;
+	std::lock_guard<std::mutex> lock(m_Mutex);
+	VkFenceCreateInfo fenceInfo = {};
+	fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+	fenceInfo.flags = singaled ? VK_FENCE_CREATE_SIGNALED_BIT : VK_FLAGS_NONE;
+	const VkResult result = VK_CHECK_OOM(vkCreateFence(KVulkanGlobal::device, &fenceInfo, nullptr, &m_Handle));
+	m_Status = result == VK_SUCCESS ? (singaled ? Status::Signaled : Status::Pending) : Status::Failed;
+	return result == VK_SUCCESS;
 }
 
 bool KVulkanFence::UnInit()
 {
-	if (m_Fences.size() > 0)
+	std::lock_guard<std::mutex> lock(m_Mutex);
+	UpdateStatus();
+	if (m_Status == Status::Pending)
 	{
-		for (size_t i = 0; i < m_Fences.size(); ++i)
-		{
-			vkDestroyFence(KVulkanGlobal::device, m_Fences[i].handle, nullptr);
-		}
-		m_Fences.clear();
+		m_Status = Status::Failed;
 	}
+	if (m_Handle != VK_NULL_HANDLE)
+	{
+		vkDestroyFence(KVulkanGlobal::device, m_Handle, nullptr);
+		m_Handle = VK_NULL_HANDLE;
+	}
+	m_Payload = {};
 	return true;
 }
 
 bool KVulkanFence::SetDebugName(const char* name)
 {
-	for (size_t i = 0; i < m_Fences.size(); ++i)
+	std::lock_guard<std::mutex> lock(m_Mutex);
+	if (m_Handle != VK_NULL_HANDLE)
 	{
-		KVulkanHelper::DebugUtilsSetObjectName(KVulkanGlobal::device, (uint64_t)m_Fences[i].handle, VK_OBJECT_TYPE_FENCE, (std::string(name) + "_" + std::to_string(i)).c_str());
+		KVulkanHelper::DebugUtilsSetObjectName(KVulkanGlobal::device, (uint64_t)m_Handle, VK_OBJECT_TYPE_FENCE, name);
 	}
 	return true;
 }
 
 bool KVulkanFence::Wait()
 {
-	if (m_Fences.size() > 0)
+	std::lock_guard<std::mutex> lock(m_Mutex);
+	return WaitLocked();
+}
+
+bool KVulkanFence::WaitLocked()
+{
+	const Status status = m_Status.load();
+	if (status != Status::Pending || !m_Payload.submitted)
 	{
-		VkResult result = VK_CHECK_OOM(vkWaitForFences(KVulkanGlobal::device, 1, &m_Fences[KRenderGlobal::CurrentInFlightFrameIndex].handle, VK_TRUE, UINT64_MAX));
-		return result == VK_SUCCESS;
+		return status == Status::Signaled;
 	}
-	return false;
+	const VkResult result = VK_CHECK_OOM(vkWaitForFences(KVulkanGlobal::device, 1, &m_Handle, VK_TRUE, UINT64_MAX));
+	m_Status = result == VK_SUCCESS ? Status::Signaled : Status::Failed;
+	return result == VK_SUCCESS;
 }
 
 bool KVulkanFence::Reset()
 {
-	if (m_Fences.size() > 0)
+	std::lock_guard<std::mutex> lock(m_Mutex);
+	if (m_Handle == VK_NULL_HANDLE)
 	{
-		VkResult result = VK_CHECK_OOM(vkResetFences(KVulkanGlobal::device, 1, &m_Fences[KRenderGlobal::CurrentInFlightFrameIndex].handle));
-		return result == VK_SUCCESS;
+		return false;
 	}
-	return false;
+	const VkResult result = VK_CHECK_OOM(vkResetFences(KVulkanGlobal::device, 1, &m_Handle));
+	m_Status = result == VK_SUCCESS ? Status::Pending : Status::Failed;
+	if (result == VK_SUCCESS)
+	{
+		m_Payload = {};
+	}
+	return result == VK_SUCCESS;
 }
 
-VkFence KVulkanFence::GetVkFence()
+void KVulkanFence::UpdateStatus() const
 {
-	if (m_Fences.size() > 0)
+	if (m_Status == Status::Pending && m_Payload.submitted && m_Handle != VK_NULL_HANDLE)
 	{
-		return m_Fences[KRenderGlobal::CurrentInFlightFrameIndex].handle;
+		const VkResult result = vkGetFenceStatus(KVulkanGlobal::device, m_Handle);
+		if (result == VK_SUCCESS)
+		{
+			m_Status = Status::Signaled;
+		}
+		else if (result != VK_NOT_READY)
+		{
+			m_Status = Status::Failed;
+		}
+	}
+}
+
+IKFence::Status KVulkanFence::GetStatus() const
+{
+	// A concurrent Wait may hold the handle lock until the GPU signals it.
+	std::unique_lock<std::mutex> lock(m_Mutex, std::try_to_lock);
+	if (lock.owns_lock())
+	{
+		UpdateStatus();
+	}
+	return m_Status.load();
+}
+
+VkResult KVulkanFence::Submit(VkQueue queue, const VkSubmitInfo& info, uint32_t frameNum)
+{
+	std::lock_guard<std::mutex> lock(m_Mutex);
+	if (m_Status != Status::Pending || m_Payload.submitted)
+	{
+		return VK_ERROR_INITIALIZATION_FAILED;
+	}
+	const VkResult result = m_Handle != VK_NULL_HANDLE
+		? KVulkanGlobal::QueueSubmit(queue, 1, &info, m_Handle)
+		: VK_ERROR_INITIALIZATION_FAILED;
+	if (result == VK_SUCCESS)
+	{
+		m_Payload = { frameNum, true };
 	}
 	else
 	{
-		return VK_NULL_HANDEL;
+		m_Status = Status::Failed;
 	}
-}
-
-void KVulkanFence::SetFrameNum(uint32_t frameNum)
-{
-	Payload& payload = m_Fences[KRenderGlobal::CurrentInFlightFrameIndex].payload;
-	payload.frameNum = frameNum;
-	payload.submitted = true;
-}
-
-bool KVulkanFence::TakeFrameNum(uint32_t& frameNum)
-{
-	Payload& payload = m_Fences[KRenderGlobal::CurrentInFlightFrameIndex].payload;
-	if (!payload.submitted) return false;
-	frameNum = payload.frameNum;
-	payload.submitted = false;
-	return true;
-}
-
-std::vector<KVulkanFence::Payload> KVulkanFence::GetFramePayloads() const
-{
-	std::vector<Payload> result;
-	for (const Fence& fence : m_Fences) result.push_back(fence.payload);
 	return result;
 }
 
-void KVulkanFence::SetFramePayloads(const std::vector<Payload>& payloads)
+void KVulkanFence::SetFailed()
 {
-	ASSERT_RESULT(payloads.size() == m_Fences.size());
-	for (size_t i = 0; i < m_Fences.size() && i < payloads.size(); ++i) m_Fences[i].payload = payloads[i];
+	std::lock_guard<std::mutex> lock(m_Mutex);
+	if (m_Status == Status::Pending && !m_Payload.submitted)
+	{
+		m_Status = Status::Failed;
+	}
+}
+
+bool KVulkanFence::WaitForFrame(uint32_t& frameNum)
+{
+	std::lock_guard<std::mutex> lock(m_Mutex);
+	if (!m_Payload.submitted)
+	{
+		return false;
+	}
+	const bool waited = WaitLocked();
+	ASSERT_RESULT(waited);
+	if (!waited)
+	{
+		return false;
+	}
+	frameNum = m_Payload.frameNum;
+	m_Payload.submitted = false;
+	return true;
+}
+
+bool KVulkanFence::InitSlots(std::vector<IKFencePtr>& fences, const char* name)
+{
+	fences.resize(KRenderGlobal::NumFramesInFlight);
+	for (size_t i = 0; i < fences.size(); ++i)
+	{
+		IKFencePtr& fence = fences[i];
+		if (!KRenderGlobal::RenderDevice->CreateFence(fence) || !fence->Init(true))
+		{
+			SAFE_UNINIT_CONTAINER(fences);
+			fences.clear();
+			return false;
+		}
+		fence->SetDebugName((std::string(name) + "_" + std::to_string(i)).c_str());
+	}
+	return true;
+}
+
+bool KVulkanFence::ResetSlot(IKFencePtr& fence)
+{
+	IKFencePtr next;
+	if (!KRenderGlobal::RenderDevice->CreateFence(next))
+	{
+		return false;
+	}
+	auto* previous = static_cast<KVulkanFence*>(fence.get());
+	{
+		std::lock_guard<std::mutex> lock(previous->m_Mutex);
+		if (previous->m_Payload.submitted || previous->m_Handle == VK_NULL_HANDLE)
+		{
+			return false;
+		}
+		// Keep the old object's terminal status when the slot reuses its native handle.
+		if (previous->m_Status == Status::Pending)
+		{
+			previous->m_Status = Status::Failed;
+		}
+		static_cast<KVulkanFence*>(next.get())->m_Handle = previous->m_Handle;
+		previous->m_Handle = VK_NULL_HANDLE;
+	}
+	fence = std::move(next);
+	return fence->Reset();
+}
+
+std::vector<KVulkanFence::Payload> KVulkanFence::GetFramePayloads(const std::vector<IKFencePtr>& fences)
+{
+	std::vector<Payload> result;
+	result.reserve(fences.size());
+	for (const auto& fence : fences)
+	{
+		auto* vulkanFence = static_cast<const KVulkanFence*>(fence.get());
+		std::lock_guard<std::mutex> lock(vulkanFence->m_Mutex);
+		result.push_back(vulkanFence->m_Payload);
+	}
+	return result;
+}
+
+void KVulkanFence::SetFramePayloads(const std::vector<IKFencePtr>& fences, const std::vector<Payload>& payloads)
+{
+	ASSERT_RESULT(payloads.size() == fences.size());
+	for (size_t i = 0; i < fences.size() && i < payloads.size(); ++i)
+	{
+		auto* vulkanFence = static_cast<KVulkanFence*>(fences[i].get());
+		std::lock_guard<std::mutex> lock(vulkanFence->m_Mutex);
+		vulkanFence->m_Payload = payloads[i];
+	}
 }
 
 KVulkanQueue::KVulkanQueue()
@@ -244,6 +362,7 @@ uint32_t KVulkanQueue::GetIndex() const
 
 bool KVulkanQueue::Submit(IKCommandBufferPtr buffer, std::vector<KSemaphoreWaitInfo> waits, std::vector<IKSemaphorePtr> singals, IKFencePtr fence)
 {
+	auto* vulkanFence = static_cast<KVulkanFence*>(fence.get());
 	if (m_vkQueue)
 	{
 		VkSubmitInfo submitInfo = {};
@@ -285,20 +404,31 @@ bool KVulkanQueue::Submit(IKCommandBufferPtr buffer, std::vector<KSemaphoreWaitI
 		submitInfo.signalSemaphoreCount = (uint32_t)singals.size();
 		submitInfo.pSignalSemaphores = singalSemaphores.data();
 
-		VkFence vkFence = fence ? ((KVulkanFence*)fence.get())->GetVkFence() : VK_NULL_HANDEL;
-		const VkResult result = KVulkanGlobal::QueueSubmit(m_vkQueue, 1, &submitInfo, vkFence);
-		VK_ASSERT_RESULT(result);
+		const VkResult result = vulkanFence
+			? vulkanFence->Submit(m_vkQueue, submitInfo, vulkanBuffer ? vulkanBuffer->GetFrameNum() : KRenderGlobal::CurrentFrameNum)
+			: KVulkanGlobal::QueueSubmit(m_vkQueue, 1, &submitInfo, VK_NULL_HANDLE);
 		if (result != VK_SUCCESS)
 		{
+			if (vulkanFence)
+			{
+				KG_LOGE(LM_RENDER, "Failed to submit queue with fence: %s (%d)", VK_ERROR_STRING(result), (int)result);
+			}
+			else
+			{
+				VK_ASSERT_RESULT(result);
+			}
 			return false;
 		}
-		if (fence) static_cast<KVulkanFence*>(fence.get())->SetFrameNum(vulkanBuffer ? vulkanBuffer->GetFrameNum() : KRenderGlobal::CurrentFrameNum);
 		if (vulkanBuffer)
 		{
 			vulkanBuffer->ReportSubmittedDraws();
 		}
 
 		return true;
+	}
+	if (vulkanFence)
+	{
+		vulkanFence->SetFailed();
 	}
 	return false;
 }

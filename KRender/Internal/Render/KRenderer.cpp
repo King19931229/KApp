@@ -142,7 +142,7 @@ void KRenderer::RemoveUnreferenced()
 	KRenderGlobal::TextureManager.RemoveUnreferenced();
 }
 
-bool KRenderer::Render(uint32_t chainImageIndex)
+bool KRenderer::Render(uint32_t chainImageIndex, const IKFencePtr& presentFence)
 {
 	static const auto giStage = KRenderGlobal::Statistics.RegisterDrawStatsStage("GI");
 	static const auto hiZStage = KRenderGlobal::Statistics.RegisterDrawStatsStage("Hi-Z");
@@ -190,12 +190,12 @@ bool KRenderer::Render(uint32_t chainImageIndex)
 			m_MainUsesGPUScene = gpuScene;
 		}
 
-		KRenderGlobal::CascadedShadowMap.UpdateShadowMap(m_RHICommandList);
+		KRenderGlobal::CascadedShadowMap.UpdateShadowMap(m_RHICommandList, view.selection);
 
 		m_RHICommandList.SetThreadCommandPools(m_Shadow.threadPools);
 		m_RHICommandList.SetMultiThreadPool(&m_RenderJobExecuteThreadPool);
 
-		KRenderGlobal::CascadedShadowMap.UpdateCasters(m_RHICommandList);
+		KRenderGlobal::CascadedShadowMap.UpdateCasters(m_RHICommandList, view.selection, gpuScene);
 	}
 
 	m_RHICommandList.EndRecord();
@@ -232,13 +232,16 @@ bool KRenderer::Render(uint32_t chainImageIndex)
 		KRenderGlobal::DeferredRenderer.PrePass(m_RHICommandList, cullRes);
 		KRenderGlobal::DeferredRenderer.MainBasePass(m_RHICommandList, cullRes, view.selection, gpuScene);
 
-		KRenderGlobal::GBuffer.TransitionDepthStencil(m_RHICommandList, m_PreGraphics.queue, m_PreGraphics.queue, PIPELINE_STAGE_EARLY_FRAGMENT_TESTS | PIPELINE_STAGE_LATE_FRAGMENT_TESTS, PIPELINE_STAGE_FRAGMENT_SHADER | PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+		if (KRenderGlobal::VirtualGeometryManager.HasPostOcclusionWork())
 		{
-			KScopedDrawStatsStage statsStage(m_RHICommandList, hiZStage);
-			KRenderGlobal::HiZBuffer.Construct(m_RHICommandList);
+			KRenderGlobal::GBuffer.TransitionDepthStencil(m_RHICommandList, m_PreGraphics.queue, m_PreGraphics.queue, PIPELINE_STAGE_EARLY_FRAGMENT_TESTS | PIPELINE_STAGE_LATE_FRAGMENT_TESTS, PIPELINE_STAGE_FRAGMENT_SHADER | PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+			{
+				KScopedDrawStatsStage statsStage(m_RHICommandList, hiZStage);
+				KRenderGlobal::HiZBuffer.Construct(m_RHICommandList);
+			}
+			KRenderGlobal::VirtualGeometryManager.ExecutePost(m_RHICommandList);
+			KRenderGlobal::GBuffer.TransitionDepthStencil(m_RHICommandList, m_PreGraphics.queue, m_PreGraphics.queue, PIPELINE_STAGE_FRAGMENT_SHADER | PIPELINE_STAGE_COMPUTE_SHADER, PIPELINE_STAGE_EARLY_FRAGMENT_TESTS | PIPELINE_STAGE_LATE_FRAGMENT_TESTS, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT);
 		}
-		KRenderGlobal::VirtualGeometryManager.ExecutePost(m_RHICommandList);
-		KRenderGlobal::GBuffer.TransitionDepthStencil(m_RHICommandList, m_PreGraphics.queue, m_PreGraphics.queue, PIPELINE_STAGE_FRAGMENT_SHADER | PIPELINE_STAGE_COMPUTE_SHADER, PIPELINE_STAGE_EARLY_FRAGMENT_TESTS | PIPELINE_STAGE_LATE_FRAGMENT_TESTS, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT);
 		KRenderGlobal::DeferredRenderer.PostBasePass(m_RHICommandList);
 
 		KRenderGlobal::GBuffer.TransitionGBuffer(m_RHICommandList, m_PreGraphics.queue, m_PreGraphics.queue, PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER | PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
@@ -343,8 +346,7 @@ bool KRenderer::Render(uint32_t chainImageIndex)
 	}
 	m_RHICommandList.EndRecord();
 
-	m_SwapChain->GetInFlightFence()->Reset();
-	m_RHICommandList.QueueSubmit(m_PostGraphics.queue, { { m_Compute.finish, PIPELINE_STAGE_ALL_COMMANDS }, { m_SwapChain->GetImageAvailableSemaphore(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT } }, { m_SwapChain->GetRenderFinishSemaphore() }, m_SwapChain->GetInFlightFence());
+	m_RHICommandList.QueueSubmit(m_PostGraphics.queue, { { m_Compute.finish, PIPELINE_STAGE_ALL_COMMANDS }, { m_SwapChain->GetImageAvailableSemaphore(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT } }, { m_SwapChain->GetRenderFinishSemaphore() }, presentFence);
 	KRenderGlobal::Renderer.GetRHICommandList().Flush(RHICommandFlush::DispatchToRHIThread);
 
 	return true;
@@ -776,7 +778,7 @@ bool KRenderer::Update()
 	return true;
 }
 
-bool KRenderer::Execute(uint32_t chainImageIndex)
+bool KRenderer::Execute(uint32_t chainImageIndex, const IKFencePtr& presentFence)
 {
 	if (!m_SwapChain)
 	{
@@ -806,7 +808,7 @@ bool KRenderer::Execute(uint32_t chainImageIndex)
 	bool rendered = false;
 	if (drawable && m_Scene && m_Camera)
 	{
-		rendered = Render(chainImageIndex);
+		rendered = Render(chainImageIndex, presentFence);
 	}
 	else
 	{
@@ -817,8 +819,7 @@ bool KRenderer::Execute(uint32_t chainImageIndex)
 		m_RHICommandList.BeginRenderPass(m_SwapChain->GetRenderPass(chainImageIndex), SUBPASS_CONTENTS_INLINE);
 		m_RHICommandList.EndRenderPass();
 		m_RHICommandList.EndRecord();
-		m_SwapChain->GetInFlightFence()->Reset();
-		m_RHICommandList.QueueSubmit(m_PostGraphics.queue, { { m_SwapChain->GetImageAvailableSemaphore(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT } }, { m_SwapChain->GetRenderFinishSemaphore() }, m_SwapChain->GetInFlightFence());
+		m_RHICommandList.QueueSubmit(m_PostGraphics.queue, { { m_SwapChain->GetImageAvailableSemaphore(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT } }, { m_SwapChain->GetRenderFinishSemaphore() }, presentFence);
 		m_RHICommandList.Flush(RHICommandFlush::DispatchToRHIThread);
 		rendered = true;
 	}
