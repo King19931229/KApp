@@ -5,7 +5,7 @@
 #include <initializer_list>
 
 class KEEntityManipulator;
-class IKScene;
+struct IKScene;
 
 class KEEntityGroupCommandBase : public KECommand
 {

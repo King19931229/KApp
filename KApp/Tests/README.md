@@ -8,3 +8,9 @@ msbuild KApp/Tests/KPixelFormatTests.vcxproj /p:Configuration=Release /p:Platfor
 ```
 
 The standalone executable tests pixel sizes, compression blocks, mip chains, volume/cube/array sizes, overflow rejection, format names, saved resource values, DDS hardware passthrough and software decoding, and saving RGBA8 sRGB images. It generates DDS samples in memory and removes its temporary PNG after a successful save.
+
+Run the DOF circular-convolution reference checks with:
+
+```powershell
+python KApp/Tests/KDofReferenceTests.py
+```

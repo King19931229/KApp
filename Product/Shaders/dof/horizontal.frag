@@ -1,78 +1,62 @@
-#include "public.h"
-#include "shading/gbuffer.h"
+#include "dof/common.h"
 #include "dof/circular.h"
 
-layout(location = 0) in vec2 screenCoord;
+layout(binding = BINDING_TEXTURE0) uniform sampler2D inputImage;
 
-layout(binding = BINDING_TEXTURE0) uniform sampler2D gbuffer0;
-layout(binding = BINDING_TEXTURE1) uniform sampler2D sceneColor;
-layout(binding = BINDING_TEXTURE2) uniform sampler2D cocImage;
-
+#if defined(DOF_FAR)
 layout(location = 0) out vec4 redImage;
 layout(location = 1) out vec4 greenImage;
 layout(location = 2) out vec4 blueImage;
-
-layout(binding = BINDING_OBJECT)
-uniform Object_DYN_UNIFORM
-{
-	// Aperture FocusDistance FocalLength CoCMax
-	vec4 dofParams;
-	// CoCLimitRatio NearDof FarDof MaxRadius
-	vec4 dofParams2;
-} object;
+layout(location = 3) out vec4 alphaImage;
+#else
+layout(location = 0) out vec4 redGreenImage;
+layout(location = 1) out vec4 blueAlphaImage;
+#endif
 
 void main()
 {
-	float focusDistance = object.dofParams[1];
-	float nearDof = object.dofParams2[1];
-	float farDof = object.dofParams2[2];
-	float maxRadius = object.dofParams2[3];
+	ivec2 pixel = ivec2(gl_FragCoord.xy);
+	ivec2 size = textureSize(inputImage, 0);
 
-	vec4 gbuffer0Data = texture(gbuffer0, screenCoord);
-	float depth = LinearDepthToNonLinearDepth(camera.proj, DecodeDepth(gbuffer0Data));
-	vec3 originVSPos = DecodePositionViewSpace(gbuffer0Data, screenCoord);
-	float dis = -originVSPos.z;
+#if defined(DOF_FAR)
+	vec4 red = vec4(0.0);
+	vec4 green = vec4(0.0);
+	vec4 blue = vec4(0.0);
+	vec4 alpha = vec4(0.0);
+#else
+	vec2 red = vec2(0.0);
+	vec2 green = vec2(0.0);
+	vec2 blue = vec2(0.0);
+	vec2 alpha = vec2(0.0);
+#endif
 
-	vec2 stepSize = vec2(1.0) / textureSize(cocImage, 0);
-
-	vec4 valR = vec4(0, 0, 0, 0);
-	vec4 valG = vec4(0, 0, 0, 0);
-	vec4 valB = vec4(0, 0, 0, 0);
-
-	if (dis < focusDistance)
+	for (int i = 0; i < KERNEL_COUNT; ++i)
 	{
-		for(int i = 0; i <= KERNEL_RADIUS * 2; i++)
-		{
-			int index = i - KERNEL_RADIUS;
-			vec2 coords = screenCoord + stepSize * vec2(float(index), 0) * maxRadius;
+		int index = i - KERNEL_RADIUS;
+		ivec2 samplePixel = clamp(pixel + ivec2(index, 0), ivec2(0), size - ivec2(1));
+		vec4 sampleValue = texelFetch(inputImage, samplePixel, 0);
 
-			vec2 c = Kernel0_RealX_ImY_RealZ_ImW_1[index + KERNEL_RADIUS].xy;
-			vec3 texel = texture(sceneColor, coords).rgb;
+	#if defined(DOF_FAR)
+		vec2 k0 = Kernel0_RealX_ImY_RealZ_ImW_2[i].xy;
+		vec2 k1 = Kernel1_RealX_ImY_RealZ_ImW_2[i].xy;
+		vec4 kernel = vec4(k0, k1);
+#else
+		vec2 kernel = Kernel0_RealX_ImY_RealZ_ImW_1[i].xy;
+#endif
 
-			valR += vec4(texel.r * c, 0, 0);
-			valG += vec4(texel.g * c, 0, 0);
-			valB += vec4(texel.b * c, 0, 0);
-		}
-	}
-	else
-	{
-		for(int i = 0; i <= KERNEL_RADIUS * 2; i++)
-		{
-			int index = i - KERNEL_RADIUS;
-			vec2 coords = screenCoord + stepSize * vec2(float(index), 0) * maxRadius;
-
-			vec2 c0 = Kernel0_RealX_ImY_RealZ_ImW_2[index + KERNEL_RADIUS].xy;
-			vec2 c1 = Kernel1_RealX_ImY_RealZ_ImW_2[index + KERNEL_RADIUS].xy;
-
-			vec3 texel = texture(sceneColor, coords).rgb;
-
-			valR += vec4(texel.r * c0, texel.r * c1);
-			valG += vec4(texel.g * c0, texel.g * c1);
-			valB += vec4(texel.b * c0, texel.b * c1);
-		}
+		red += sampleValue.r * kernel;
+		green += sampleValue.g * kernel;
+		blue += sampleValue.b * kernel;
+		alpha += sampleValue.a * kernel;
 	}
 
-	redImage = valR;
-	greenImage = valG;
-	blueImage = valB;
+#if defined(DOF_FAR)
+	redImage = red;
+	greenImage = green;
+	blueImage = blue;
+	alphaImage = alpha;
+#else
+	redGreenImage = vec4(red, green);
+	blueAlphaImage = vec4(blue, alpha);
+#endif
 }

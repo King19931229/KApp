@@ -244,7 +244,7 @@ void KRenderImGui::Run()
 			ImGui::Begin(SettingMenuName[DOF], nullptr, ImGuiWindowFlags_AlwaysAutoResize);
 
 			ImGui::Checkbox("DebugDraw", &KRenderGlobal::DepthOfField.GetDebugDrawEnable());
-			ImGui::SliderFloat("CocLimit", &KRenderGlobal::DepthOfField.GetCocLimit(), 0.001f, 1.0f);
+			ImGui::SliderFloat("CocLimit", &KRenderGlobal::DepthOfField.GetCocLimit(), 0.0f, 1.0f);
 			ImGui::SliderFloat("FStop", &KRenderGlobal::DepthOfField.GetFStop(), 0.50f, 128.0f);
 			// ImGui::SliderFloat("FocalLength", &KRenderGlobal::DepthOfField.GetFocalLength(), 1.0f, 5000.0f);
 			ImGui::SliderFloat("FocusDistance", &KRenderGlobal::DepthOfField.GetFocusDistance(), 1.0f, 5000.0f);

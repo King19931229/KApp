@@ -314,7 +314,7 @@ bool KRenderCore::Init(IKRenderDevicePtr& device, IKRenderWindowPtr& window, KRe
 			m_DebugConsole = KNEW KDebugConsole();
 			m_DebugConsole->Init();
 
-			m_Camera.SetNear(0.1f);
+			m_Camera.SetNear(1.0f);
 			m_Camera.SetFar(5000.0f);
 			m_Camera.SetCustomLockYAxis(glm::vec3(0, 1, 0));
 			m_Camera.SetLockYEnable(true);

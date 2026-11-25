@@ -1,113 +1,67 @@
-#include "public.h"
-#include "shading/gbuffer.h"
+#include "dof/common.h"
 #include "dof/circular.h"
 
-layout(location = 0) in vec2 screenCoord;
+#if defined(DOF_FAR)
+layout(binding = BINDING_TEXTURE0) uniform sampler2D redImage;
+layout(binding = BINDING_TEXTURE1) uniform sampler2D greenImage;
+layout(binding = BINDING_TEXTURE2) uniform sampler2D blueImage;
+layout(binding = BINDING_TEXTURE3) uniform sampler2D alphaImage;
 
-layout(binding = BINDING_TEXTURE0) uniform sampler2D gbuffer0;
-layout(binding = BINDING_TEXTURE1) uniform sampler2D sceneColor;
-layout(binding = BINDING_TEXTURE2) uniform sampler2D redImage;
-layout(binding = BINDING_TEXTURE3) uniform sampler2D greenImage;
-layout(binding = BINDING_TEXTURE4) uniform sampler2D blueImage;
-layout(binding = BINDING_TEXTURE5) uniform sampler2D cocImage;
+layout(location = 0) out vec4 outputImage;
 
-layout(binding = BINDING_OBJECT)
-uniform Object_DYN_UNIFORM
+float DofVerticalFar(sampler2D image, ivec2 pixel, ivec2 size)
 {
-	// Aperture FocusDistance FocalLength CoCMax
-	vec4 dofParams;
-	// CoCLimitRatio NearDof FarDof MaxRadius
-	vec4 dofParams2;
-} object;
-
-layout(location = 0) out vec4 finalImage;
-
-vec2 multComplex(vec2 p, vec2 q)
-{
-	return vec2(p.x*q.x-p.y*q.y, p.x*q.y+p.y*q.x);
+	vec2 first = vec2(0.0);
+	vec2 second = vec2(0.0);
+	for (int i = 0; i < KERNEL_COUNT; ++i)
+	{
+		int index = i - KERNEL_RADIUS;
+		ivec2 samplePixel = clamp(pixel + ivec2(0, index), ivec2(0), size - ivec2(1));
+		vec4 sampleValue = texelFetch(image, samplePixel, 0);
+		first += DofMultComplex(sampleValue.xy, Kernel0_RealX_ImY_RealZ_ImW_2[i].xy);
+		second += DofMultComplex(sampleValue.zw, Kernel1_RealX_ImY_RealZ_ImW_2[i].xy);
+	}
+	return dot(first, Kernel0Weights_RealX_ImY_2) + dot(second, Kernel1Weights_RealX_ImY_2);
 }
 
 void main()
 {
-	float focusDistance = object.dofParams[1];
-	float nearDof = object.dofParams2[1];
-	float farDof = object.dofParams2[2];
-	float maxRadius = object.dofParams2[3];
-
-	vec4 gbuffer0Data = texture(gbuffer0, screenCoord);
-	float depth = LinearDepthToNonLinearDepth(camera.proj, DecodeDepth(gbuffer0Data));
-	vec3 originVSPos = DecodePositionViewSpace(gbuffer0Data, screenCoord);
-	float dis = -originVSPos.z;
-
-	float cocValue = texture(cocImage, screenCoord).r;
-
-	vec4 color = texture(sceneColor, screenCoord);
-
-	vec2 stepSize = vec2(1.0) / textureSize(cocImage, 0);
-	vec4 filteredColor = vec4(0, 0, 0, 0);
-
-	if (dis < focusDistance)
-	{
-		vec2 valR = vec2(0, 0);
-		vec2 valG = vec2(0, 0);
-		vec2 valB = vec2(0, 0);
-	
-		for (int i = 0; i <= KERNEL_RADIUS * 2; ++i)
-		{
-			int index = i - KERNEL_RADIUS;
-			vec2 coords = screenCoord + stepSize * vec2(0.0, float(index)) * maxRadius;
-
-			vec4 imageTexelR = texture(redImage, coords);
-			vec4 imageTexelG = texture(greenImage, coords);
-			vec4 imageTexelB = texture(blueImage, coords);
-
-			vec2 c0 = Kernel0_RealX_ImY_RealZ_ImW_1[index + KERNEL_RADIUS].xy;
-
-			valR += multComplex(imageTexelR.xy, c0);
-			valG += multComplex(imageTexelG.xy, c0);
-			valB += multComplex(imageTexelB.xy, c0);  
-		}
-	
-		float redChannel   = dot(valR.xy, Kernel0Weights_RealX_ImY_1);
-		float greenChannel = dot(valG.xy, Kernel0Weights_RealX_ImY_1);
-		float blueChannel  = dot(valB.xy, Kernel0Weights_RealX_ImY_1);
-		filteredColor = vec4(vec3(redChannel, greenChannel, blueChannel), 1);
-	}
-	else
-	{
-		vec4 valR = vec4(0, 0, 0, 0);
-		vec4 valG = vec4(0, 0, 0, 0);
-		vec4 valB = vec4(0, 0, 0, 0);
-
-		for (int i = 0; i <= KERNEL_RADIUS * 2; ++i)
-		{
-			int index = i - KERNEL_RADIUS;
-			vec2 coords = screenCoord + stepSize * vec2(0.0, float(index)) * maxRadius;
-
-			vec4 imageTexelR = texture(redImage, coords);
-			vec4 imageTexelG = texture(greenImage, coords);
-			vec4 imageTexelB = texture(blueImage, coords);
-
-			vec2 c0 = Kernel0_RealX_ImY_RealZ_ImW_2[index + KERNEL_RADIUS].xy;
-			vec2 c1 = Kernel1_RealX_ImY_RealZ_ImW_2[index + KERNEL_RADIUS].xy;
-
-			valR.xy += multComplex(imageTexelR.xy, c0);
-			valR.zw += multComplex(imageTexelR.zw, c1);
-
-			valG.xy += multComplex(imageTexelG.xy, c0);
-			valG.zw += multComplex(imageTexelG.zw, c1);
-
-			valB.xy += multComplex(imageTexelB.xy, c0); 
-			valB.zw += multComplex(imageTexelB.zw, c1);   
-		}
-
-		float redChannel   = dot(valR.xy, Kernel0Weights_RealX_ImY_2) + dot(valR.zw, Kernel1Weights_RealX_ImY_2);
-		float greenChannel = dot(valG.xy, Kernel0Weights_RealX_ImY_2) + dot(valG.zw, Kernel1Weights_RealX_ImY_2);
-		float blueChannel  = dot(valB.xy, Kernel0Weights_RealX_ImY_2) + dot(valB.zw, Kernel1Weights_RealX_ImY_2);
-		filteredColor = vec4((vec3(redChannel, greenChannel, blueChannel)), 1);
-	}
-
-	color = mix(color, filteredColor, clamp(cocValue, 0.0f, 1.0f));
-	// color = vec4(cocValue);
-	finalImage = color;
+	ivec2 pixel = ivec2(gl_FragCoord.xy);
+	ivec2 size = textureSize(redImage, 0);
+	outputImage = vec4(
+		DofVerticalFar(redImage, pixel, size),
+		DofVerticalFar(greenImage, pixel, size),
+		DofVerticalFar(blueImage, pixel, size),
+		DofVerticalFar(alphaImage, pixel, size));
 }
+#else
+layout(binding = BINDING_TEXTURE0) uniform sampler2D redGreenImage;
+layout(binding = BINDING_TEXTURE1) uniform sampler2D blueAlphaImage;
+
+layout(location = 0) out vec4 outputImage;
+
+vec2 DofVerticalNear(sampler2D image, ivec2 pixel, ivec2 size)
+{
+	vec2 first = vec2(0.0);
+	vec2 second = vec2(0.0);
+	for (int i = 0; i < KERNEL_COUNT; ++i)
+	{
+		int index = i - KERNEL_RADIUS;
+		ivec2 samplePixel = clamp(pixel + ivec2(0, index), ivec2(0), size - ivec2(1));
+		vec4 sampleValue = texelFetch(image, samplePixel, 0);
+		vec2 kernel = Kernel0_RealX_ImY_RealZ_ImW_1[i].xy;
+		first += DofMultComplex(sampleValue.xy, kernel);
+		second += DofMultComplex(sampleValue.zw, kernel);
+	}
+	return vec2(dot(first, Kernel0Weights_RealX_ImY_1), dot(second, Kernel0Weights_RealX_ImY_1));
+}
+
+void main()
+{
+	ivec2 pixel = ivec2(gl_FragCoord.xy);
+	ivec2 size = textureSize(redGreenImage, 0);
+	vec2 rg = DofVerticalNear(redGreenImage, pixel, size);
+	vec2 ba = DofVerticalNear(blueAlphaImage, pixel, size);
+	outputImage = vec4(rg, ba);
+}
+#endif
