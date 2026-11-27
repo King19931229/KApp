@@ -363,8 +363,14 @@ bool KPipelineBase::Init()
 	return true;
 }
 
-bool KPipelineBase::UnInit()
+bool KPipelineBase::UnInit(bool resourcesComplete)
 {
+	if (resourcesComplete)
+	{
+		// DOF 在旧帧 Fence 完成后退役独占 RenderPass 的整组 Pipeline；其共享 Handle 已安全。
+		// 先销毁已完成的原生 Handle，随后引用释放时不会再触发默认的 DeviceWaitIdle。
+		for (auto& pair : m_HandleMap) pair.second.handle.Get()->UnInit(true);
+	}
 	m_PushContant = { 0, 0 };
 
 	m_BindingType.clear();

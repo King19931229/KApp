@@ -59,7 +59,7 @@ public:
 	virtual~KVulkanPipelineHandle();
 
 	virtual bool Init(IKPipelineLayout* layout, IKRenderPass* renderPass, const KPipelineState& state, const KPipelineBinding& binding);
-	virtual bool UnInit();
+	virtual bool UnInit(bool resourcesComplete = false);
 	virtual bool SetDebugName(const char* name);
 
 	inline VkPipeline GetVkPipeline() { return m_GraphicsPipeline; }
@@ -83,7 +83,7 @@ public:
 	virtual ~KVulkanPipeline();
 
 	virtual bool Init();
-	virtual bool UnInit();
+	virtual bool UnInit(bool resourcesComplete = false);
 	virtual bool Reload(bool reloadShader);
 
 	virtual bool SetDebugName(const char* name);

@@ -1831,6 +1831,16 @@ bool KVulkanRenderDevice::QueryProperty(KRenderDeviceProperties** ppProperty)
 {
 	if (ppProperty)
 	{
+		// 保留初始化前查询默认能力的接口语义，避免使用尚未有效的物理设备句柄。
+		m_Properties.r16fStorageImageSupport = false;
+		if (KVulkanGlobal::deviceReady && KVulkanGlobal::physicalDevice != VK_NULL_HANDLE)
+		{
+			VkFormatProperties formatProperties = {};
+			vkGetPhysicalDeviceFormatProperties(KVulkanGlobal::physicalDevice, VK_FORMAT_R16_SFLOAT, &formatProperties);
+			const VkFormatFeatureFlags required = VK_FORMAT_FEATURE_STORAGE_IMAGE_BIT | VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT;
+			m_Properties.r16fStorageImageSupport = KVulkanGlobal::deviceFeatures.shaderStorageImageExtendedFormats &&
+				(formatProperties.optimalTilingFeatures & required) == required;
+		}
 		*ppProperty = &m_Properties;
 		return true;
 	}

@@ -1,6 +1,11 @@
 #include "dof/common.h"
 #include "dof/circular.h"
 
+#if defined(DOF_NEAR_TILE) && !defined(DOF_FAR)
+#include "dof/tile.h"
+layout(binding = BINDING_TEXTURE2) uniform sampler2D nearTileCoC;
+#endif
+
 #if defined(DOF_FAR)
 layout(binding = BINDING_TEXTURE0) uniform sampler2D redImage;
 layout(binding = BINDING_TEXTURE1) uniform sampler2D greenImage;
@@ -60,6 +65,13 @@ void main()
 {
 	ivec2 pixel = ivec2(gl_FragCoord.xy);
 	ivec2 size = textureSize(redGreenImage, 0);
+	#if defined(DOF_NEAR_TILE)
+	if (!DofNearTileOccupied(nearTileCoC, pixel))
+	{
+		outputImage = vec4(0.0);
+		return;
+	}
+	#endif
 	vec2 rg = DofVerticalNear(redGreenImage, pixel, size);
 	vec2 ba = DofVerticalNear(blueAlphaImage, pixel, size);
 	outputImage = vec4(rg, ba);

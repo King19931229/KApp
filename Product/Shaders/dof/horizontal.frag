@@ -1,6 +1,11 @@
 #include "dof/common.h"
 #include "dof/circular.h"
 
+#if defined(DOF_NEAR_TILE) && !defined(DOF_FAR)
+#include "dof/tile.h"
+layout(binding = BINDING_TEXTURE2) uniform sampler2D nearTileCoC;
+#endif
+
 layout(binding = BINDING_TEXTURE0) uniform sampler2D inputImage;
 
 #if defined(DOF_FAR)
@@ -17,6 +22,15 @@ void main()
 {
 	ivec2 pixel = ivec2(gl_FragCoord.xy);
 	ivec2 size = textureSize(inputImage, 0);
+	#if defined(DOF_NEAR_TILE) && !defined(DOF_FAR)
+	if (!DofNearTileOccupied(nearTileCoC, pixel))
+	{
+		// 空区也必须写零，不能 discard 后留下上一帧 MRT 内容。
+		redGreenImage = vec4(0.0);
+		blueAlphaImage = vec4(0.0);
+		return;
+	}
+	#endif
 
 #if defined(DOF_FAR)
 	vec4 red = vec4(0.0);

@@ -96,7 +96,7 @@ bool KVulkanFrameBuffer::InitExternal(ExternalType type, VkImage image, VkImageV
 	return true;
 }
 
-bool KVulkanFrameBuffer::InitColor(VkFormat format, TextureType textureType, uint32_t width, uint32_t height, uint32_t mipmaps, uint32_t msaa)
+bool KVulkanFrameBuffer::InitColor(VkFormat format, TextureType textureType, uint32_t width, uint32_t height, uint32_t mipmaps, uint32_t msaa, bool deferredInitialization)
 {
 	UnInit();
 
@@ -125,7 +125,7 @@ bool KVulkanFrameBuffer::InitColor(VkFormat format, TextureType textureType, uin
 	m_ImageViewType = VK_IMAGE_VIEW_TYPE_MAX_ENUM;
 	m_Layers = textureType == TT_TEXTURE_CUBE_MAP ? 6 : 1;
 
-	m_ImageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+	m_ImageLayout = deferredInitialization ? VK_IMAGE_LAYOUT_UNDEFINED : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
 	ASSERT_RESULT(KVulkanHelper::TextureTypeToVkImageType(textureType, m_ImageType, m_ImageViewType));
 
@@ -145,7 +145,8 @@ bool KVulkanFrameBuffer::InitColor(VkFormat format, TextureType textureType, uin
 			createFlags,
 			m_Image, m_AllocInfo);
 
-		KVulkanInitializer::TransitionImageLayout(m_Image, m_Format, 0, 1, 0, m_Mipmaps, VK_IMAGE_LAYOUT_UNDEFINED, m_ImageLayout);
+		if (!deferredInitialization)
+			KVulkanInitializer::TransitionImageLayout(m_Image, m_Format, 0, 1, 0, m_Mipmaps, VK_IMAGE_LAYOUT_UNDEFINED, m_ImageLayout);
 		KVulkanInitializer::CreateVkImageView(m_Image, m_ImageViewType, m_Format, VK_IMAGE_ASPECT_COLOR_BIT, 0, m_Mipmaps, 0, 1, m_ImageView);
 	}
 
@@ -165,7 +166,8 @@ bool KVulkanFrameBuffer::InitColor(VkFormat format, TextureType textureType, uin
 			createFlags,
 			m_MSAAImage, m_MSAAAllocInfo);
 
-		KVulkanInitializer::TransitionImageLayout(m_MSAAImage, m_Format, 0, 1, 0, m_Mipmaps, VK_IMAGE_LAYOUT_UNDEFINED, m_ImageLayout);
+		if (!deferredInitialization)
+			KVulkanInitializer::TransitionImageLayout(m_MSAAImage, m_Format, 0, 1, 0, m_Mipmaps, VK_IMAGE_LAYOUT_UNDEFINED, m_ImageLayout);
 		KVulkanInitializer::CreateVkImageView(m_MSAAImage, m_ImageViewType, m_Format, VK_IMAGE_ASPECT_COLOR_BIT, 0, m_Mipmaps, 0, 1, m_MSAAImageView);
 	}
 
@@ -229,7 +231,7 @@ bool KVulkanFrameBuffer::InitDepthStencil(uint32_t width, uint32_t height, uint3
 	return true;
 }
 
-bool KVulkanFrameBuffer::InitStorageInternal(VkFormat format, TextureType type, uint32_t width, uint32_t height, uint32_t depth, uint32_t mipmaps)
+bool KVulkanFrameBuffer::InitStorageInternal(VkFormat format, TextureType type, uint32_t width, uint32_t height, uint32_t depth, uint32_t mipmaps, bool deferredInitialization)
 {
 	UnInit();
 
@@ -251,7 +253,7 @@ bool KVulkanFrameBuffer::InitStorageInternal(VkFormat format, TextureType type, 
 	m_ImageType = VK_IMAGE_TYPE_MAX_ENUM;
 	m_ImageViewType = VK_IMAGE_VIEW_TYPE_MAX_ENUM;
 
-	m_ImageLayout = VK_IMAGE_LAYOUT_GENERAL;
+	m_ImageLayout = deferredInitialization ? VK_IMAGE_LAYOUT_UNDEFINED : VK_IMAGE_LAYOUT_GENERAL;
 
 	ASSERT_RESULT(KVulkanHelper::TextureTypeToVkImageType(type, m_ImageType, m_ImageViewType));
 
@@ -270,10 +272,12 @@ bool KVulkanFrameBuffer::InitStorageInternal(VkFormat format, TextureType type, 
 			createFlags,
 			m_Image, m_AllocInfo);
 
-		KVulkanInitializer::TransitionImageLayout(m_Image, m_Format, 0, m_Layers, 0, m_Mipmaps, VK_IMAGE_LAYOUT_UNDEFINED, m_ImageLayout);
+		if (!deferredInitialization)
+			KVulkanInitializer::TransitionImageLayout(m_Image, m_Format, 0, m_Layers, 0, m_Mipmaps, VK_IMAGE_LAYOUT_UNDEFINED, m_ImageLayout);
 		KVulkanInitializer::CreateVkImageView(m_Image, m_ImageViewType, m_Format, VK_IMAGE_ASPECT_COLOR_BIT, 0, m_Mipmaps, 0, 1, m_ImageView);
-		// 清空数据
-		KVulkanInitializer::ZeroVkImage(m_Image, m_ImageLayout, 0, m_Layers, 0, m_Mipmaps);
+		// 延迟路径由调用方在正常命令流中初始化；TileMAX 会写满每个 Tile，无需单独清零和等待。
+		if (!deferredInitialization)
+			KVulkanInitializer::ZeroVkImage(m_Image, m_ImageLayout, 0, m_Layers, 0, m_Mipmaps);
 	}
 
 	m_UniqueID = ++ms_UniqueIDCounter;
@@ -431,9 +435,9 @@ bool KVulkanFrameBuffer::Readback(void* pDest, size_t size)
 	return false;
 }
 
-bool KVulkanFrameBuffer::InitStorage2D(VkFormat format, uint32_t width, uint32_t height, uint32_t mipmaps)
+bool KVulkanFrameBuffer::InitStorage2D(VkFormat format, uint32_t width, uint32_t height, uint32_t mipmaps, bool deferredInitialization)
 {
-	return InitStorageInternal(format, TT_TEXTURE_2D, width, height, 1, mipmaps);
+	return InitStorageInternal(format, TT_TEXTURE_2D, width, height, 1, mipmaps, deferredInitialization);
 }
 
 bool KVulkanFrameBuffer::InitStorage3D(VkFormat format, uint32_t width, uint32_t height, uint32_t depth, uint32_t mipmaps)

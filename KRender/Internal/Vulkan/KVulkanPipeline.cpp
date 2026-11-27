@@ -84,9 +84,9 @@ bool KVulkanPipeline::Init()
 	return true;
 }
 
-bool KVulkanPipeline::UnInit()
+bool KVulkanPipeline::UnInit(bool resourcesComplete)
 {
-	KPipelineBase::UnInit();
+	KPipelineBase::UnInit(resourcesComplete);
 	return true;
 }
 
@@ -420,12 +420,12 @@ bool KVulkanPipelineHandle::Init(IKPipelineLayout* layout, IKRenderPass* renderP
 	return true;
 }
 
-bool KVulkanPipelineHandle::UnInit()
+bool KVulkanPipelineHandle::UnInit(bool resourcesComplete)
 {
 	if (m_GraphicsPipeline != VK_NULL_HANDLE)
 	{
 		// Cannot call vkDestroyPipeline on VkPipeline  that is currently in use by a command buffer
-		KVulkanGlobal::DeviceWaitIdle(KVulkanGlobal::device);
+		if (!resourcesComplete) KVulkanGlobal::DeviceWaitIdle(KVulkanGlobal::device);
 		vkDestroyPipeline(KVulkanGlobal::device, m_GraphicsPipeline, nullptr);
 		m_GraphicsPipeline = VK_NULL_HANDLE;
 	}

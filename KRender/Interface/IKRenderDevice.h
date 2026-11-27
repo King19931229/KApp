@@ -16,6 +16,7 @@ struct KRenderDeviceProperties
 	bool raytraceSupport;
 	bool meshShaderSupport;
 	bool debugMarkerSupport;
+	bool r16fStorageImageSupport;
 	uint32_t uniformBufferMaxRange;
 	uint64_t uniformBufferOffsetAlignment;
 	uint64_t storageBufferOffsetAlignment;
@@ -30,6 +31,7 @@ struct KRenderDeviceProperties
 		raytraceSupport = false;
 		meshShaderSupport = false;
 		debugMarkerSupport = false;
+		r16fStorageImageSupport = false;
 		uniformBufferMaxRange = 512;
 		uniformBufferOffsetAlignment = 8;
 		storageBufferOffsetAlignment = 8;

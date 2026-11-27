@@ -243,13 +243,35 @@ void KRenderImGui::Run()
 		{
 			ImGui::Begin(SettingMenuName[DOF], nullptr, ImGuiWindowFlags_AlwaysAutoResize);
 
+			ImGui::Checkbox("Enable", &KRenderGlobal::DepthOfField.GetEnable());
+			ImGui::Combo("Working resolution", &KRenderGlobal::DepthOfField.GetWorkingResolution(), "1/2\0" "1/4\0");
+			ImGui::Text("Work size: %u x %u", KRenderGlobal::DepthOfField.GetWorkingWidth(), KRenderGlobal::DepthOfField.GetWorkingHeight());
+			if (KRenderGlobal::DepthOfField.GetNearTileSupported())
+			{
+				ImGui::Checkbox("Near TileMAX", &KRenderGlobal::DepthOfField.GetNearTileEnable());
+				if (ImGui::IsItemHovered()) ImGui::SetTooltip("8x8 workgroup, 64 threads, shared-memory MAX reduction.\nSkip empty near regions; preserve the fixed kernel and coverage.");
+			}
+			else
+				ImGui::TextDisabled("Near TileMAX unavailable (R16F storage)");
 			ImGui::Checkbox("DebugDraw", &KRenderGlobal::DepthOfField.GetDebugDrawEnable());
-			ImGui::SliderFloat("CocLimit", &KRenderGlobal::DepthOfField.GetCocLimit(), 0.0f, 1.0f);
+			ImGui::Combo("View", &KRenderGlobal::DepthOfField.GetDebugView(),
+				"Final\0Optical CoC\0Full pixel radius\0Work pixel radius\0Signed CoC\0Near CoC\0Near weight\0Near alpha\0Near result\0Base\0Near TileCoC\0");
+			if (KRenderGlobal::DepthOfField.GetDebugView() == KDepthOfField::DV_NEAR_TILE_COC && !KRenderGlobal::DepthOfField.GetNearTileEnable())
+				ImGui::TextUnformatted("Enable Near TileMAX to inspect TileCoC.");
+			const int dofView = KRenderGlobal::DepthOfField.GetDebugView();
+			if (dofView >= KDepthOfField::DV_OPTICAL_COC && dofView <= KDepthOfField::DV_SIGNED_COC)
+			{
+				ImGui::TextUnformatted("Signed views: near/negative blue, far/positive red.");
+			}
+			if ((dofView >= KDepthOfField::DV_OPTICAL_COC && dofView <= KDepthOfField::DV_RADIUS_WORK) || dofView == KDepthOfField::DV_NEAR_WEIGHT)
+			{
+				ImGui::TextUnformatted("Radius/optical/weight magnitude: abs(v)/(1+abs(v)).");
+			}
+			if (dofView == KDepthOfField::DV_NEAR_TILE_COC)
+				ImGui::TextUnformatted("Conservative source near CoC MAX per tile (0..1, FP16).");
 			ImGui::SliderFloat("FStop", &KRenderGlobal::DepthOfField.GetFStop(), 0.50f, 128.0f);
-			// ImGui::SliderFloat("FocalLength", &KRenderGlobal::DepthOfField.GetFocalLength(), 1.0f, 5000.0f);
+			ImGui::SliderFloat("FocalLength", &KRenderGlobal::DepthOfField.GetFocalLength(), 1.0f, 5000.0f);
 			ImGui::SliderFloat("FocusDistance", &KRenderGlobal::DepthOfField.GetFocusDistance(), 1.0f, 5000.0f);
-			// ImGui::SliderFloat("Near", &KRenderGlobal::DepthOfField.GetNearRange(), 1.0f, 5000.0f);
-			ImGui::SliderFloat("Far", &KRenderGlobal::DepthOfField.GetFarRange(), 1.0f, 5000.0f);
 
 			ImGui::End();
 		}

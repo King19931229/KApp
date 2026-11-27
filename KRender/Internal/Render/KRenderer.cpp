@@ -319,6 +319,7 @@ bool KRenderer::Render(uint32_t chainImageIndex, const IKFencePtr& presentFence)
 		{
 			KScopedDrawStatsStage statsStage(m_RHICommandList, postProcessStage);
 			KRenderGlobal::DepthOfField.Execute(m_RHICommandList);
+			KRenderGlobal::DepthOfField.SetFrameCompletionFence(presentFence);
 		}
 		KRenderGlobal::DeferredRenderer.PostProcessResult(m_RHICommandList);
 
@@ -769,6 +770,7 @@ void KRenderer::ReleaseFrameResources(uint32_t frameNum)
 
 bool KRenderer::Update()
 {
+	KRenderGlobal::DepthOfField.ApplySettings();
 	if (m_PrevPeelingMethod != GetActiveDepthPeelingMethod())
 	{
 		FLUSH_INFLIGHT_RENDER_JOB();

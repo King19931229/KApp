@@ -1,0 +1,56 @@
+#include "dof/common.h"
+#include "dof/tile_config.h"
+
+// 原始 MD §5.2：8×8 工作 texel 对应 64 个并行线程，Z 维只有一层。
+layout(local_size_x = DOF_TILE_SIZE, local_size_y = DOF_TILE_SIZE, local_size_z = 1) in;
+layout(binding = BINDING_TEXTURE0) uniform sampler2D gbuffer0;
+layout(binding = BINDING_TEXTURE1, r16f) writeonly uniform image2D nearTileCoC;
+layout(binding = BINDING_OBJECT) uniform Object_DYN_UNIFORM
+{
+	vec4 dofParams;
+	vec4 dofParams2;
+} object;
+
+shared float nearMax[DOF_TILE_SIZE * DOF_TILE_SIZE];
+
+float ComputeLocalNearMax(ivec2 workPixel)
+{
+	int factor = int(round(1.0 / object.dofParams.w));
+	ivec2 base = workPixel * factor;
+	ivec2 size = textureSize(gbuffer0, 0);
+	float value = 0.0;
+	// 这里只遍历本线程负责的 2×2/4×4 全分辨率源块，绝不由单线程扫描整个 Tile。
+	// 使用与 Preprocess 相同的逐源深度/CoC 函数，不能把降采样平均 Alpha 称为源 CoC MAX。
+	for (int y = 0; y < factor; ++y)
+		for (int x = 0; x < factor; ++x)
+		{
+			ivec2 source = base + ivec2(x, y);
+			if (any(greaterThanEqual(source, size))) continue;
+			float distance = DofViewDepth(texelFetch(gbuffer0, source, 0));
+			value = max(value, max(-DofSignedCoC(distance, object.dofParams, object.dofParams2), 0.0));
+		}
+	return value;
+}
+
+void main()
+{
+	uint index = gl_LocalInvocationIndex;
+	nearMax[index] = ComputeLocalNearMax(ivec2(gl_GlobalInvocationID.xy));
+	// 越界线程贡献零，但仍参加全部 barrier，避免边缘 WorkGroup 死锁。
+	barrier();
+	// shared memory 并行树形 MAX：32→16→8→4→2→1；每层完成后全组同步。
+	// 该归约不依赖 subgroup/warp 大小，只有最终写入由第 0 线程执行。
+	for (uint stride = DOF_TILE_SIZE * DOF_TILE_SIZE / 2; stride > 0u; stride >>= 1u)
+	{
+		if (index < stride) nearMax[index] = max(nearMax[index], nearMax[index + stride]);
+		barrier();
+	}
+	if (index == 0u)
+	{
+		// 单位为 [0,1] 的源 Near CoC 权重，不是像素半径或最终覆盖率。
+		// 极小正值保留为 FP16 最小正规数，保证空区判定不受量化/次正规数清零影响。
+		// 此保守编码只用于剔除，绝不覆盖源 CoC、预乘颜色或 NearAlpha。
+		float maximum = nearMax[0] > 0.0 ? max(nearMax[0], 0.00006103515625) : 0.0;
+		imageStore(nearTileCoC, ivec2(gl_WorkGroupID.xy), vec4(maximum));
+	}
+}

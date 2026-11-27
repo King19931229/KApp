@@ -1,0 +1,13 @@
+// 仅供 GPU 夹具上传 RGBA16F；现有渲染目标具有 STORAGE 用途，没有 TRANSFER_DST 用途。
+layout(local_size_x = 8, local_size_y = 8) in;
+layout(binding = 0, std430) readonly buffer SourcePixels { uvec2 pixels[]; } source;
+layout(binding = 1, rgba16f) writeonly uniform image2D target;
+
+void main()
+{
+	ivec2 pixel = ivec2(gl_GlobalInvocationID.xy);
+	ivec2 size = imageSize(target);
+	if (any(greaterThanEqual(pixel, size))) return;
+	uvec2 packed = source.pixels[pixel.y * size.x + pixel.x];
+	imageStore(target, pixel, vec4(unpackHalf2x16(packed.x), unpackHalf2x16(packed.y)));
+}

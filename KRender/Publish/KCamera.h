@@ -197,6 +197,7 @@ public:
 	inline const glm::mat4& GetViewMatrix() const { return m_View; }
 	inline const glm::mat4& GetTranslateViewMatrix() const { return m_TranslateView; }
 	inline const glm::mat4& GetProjectiveMatrix() const { return m_Proj; }
+	inline ProjectiveMode GetProjectiveMode() const { return m_Mode; }
 
 	inline float GetNear() const { return m_Near; }
 	inline float GetFar() const { return m_Far; }

@@ -40,7 +40,7 @@ protected:
 	std::unordered_map<uint32_t, VkImageView> m_MipmapImageViews;
 	std::unordered_map<uint64_t, VkImageView> m_ReinterpretImageView;
 
-	bool InitStorageInternal(VkFormat format, TextureType type, uint32_t width, uint32_t height, uint32_t depth, uint32_t mipmaps);
+	bool InitStorageInternal(VkFormat format, TextureType type, uint32_t width, uint32_t height, uint32_t depth, uint32_t mipmaps, bool deferredInitialization = false);
 	bool TransitionLayoutImpl(VkCommandBuffer cmdBuffer, uint32_t srcQueueFamilyIndex, uint32_t dstQueueFamilyIndex, uint32_t baseMip, uint32_t numMip, VkPipelineStageFlags srcStages, VkPipelineStageFlags dstStages, VkImageLayout oldLayout, VkImageLayout newLayout);
 public:
 	KVulkanFrameBuffer();
@@ -54,11 +54,11 @@ public:
 	};
 	bool InitExternal(ExternalType type, VkImage image, VkImageView imageView, VkImageType imageType, VkImageViewType imageViewType, VkFormat format, uint32_t width, uint32_t height, uint32_t depth, uint32_t mipmaps, uint32_t msaa);
 	// 创建为ColorAttachment
-	bool InitColor(VkFormat format, TextureType textureType, uint32_t width, uint32_t height, uint32_t mipmaps, uint32_t msaa);
+	bool InitColor(VkFormat format, TextureType textureType, uint32_t width, uint32_t height, uint32_t mipmaps, uint32_t msaa, bool deferredInitialization = false);
 	// 创建为DepthStencilAttachment
 	bool InitDepthStencil(uint32_t width, uint32_t height, uint32_t msaa, bool stencil);
 	// 创建为StorageImage
-	bool InitStorage2D(VkFormat format, uint32_t width, uint32_t height, uint32_t mipmaps);
+	bool InitStorage2D(VkFormat format, uint32_t width, uint32_t height, uint32_t mipmaps, bool deferredInitialization = false);
 	bool InitStorage3D(VkFormat format, uint32_t width, uint32_t height, uint32_t depth, uint32_t mipmaps);
 	// 创建为回读
 	bool InitReadback(VkFormat format, uint32_t width, uint32_t height, uint32_t depth, uint32_t mipmaps);

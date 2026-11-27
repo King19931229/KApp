@@ -114,7 +114,8 @@ struct IKPipeline
 	virtual bool DestroyConstantBlock() = 0;
 
 	virtual bool Init() = 0;
-	virtual bool UnInit() = 0;
+	// 仅当调用方已确认全部共享 Handle 的 GPU 使用完成时，允许跳过销毁时的设备等待。
+	virtual bool UnInit(bool resourcesComplete = false) = 0;
 	virtual bool Reload(bool reloadShader) = 0;
 
 	virtual bool SetDebugName(const char* name) = 0;
@@ -136,7 +137,7 @@ struct IKPipelineHandle
 {
 	virtual ~IKPipelineHandle() {}
 	virtual bool Init(IKPipelineLayout* layout, IKRenderPass* renderPass, const KPipelineState& state, const KPipelineBinding& binding) = 0;
-	virtual bool UnInit() = 0;
+	virtual bool UnInit(bool resourcesComplete = false) = 0;
 	virtual bool SetDebugName(const char* name) = 0;
 };
 

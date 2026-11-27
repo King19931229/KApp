@@ -143,7 +143,7 @@ public:
 	virtual bool DestroyConstantBlock();
 
 	virtual bool Init();
-	virtual bool UnInit();
+	virtual bool UnInit(bool resourcesComplete = false);
 	virtual bool Reload(bool reloadShader = true);
 
 	virtual bool GetHandle(IKRenderPassPtr renderPass, IKPipelineHandlePtr& handle);
