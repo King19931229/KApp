@@ -19,8 +19,9 @@ uniform Object_DYN_UNIFORM
 void main()
 {
 	ivec2 pixel = ivec2(gl_FragCoord.xy);
+	vec4 effectiveParams = DofResolveParams(object.dofParams, object.dofParams2);
 	DofPreprocessResult result = DofPreprocessWorkPixel(
-		gbuffer0, sceneColor, pixel, object.dofParams, object.dofParams2);
+		gbuffer0, sceneColor, pixel, effectiveParams, object.dofParams2);
 	nearColor = result.nearColor;
 	farColor = result.farColor;
 }

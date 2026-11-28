@@ -34,8 +34,9 @@ void main()
 	float localMax = 0.0;
 	if (validWorkPixel)
 	{
+		vec4 effectiveParams = DofResolveParams(object.dofParams, object.dofParams2);
 		DofPreprocessResult result = DofPreprocessWorkPixel(
-			gbuffer0, sceneColor, workPixel, object.dofParams, object.dofParams2);
+			gbuffer0, sceneColor, workPixel, effectiveParams, object.dofParams2);
 		imageStore(nearOutput, workPixel, result.nearColor);
 		imageStore(farOutput, workPixel, result.farColor);
 #if defined(DOF_NEAR_TILE)

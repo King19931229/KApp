@@ -1,0 +1,17 @@
+#include "public.h"
+layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
+layout(std430, binding = BINDING_TEXTURE0) writeonly buffer Output { vec4 values[]; } outputData;
+void main()
+{
+	outputData.values[0] = voxel.minpoint_scale;
+	outputData.values[1] = voxel.maxpoint_scale;
+	outputData.values[2] = vec4(voxel.miscs);
+	outputData.values[3] = voxel.miscs2;
+	outputData.values[4] = voxel.miscs3;
+	for (int axis = 0; axis < 3; ++axis)
+	for (int column = 0; column < 4; ++column)
+	{
+		outputData.values[5 + axis * 4 + column] = voxel.viewproj[axis][column];
+		outputData.values[17 + axis * 4 + column] = voxel.viewproj_inv[axis][column];
+	}
+}

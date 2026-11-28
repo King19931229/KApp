@@ -27,14 +27,10 @@ layout(location = 0) out GeometryOut
 	flat vec3[3] trianglePosW;
 } Out;
 
-#include "voxel/voxelzation_public.h".
+#include "voxel/voxelzation_public.h"
 
 void main()
 {
-	int selectedIndex = CalculateAxis();
-	mat4 viewProjection = voxel_clipmap.viewproj[object.level * 3 + selectedIndex];
-	mat4 viewProjectionI = voxel_clipmap.viewproj_inv[object.level * 3 + selectedIndex];
-
 	vec2 texCoord[3];
 	vec3 normal[3];
 	for (int i = 0; i < 3; i++)
@@ -51,6 +47,12 @@ void main()
 	);
 
 	vec3 flatNormal = cross(trianglePosW[1].xyz - trianglePosW[0].xyz, trianglePosW[2].xyz - trianglePosW[0].xyz);
+	if (!ClipmapFinite(flatNormal) || dot(flatNormal, flatNormal) == 0.0)
+		return;
+	vec3 axisNormal = abs(flatNormal);
+	int selectedIndex = axisNormal.x >= max(axisNormal.y, axisNormal.z) ? 0 : (axisNormal.y >= axisNormal.z ? 1 : 2);
+	mat4 viewProjection = voxel_clipmap.viewproj[object.level * 3 + selectedIndex];
+	mat4 viewProjectionI = voxel_clipmap.viewproj_inv[object.level * 3 + selectedIndex];
 	flatNormal = normalize(flatNormal);
 
 	//transform vertices to clip space
@@ -63,6 +65,8 @@ void main()
 
 	vec4 trianglePlane;
 	trianglePlane.xyz = cross(pos[1].xyz - pos[0].xyz, pos[2].xyz - pos[0].xyz);
+	if (!ClipmapFinite(trianglePlane.xyz) || dot(trianglePlane.xyz, trianglePlane.xyz) == 0.0)
+		return;
 	trianglePlane.xyz = normalize(trianglePlane.xyz);
 	trianglePlane.w = -dot(pos[0].xyz, trianglePlane.xyz);
 
@@ -90,8 +94,8 @@ void main()
 	if(trianglePlane.z == 0.0f) return;
 
 	// expanded aabb for triangle
-	Out.triangleAABB = AxisAlignedBoundingBox(pos, halfPixel);
-#if 0
+	vec4 triangleAABB = AxisAlignedBoundingBox(pos, halfPixel);
+	vec4 originalPos[3] = vec4[3](pos[0], pos[1], pos[2]);
 	// https://github.com/AdamYuan/SparseVoxelOctree/blob/master/shader/voxelizer.geom
 	// calculate the plane through each edge of the triangle
 	// in normal form for dilatation of the triangle
@@ -107,6 +111,11 @@ void main()
 	intersection[0] = cross(planes[0], planes[1]);
 	intersection[1] = cross(planes[1], planes[2]);
 	intersection[2] = cross(planes[2], planes[0]);
+	for (int i = 0; i < 3; ++i)
+	{
+		if (!ClipmapFinite(intersection[i]) || intersection[i].z == 0.0)
+			return;
+	}
 	intersection[0] /= intersection[0].z;
 	intersection[1] /= intersection[1].z;
 	intersection[2] /= intersection[2].z;
@@ -118,22 +127,7 @@ void main()
 	pos[0].xyz = vec3(intersection[0].xy, z[0]);
 	pos[1].xyz = vec3(intersection[1].xy, z[1]);
 	pos[2].xyz = vec3(intersection[2].xy, z[2]);
-#else
-	// https://github.com/otaku690/SparseVoxelOctree/blob/master/WIN/SVO/shader/voxelize.geom.glsl
-	float pl = 1.4142135637309 / volumeDimension;
 
-	vec3 e0 = vec3(pos[1].xy - pos[0].xy, 0);
-	vec3 e1 = vec3(pos[2].xy - pos[1].xy, 0);
-	vec3 e2 = vec3(pos[0].xy - pos[2].xy, 0);
-	vec3 n0 = cross(e0, vec3(0, 0, 1));
-	vec3 n1 = cross(e1, vec3(0, 0, 1));
-	vec3 n2 = cross(e2, vec3(0, 0, 1));
-
-	// dilate the triangle
-	pos[0].xy = pos[0].xy + pl * ((e2.xy / dot(e2.xy, n0.xy)) + (e0.xy / dot(e0.xy, n2.xy)));
-	pos[1].xy = pos[1].xy + pl * ((e0.xy / dot(e0.xy, n1.xy)) + (e1.xy / dot(e1.xy, n0.xy)));
-	pos[2].xy = pos[2].xy + pl * ((e1.xy / dot(e1.xy, n2.xy)) + (e2.xy / dot(e2.xy, n1.xy)));
-#endif
 
 	for(int i = 0; i < 3; ++i)
 	{
@@ -144,7 +138,14 @@ void main()
 		Out.position = pos[i].xyz;
 		// Out.normal = normal[i];
 		Out.normal = flatNormal;
-		Out.texCoord = texCoord[i];
+		vec2 e0 = originalPos[1].xy - originalPos[0].xy;
+		vec2 e1 = originalPos[2].xy - originalPos[0].xy;
+		vec2 delta = pos[i].xy - originalPos[0].xy;
+		float area = e0.x * e1.y - e0.y * e1.x;
+		float b = (delta.x * e1.y - delta.y * e1.x) / area;
+		float c = (e0.x * delta.y - e0.y * delta.x) / area;
+		Out.texCoord = texCoord[0] * (1.0 - b - c) + texCoord[1] * b + texCoord[2] * c;
+		Out.triangleAABB = triangleAABB;
 		Out.wsPosition = voxelPos.xyz;
 		Out.trianglePosW = trianglePosW;
 

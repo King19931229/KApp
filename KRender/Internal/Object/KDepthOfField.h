@@ -1,7 +1,27 @@
 #pragma once
 #include "Internal/Object/KDebugDrawer.h"
+#include "Product/Shaders/dof/autofocus_config.h"
 #include <string>
 #include <vector>
+
+class KCamera;
+
+enum class KDOFFocusMode
+{
+	Manual = 0,
+	AutoFocusGPU
+};
+
+struct KDOFAutoFocusSettings
+{
+	glm::vec2 focusUV = glm::vec2(0.5f, 0.5f);
+	float sampleStride1080P = 8.0f;
+	float smoothTime = 0.2f;       // 秒；<= 0 时立即对焦
+	float startThreshold = 0.001f; // 启动死区（倒数距离单位 worldUnit^-1）
+	float snapThreshold = 0.0001f; // 停止/吸附阈值（须满足 startThreshold > snapThreshold > 0）
+	float minFocusDistance = 0.0f; // 0 表示仅由 max(cameraNear+margin, focalLength+margin) 约束
+	float maxFocusDistance = 5000.0f;
+};
 
 class KDepthOfField
 {
@@ -33,6 +53,30 @@ protected:
 	bool m_NearTileEnable;
 	bool m_BracketedEnable;
 	bool m_UseComputePreprocess;
+	KDOFFocusMode m_FocusMode;
+	KDOFFocusMode m_PrevFocusMode;
+	KDOFAutoFocusSettings m_AutoFocusSettings;
+	float m_FrameDeltaTime;
+	bool m_AutoFocusReady;
+	bool m_AutoFocusActive;
+	std::string m_AutoFocusFallbackReason;
+
+	struct AutoFocusViewSlot
+	{
+		const KCamera* camera = nullptr;
+		uint64_t lastUsedStamp = 0;
+		uint64_t cameraCutGeneration = 0;
+		uint64_t manualResetGeneration = 0;
+		bool initialized = false;
+		bool pendingManualReset = false;
+		bool pendingCameraCut = false;
+	};
+	AutoFocusViewSlot m_AutoFocusViews[DOF_AUTOFOCUS_MAX_VIEWS];
+	uint64_t m_AutoFocusUseCounter;
+	uint64_t m_CameraCutGeneration;
+	uint64_t m_ManualResetGeneration;
+	IKStorageBufferPtr m_AutoFocusBuffer;
+	IKComputePipelinePtr m_AutoFocusPipeline;
 
 	bool m_NearTileSupported;
 	bool m_ComputePreprocessSupported;
@@ -141,12 +185,15 @@ protected:
 	void ReleaseRetiredWorkingResources(bool all = false);
 	bool RebuildWorkingResources(uint32_t width, uint32_t height, uint32_t downsampleFactor,
 		bool bracketed, bool retireCurrent, PixelFormat bracketedFormat = PF_R8G8B8A8_UNORM);
+	bool EnsureAutoFocusResources();
+	uint32_t AcquireAutoFocusViewSlot(const KCamera* camera, uint32_t& outResetMode);
 	bool InitializeNearTile();
 	bool EnsureComputePreprocessPipeline(bool withTile);
 	bool EnsureBlurShaders(bool bracketed, bool nearTile);
 	bool ConfigureBlurPipeline(IKPipelinePtr& pipeline, const KShaderRef& fragment,
 		IKFrameBufferPtr tex0, IKFrameBufferPtr tex1, IKFrameBufferPtr tex2, IKFrameBufferPtr tex3,
-		IKFrameBufferPtr colorMean, IKRenderPassPtr renderPass, bool dynamicWrite);
+		IKFrameBufferPtr colorMean, IKRenderPassPtr renderPass, bool dynamicWrite,
+		IKStorageBufferPtr autoFocusBuffer = nullptr);
 public:
 	KDepthOfField();
 	~KDepthOfField();
@@ -159,6 +206,16 @@ public:
 	float& GetFocalLength() { return m_FocalLength; }
 	int& GetDebugView() { return m_DebugView; }
 	bool& GetEnable() { return m_Enable; }
+
+	KDOFFocusMode GetFocusMode() const { return m_FocusMode; }
+	void SetFocusMode(KDOFFocusMode mode);
+	KDOFAutoFocusSettings& GetAutoFocusSettings() { return m_AutoFocusSettings; }
+	const KDOFAutoFocusSettings& GetAutoFocusSettings() const { return m_AutoFocusSettings; }
+	bool GetAutoFocusActive() const { return m_AutoFocusActive; }
+	const std::string& GetAutoFocusFallbackReason() const { return m_AutoFocusFallbackReason; }
+	void SetFrameDeltaTime(float deltaTime) { m_FrameDeltaTime = deltaTime; }
+	void ResetAutoFocus(bool cameraCut = false);
+	void NotifyCameraCut(const KCamera* camera = nullptr);
 
 	bool& GetNearTileEnable() { return m_NearTileEnable; }
 	bool GetNearTileSupported() const { return m_NearTileSupported; }

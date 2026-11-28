@@ -2,6 +2,7 @@
 #define _DOF_PREPROCESS_COMMON_H_
 
 #include "dof/common.h"
+#include "dof/autofocus_common.h"
 
 struct DofPreprocessResult
 {

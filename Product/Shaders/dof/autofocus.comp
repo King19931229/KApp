@@ -1,0 +1,239 @@
+// Single-invocation GPU Depth Auto Focus pass (5x5 sampling, exact lower median, reciprocal hysteresis smoothing).
+#define DOF_AUTOFOCUS_WRITE 1
+#include "dof/common.h"
+#include "dof/autofocus_common.h"
+
+layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
+
+layout(binding = BINDING_TEXTURE0) uniform sampler2D gbuffer0;
+
+layout(binding = BINDING_OBJECT)
+uniform Object_DYN_UNIFORM
+{
+	// x: focusUV.x, y: focusUV.y, z: sampleStride1080P, w: deltaTime
+	vec4 sampleAndTime;
+	// x: smoothTime, y: startThreshold, z: snapThreshold, w: initialManualS (clamped)
+	vec4 controlParams;
+	// x: minFocus, y: maxFocus, z: focalLength, w: apertureTimesFocal
+	vec4 opticsParams;
+	// x: pixelsPerUnit, y: workScale, z: float(viewIndex), w: float(resetMode)
+	vec4 viewAndReset;
+} object;
+
+bool IsBackgroundSample(vec4 gbuffer0Data)
+{
+	if (!DofFinite(gbuffer0Data))
+	{
+		return true;
+	}
+	// KApp BasePass 将 GBUFFER_TARGET0 清为 (0,0,0,1)，几何体必写归一化法线；
+	// 同时检查法线长度与线性深度边界，可靠过滤天空及未写入像素。
+	float normalLenSq = dot(gbuffer0Data.xyz, gbuffer0Data.xyz);
+	if (!(normalLenSq > 1e-4))
+	{
+		return true;
+	}
+	float linearDepth = DecodeDepth(gbuffer0Data);
+	if (linearDepth < 0.0 || linearDepth >= (1.0 - 1e-4))
+	{
+		return true;
+	}
+	return false;
+}
+
+// 前提：1 <= count <= 25，且所有输入都是有效有限正深度。
+float SelectMedian(inout float values[25], int count)
+{
+	// 奇数取正中，偶数取偏近的下中位数，避免平均产生虚构深度。
+	int k = (count - 1) / 2;
+	for (int i = 0; i <= k; ++i)
+	{
+		int minIndex = i;
+		for (int j = i + 1; j < count; ++j)
+		{
+			if (values[j] < values[minIndex])
+			{
+				minIndex = j;
+			}
+		}
+		float tmp = values[i];
+		values[i] = values[minIndex];
+		values[minIndex] = tmp;
+	}
+	return values[k];
+}
+
+void UpdateFocusU(
+	inout float focusU,
+	inout uint focusState,
+	float targetU,
+	float deltaTime,
+	float smoothTime,
+	float startThreshold,
+	float snapThreshold)
+{
+	// 非正平滑时间：立即对焦，不应用启动死区。
+	if (smoothTime <= 0.0)
+	{
+		focusU = targetU;
+		focusState = DOF_AUTOFOCUS_STATE_IDLE;
+		return;
+	}
+
+	float error = abs(targetU - focusU);
+
+	// 启动死区只在 Idle 状态检查。
+	if (focusState == DOF_AUTOFOCUS_STATE_IDLE)
+	{
+		if (error <= startThreshold)
+		{
+			return;
+		}
+		focusState = DOF_AUTOFOCUS_STATE_TRACKING;
+	}
+
+	// 已进入 Focusing：绝不再检查启动死区。
+	if (error <= snapThreshold)
+	{
+		focusU = targetU;
+		focusState = DOF_AUTOFOCUS_STATE_IDLE;
+		return;
+	}
+
+	float ratio = deltaTime / smoothTime;
+	// 小参数稳定近似，避免 exp(-ratio) 在高帧率下因舍入损失导致 alpha=0 停滞。
+	float alpha = ratio < 1e-4 ? (ratio * (1.0 - 0.5 * ratio)) : (1.0 - exp(-ratio));
+	alpha = clamp(alpha, 0.0, 1.0);
+	float newU = focusU + (targetU - focusU) * alpha;
+	// 限制在本次插值区间，防止浮点舍入越过目标。
+	newU = clamp(newU, min(focusU, targetU), max(focusU, targetU));
+
+	// 判断平滑后的剩余误差，满足停止阈值时直接吸附并回到 Idle。
+	if (abs(newU - targetU) <= snapThreshold)
+	{
+		focusU = targetU;
+		focusState = DOF_AUTOFOCUS_STATE_IDLE;
+	}
+	else
+	{
+		focusU = newU;
+	}
+}
+
+void main()
+{
+	uint viewIndex = uint(round(object.viewAndReset.z));
+	if (viewIndex >= uint(DOF_AUTOFOCUS_MAX_VIEWS))
+	{
+		return;
+	}
+	uint resetMode = uint(round(object.viewAndReset.w));
+
+	ivec2 size = textureSize(gbuffer0, 0);
+	ivec2 center = clamp(ivec2(object.sampleAndTime.xy * vec2(size)), ivec2(0), size - ivec2(1));
+	int stride = max(1, int(round(object.sampleAndTime.z * float(size.y) / 1080.0)));
+
+	float depths[25];
+	int validCount = 0;
+	for (int dy = -2; dy <= 2; ++dy)
+	{
+		for (int dx = -2; dx <= 2; ++dx)
+		{
+			ivec2 coord = center + ivec2(dx, dy) * stride;
+			// 越界点直接跳过，不重复 Clamp 到边缘像素造成权重集中。
+			if (coord.x < 0 || coord.y < 0 || coord.x >= size.x || coord.y >= size.y)
+			{
+				continue;
+			}
+			vec4 gbuffer0Data = texelFetch(gbuffer0, coord, 0);
+			if (IsBackgroundSample(gbuffer0Data))
+			{
+				continue;
+			}
+			float d = DofViewDepth(gbuffer0Data);
+			if (!DofFinite(d) || !(d > 0.0))
+			{
+				continue;
+			}
+			depths[validCount++] = d;
+		}
+	}
+
+	float minFocus = object.opticsParams.x;
+	float maxFocus = max(minFocus, object.opticsParams.y);
+	float minU = 1.0 / maxFocus;
+	float maxU = 1.0 / minFocus;
+	float initialManualS = clamp(object.controlParams.w, minFocus, maxFocus);
+	float initialManualU = clamp(1.0 / initialManualS, minU, maxU);
+
+	float focusU = autoFocusBuffer.views[viewIndex].focusU;
+	uint focusState = autoFocusBuffer.views[viewIndex].focusState;
+	uint initialized = autoFocusBuffer.views[viewIndex].initialized;
+	bool historyValid = (initialized != 0u) && DofFinite(focusU) && (focusU > 0.0);
+
+	if (resetMode == DOF_AUTOFOCUS_RESET_CAMERA_CUT)
+	{
+		if (validCount > 0)
+		{
+			float rawFocus = SelectMedian(depths, validCount);
+			float targetS = clamp(rawFocus, minFocus, maxFocus);
+			focusU = clamp(1.0 / targetS, minU, maxU);
+		}
+		else
+		{
+			focusU = initialManualU;
+		}
+		focusState = DOF_AUTOFOCUS_STATE_IDLE;
+		initialized = 1u;
+	}
+	else
+	{
+		if (resetMode == DOF_AUTOFOCUS_RESET_MANUAL || !historyValid)
+		{
+			focusU = initialManualU;
+			focusState = DOF_AUTOFOCUS_STATE_IDLE;
+			initialized = 1u;
+		}
+		else
+		{
+			// 焦距或安全范围运行时变更时，同步钳位历史焦点。
+			focusU = clamp(focusU, minU, maxU);
+			if (focusState != DOF_AUTOFOCUS_STATE_IDLE && focusState != DOF_AUTOFOCUS_STATE_TRACKING)
+			{
+				focusState = DOF_AUTOFOCUS_STATE_IDLE;
+			}
+		}
+
+		if (validCount > 0)
+		{
+			float rawFocus = SelectMedian(depths, validCount);
+			float targetS = clamp(rawFocus, minFocus, maxFocus);
+			float targetU = clamp(1.0 / targetS, minU, maxU);
+			UpdateFocusU(
+				focusU,
+				focusState,
+				targetU,
+				object.sampleAndTime.w,
+				object.controlParams.x,
+				object.controlParams.y,
+				object.controlParams.z);
+		}
+	}
+
+	focusU = clamp(focusU, minU, maxU);
+	float effectiveFocusDistance = 1.0 / focusU;
+	float focalLength = object.opticsParams.z;
+	float apertureTimesFocal = object.opticsParams.w;
+	float pixelsPerUnit = object.viewAndReset.x;
+	float workScale = object.viewAndReset.y;
+
+	float denom = effectiveFocusDistance - focalLength;
+	float opticalCoCScale = (denom > 0.0) ? (apertureTimesFocal / denom) : 0.0;
+	float radiusScaleFull = opticalCoCScale * pixelsPerUnit;
+
+	autoFocusBuffer.views[viewIndex].dofParams = vec4(effectiveFocusDistance, opticalCoCScale, radiusScaleFull, workScale);
+	autoFocusBuffer.views[viewIndex].focusU = focusU;
+	autoFocusBuffer.views[viewIndex].focusState = focusState;
+	autoFocusBuffer.views[viewIndex].initialized = initialized;
+	autoFocusBuffer.views[viewIndex].lastValidCount = uint(validCount);
+}

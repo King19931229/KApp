@@ -155,7 +155,8 @@ void KDeferredRenderer::RecreateRenderPass(uint32_t width, uint32_t height)
 			{
 				renderPass->SetColorAttachment(gbuffer, KRenderGlobal::GBuffer.GetGBufferTarget((GBufferTarget)gbuffer)->GetFrameBuffer());
 				renderPass->SetOpColor(gbuffer, loadOp, SO_STORE);
-				renderPass->SetClearColor(gbuffer, { 0.0f, 0.0f, 0.0f, 0.0f });
+				// GBUFFER_TARGET0.w 存线性深度；清为 1.0（远平面）且法线保持 0，避免天空被误解码为近平面。
+				renderPass->SetClearColor(gbuffer, { 0.0f, 0.0f, 0.0f, gbuffer == GBUFFER_TARGET0 ? 1.0f : 0.0f });
 			}
 
 			renderPass->SetDepthStencilAttachment(KRenderGlobal::GBuffer.GetDepthStencilTarget()->GetFrameBuffer());

@@ -15,7 +15,7 @@ uint CalcStaticCSMIndex(vec3 worldPos)
 	vec3 offset = worldPos - static_cascaded.center.xyz;
 	uint cascaded = 0;
 	float dis = max(max(abs(offset.x), abs(offset.y)), abs(offset.z));
-	for(uint i = 0; i < static_cascaded.cascaded; ++i)
+	for(uint i = 1; i < min(static_cascaded.cascaded, 4u); ++i)
 	{
 		if(dis > static_cascaded.area[i - 1])
 		{

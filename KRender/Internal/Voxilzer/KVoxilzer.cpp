@@ -5,6 +5,7 @@
 #include "Internal/ECS/Component/KRenderComponent.h"
 #include "Internal/ECS/Component/KTransformComponent.h"
 #include "KBase/Interface/IKLog.h"
+#include <cmath>
 
 const VertexFormat KVoxilzer::ms_VertexFormats[1] = { VF_DEBUG_POINT };
 
@@ -33,7 +34,7 @@ KVoxilzer::KVoxilzer()
 	, m_VoxelDrawEnable(false)
 	, m_VoxelDrawWireFrame(true)
 	, m_VoxelDebugUpdate(false)
-	, m_VoxelNeedUpdate(false)
+	, m_VoxelNeedUpdate(true)
 	, m_VoxelUseOctree(true)
 	, m_VoxelLastUseOctree(true)
 {
@@ -46,39 +47,57 @@ KVoxilzer::~KVoxilzer()
 
 void KVoxilzer::UpdateInternal(KRHICommandListBase& commandList)
 {
-	UpdateProjectionMatrices(commandList);
-
 	if (m_VoxelUseOctree)
 	{
+		// The synchronous rebuild replaces buffers used by earlier frames.
+		FLUSH_INFLIGHT_RENDER_JOB();
+		UpdateProjectionMatrices(KRenderGlobal::ImmediateCommandList);
+
 		KRenderGlobal::ImmediateCommandList.BeginRecord();
+		KRenderGlobal::ImmediateCommandList.PipelineMemoryBarrier(PIPELINE_STAGE_ALL_COMMANDS, PIPELINE_STAGE_ALL_COMMANDS);
 		VoxelizeStaticSceneCounter(KRenderGlobal::ImmediateCommandList, true);
+		KRenderGlobal::ImmediateCommandList.PipelineMemoryBarrier(PIPELINE_STAGE_ALL_COMMANDS, PIPELINE_STAGE_ALL_COMMANDS);
 		KRenderGlobal::ImmediateCommandList.EndRecord();
 
 		KRenderGlobal::ImmediateCommandList.BeginRecord();
+		KRenderGlobal::ImmediateCommandList.PipelineMemoryBarrier(PIPELINE_STAGE_ALL_COMMANDS, PIPELINE_STAGE_ALL_COMMANDS);
 		VoxelizeStaticSceneCounter(KRenderGlobal::ImmediateCommandList, false);
-		KRenderGlobal::ImmediateCommandList.EndRecord();;
+		KRenderGlobal::ImmediateCommandList.PipelineMemoryBarrier(PIPELINE_STAGE_ALL_COMMANDS, PIPELINE_STAGE_ALL_COMMANDS);
+		KRenderGlobal::ImmediateCommandList.EndRecord();
 
 		KRenderGlobal::ImmediateCommandList.BeginRecord();
 		// CheckFragmentlistData();
 		BuildOctree(KRenderGlobal::ImmediateCommandList);
+		KRenderGlobal::ImmediateCommandList.PipelineMemoryBarrier(PIPELINE_STAGE_ALL_COMMANDS, PIPELINE_STAGE_ALL_COMMANDS);
 		KRenderGlobal::ImmediateCommandList.EndRecord();
 
 		uint32_t lastBuildinfo[] = { 0, 0 };
 		m_BuildInfoBuffer->Read(lastBuildinfo);
 		m_OctreeNonLeafCount = lastBuildinfo[0] + lastBuildinfo[1];
-		m_CounterBuffer->Read(&m_OctreeLeafCount);
+		m_OctreeLeafCounterBuffer->Read(&m_OctreeLeafCount);
 
 		KRenderGlobal::ImmediateCommandList.BeginRecord();
+		KRenderGlobal::ImmediateCommandList.PipelineMemoryBarrier(PIPELINE_STAGE_ALL_COMMANDS, PIPELINE_STAGE_ALL_COMMANDS);
 		UpdateRadiance(KRenderGlobal::ImmediateCommandList);
+		KRenderGlobal::ImmediateCommandList.PipelineMemoryBarrier(PIPELINE_STAGE_ALL_COMMANDS, PIPELINE_STAGE_ALL_COMMANDS);
 		KRenderGlobal::ImmediateCommandList.EndRecord();
 
 		ShrinkOctree();
+		KRenderGlobal::ImmediateCommandList.BeginRecord();
+		KRenderGlobal::ImmediateCommandList.PipelineMemoryBarrier(PIPELINE_STAGE_ALL_COMMANDS, PIPELINE_STAGE_ALL_COMMANDS);
+		KRenderGlobal::ImmediateCommandList.EndRecord();
 		CheckOctreeData();
 	}
 	else
 	{
+		UpdateProjectionMatrices(commandList);
+		commandList.PipelineMemoryBarrier(PIPELINE_STAGE_ALL_COMMANDS, PIPELINE_STAGE_ALL_COMMANDS);
+		ClearDynamicScene(commandList);
+		commandList.PipelineMemoryBarrier(PIPELINE_STAGE_ALL_COMMANDS, PIPELINE_STAGE_ALL_COMMANDS);
 		VoxelizeStaticScene(commandList);
+		commandList.PipelineMemoryBarrier(PIPELINE_STAGE_ALL_COMMANDS, PIPELINE_STAGE_ALL_COMMANDS);
 		UpdateRadiance(commandList);
+		commandList.PipelineMemoryBarrier(PIPELINE_STAGE_ALL_COMMANDS, PIPELINE_STAGE_ALL_COMMANDS);
 	}
 }
 
@@ -147,20 +166,30 @@ void KVoxilzer::Reload()
 		m_ClearDynamicPipeline->Reload();
 		m_InjectRadiancePipeline->Reload();
 		m_InjectPropagationPipeline->Reload();
+		m_MipmapBasePipeline->Reload();
 
 		m_VoxelDrawPipeline->Reload(false);
 		m_VoxelWireFrameDrawPipeline->Reload(false);
 		m_LightPassPipeline->Reload(false);
 	}
 
-	m_MipmapBasePipeline->Reload();
-	m_MipmapVolumePipeline->Reload();
+	for (IKComputePipelinePtr& pipeline : m_MipmapVolumePipelines)
+	{
+		pipeline->Reload();
+	}
 }
 
 void KVoxilzer::UpdateProjectionMatrices(KRHICommandListBase& commandList)
 {
 	KAABBBox sceneBox;
 	m_Scene->GetSceneObjectBound(sceneBox);
+
+	glm::vec3 extent = sceneBox.GetExtend();
+	float maxExtent = glm::max(extent.x, glm::max(extent.y, extent.z));
+	if (sceneBox.IsNull() || !std::isfinite(maxExtent) || maxExtent <= 0.0f)
+	{
+		sceneBox.InitFromHalfExtent(glm::vec3(0.0f), glm::vec3(0.5f));
+	}
 
 	glm::vec3 axisSize = sceneBox.GetExtend();
 	const glm::vec3& center = sceneBox.GetCenter();
@@ -255,6 +284,9 @@ void KVoxilzer::SetupSparseVoxelBuffer()
 
 	m_CounterBuffer->InitMemory(sizeof(counter), &counter);
 	m_CounterBuffer->InitDevice(false, false);
+	m_OctreeLeafCounterBuffer->InitMemory(sizeof(counter), &counter);
+	m_OctreeLeafCounterBuffer->InitDevice(false, false);
+	m_OctreeLeafCounterBuffer->SetDebugName("SVO_OctreeLeafCounterBuffer");
 
 	uint32_t fragmentDummy[] = { 0, 0, 0, 0 };
 	m_FragmentlistBuffer->InitMemory(sizeof(fragmentDummy), fragmentDummy);
@@ -323,6 +355,7 @@ void KVoxilzer::SetupVoxelReleatedData()
 	else
 	{
 		m_CounterBuffer->UnInit();
+		m_OctreeLeafCounterBuffer->UnInit();
 		m_FragmentlistBuffer->UnInit();
 		m_CountOnlyBuffer->UnInit();
 		m_BuildInfoBuffer->UnInit();
@@ -484,6 +517,7 @@ void KVoxilzer::SetupClearDynamicPipeline()
 		m_ClearDynamicPipeline->BindStorageImage(VOXEL_BINDING_NORMAL, m_VoxelNormal->GetFrameBuffer(), PF_UNKNOWN, COMPUTE_RESOURCE_OUT, 0, false);
 		m_ClearDynamicPipeline->BindStorageImage(VOXEL_BINDING_EMISSION, m_VoxelEmissive->GetFrameBuffer(), PF_UNKNOWN, COMPUTE_RESOURCE_OUT, 0, false);
 		m_ClearDynamicPipeline->BindStorageImage(VOXEL_BINDING_STATIC_FLAG, m_StaticFlag->GetFrameBuffer(), PF_UNKNOWN, COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, 0, false);
+		m_ClearDynamicPipeline->BindStorageImage(VOXEL_BINDING_RADIANCE, m_VoxelRadiance->GetFrameBuffer(), PF_UNKNOWN, COMPUTE_RESOURCE_OUT, 0, false);
 
 		m_ClearDynamicPipeline->Init("voxel/svo/lighting/clear_dynamic.comp", KShaderCompileEnvironment(), KRenderGlobal::EnableAsyncShaderCompile);
 	}
@@ -588,12 +622,20 @@ void KVoxilzer::SetupMipmapPipeline()
 		mipmapBasePipeline->Init("voxel/svo/lighting/aniso_mipmapbase.comp", KShaderCompileEnvironment(), KRenderGlobal::EnableAsyncShaderCompile);
 	}
 
-	m_MipmapVolumePipeline->BindUniformBuffer(SHADER_BINDING_VOXEL, voxelBuffer);
-	m_MipmapVolumePipeline->BindDynamicUniformBuffer(SHADER_BINDING_OBJECT);
-	m_MipmapVolumePipeline->BindSamplers(VOXEL_BINDING_TEXMIPMAP_IN, targets, samplers, false);
-	m_MipmapVolumePipeline->BindStorageImages(VOXEL_BINDING_TEXMIPMAP_OUT, targets, PF_UNKNOWN, COMPUTE_RESOURCE_OUT, 0, true);
-
-	m_MipmapVolumePipeline->Init("voxel/svo/lighting/aniso_mipmapvolume.comp", KShaderCompileEnvironment(), KRenderGlobal::EnableAsyncShaderCompile);
+	SAFE_UNINIT_CONTAINER(m_MipmapVolumePipelines);
+	m_MipmapVolumePipelines.clear();
+	m_MipmapVolumePipelines.resize(m_NumMipmap - 1);
+	for (uint32_t mipmap = 1; mipmap < m_NumMipmap; ++mipmap)
+	{
+		IKComputePipelinePtr& pipeline = m_MipmapVolumePipelines[mipmap - 1];
+		KRenderGlobal::RenderDevice->CreateComputePipeline(pipeline);
+		pipeline->BindUniformBuffer(SHADER_BINDING_VOXEL, voxelBuffer);
+		pipeline->BindDynamicUniformBuffer(SHADER_BINDING_OBJECT);
+		pipeline->BindSamplers(VOXEL_BINDING_TEXMIPMAP_IN, targets, samplers, false);
+		// Queued RHI commands retain this pipeline, including its fixed mip binding.
+		pipeline->BindStorageImages(VOXEL_BINDING_TEXMIPMAP_OUT, targets, PF_UNKNOWN, COMPUTE_RESOURCE_OUT, mipmap, false);
+		pipeline->Init("voxel/svo/lighting/aniso_mipmapvolume.comp", KShaderCompileEnvironment(), KRenderGlobal::EnableAsyncShaderCompile);
+	}
 }
 
 void KVoxilzer::SetupOctreeMipmapPipeline()
@@ -995,9 +1037,6 @@ void KVoxilzer::BuildOctree(KRHICommandListBase& commandList)
 	uint32_t fragmentCount = 0;
 	m_CounterBuffer->Read(&fragmentCount);
 
-	// In case 0 size
-	fragmentCount = std::max(fragmentCount, 1u);
-
 	// Estimate octree buffer size
 	uint32_t octreeNodeNum = std::max((uint32_t)OCTREE_NODE_NUM_MIN, fragmentCount << 2u);
 	octreeNodeNum = std::min(octreeNodeNum, (uint32_t)OCTREE_NODE_NUM_MAX);
@@ -1019,7 +1058,7 @@ void KVoxilzer::BuildOctree(KRHICommandListBase& commandList)
 	}
 
 	m_OctreeDataBuffer->UnInit();
-	m_OctreeDataBuffer->InitMemory(uint64_t(fragmentCount) * OCTREE_DATA_SIZE, nullptr);
+	m_OctreeDataBuffer->InitMemory(uint64_t(std::max(fragmentCount, 1u)) * OCTREE_DATA_SIZE, nullptr);
 	m_OctreeDataBuffer->InitDevice(false, false);
 	m_OctreeDataBuffer->SetDebugName("SVO_OctreeDataBuffer");
 
@@ -1033,6 +1072,16 @@ void KVoxilzer::BuildOctree(KRHICommandListBase& commandList)
 	m_BuildIndirectBuffer->InitDevice(true, false);
 	m_BuildIndirectBuffer->SetDebugName("SVO_BuildIndirectBuffer");
 
+	uint32_t counter = 0;
+	m_CounterBuffer->Write(&counter);
+	m_OctreeLeafCounterBuffer->Write(&counter);
+	commandList.PipelineMemoryBarrier(PIPELINE_STAGE_ALL_COMMANDS, PIPELINE_STAGE_ALL_COMMANDS);
+	if (fragmentCount == 0)
+	{
+		commandList.ExecuteIndirect(m_OctreeInitNodePipeline, m_BuildIndirectBuffer, nullptr);
+		return;
+	}
+
 	uint32_t fragmentGroupX = group_x_64(fragmentCount);
 
 	glm::uvec2 constant = glm::uvec2(fragmentCount, m_VolumeDimension);
@@ -1040,9 +1089,6 @@ void KVoxilzer::BuildOctree(KRHICommandListBase& commandList)
 	usage.binding = OCTREE_BINDING_OBJECT;
 	usage.range = sizeof(constant);
 	KRenderGlobal::DynamicConstantBufferManager.Alloc(&constant, usage);
-
-	fragmentCount = 0;
-	m_CounterBuffer->Write(&fragmentCount);
 
 	for (uint32_t i = 1; i <= m_OctreeLevel; ++i)
 	{
@@ -1055,8 +1101,6 @@ void KVoxilzer::BuildOctree(KRHICommandListBase& commandList)
 		}
 		else
 		{
-			uint32_t counter = 0;
-			m_CounterBuffer->Write(&counter);
 			commandList.ExecuteIndirect(m_OctreeInitDataPipeline, m_BuildIndirectBuffer, nullptr);
 			commandList.Execute(m_OctreeAssignDataPipeline, fragmentGroupX, 1, 1, &usage);
 		}
@@ -1089,7 +1133,7 @@ void KVoxilzer::ShrinkOctree()
 	buffers.resize(static_cast<size_t>(m_OctreeDataBuffer->GetBufferSize()));
 	m_OctreeDataBuffer->Read(buffers.data());
 	m_OctreeDataBuffer->UnInit();
-	m_OctreeDataBuffer->InitMemory(uint64_t(m_OctreeLeafCount) * OCTREE_DATA_SIZE, buffers.data());
+	m_OctreeDataBuffer->InitMemory(uint64_t(std::max(m_OctreeLeafCount, 1u)) * OCTREE_DATA_SIZE, buffers.data());
 	m_OctreeDataBuffer->InitDevice(false, false);
 	m_OctreeDataBuffer->SetDebugName("SVO_OctreeDataBuffer");
 }
@@ -1155,29 +1199,16 @@ void KVoxilzer::GenerateMipmapVolume(KRHICommandListBase& commandList)
 	uint32_t dimension = m_VolumeDimension / 4;
 	uint32_t mipmap = 1;
 
-	std::vector<IKFrameBufferPtr> targets;
-	targets.resize(ARRAY_SIZE(m_VoxelTexMipmap));
-	for (size_t i = 0; i < ARRAY_SIZE(m_VoxelTexMipmap); ++i)
-	{
-		targets[i] = m_VoxelTexMipmap[i]->GetFrameBuffer();
-	}
-
 	while (dimension > 0)
 	{
 		uint32_t group = (dimension + (VOXEL_GROUP_SIZE - 1)) / VOXEL_GROUP_SIZE;
 
-		for (size_t idx = 0; idx < ARRAY_SIZE(m_VoxelTexMipmap); ++idx)
-		{
-			glm::uvec4 constant = glm::uvec4(dimension, dimension, dimension, mipmap);
-
-			KDynamicConstantBufferUsage usage;
-			usage.binding = SHADER_BINDING_OBJECT;
-			usage.range = sizeof(constant);
-			KRenderGlobal::DynamicConstantBufferManager.Alloc(&constant, usage);
-
-			m_MipmapVolumePipeline->BindStorageImages(VOXEL_BINDING_TEXMIPMAP_OUT, targets, PF_UNKNOWN, COMPUTE_RESOURCE_OUT, mipmap, true);
-			commandList.Execute(m_MipmapVolumePipeline, group, group, group, &usage);
-		}
+		glm::uvec4 constant = glm::uvec4(dimension, dimension, dimension, mipmap);
+		KDynamicConstantBufferUsage usage;
+		usage.binding = SHADER_BINDING_OBJECT;
+		usage.range = sizeof(constant);
+		KRenderGlobal::DynamicConstantBufferManager.Alloc(&constant, usage);
+		commandList.Execute(m_MipmapVolumePipelines[mipmap - 1], group, group, group, &usage);
 
 		dimension /= 2;
 		++mipmap;
@@ -1401,7 +1432,7 @@ void KVoxilzer::SetupOctreeBuildPipeline()
 		m_OctreeInitNodePipeline->BindStorageBuffer(OCTREE_BINDING_BUILDINFO, m_BuildInfoBuffer, COMPUTE_RESOURCE_IN, true);
 		m_OctreeInitNodePipeline->Init("voxel/svo/octree/octree_init_node.comp", KShaderCompileEnvironment(), KRenderGlobal::EnableAsyncShaderCompile);
 
-		m_OctreeAllocNodePipeline->BindStorageBuffer(OCTREE_BINDING_COUNTER, m_CounterBuffer, COMPUTE_RESOURCE_IN, true);
+		m_OctreeAllocNodePipeline->BindStorageBuffer(OCTREE_BINDING_COUNTER, m_CounterBuffer, COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, true);
 		m_OctreeAllocNodePipeline->BindStorageBuffer(OCTREE_BINDING_OCTREE, m_OctreeBuffer, COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, true);
 		m_OctreeAllocNodePipeline->BindStorageBuffer(OCTREE_BINDING_BUILDINFO, m_BuildInfoBuffer, COMPUTE_RESOURCE_IN, true);
 		m_OctreeAllocNodePipeline->Init("voxel/svo/octree/octree_alloc_node.comp", KShaderCompileEnvironment(), KRenderGlobal::EnableAsyncShaderCompile);
@@ -1414,7 +1445,7 @@ void KVoxilzer::SetupOctreeBuildPipeline()
 		m_OctreeInitDataPipeline->BindStorageBuffer(OCTREE_BINDING_OCTREE, m_OctreeBuffer, COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, true);
 		m_OctreeInitDataPipeline->BindStorageBuffer(OCTREE_BINDING_OCTREE_DATA, m_OctreeDataBuffer, COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, true);
 		m_OctreeInitDataPipeline->BindStorageBuffer(OCTREE_BINDING_BUILDINFO, m_BuildInfoBuffer, COMPUTE_RESOURCE_IN, true);
-		m_OctreeInitDataPipeline->BindStorageBuffer(OCTREE_BINDING_COUNTER, m_CounterBuffer, COMPUTE_RESOURCE_IN, true);
+		m_OctreeInitDataPipeline->BindStorageBuffer(OCTREE_BINDING_COUNTER, m_OctreeLeafCounterBuffer, COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, true);
 		m_OctreeInitDataPipeline->Init("voxel/svo/octree/octree_init_data.comp", KShaderCompileEnvironment(), KRenderGlobal::EnableAsyncShaderCompile);
 
 		m_OctreeAssignDataPipeline->BindStorageBuffer(OCTREE_BINDING_OCTREE, m_OctreeBuffer, COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, true);
@@ -1433,6 +1464,8 @@ bool KVoxilzer::Init(IKRenderScene* scene, const KCamera* camera, uint32_t dimen
 	m_Camera = camera;
 	m_Width = width;
 	m_Height = height;
+	m_VoxelNeedUpdate = true;
+	m_VoxelLastUseOctree = m_VoxelUseOctree;
 
 	IKRenderDevice* renderDevice = KRenderGlobal::RenderDevice;
 
@@ -1484,12 +1517,12 @@ bool KVoxilzer::Init(IKRenderScene* scene, const KCamera* camera, uint32_t dimen
 
 	renderDevice->CreateComputePipeline(m_MipmapBasePipeline);
 	renderDevice->CreateComputePipeline(m_MipmapBaseOctreePipeline);
-	renderDevice->CreateComputePipeline(m_MipmapVolumePipeline);
 
 	renderDevice->CreateComputePipeline(m_OctreeMipmapBasePipeline);
 	renderDevice->CreateComputePipeline(m_OctreeMipmapVolumePipeline);
 
 	renderDevice->CreateStorageBuffer(m_CounterBuffer);
+	renderDevice->CreateStorageBuffer(m_OctreeLeafCounterBuffer);
 	renderDevice->CreateStorageBuffer(m_FragmentlistBuffer);
 	renderDevice->CreateStorageBuffer(m_CountOnlyBuffer);
 
@@ -1558,7 +1591,8 @@ bool KVoxilzer::UnInit()
 
 	SAFE_UNINIT(m_MipmapBasePipeline);
 	SAFE_UNINIT(m_MipmapBaseOctreePipeline);
-	SAFE_UNINIT(m_MipmapVolumePipeline);
+	SAFE_UNINIT_CONTAINER(m_MipmapVolumePipelines);
+	m_MipmapVolumePipelines.clear();
 
 	SAFE_UNINIT(m_OctreeMipmapBasePipeline);
 	SAFE_UNINIT(m_OctreeMipmapVolumePipeline);
@@ -1588,6 +1622,7 @@ bool KVoxilzer::UnInit()
 	SAFE_UNINIT(m_MipmapSampler);
 
 	SAFE_UNINIT(m_CounterBuffer);
+	SAFE_UNINIT(m_OctreeLeafCounterBuffer);
 	SAFE_UNINIT(m_FragmentlistBuffer);
 	SAFE_UNINIT(m_CountOnlyBuffer);
 

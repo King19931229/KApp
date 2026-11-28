@@ -73,6 +73,10 @@ protected:
 	std::vector<KClipmapVoxelizationRegion> m_UpdateRegions;
 	bool m_ForceUpdate;
 	bool m_NeedUpdate;
+	bool m_RadianceDirty;
+	bool m_PropagationDirty;
+	bool m_UpdateSource;
+	bool m_UpdateRadiance;
 
 	glm::mat4 m_ViewProjectionMatrix[3];
 	glm::mat4 m_ViewProjectionMatrixI[3];
@@ -114,7 +118,13 @@ public:
 	void SetUpdateRegions(const std::vector<KClipmapVoxelizationRegion>& regions);
 	void MarkUpdateFinish();
 	void SetForceUpdate(bool forceUpdate);
+	bool IsUpdateTime() const;
 	bool IsUpdateFrame() const;
+	void MarkRadianceDirty();
+	void MarkPropagationDirty();
+	void PrepareRadianceUpdate();
+	bool NeedSourceUpdate() const { return m_UpdateSource; }
+	bool NeedRadianceUpdate() const { return m_UpdateRadiance; }
 
 	const std::vector<KClipmapVoxelizationRegion>& GetUpdateRegions() const { return m_UpdateRegions; }
 	bool NeedUpdate() const { return m_NeedUpdate; }
@@ -141,6 +151,7 @@ protected:
 	IKRenderTargetPtr m_VoxelNormal;
 	IKRenderTargetPtr m_VoxelEmissive;
 	IKRenderTargetPtr m_VoxelRadiance;
+	IKRenderTargetPtr m_VoxelRadianceSource;
 	IKRenderTargetPtr m_VoxelVisibility;
 
 	uint32_t m_VolumeDimension;
@@ -173,10 +184,13 @@ protected:
 	IKComputePipelinePtr m_ClearRadiancePipeline;
 	IKComputePipelinePtr m_InjectRadiancePipeline;
 	IKComputePipelinePtr m_InjectPropagationPipeline;
+	IKComputePipelinePtr m_CopyRadiancePipeline;
 
 	IKComputePipelinePtr m_DownSampleVisibilityPipeline;
 	IKComputePipelinePtr m_DownSampleRadiancePipeline;
 	IKComputePipelinePtr m_WrapRadianceBorderPipeline;
+	IKComputePipelinePtr m_DownSampleRadianceSourcePipeline;
+	IKComputePipelinePtr m_WrapRadianceSourceBorderPipeline;
 
 	KShaderRef m_QuadVS;
 	KShaderRef m_LightPassFS;
@@ -220,6 +234,7 @@ protected:
 	std::vector<KClipmapVoxelizationRegion> ComputeRevoxelizationRegionsByMovement(uint32_t levelIdx, const glm::ivec3& movement);
 
 	void UpdateVoxelBuffer(KRHICommandList& commandList);
+	bool PrepareVoxelUpdates();
 	void UpdateInternal(KRHICommandList& commandList);
 	void ApplyUpdateMovement();
 	void ClearUpdateRegion(KRHICommandList& commandList);
@@ -228,9 +243,10 @@ protected:
 	void UpdateRadiance(KRHICommandList& commandList);
 	void InjectRadiance(KRHICommandList& commandList);
 	void InjectPropagation(KRHICommandList& commandList);
+	void CopyRadianceSource(KRHICommandList& commandList);
 	void DownSampleVisibility(KRHICommandList& commandList);
-	void DownSampleRadiance(KRHICommandList& commandList);
-	void WrapBorder(KRHICommandList& commandList);
+	void DownSampleRadiance(KRHICommandList& commandList, bool source = false);
+	void WrapBorder(KRHICommandList& commandList, bool source = false);
 
 	bool UpdateLightingResult(KRHICommandList& commandList);
 public:

@@ -2,17 +2,27 @@
 #include "Internal/KRenderGlobal.h"
 #include "KBase/Interface/IKLog.h"
 #include "Product/Shaders/dof/tile_config.h"
+#include <algorithm>
 #include <cmath>
+#include <limits>
 
 KDepthOfField::KDepthOfField()
 	: m_FStop(1.0f)
 	, m_FocusDistance(200.0f)
-	, m_FocalLength(1.0f)
+	, m_FocalLength(10.0f)
 	, m_DebugView(DV_FINAL)
 	, m_Enable(true)
 	, m_NearTileEnable(true)
 	, m_BracketedEnable(true)
 	, m_UseComputePreprocess(true)
+	, m_FocusMode(KDOFFocusMode::AutoFocusGPU)
+	, m_PrevFocusMode(KDOFFocusMode::Manual)
+	, m_FrameDeltaTime(0.0f)
+	, m_AutoFocusReady(false)
+	, m_AutoFocusActive(false)
+	, m_AutoFocusUseCounter(0)
+	, m_CameraCutGeneration(0)
+	, m_ManualResetGeneration(0)
 	, m_NearTileSupported(false)
 	, m_ComputePreprocessSupported(false)
 	, m_BracketedSupported(false)
@@ -127,9 +137,210 @@ bool KDepthOfField::EnsureBlurShaders(bool bracketed, bool nearTile)
 	return bool(nearH) && bool(nearV) && bool(farH) && bool(farV);
 }
 
+bool KDepthOfField::EnsureAutoFocusResources()
+{
+	struct AutoFocusViewGPUData
+	{
+		glm::vec4 dofParams;
+		float focusU;
+		uint32_t focusState;
+		uint32_t initialized;
+		uint32_t lastValidCount;
+	};
+	static_assert(sizeof(AutoFocusViewGPUData) == 32, "AutoFocusViewGPUData must match GLSL std430 layout");
+
+	if (!m_AutoFocusBuffer)
+	{
+		KRenderGlobal::RenderDevice->CreateStorageBuffer(m_AutoFocusBuffer);
+		if (!m_AutoFocusBuffer)
+		{
+			m_AutoFocusFallbackReason = "AutoFocus SSBO allocation failed";
+			return false;
+		}
+		std::vector<AutoFocusViewGPUData> zeroInit(DOF_AUTOFOCUS_MAX_VIEWS);
+		memset(zeroInit.data(), 0, zeroInit.size() * sizeof(AutoFocusViewGPUData));
+		if (!m_AutoFocusBuffer->InitMemory(zeroInit.size() * sizeof(AutoFocusViewGPUData), zeroInit.data()) ||
+			!m_AutoFocusBuffer->InitDevice(false, false, true))
+		{
+			SAFE_UNINIT(m_AutoFocusBuffer);
+			m_AutoFocusFallbackReason = "AutoFocus SSBO device init failed";
+			return false;
+		}
+		m_AutoFocusBuffer->SetDebugName("DOF_AutoFocusBuffer");
+	}
+
+	if (!m_AutoFocusPipeline)
+	{
+		KRenderGlobal::RenderDevice->CreateComputePipeline(m_AutoFocusPipeline);
+		if (!m_AutoFocusPipeline)
+		{
+			m_AutoFocusFallbackReason = "AutoFocus compute pipeline allocation failed";
+			return false;
+		}
+		m_AutoFocusPipeline->BindSampler(
+			SHADER_BINDING_TEXTURE0,
+			KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET0)->GetFrameBuffer(),
+			KRenderGlobal::GBuffer.GetSampler(),
+			true);
+		m_AutoFocusPipeline->BindStorageBuffer(
+			SHADER_BINDING_TEXTURE5,
+			m_AutoFocusBuffer,
+			COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT,
+			false);
+		m_AutoFocusPipeline->BindUniformBuffer(
+			CBT_CAMERA,
+			KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_CAMERA));
+		m_AutoFocusPipeline->BindDynamicUniformBuffer(SHADER_BINDING_OBJECT);
+		if (!m_AutoFocusPipeline->Init("dof/autofocus.comp", KShaderCompileEnvironment(), false))
+		{
+			SAFE_UNINIT(m_AutoFocusPipeline);
+			m_AutoFocusFallbackReason = "AutoFocus compute shader/pipeline init failed";
+			return false;
+		}
+		m_AutoFocusPipeline->SetDebugName("DOF_AutoFocusPipeline");
+	}
+
+	m_AutoFocusReady = true;
+	m_AutoFocusFallbackReason.clear();
+	return true;
+}
+
+uint32_t KDepthOfField::AcquireAutoFocusViewSlot(const KCamera* camera, uint32_t& outResetMode)
+{
+	uint32_t slotIndex = DOF_AUTOFOCUS_MAX_VIEWS;
+	uint32_t lruIndex = 0;
+	uint64_t lruStamp = std::numeric_limits<uint64_t>::max();
+	for (uint32_t i = 0; i < DOF_AUTOFOCUS_MAX_VIEWS; ++i)
+	{
+		if (m_AutoFocusViews[i].camera == camera && m_AutoFocusViews[i].initialized)
+		{
+			slotIndex = i;
+			break;
+		}
+		if (!m_AutoFocusViews[i].initialized && slotIndex == DOF_AUTOFOCUS_MAX_VIEWS)
+		{
+			slotIndex = i;
+		}
+		if (m_AutoFocusViews[i].lastUsedStamp < lruStamp)
+		{
+			lruStamp = m_AutoFocusViews[i].lastUsedStamp;
+			lruIndex = i;
+		}
+	}
+
+	bool newlyAssigned = false;
+	if (slotIndex == DOF_AUTOFOCUS_MAX_VIEWS)
+	{
+		slotIndex = lruIndex;
+		newlyAssigned = true;
+	}
+	else if (!m_AutoFocusViews[slotIndex].initialized || m_AutoFocusViews[slotIndex].camera != camera)
+	{
+		newlyAssigned = true;
+	}
+
+	AutoFocusViewSlot& slot = m_AutoFocusViews[slotIndex];
+	if (newlyAssigned)
+	{
+		slot.camera = camera;
+		slot.initialized = false;
+		slot.pendingManualReset = true;
+		slot.pendingCameraCut = false;
+	}
+
+	if (slot.pendingCameraCut || slot.cameraCutGeneration != m_CameraCutGeneration)
+	{
+		outResetMode = DOF_AUTOFOCUS_RESET_CAMERA_CUT;
+	}
+	else if (!slot.initialized || slot.pendingManualReset || slot.manualResetGeneration != m_ManualResetGeneration)
+	{
+		outResetMode = DOF_AUTOFOCUS_RESET_MANUAL;
+	}
+	else
+	{
+		outResetMode = DOF_AUTOFOCUS_RESET_NONE;
+	}
+
+	slot.initialized = true;
+	slot.pendingCameraCut = false;
+	slot.pendingManualReset = false;
+	slot.cameraCutGeneration = m_CameraCutGeneration;
+	slot.manualResetGeneration = m_ManualResetGeneration;
+	slot.lastUsedStamp = ++m_AutoFocusUseCounter;
+	return slotIndex;
+}
+
+void KDepthOfField::SetFocusMode(KDOFFocusMode mode)
+{
+	if (m_FocusMode != mode)
+	{
+		m_FocusMode = mode;
+		if (m_FocusMode == KDOFFocusMode::AutoFocusGPU)
+		{
+			++m_ManualResetGeneration;
+		}
+	}
+}
+
+void KDepthOfField::ResetAutoFocus(bool cameraCut)
+{
+	if (cameraCut)
+	{
+		++m_CameraCutGeneration;
+	}
+	else
+	{
+		++m_ManualResetGeneration;
+		for (uint32_t i = 0; i < DOF_AUTOFOCUS_MAX_VIEWS; ++i)
+		{
+			m_AutoFocusViews[i].pendingCameraCut = false;
+		}
+	}
+}
+
+void KDepthOfField::NotifyCameraCut(const KCamera* camera)
+{
+	if (!camera)
+	{
+		++m_CameraCutGeneration;
+		return;
+	}
+	uint32_t emptyIndex = DOF_AUTOFOCUS_MAX_VIEWS;
+	uint32_t lruIndex = 0;
+	uint64_t lruStamp = std::numeric_limits<uint64_t>::max();
+	for (uint32_t i = 0; i < DOF_AUTOFOCUS_MAX_VIEWS; ++i)
+	{
+		if (m_AutoFocusViews[i].camera == camera && m_AutoFocusViews[i].initialized)
+		{
+			m_AutoFocusViews[i].pendingCameraCut = true;
+			return;
+		}
+		if (!m_AutoFocusViews[i].initialized && emptyIndex == DOF_AUTOFOCUS_MAX_VIEWS)
+		{
+			emptyIndex = i;
+		}
+		if (m_AutoFocusViews[i].lastUsedStamp < lruStamp)
+		{
+			lruStamp = m_AutoFocusViews[i].lastUsedStamp;
+			lruIndex = i;
+		}
+	}
+	// 相机尚未分配槽位时，仅为其预占槽位并标记待吸附，避免误触发其他视图的全局 CameraCut。
+	const uint32_t slotIndex = (emptyIndex != DOF_AUTOFOCUS_MAX_VIEWS) ? emptyIndex : lruIndex;
+	AutoFocusViewSlot& slot = m_AutoFocusViews[slotIndex];
+	slot.camera = camera;
+	slot.initialized = true;
+	slot.pendingCameraCut = true;
+	slot.pendingManualReset = false;
+	slot.cameraCutGeneration = m_CameraCutGeneration;
+	slot.manualResetGeneration = m_ManualResetGeneration;
+	slot.lastUsedStamp = ++m_AutoFocusUseCounter;
+}
+
 bool KDepthOfField::ConfigureBlurPipeline(IKPipelinePtr& pipeline, const KShaderRef& fragment,
 	IKFrameBufferPtr tex0, IKFrameBufferPtr tex1, IKFrameBufferPtr tex2, IKFrameBufferPtr tex3,
-	IKFrameBufferPtr colorMean, IKRenderPassPtr renderPass, bool dynamicWrite)
+	IKFrameBufferPtr colorMean, IKRenderPassPtr renderPass, bool dynamicWrite,
+	IKStorageBufferPtr autoFocusBuffer)
 {
 	if (!m_QuadVS || !fragment || !renderPass)
 	{
@@ -162,6 +373,10 @@ bool KDepthOfField::ConfigureBlurPipeline(IKPipelinePtr& pipeline, const KShader
 		{
 			pipeline->SetSampler(bindings[i], textures[i], sampler, dynamicWrite);
 		}
+	}
+	if (autoFocusBuffer)
+	{
+		pipeline->SetStorageBuffer(SHADER_BINDING_TEXTURE5, ST_FRAGMENT, autoFocusBuffer);
 	}
 	pipeline->SetConstantBuffer(CBT_CAMERA, ST_VERTEX | ST_FRAGMENT, KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_CAMERA));
 
@@ -205,8 +420,23 @@ bool KDepthOfField::Init(uint32_t width, uint32_t height, float ratio)
 	m_NearTileFallbackReason.clear();
 	m_ComputePreprocessFallbackReason.clear();
 	m_BracketedFallbackReason.clear();
+	m_AutoFocusReady = false;
+	m_AutoFocusActive = false;
+	m_AutoFocusFallbackReason.clear();
+	m_PrevFocusMode = KDOFFocusMode::Manual;
+	m_AutoFocusUseCounter = 0;
+	m_CameraCutGeneration = 0;
+	m_ManualResetGeneration = 0;
+	for (uint32_t i = 0; i < DOF_AUTOFOCUS_MAX_VIEWS; ++i)
+	{
+		m_AutoFocusViews[i] = AutoFocusViewSlot();
+	}
 
 	QueryCapabilities();
+	if (!EnsureAutoFocusResources())
+	{
+		return false;
+	}
 
 	KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "shading/quad.vert", m_QuadVS, KRenderGlobal::EnableAsyncShaderCompile);
 	KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "dof/preprocess.frag", m_PreprocessFS, KRenderGlobal::EnableAsyncShaderCompile);
@@ -243,6 +473,8 @@ bool KDepthOfField::UnInit()
 	m_LastFrameFence.reset();
 	m_DebugDrawer.UnInit();
 
+	SAFE_UNINIT(m_AutoFocusPipeline);
+	SAFE_UNINIT(m_AutoFocusBuffer);
 	SAFE_UNINIT(m_NearTileMaxPipeline);
 	SAFE_UNINIT(m_PreprocessComputePipeline);
 	SAFE_UNINIT(m_PreprocessComputeTilePipeline);
@@ -296,6 +528,13 @@ bool KDepthOfField::UnInit()
 	m_ComputePreprocessTileReady = false;
 	m_ComputePreprocessActive = false;
 	m_BracketedActive = false;
+	m_AutoFocusReady = false;
+	m_AutoFocusActive = false;
+	m_PrevFocusMode = KDOFFocusMode::Manual;
+	for (uint32_t i = 0; i < DOF_AUTOFOCUS_MAX_VIEWS; ++i)
+	{
+		m_AutoFocusViews[i] = AutoFocusViewSlot();
+	}
 	m_InputWidth = 0;
 	m_InputHeight = 0;
 	m_Width = 0;
@@ -547,7 +786,7 @@ bool KDepthOfField::RebuildWorkingResources(uint32_t width, uint32_t height, uin
 		ConfigureBlurPipeline(newPreprocessPipeline, m_PreprocessFS,
 			KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET0)->GetFrameBuffer(),
 			KRenderGlobal::GBuffer.GetSceneColor()->GetFrameBuffer(),
-			nullptr, nullptr, nullptr, newPreprocessPass, false) &&
+			nullptr, nullptr, nullptr, newPreprocessPass, false, m_AutoFocusBuffer) &&
 		ConfigureBlurPipeline(newNearHorizontalPipeline, nearHFS,
 			newNearColor->GetFrameBuffer(), nullptr, nullptr, nullptr, nullptr,
 			newNearHorizontalPass, false) &&
@@ -565,7 +804,7 @@ bool KDepthOfField::RebuildWorkingResources(uint32_t width, uint32_t height, uin
 			KRenderGlobal::GBuffer.GetSceneColor()->GetFrameBuffer(),
 			KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET0)->GetFrameBuffer(),
 			newNearColor->GetFrameBuffer(), newFarColor->GetFrameBuffer(),
-			newNearColor->GetFrameBuffer(), newCompositePass, true);
+			newNearColor->GetFrameBuffer(), newCompositePass, true, m_AutoFocusBuffer);
 
 	if (!pipelinesOk)
 	{
@@ -750,6 +989,7 @@ bool KDepthOfField::InitializeNearTile()
 	}
 	newTileMaxPipeline->BindSampler(SHADER_BINDING_TEXTURE0, KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET0)->GetFrameBuffer(), KRenderGlobal::GBuffer.GetSampler(), true);
 	newTileMaxPipeline->BindStorageImage(SHADER_BINDING_TEXTURE1, newTileCoC->GetFrameBuffer(), PF_R16_FLOAT, COMPUTE_RESOURCE_OUT, 0, true);
+	newTileMaxPipeline->BindStorageBuffer(SHADER_BINDING_TEXTURE5, m_AutoFocusBuffer, COMPUTE_RESOURCE_IN, false);
 	newTileMaxPipeline->BindUniformBuffer(CBT_CAMERA, KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_CAMERA));
 	newTileMaxPipeline->BindDynamicUniformBuffer(SHADER_BINDING_OBJECT);
 	if (!newTileMaxPipeline->Init("dof/near_tile_max.comp", KShaderCompileEnvironment(), false))
@@ -859,6 +1099,7 @@ bool KDepthOfField::EnsureComputePreprocessPipeline(bool withTile)
 		env.macros.push_back({ "DOF_NEAR_TILE", "1" });
 		newPipeline->BindStorageImage(SHADER_BINDING_TEXTURE4, m_NearTileCoC->GetFrameBuffer(), PF_R16_FLOAT, COMPUTE_RESOURCE_OUT, 0, true);
 	}
+	newPipeline->BindStorageBuffer(SHADER_BINDING_TEXTURE5, m_AutoFocusBuffer, COMPUTE_RESOURCE_IN, false);
 	newPipeline->BindUniformBuffer(CBT_CAMERA, KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_CAMERA));
 	newPipeline->BindDynamicUniformBuffer(SHADER_BINDING_OBJECT);
 
@@ -1081,7 +1322,7 @@ bool KDepthOfField::Reload()
 		}
 	}
 	for (IKComputePipelinePtr* compute : {
-		&m_NearTileMaxPipeline, &m_PreprocessComputePipeline, &m_PreprocessComputeTilePipeline })
+		&m_AutoFocusPipeline, &m_NearTileMaxPipeline, &m_PreprocessComputePipeline, &m_PreprocessComputeTilePipeline })
 	{
 		if (*compute)
 		{
@@ -1111,6 +1352,15 @@ bool KDepthOfField::Resize(uint32_t width, uint32_t height)
 	if (!RebuildWorkingResources(width, height, m_DownsampleFactor, m_BracketedActive, false))
 	{
 		return false;
+	}
+
+	if (m_AutoFocusPipeline)
+	{
+		m_AutoFocusPipeline->BindSampler(
+			SHADER_BINDING_TEXTURE0,
+			KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET0)->GetFrameBuffer(),
+			KRenderGlobal::GBuffer.GetSampler(),
+			true);
 	}
 
 	if (m_NearTileEnable && !m_NearTileSupported)
@@ -1161,10 +1411,11 @@ bool KDepthOfField::DebugRender(IKRenderPassPtr renderPass, KRHICommandList& com
 bool KDepthOfField::Execute(KRHICommandList& commandList)
 {
 	const KCamera* camera = KRenderGlobal::Renderer.GetCamera();
+	const bool wantAutoFocus = (m_FocusMode == KDOFFocusMode::AutoFocusGPU);
 	bool validParams =
 		std::isfinite(m_FStop) && m_FStop > 0.0f &&
-		std::isfinite(m_FocusDistance) && std::isfinite(m_FocalLength) &&
-		m_FocalLength > 0.0f && m_FocusDistance > m_FocalLength &&
+		std::isfinite(m_FocalLength) && m_FocalLength > 0.0f &&
+		(wantAutoFocus || (std::isfinite(m_FocusDistance) && m_FocusDistance > m_FocalLength)) &&
 		m_InputWidth > 0 && m_InputHeight > 0 && m_Width > 0 && m_Height > 0 &&
 		m_InputWidth == KRenderGlobal::GBuffer.GetWidth() &&
 		m_InputHeight == KRenderGlobal::GBuffer.GetHeight() &&
@@ -1172,6 +1423,18 @@ bool KDepthOfField::Execute(KRHICommandList& commandList)
 
 	float opticalCoCScale = 0.0f;
 	float radiusScaleFull = 0.0f;
+	float apertureTimesFocal = 0.0f;
+	float pixelsPerUnit = 0.0f;
+	float minFocusF = 0.0f;
+	float maxFocusF = 0.0f;
+	float initialManualS = 0.0f;
+	bool useAutoFocus = false;
+
+	if (!wantAutoFocus)
+	{
+		m_AutoFocusFallbackReason.clear();
+	}
+
 	if (validParams)
 	{
 		const float fovY = camera->GetFov();
@@ -1209,12 +1472,77 @@ bool KDepthOfField::Execute(KRHICommandList& commandList)
 			const double focalLength = m_FocalLength;
 			const double aperture = focalLength / m_FStop;
 			const double sensorHeight = 2.0 * focalLength * std::tan(double(fovY) * 0.5);
-			opticalCoCScale = float(aperture * focalLength / (double(m_FocusDistance) - focalLength));
-			// 0.5 将光学 CoC 直径变成半径，与后续工作分辨率降采样无关。
-			radiusScaleFull = float((aperture * focalLength / (double(m_FocusDistance) - focalLength)) *
-				0.5 * double(m_InputHeight) / sensorHeight);
-			validParams = std::isfinite(opticalCoCScale) && opticalCoCScale > 0.0f &&
-				std::isfinite(radiusScaleFull) && radiusScaleFull > 0.0f;
+			const double afTerm = aperture * focalLength;
+			const double ppuTerm = 0.5 * double(m_InputHeight) / sensorHeight;
+			apertureTimesFocal = float(afTerm);
+			pixelsPerUnit = float(ppuTerm);
+			validParams = std::isfinite(apertureTimesFocal) && apertureTimesFocal > 0.0f &&
+				std::isfinite(pixelsPerUnit) && pixelsPerUnit > 0.0f;
+
+			if (validParams && !wantAutoFocus)
+			{
+				opticalCoCScale = float(afTerm / (double(m_FocusDistance) - focalLength));
+				// 0.5 将光学 CoC 直径变成半径，与后续工作分辨率降采样无关。
+				radiusScaleFull = float((afTerm / (double(m_FocusDistance) - focalLength)) * ppuTerm);
+				validParams = std::isfinite(opticalCoCScale) && opticalCoCScale > 0.0f &&
+					std::isfinite(radiusScaleFull) && radiusScaleFull > 0.0f;
+			}
+			else if (validParams && wantAutoFocus)
+			{
+				if (!m_AutoFocusReady || !m_AutoFocusBuffer || !m_AutoFocusPipeline)
+				{
+					m_AutoFocusFallbackReason = "AutoFocus compute resources unavailable";
+					validParams = false;
+				}
+				else
+				{
+					const KDOFAutoFocusSettings& af = m_AutoFocusSettings;
+					const bool settingsFinite =
+						std::isfinite(af.focusUV.x) && std::isfinite(af.focusUV.y) &&
+						std::isfinite(af.sampleStride1080P) && af.sampleStride1080P > 0.0f &&
+						std::isfinite(af.smoothTime) &&
+						std::isfinite(af.startThreshold) && std::isfinite(af.snapThreshold) &&
+						af.snapThreshold > 0.0f && af.startThreshold > af.snapThreshold &&
+						std::isfinite(af.minFocusDistance) && af.minFocusDistance >= 0.0f &&
+						std::isfinite(af.maxFocusDistance) && af.maxFocusDistance >= 0.0f &&
+						std::isfinite(m_FrameDeltaTime) && m_FrameDeltaTime >= 0.0f;
+					if (!settingsFinite)
+					{
+						m_AutoFocusFallbackReason = "Invalid AutoFocus thresholds, range, or deltaTime";
+						validParams = false;
+					}
+					else
+					{
+						const double margin = std::max(1e-3, 1e-4 * std::max(double(nearPlane), focalLength));
+						const double effectiveMin = std::max(
+							double(af.minFocusDistance),
+							std::max(double(nearPlane) + margin, focalLength + margin));
+						const double effectiveMax = af.maxFocusDistance > 0.0f
+							? double(af.maxFocusDistance)
+							: std::max(effectiveMin, double(farPlane));
+						minFocusF = float(effectiveMin);
+						if (!(minFocusF > m_FocalLength))
+						{
+							minFocusF = std::nextafter(m_FocalLength, std::numeric_limits<float>::infinity());
+						}
+						maxFocusF = float(effectiveMax);
+						if (!std::isfinite(minFocusF) || !std::isfinite(maxFocusF) || !(minFocusF > m_FocalLength) ||
+							!(maxFocusF >= minFocusF) || !std::isfinite(1.0f / minFocusF) || !std::isfinite(1.0f / maxFocusF))
+						{
+							m_AutoFocusFallbackReason = "Invalid AutoFocus focus distance range (maxFocus < minFocus)";
+							validParams = false;
+						}
+						else
+						{
+							initialManualS = std::isfinite(m_FocusDistance)
+								? std::max(minFocusF, std::min(m_FocusDistance, maxFocusF))
+								: minFocusF;
+							useAutoFocus = m_Enable;
+							m_AutoFocusFallbackReason.clear();
+						}
+					}
+				}
+			}
 		}
 	}
 
@@ -1225,18 +1553,34 @@ bool KDepthOfField::Execute(KRHICommandList& commandList)
 	else
 	{
 		opticalCoCScale = radiusScaleFull = 0.0f;
+		useAutoFocus = false;
 		if (!m_InvalidParamsLogged)
 		{
-			KG_LOGW(LM_RENDER, "Invalid DOF optics, projection or resolution; disable blur until valid");
+			KG_LOGW(LM_RENDER, "Invalid DOF optics, projection, AutoFocus settings or resolution; disable blur until valid");
 			m_InvalidParamsLogged = true;
 		}
+	}
+
+	if (wantAutoFocus && m_PrevFocusMode != KDOFFocusMode::AutoFocusGPU)
+	{
+		// Manual -> AutoFocusGPU：默认从当前手动 FocusDistance 初始化历史并置为 Idle。
+		++m_ManualResetGeneration;
+	}
+	m_PrevFocusMode = m_FocusMode;
+	m_AutoFocusActive = useAutoFocus;
+
+	uint32_t autoFocusViewIndex = 0;
+	uint32_t autoFocusResetMode = DOF_AUTOFOCUS_RESET_NONE;
+	if (useAutoFocus)
+	{
+		autoFocusViewIndex = AcquireAutoFocusViewSlot(camera, autoFocusResetMode);
 	}
 
 	struct ObjectData
 	{
 		// 对焦距离、光学 CoC 直径系数、全分辨率像素半径系数、工作/全分辨率像素尺度。
 		glm::vec4 dofParams;
-		// 参数有效标志、诊断视图（0 为最终图像）、Tile 生效标志、保留；与 GLSL 保持 16 字节对齐。
+		// 参数有效标志、诊断视图（0 为最终图像）、Tile 生效标志、AutoFocus 槽位索引（0 为 Manual，>=1 为 viewIndex+1）。
 		glm::vec4 dofParams2;
 	} objectData = {};
 
@@ -1249,7 +1593,11 @@ bool KDepthOfField::Execute(KRHICommandList& commandList)
 		(useTile ? (m_ComputePreprocessTileReady && bool(m_PreprocessComputeTilePipeline))
 		         : (m_ComputePreprocessReady && bool(m_PreprocessComputePipeline)));
 	const bool useBracketed = m_BracketedActive && bool(m_HorizontalColorMean);
-	objectData.dofParams2 = glm::vec4(m_Enable && validParams ? 1.0f : 0.0f, float(debugView), useTile ? 1.0f : 0.0f, 0.0f);
+	objectData.dofParams2 = glm::vec4(
+		m_Enable && validParams ? 1.0f : 0.0f,
+		float(debugView),
+		useTile ? 1.0f : 0.0f,
+		useAutoFocus ? float(autoFocusViewIndex + 1u) : 0.0f);
 
 	auto ToReadOnly = [&](IKRenderTargetPtr& target)
 	{
@@ -1348,6 +1696,53 @@ bool KDepthOfField::Execute(KRHICommandList& commandList)
 
 	if (m_Enable)
 	{
+		if (useAutoFocus)
+		{
+			struct AutoFocusObjectData
+			{
+				glm::vec4 sampleAndTime;
+				glm::vec4 controlParams;
+				glm::vec4 opticsParams;
+				glm::vec4 viewAndReset;
+			} afData = {};
+			afData.sampleAndTime = glm::vec4(
+				m_AutoFocusSettings.focusUV.x,
+				m_AutoFocusSettings.focusUV.y,
+				m_AutoFocusSettings.sampleStride1080P,
+				m_FrameDeltaTime);
+			afData.controlParams = glm::vec4(
+				m_AutoFocusSettings.smoothTime,
+				m_AutoFocusSettings.startThreshold,
+				m_AutoFocusSettings.snapThreshold,
+				initialManualS);
+			afData.opticsParams = glm::vec4(
+				minFocusF,
+				maxFocusF,
+				m_FocalLength,
+				apertureTimesFocal);
+			afData.viewAndReset = glm::vec4(
+				pixelsPerUnit,
+				1.0f / float(m_DownsampleFactor),
+				float(autoFocusViewIndex),
+				float(autoFocusResetMode));
+
+			// 覆盖跨帧 WAR（上帧 Composite/Preprocess 读 -> 本帧 AutoFocus 写）及 RAW/WAW（上帧 AutoFocus 写 -> 本帧读写）。
+			commandList.PipelineMemoryBarrier(
+				PIPELINE_STAGE_COMPUTE_SHADER | PIPELINE_STAGE_FRAGMENT_SHADER,
+				PIPELINE_STAGE_COMPUTE_SHADER);
+			commandList.BeginDebugMarker("DOF_AutoFocus", glm::vec4(1));
+			KDynamicConstantBufferUsage afUsage;
+			afUsage.binding = SHADER_BINDING_OBJECT;
+			afUsage.range = sizeof(afData);
+			KRenderGlobal::DynamicConstantBufferManager.Alloc(&afData, afUsage);
+			commandList.Execute(m_AutoFocusPipeline, 1, 1, 1, &afUsage);
+			commandList.EndDebugMarker();
+			// 覆盖同帧 RAW（本帧 AutoFocus 写 -> 本帧 Preprocess CS/PS、TileMAX CS、Composite PS 读）。
+			commandList.PipelineMemoryBarrier(
+				PIPELINE_STAGE_COMPUTE_SHADER,
+				PIPELINE_STAGE_COMPUTE_SHADER | PIPELINE_STAGE_FRAGMENT_SHADER);
+		}
+
 		const uint32_t tileGroupsX = (m_Width + DOF_TILE_SIZE - 1) / DOF_TILE_SIZE;
 		const uint32_t tileGroupsY = (m_Height + DOF_TILE_SIZE - 1) / DOF_TILE_SIZE;
 

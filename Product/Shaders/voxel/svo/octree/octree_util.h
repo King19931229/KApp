@@ -64,12 +64,14 @@ bool GetOctreeNodeIndex(in uvec3 level_pos, in uint level_dim, in uint node_size
 			break;
 	}
 
-	return level_dim == node_size;
+	uint node = uOctree[idx];
+	uint mask = node_size == 1u ? 0xc0000000u : 0x80000000u;
+	return level_dim == node_size && (node & mask) == mask;
 }
 
 bool GetOctreeDataIndex(in uvec3 level_pos, in uint level_dim, out uint idx)
 {
-	if (GetOctreeIndex(level_pos, level_dim, idx))
+	if (GetOctreeIndex(level_pos, level_dim, idx) && (uOctree[idx] & 0xc0000000u) == 0xc0000000u)
 	{
 		idx = uOctree[idx] & 0x3fffffffu;
 		return true;

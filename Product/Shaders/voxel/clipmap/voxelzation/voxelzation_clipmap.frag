@@ -46,22 +46,16 @@ uniform Object_DYN_UNIFORM
 void imageAtomicRGBA8Avg__##grid(ivec3 coords, vec4 value)\
 {\
 	value.rgb *= 255.0;\
-	uint newVal = convVec4ToRGBA8(value);\
-	uint prevStoredVal = 0;\
-	uint curStoredVal;\
-	uint numIterations = 0;\
-\
-	while((curStoredVal = imageAtomicCompSwap(grid, coords, prevStoredVal, newVal))\
-			!= prevStoredVal\
-			&& numIterations < 4)\
+	uint previous = 0u;\
+	for (;;)\
 	{\
-		prevStoredVal = curStoredVal;\
-		vec4 rval = convRGBA8ToVec4(curStoredVal);\
-		rval.rgb = (rval.rgb * rval.a);\
-		vec4 curValF = rval + value;\
-		curValF.rgb /= curValF.a;\
-		newVal = convVec4ToRGBA8(curValF);\
-		++numIterations;\
+		vec4 stored = convRGBA8ToVec4(previous);\
+		float count = stored.a + 1.0;\
+		vec4 average = vec4((stored.rgb * stored.a + value.rgb) / count, min(count, 255.0));\
+		uint next = convVec4ToRGBA8(average);\
+		uint observed = imageAtomicCompSwap(grid, coords, previous, next);\
+		if (observed == previous) break;\
+		previous = observed;\
 	}\
 }
 

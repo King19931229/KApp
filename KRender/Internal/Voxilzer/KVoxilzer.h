@@ -90,6 +90,7 @@ protected:
 	IKSamplerPtr m_MipmapSampler;
 
 	IKStorageBufferPtr m_CounterBuffer;
+	IKStorageBufferPtr m_OctreeLeafCounterBuffer;
 	IKStorageBufferPtr m_FragmentlistBuffer;
 	IKStorageBufferPtr m_CountOnlyBuffer;
 
@@ -148,7 +149,7 @@ protected:
 
 	IKComputePipelinePtr m_MipmapBasePipeline;
 	IKComputePipelinePtr m_MipmapBaseOctreePipeline;
-	IKComputePipelinePtr m_MipmapVolumePipeline;
+	std::vector<IKComputePipelinePtr> m_MipmapVolumePipelines;
 
 	IKComputePipelinePtr m_OctreeMipmapBasePipeline;
 	IKComputePipelinePtr m_OctreeMipmapVolumePipeline;

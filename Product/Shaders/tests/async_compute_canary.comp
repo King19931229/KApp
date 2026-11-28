@@ -1,0 +1,23 @@
+layout(local_size_x = 1) in;
+
+layout(binding = 0) uniform sampler2D frameImage;
+layout(binding = 1, std430) buffer Results
+{
+	uint values[];
+};
+layout(binding = 2, std140) uniform FrameInfo
+{
+	uint frameIndex;
+	uint iterations;
+};
+
+void main()
+{
+	uint hash = frameIndex;
+	for (uint i = 0; i < iterations; ++i)
+	{
+		hash = hash * 1664525u + 1013904223u;
+	}
+	values[2u * frameIndex] = uint(texelFetch(frameImage, ivec2(0), 0).r);
+	values[2u * frameIndex + 1u] = hash;
+}

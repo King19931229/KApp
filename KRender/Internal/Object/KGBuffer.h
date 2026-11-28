@@ -65,7 +65,7 @@ public:
 	inline IKRenderTargetPtr GetSceneColor() { return m_SceneColorTarget; }
 	inline IKRenderTargetPtr GetAOTarget() { return m_AOTarget; }
 	inline IKSamplerPtr GetSampler() { return m_GBufferSampler; }
-	inline IKSamplerPtr GetClosestSampler() { return m_GBufferSampler; }
+	inline IKSamplerPtr GetClosestSampler() { return m_GBufferClosestSampler; }
 
 	inline uint32_t GetWidth() const { return m_Width; }
 	inline uint32_t GetHeight() const { return m_Height; }

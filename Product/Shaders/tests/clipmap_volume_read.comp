@@ -1,0 +1,23 @@
+layout(local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
+#ifdef CLIPMAP_SCREEN
+layout(binding = 0) uniform sampler2D source;
+#else
+layout(binding = 0) uniform sampler3D source;
+#endif
+layout(std430, binding = 1) writeonly buffer Output { vec4 values[]; } outputData;
+void main()
+{
+	ivec3 pos = ivec3(gl_GlobalInvocationID);
+#ifdef CLIPMAP_SCREEN
+	ivec3 size = ivec3(textureSize(source, 0), 1);
+#else
+	ivec3 size = textureSize(source, 0);
+#endif
+	if (any(greaterThanEqual(pos, size))) return;
+	uint index = uint((pos.z * size.y + pos.y) * size.x + pos.x);
+#ifdef CLIPMAP_SCREEN
+	outputData.values[index] = texelFetch(source, pos.xy, 0);
+#else
+	outputData.values[index] = texelFetch(source, pos, 0);
+#endif
+}

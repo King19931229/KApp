@@ -1,4 +1,5 @@
 #include "dof/common.h"
+#include "dof/autofocus_common.h"
 #include "dof/tile_config.h"
 
 layout(binding = BINDING_TEXTURE0) uniform sampler2D sceneColor;
@@ -61,12 +62,13 @@ void main()
 		finalImage = vec4(baseColor, 1.0);
 		return;
 	}
+	vec4 effectiveParams = DofResolveParams(object.dofParams, object.dofParams2);
 	vec4 gbuffer0Data = texelFetch(gbuffer0, pixel, 0);
 	float distance = DofViewDepth(gbuffer0Data);
-	float signedCoC = DofSignedCoC(distance, object.dofParams, object.dofParams2);
+	float signedCoC = DofSignedCoC(distance, effectiveParams, object.dofParams2);
 	float farWeight = max(signedCoC, 0.0);
 
-	vec2 uv = DofWorkUV(pixel, textureSize(sceneColor, 0), textureSize(nearColor, 0), object.dofParams.w);
+	vec2 uv = DofWorkUV(pixel, textureSize(sceneColor, 0), textureSize(nearColor, 0), effectiveParams.w);
 	vec4 nearValue = texture(nearColor, uv);
 	vec4 farValue = texture(farColor, uv);
 
@@ -107,11 +109,11 @@ void main()
 	}
 	int debugView = int(object.dofParams2.y);
 	if (debugView == 1)
-		result = DofSignedDebug(DofDefocus(distance, object.dofParams, object.dofParams2) * object.dofParams.y);
+		result = DofSignedDebug(DofDefocus(distance, effectiveParams, object.dofParams2) * effectiveParams.y);
 	else if (debugView == 2)
-		result = DofSignedDebug(DofSignedRadiusFull(distance, object.dofParams, object.dofParams2));
+		result = DofSignedDebug(DofSignedRadiusFull(distance, effectiveParams, object.dofParams2));
 	else if (debugView == 3)
-		result = DofSignedDebug(DofSignedRadiusFull(distance, object.dofParams, object.dofParams2) * object.dofParams.w);
+		result = DofSignedDebug(DofSignedRadiusFull(distance, effectiveParams, object.dofParams2) * effectiveParams.w);
 	else if (debugView == 4)
 		result = vec3(max(signedCoC, 0.0), 0.0, max(-signedCoC, 0.0));
 	else if (debugView == 5)
@@ -126,7 +128,7 @@ void main()
 		result = base;
 	else if (debugView == 10)
 	{
-		ivec2 workPixel = pixel / int(round(1.0 / object.dofParams.w));
+		ivec2 workPixel = pixel / int(round(1.0 / effectiveParams.w));
 		ivec2 tile = workPixel / DOF_TILE_SIZE;
 		result = object.dofParams2.z > 0.0 ? vec3(texelFetch(nearTileCoC, tile, 0).r) : vec3(0.0);
 	}

@@ -49,12 +49,14 @@ namespace
 		CHECK(KPixelFormatHelper::GetByteSize(PF_ASTC_12x12_UNORM, 1, 1, 1, bytes) && bytes == 16);
 		CHECK(KPixelFormatHelper::GetByteSize(PF_BC1_RGBA_UNORM, 16777217, 1, 1, bytes) && bytes == 33554440);
 		CHECK(!KPixelFormatHelper::GetElementByteSize(PF_BC1_RGBA_UNORM, bytes) && bytes == 0);
-		const size_t maximum = (std::numeric_limits<size_t>::max)();
+		const uint32_t maximum = (std::numeric_limits<uint32_t>::max)();
 		CHECK(KPixelFormatHelper::GetByteSize(PF_R8_UNORM, maximum, 1, 1, bytes) && bytes == maximum);
-		CHECK(!KPixelFormatHelper::GetByteSize(PF_R8G8B8A8_UNORM, maximum, 1, 1, bytes) && bytes == 0);
-		CHECK(!KPixelFormatHelper::GetByteSize(PF_BC1_RGBA_UNORM, maximum, 1, 1, bytes) && bytes == 0);
-		CHECK(!KPixelFormatHelper::GetByteSize(PF_R8_UNORM, 2, 1, maximum, 1, 1, bytes) && bytes == 0);
-		CHECK(!KPixelFormatHelper::GetByteSize(PF_R8G8B8A8_UNORM, 1, maximum, 1, 1, 1, bytes) && bytes == 0);
+#if SIZE_MAX > UINT32_MAX
+		CHECK(KPixelFormatHelper::GetByteSize(PF_R8G8B8A8_UNORM, maximum, 1, 1, bytes) && uint64_t(bytes) == uint64_t(maximum) * 4);
+		CHECK(KPixelFormatHelper::GetByteSize(PF_BC1_RGBA_UNORM, maximum, 1, 1, bytes) && uint64_t(bytes) == UINT64_C(8589934592));
+#endif
+		CHECK(!KPixelFormatHelper::GetByteSize(PF_R8G8B8A8_UNORM, maximum, maximum, maximum, bytes) && bytes == 0);
+		CHECK(!KPixelFormatHelper::GetByteSize(PF_R8_UNORM, 1, maximum, maximum, maximum, maximum, bytes) && bytes == 0);
 		CHECK(!KPixelFormatHelper::GetByteSize(PF_UNKNOWN, 1, 1, 1, bytes) && bytes == 0);
 		CHECK(!KPixelFormatHelper::GetByteSize(PF_R8_UNORM, 0, 1, 1, bytes) && bytes == 0);
 		CHECK(!KPixelFormatHelper::GetByteSize(PF_R8_UNORM, 0, 1, 1, 1, 1, bytes) && bytes == 0);
@@ -189,6 +191,68 @@ namespace
 		}
 	}
 
+	std::vector<unsigned char> MakeASTCKTX(uint32_t glFormat, size_t blockWidth)
+	{
+		std::vector<unsigned char> data = { 0xAB, 0x4B, 0x54, 0x58, 0x20, 0x31, 0x31, 0xBB, 0x0D, 0x0A, 0x1A, 0x0A };
+		for (uint32_t field : { 0x04030201u, 0u, 1u, 0u, glFormat, 0x1908u, 13u, 13u, 0u, 0u, 6u, 4u, 0u })
+			Append32(data, field);
+		for (uint32_t mip = 0, width = 13; mip < 4; ++mip, width = std::max(1u, width / 2))
+		{
+			const size_t blocksPerEdge = (width + blockWidth - 1) / blockWidth;
+			const size_t blocks = blocksPerEdge * blocksPerEdge;
+			Append32(data, static_cast<uint32_t>(blocks * 16));
+			for (unsigned face = 0; face < 6; ++face)
+			{
+				// ASTC LDR constant-color void-extent block, followed by UNORM16 RGBA.
+				const unsigned char block[] = { 0xFC, 0xFD, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+					static_cast<unsigned char>(face % 2 ? 255 : 0), static_cast<unsigned char>(face % 2 ? 255 : 0),
+					static_cast<unsigned char>(mip % 2 ? 255 : 0), static_cast<unsigned char>(mip % 2 ? 255 : 0), 255, 255, 255, 255 };
+				for (size_t i = 0; i < blocks; ++i) data.insert(data.end(), block, block + sizeof(block));
+			}
+		}
+		return data;
+	}
+
+	void TestASTCKTX()
+	{
+		IKCodecPtr codec = KCodec::GetCodec("sample.ktx");
+		CHECK(codec);
+		const bool savedHardware = KCodec::ASTCHardwareCodec;
+		for (bool srgb : { true, false })
+		{
+			const auto data = srgb ? MakeASTCKTX(0x93D7, 8) : MakeASTCKTX(0x93B0, 4);
+			const PixelFormat compressed = srgb ? PF_ASTC_8x8_SRGB : PF_ASTC_4x4_UNORM;
+			const PixelFormat decoded = srgb ? PF_R8G8B8A8_SRGB : PF_R8G8B8A8_UNORM;
+			for (bool hardware : { true, false })
+			{
+				KCodec::ASTCHardwareCodec = hardware;
+				KCodecResult result;
+				CHECK(codec->Codec(reinterpret_cast<const char*>(data.data()), data.size(), true, result));
+				CHECK(result.eFormat == (hardware ? compressed : decoded));
+				CHECK(result.bCompressed == hardware && result.bCubemap && result.uMipmap == 4);
+				CHECK(result.pData->GetSubImageInfo().size() == 24);
+				for (const auto& image : result.pData->GetSubImageInfo())
+				{
+					CHECK(image.uWidth == std::max(size_t(1), size_t(13) >> image.uMipmapIndex));
+					CHECK(image.uHeight == image.uWidth);
+					CHECK(image.uOffset + image.uSize <= result.pData->GetSize());
+					if (!hardware)
+					{
+						CHECK(image.uSize == image.uWidth * image.uHeight * 4);
+						for (size_t offset = 0; offset < image.uSize; offset += 4)
+						{
+							const unsigned char* pixel = result.pData->GetData() + image.uOffset + offset;
+							CHECK(pixel[0] == (image.uFaceIndex % 2 ? 255 : 0));
+							CHECK(pixel[1] == (image.uMipmapIndex % 2 ? 255 : 0));
+							CHECK(pixel[2] == 255 && pixel[3] == 255);
+						}
+					}
+				}
+			}
+		}
+		KCodec::ASTCHardwareCodec = savedHardware;
+	}
+
 	void TestDDS(const char* pngPath)
 	{
 		const struct { uint32_t dxgi; unsigned family; PixelFormat format; bool srgb; } formats[] =
@@ -258,6 +322,7 @@ int main(int argc, char** argv)
 		CHECK(KCodec::CreateCodecManager());
 		TestSizes();
 		TestNamesAndResources();
+		TestASTCKTX();
 		TestDDS(argc > 1 ? argv[1] : "pixel-format-srgb-test.png");
 		success = true;
 		std::printf("Pixel format regression tests passed (%u checks).\n", checks);

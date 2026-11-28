@@ -10,20 +10,13 @@
 
 #include "shadow/cascaded/static_mask.h"
 
-#define BINDING_DYNAMIC_CSM0 VOXEL_CLIPMAP_BINDING_DYNAMIC_CSM0
-#define BINDING_DYNAMIC_CSM1 VOXEL_CLIPMAP_BINDING_DYNAMIC_CSM1
-#define BINDING_DYNAMIC_CSM2 VOXEL_CLIPMAP_BINDING_DYNAMIC_CSM2
-#define BINDING_DYNAMIC_CSM3 VOXEL_CLIPMAP_BINDING_DYNAMIC_CSM3
-
-#include "shadow/cascaded/dynamic_mask.h"
-
 #extension GL_ARB_shader_image_load_store : require
 layout (local_size_x = VOXEL_CLIPMAP_GROUP_SIZE, local_size_y = VOXEL_CLIPMAP_GROUP_SIZE, local_size_z = VOXEL_CLIPMAP_GROUP_SIZE) in;
 
 layout(binding = VOXEL_CLIPMAP_BINDING_ALBEDO) uniform sampler3D voxelAlbedo;
 layout(binding = VOXEL_CLIPMAP_BINDING_NORMAL, rgba8) uniform image3D voxelNormal;
 layout(binding = VOXEL_CLIPMAP_BINDING_EMISSION_MAP, rgba8) uniform readonly image3D voxelEmissive;
-layout(binding = VOXEL_CLIPMAP_BINDING_RADIANCE, rgba8) uniform image3D voxelRadiance;
+layout(binding = VOXEL_CLIPMAP_BINDING_RADIANCE, rgba16f) uniform image3D voxelRadiance;
 layout(binding = VOXEL_CLIPMAP_BINDING_VISIBILITY, rgba8) uniform image3D voxelVisibility;
 
 layout(binding = BINDING_OBJECT)
@@ -93,7 +86,9 @@ float TraceShadow(vec3 position, vec3 direction, float maxTracingDistance)
 
 		float distanceToCenter = distance(regionCenter, pos);
 
-		uint sampleLevel = uint(ceil(log2(distanceToCenter * 2 / baseExtent)));
+		float availableLevel = GetAvailableClipmapLevel(pos, float(level));
+		if (availableLevel < 0.0) break;
+		uint sampleLevel = uint(availableLevel);
 
 		float sampleExtent = baseExtent * exp2(sampleLevel);
 		float sampleVoxelSize = baseVoxelSize * exp2(sampleLevel);
@@ -155,9 +150,13 @@ vec3 BRDF(Light light, vec3 normal, vec3 albedo)
 
 float Visibility(vec3 position)
 {
-	vec4 worldPos = vec4(position, 1.0);
-	// TODO
-	return CalcStaticCSMHard(worldPos.xyz).a;
+	if (static_cascaded.cascaded == 0u) return 1.0;
+	uint cascade = CalcStaticCSMIndex(position);
+	vec4 clip = static_cascaded.light_view_proj[cascade] * vec4(position, 1.0);
+	vec3 coord = vec3(clip.xy * 0.5 + 0.5, clip.z);
+	if (any(lessThan(coord, vec3(0.0))) || any(greaterThan(coord, vec3(1.0))))
+		return 1.0;
+	return CalcStaticCSMHardShadow(cascade, position);
 }
 
 vec4 CalculateDirectional(Light light, vec3 normal, vec3 position, vec3 albedo)
@@ -344,7 +343,7 @@ void main()
 	for (uint face = 0; face < 6; ++face)
 	{
 		ivec3 faceWritePos = writePos + GetFaceOffset(face);
-		float visibility = imageLoad(voxelVisibility, faceWritePos).a;
+		float visibility = imageLoad(voxelVisibility, faceWritePos).r;
 		// resotre the visibility
 		albedo.a = visibility;
 		imageStore(voxelRadiance, faceWritePos, albedo);

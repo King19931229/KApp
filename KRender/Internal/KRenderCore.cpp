@@ -682,8 +682,9 @@ bool KRenderCore::Tick()
 				window->Tick();
 			}
 
-			ENQUEUE_RENDER_COMMAND(KRenderCore_Render)([this]()
+			ENQUEUE_RENDER_COMMAND(KRenderCore_Render)([this, dt]()
 			{
+				KRenderGlobal::DepthOfField.SetFrameDeltaTime(dt);
 				KRenderGlobal::MaterialManager.Tick();
 				Render();
 			});

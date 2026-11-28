@@ -37,7 +37,7 @@ const vec3 diffuseConeDirections[] =
 	vec3(0.0f, 0.5f, 0.866025f),
 	vec3(0.823639f, 0.5f, 0.267617f),
 	vec3(0.509037f, 0.5f, -0.7006629f),
-	vec3(-0.50937f, 0.5f, -0.7006629f),
+	vec3(-0.509037f, 0.5f, -0.7006629f),
 	vec3(-0.823639f, 0.5f, 0.267617f)
 };
 
@@ -66,9 +66,10 @@ vec4 SampleClipmap(vec3 posW, uint clipmapLevel, uvec3 visibleFace, vec3 weight)
 	vec3 samplePosX = WorldPositionToSampleCoord(posW, extent, clipmapLevel, levelCount, visibleFace.x, 6);
 	vec3 samplePosY = WorldPositionToSampleCoord(posW, extent, clipmapLevel, levelCount, visibleFace.y, 6);
 	vec3 samplePosZ = WorldPositionToSampleCoord(posW, extent, clipmapLevel, levelCount, visibleFace.z, 6);
-	return clamp(texture(voxelRadiance, samplePosX) * weight.x +
+	vec4 value = texture(voxelRadiance, samplePosX) * weight.x +
 				 texture(voxelRadiance, samplePosY) * weight.y +
-				 texture(voxelRadiance, samplePosZ) * weight.z, 0.0, 1.0);
+				 texture(voxelRadiance, samplePosZ) * weight.z;
+	return vec4(max(value.rgb, vec3(0.0)), clamp(value.a, 0.0, 1.0));
 }
 
 vec4 SampleClipmapLinearly(vec3 posW, float curLevel, uvec3 visibleFace, vec3 weight)
@@ -102,22 +103,13 @@ bool IntersectRayWithWorldAABB(vec3 ro, vec3 rd, out float enter, out float leav
 
 float GetMinLevel(vec3 center, vec3 posW)
 {
-	vec3 centerToPosition = center - posW;
-	float distanceToCenter = 0;
-	// distanceToCenter = max(max(abs(centerToPosition.x), abs(centerToPosition.y)), abs(centerToPosition.z));
-	distanceToCenter = length(centerToPosition);
-	float minRadius = baseExtent * 0.5;
-	float minLevel = log2(distanceToCenter / minRadius);  
-	minLevel = max(0.0, minLevel);
-
-	float radius = minRadius * exp2(ceil(minLevel));
-	float f = distanceToCenter / radius;
-
-	// Smoothly transition from current level to the next level
-	float transitionStart = 0.5;
-	float c = 1.0 / (1.0 - transitionStart);
-
-	return f > transitionStart ? ceil(minLevel) + (f - transitionStart) * c : ceil(minLevel);
+	// Keep the transition continuous as the clipmap's snapped bounds move.
+	float radius = baseExtent * 0.5;
+	float distanceToCenter = distance(center, posW);
+	float level = max(0.0, ceil(log2(max(distanceToCenter / radius, 1.0))));
+	float scaledRadius = radius * exp2(level);
+	float transition = clamp((distanceToCenter / scaledRadius - 0.5) * 2.0, 0.0, 1.0);
+	return min(level + transition, float(levelCount - 1));
 }
 
 vec4 TraceCone(vec3 position, vec3 normal, vec3 direction, float aperture, bool traceOcclusion)
@@ -128,10 +120,11 @@ vec4 TraceCone(vec3 position, vec3 normal, vec3 direction, float aperture, bool 
 	visibleFace.z = (direction.z < 0.0) ? 4 : 5;
 	traceOcclusion = traceOcclusion && aoAlpha < 1.0f;
 
-	float startLevel = GetMinLevel(cameraPosition.xyz, position);
+	float startLevel = GetAvailableClipmapLevel(position, GetMinLevel(cameraPosition.xyz, position), false);
+	if (startLevel < 0.0) return vec4(0.0);
 	// weight per axis for aniso sampling
 	vec3 weight = direction * direction;
-	float dst = 0;
+	float dst = baseVoxelSize * exp2(startLevel);
 	// move further to avoid self collision
 	vec3 startPosition = position + normal * baseVoxelSize * exp2(startLevel);;
 	// final results
@@ -144,37 +137,16 @@ vec4 TraceCone(vec3 position, vec3 normal, vec3 direction, float aperture, bool 
 
 	float maxDistance = lastExtent * maxTracingDistanceGlobal;
 	float falloff = 0.5f * aoFalloff / lastExtent;
-	// out of boundaries check
-	float enter = 0.0; float leave = 0.0;
-
-	if(!IntersectRayWithWorldAABB(position, direction, enter, leave))
-	{
-		coneSample.a = 1.0f;
-	}
-
-	float c = lastVoxelSize * 0.5; // Error correction constant
-	vec3 correctedRegionMin = lastRegionMin + c;
-	vec3 correctedRegionMax = lastRegionMax - c;
-
 	while (coneSample.a < 1.0f && dst <= maxDistance)
 	{
 		vec3 conePosition = startPosition + direction * dst;
 
-		// outisde bounds
-		if (checkBoundaries > 0 && (conePosition.x < correctedRegionMin.x || conePosition.y < correctedRegionMin.y || conePosition.z < correctedRegionMin.z
-			|| conePosition.x >= correctedRegionMax.x || conePosition.y >= correctedRegionMax.y || conePosition.z >= correctedRegionMax.z))
-		{
-			break;
-		}
-
 		// cone expansion and respective mip level based on diameter
 		float diameter = 2.0f * aperture * dst;
 
-		float distanceToCenter = distance(cameraPosition.xyz, conePosition);
-		float minLevel = ceil(log2(distanceToCenter * 2 / baseExtent));
-
-		float mipLevel = log2(diameter / baseVoxelSize);
-		mipLevel = min(max(startLevel, max(minLevel, mipLevel)), levelCount - 1);
+		float mipLevel = GetAvailableClipmapLevel(conePosition,
+			max(GetMinLevel(cameraPosition.xyz, conePosition), max(startLevel, log2(max(diameter / baseVoxelSize, 1.0)))), false);
+		if (mipLevel < 0.0) break;
 
 		// Radiance correction
 		float correctionQuotient = curSegmentLength / (baseVoxelSize * exp2(mipLevel));
@@ -183,7 +155,8 @@ vec4 TraceCone(vec3 position, vec3 normal, vec3 direction, float aperture, bool 
 		anisoSample = SampleClipmapLinearly(conePosition, mipLevel, visibleFace, weight);
 		opacity = anisoSample.a;
 		opacity = clamp(1.0 - pow(1.0 - opacity, correctionQuotient), 0.0, 1.0);
-		anisoSample.rgb = anisoSample.rgb * correctionQuotient;
+		// RGB is premultiplied by coverage. Correct it with the same opacity ratio.
+		anisoSample.rgb *= anisoSample.a > 0.0 ? opacity / anisoSample.a : 0.0;
 		anisoSample.a = opacity;
 
 		coneSample += (1.0f - coneSample.a) * anisoSample;
@@ -194,7 +167,7 @@ vec4 TraceCone(vec3 position, vec3 normal, vec3 direction, float aperture, bool 
 
 		float dstLast = dst;
 		// move further into volume
-		dst += max(diameter, baseVoxelSize) * samplingFactor;
+		dst += max(diameter, baseVoxelSize * exp2(mipLevel)) * samplingFactor;
 		curSegmentLength = (dst - dstLast);
 	}
 
@@ -457,7 +430,7 @@ vec4 CalculateIndirectLighting(vec3 position, vec3 normal, vec3 albedo, vec4 spe
 		specularTrace.rgb *= specular.rgb;
 	}
 
-	diffuseWeight = 0.0;
+	diffuseWeight = useInterleave ? diffuseConeWeights[BlockIndex(texCoord, blockSize, texSize)] : 1.0;
 
 	// component greater than zero
 	if (any(greaterThan(albedo, diffuseTrace.rgb)))
@@ -475,21 +448,9 @@ vec4 CalculateIndirectLighting(vec3 position, vec3 normal, vec3 albedo, vec4 spe
 		vec3 right = normalize(guide - dot(normal, guide) * normal);
 		vec3 up = cross(right, normal);
 
-		if (true)
+		if (useInterleave)
 		{
 			uint i = BlockIndex(texCoord, blockSize, texSize);
-			// const vec3 debugColor[] =
-			// {
-			// 	vec3(1.0f, 0.0f, 0.0f),
-			// 	vec3(0.0f, 1.0f, 0.0f),
-			// 	vec3(0.0f, 0.0f, 1.0f),
-			// 	vec3(0.0f, 1.0f, 1.0f),
-			// 	vec3(1.0f, 0.0f, 1.0f),
-			// 	vec3(1.0f, 1.0f, 0.0f),
-			// };
-			// diffuseTrace = vec4(debugColor[i], 1);
-			// diffuseWeight = 1.0;
-			// return diffuseTrace;
 
 			coneDirection = diffuseConeDirections[i].y * normal + diffuseConeDirections[i].x * right + diffuseConeDirections[i].z * up;
 			coneDirection = normalize(coneDirection);
@@ -503,7 +464,7 @@ vec4 CalculateIndirectLighting(vec3 position, vec3 normal, vec3 albedo, vec4 spe
 				coneDirection = diffuseConeDirections[i].y * normal + diffuseConeDirections[i].x * right + diffuseConeDirections[i].z * up;
 				coneDirection = normalize(coneDirection);
 				// cumulative result
-				diffuseTrace += TraceCone(position, normal, coneDirection, aperture, ambientOcclusion) * diffuseConeWeights[i];
+				diffuseTrace += TraceCone(position, normal, coneDirection, aperture, ambientOcclusion) * (diffuseConeWeights[i] / PI);
 			}
 			diffuseWeight = 1.0;
 		}
@@ -516,68 +477,26 @@ vec4 CalculateIndirectLighting(vec3 position, vec3 normal, vec3 albedo, vec4 spe
 	return vec4(result, ambientOcclusion ? clamp(1.0f - diffuseTrace.a + aoAlpha, 0.0f, 1.0f) : 1.0f);
 }
 
-const uint mode = 0;
-
 void main()
 {
 	if (useInterleave)
 		texCoord = InterleaveMappingWithSplit(texCoord, blockSize, splitSize, texSize);
-	// texCoord = InterleaveUnmappingWithSplit(texCoord, blockSize, splitSize, texSize);
-
-	vec4 gbuffer0Data = texture(gbuffer0, texCoord);
-	vec4 gbuffer1Data = texture(gbuffer1, texCoord);
-	vec4 gbuffer2Data = texture(gbuffer2, texCoord);
-	vec4 gbuffer3Data = texture(gbuffer3, texCoord);
-
-	// world-space position
-	vec3 position = DecodePosition(gbuffer0Data, texCoord);
-	// world-space normal
+	ivec2 coord = clamp(ivec2(texCoord * vec2(textureSize(gbuffer0, 0))), ivec2(0), textureSize(gbuffer0, 0) - 1);
+	vec4 gbuffer0Data = texelFetch(gbuffer0, coord, 0);
 	vec3 normal = DecodeNormal(gbuffer0Data);
-	// normal = normalize(cross(dFdx(position), dFdy(position)));
-	vec2 motion = DecodeMotion(gbuffer1Data);
-	// xyz = fragment specular, w = shininess
-	vec4 specular = vec4(0.0);
-	// fragment albedo
-	vec3 baseColor = DecodeBaseColor(gbuffer2Data);
-	vec3 albedo = baseColor;
-	// lighting cumulatives
-	vec3 directLighting = vec3(0.0f);
-	vec4 indirectLighting = vec4(0.0f);
-	vec3 compositeLighting = vec3(0.0f);
-
-	float diffuseWeight = 0;
-
-	if(mode == 0) // direct + indirect + ao
+	if (!ClipmapFinite(normal) || dot(normal, normal) < 1e-8)
 	{
-		indirectLighting = CalculateIndirectLighting(position, normal, baseColor, specular, true, diffuseWeight);
-		directLighting = CalculateDirectLighting(position, normal, albedo, specular);
+		fragColor = vec4(0.0);
+		return;
 	}
-	else if(mode == 1) // direct + indirect
+	vec3 position = DecodePosition(gbuffer0Data, texCoord);
+	vec3 albedo = DecodeBaseColor(texelFetch(gbuffer2, coord, 0));
+	if (!ClipmapFinite(position) || !ClipmapFinite(albedo))
 	{
-		indirectLighting = CalculateIndirectLighting(position, normal, baseColor, specular, false, diffuseWeight);
-		directLighting = CalculateDirectLighting(position, normal, albedo, specular);
+		fragColor = vec4(0.0);
+		return;
 	}
-	else if(mode == 2) // direct only
-	{
-		indirectLighting = vec4(0.0f, 0.0f, 0.0f, 1.0f);
-		directLighting = CalculateDirectLighting(position, normal, albedo, specular);
-	}
-	else if(mode == 3) // indirect only
-	{
-		directLighting = vec3(0.0f);
-		// baseColor.rgb = specular.rgb = vec3(1.0f);
-		indirectLighting = CalculateIndirectLighting(position, normal, baseColor, specular, false, diffuseWeight);
-	}
-	else if(mode == 4) // ambient occlusion only
-	{
-		directLighting = vec3(0.0f);
-		specular = vec4(0.0f);
-		indirectLighting = CalculateIndirectLighting(position, normal, baseColor, specular, true, diffuseWeight);
-		indirectLighting.rgb = vec3(1.0f);
-	}
-
-	// final composite lighting (direct + indirect) * ambient occlusion
-	compositeLighting = (directLighting + indirectLighting.rgb) * indirectLighting.a;
-
-	fragColor = vec4(compositeLighting, diffuseWeight);
+	float diffuseWeight;
+	vec4 indirect = CalculateIndirectLighting(position, normalize(normal), albedo, vec4(0.0), false, diffuseWeight);
+	fragColor = vec4(ClipmapFinite(indirect.rgb) ? max(indirect.rgb, vec3(0.0)) : vec3(0.0), diffuseWeight);
 }

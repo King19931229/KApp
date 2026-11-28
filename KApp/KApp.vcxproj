@@ -237,6 +237,19 @@
       <GenerateDebugInformation>DebugFastLink</GenerateDebugInformation>
     </Link>
   </ItemDefinitionGroup>
+  <PropertyGroup Condition="'$(AsyncComputeTest)'=='true'">
+    <TargetName>KAsyncComputeTest</TargetName>
+    <IntDir>$(Platform)\$(Configuration)\AsyncComputeTest\</IntDir>
+  </PropertyGroup>
+  <ItemGroup Condition="'$(AsyncComputeTest)'=='true'">
+    <ClCompile Remove="@(ClCompile)" />
+    <ClCompile Include="Tests\KAsyncComputeTest.cpp" />
+  </ItemGroup>
+  <ItemDefinitionGroup Condition="'$(AsyncComputeTest)'=='true'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>$(VULKAN_SDK)\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+  </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

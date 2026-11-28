@@ -1,0 +1,15 @@
+layout(binding = 0) uniform sampler2D shadowDepth;
+layout(std430, binding = 1) buffer OutputBuffer { uint covered; uint hash; } result;
+layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
+void main()
+{
+	ivec2 pixel = ivec2(gl_GlobalInvocationID.xy);
+	ivec2 dimensions = textureSize(shadowDepth, 0);
+	if (any(greaterThanEqual(pixel, dimensions))) return;
+	float depth = texelFetch(shadowDepth, pixel, 0).r;
+	if (depth < 1.0)
+	{
+		atomicAdd(result.covered, 1);
+		atomicXor(result.hash, uint(pixel.y * dimensions.x + pixel.x) * 1664525u ^ uint(depth * 65535.0));
+	}
+}

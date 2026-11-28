@@ -48,7 +48,9 @@ void main()
 		vec4(1, 1, 0, 1),
 		vec4(0, 1, 1, 1),
 		vec4(1, 0, 1, 1),
-		vec4(1, 1, 1, 1)
+		vec4(1, 1, 1, 1),
+		vec4(1, 0.5, 0, 1),
+		vec4(0.5, 0, 1, 1)
 	);
 
 	const int cubeIndices[16]  = int[16] 
@@ -70,8 +72,8 @@ void main()
 	const float voxelSize = voxel_clipmap.region_min_and_voxelsize[level].w;
 	const vec3 regionMin = voxel_clipmap.region_min_and_voxelsize[level].xyz;
 
-	vec3 center = VoxelToWorld(gl_in[0].gl_Position.xyz, voxelSize);
-	vec3 extent = vec3(voxelSize);
+	vec3 center = VoxelToWorld(gl_in[0].gl_Position.xyz + vec3(0.5), voxelSize);
+	vec3 extent = vec3(voxelSize * 0.5);
 
 	if(albedo[0].a == 0.0f || !VoxelInFrustum(center, extent, camera.frustumPlanes)) { return; }
 

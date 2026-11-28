@@ -283,10 +283,40 @@ void KRenderImGui::Run()
 			{
 				ImGui::TextDisabled("Bracketing fallback: %s", KRenderGlobal::DepthOfField.GetBracketedFallbackReason().c_str());
 			}
-			ImGui::Text("Active: %s | Tile %s | %s",
+			ImGui::Text("Active: %s | Tile %s | %s | %s",
 				KRenderGlobal::DepthOfField.GetComputePreprocessActive() ? "CS Preprocess" : "PS Preprocess",
 				KRenderGlobal::DepthOfField.GetNearTileActive() ? "ON" : "OFF",
-				KRenderGlobal::DepthOfField.GetBracketedActive() ? "Bracketed HDR RGBA8" : "Baseline FP16");
+				KRenderGlobal::DepthOfField.GetBracketedActive() ? "Bracketed HDR RGBA8" : "Baseline FP16",
+				KRenderGlobal::DepthOfField.GetAutoFocusActive() ? "AutoFocus GPU" : "Manual Focus");
+			int focusMode = static_cast<int>(KRenderGlobal::DepthOfField.GetFocusMode());
+			if (ImGui::Combo("Focus Mode", &focusMode, "Manual\0AutoFocus GPU\0"))
+			{
+				KRenderGlobal::DepthOfField.SetFocusMode(static_cast<KDOFFocusMode>(focusMode));
+			}
+			if (KRenderGlobal::DepthOfField.GetFocusMode() == KDOFFocusMode::AutoFocusGPU)
+			{
+				KDOFAutoFocusSettings& af = KRenderGlobal::DepthOfField.GetAutoFocusSettings();
+				ImGui::SliderFloat2("Focus UV", &af.focusUV.x, 0.0f, 1.0f);
+				ImGui::SliderFloat("Sample Stride @1080p", &af.sampleStride1080P, 1.0f, 32.0f);
+				ImGui::SliderFloat("Smooth Time (s)", &af.smoothTime, 0.0f, 2.0f);
+				ImGui::InputFloat("Start Threshold (1/dist)", &af.startThreshold, 0.0001f, 0.001f, "%.6f");
+				ImGui::InputFloat("Snap Threshold (1/dist)", &af.snapThreshold, 0.00005f, 0.0005f, "%.6f");
+				ImGui::SliderFloat("Min Focus Distance", &af.minFocusDistance, 0.0f, 1000.0f);
+				ImGui::SliderFloat("Max Focus Distance", &af.maxFocusDistance, 1.0f, 10000.0f);
+				if (ImGui::Button("Reset From Manual"))
+				{
+					KRenderGlobal::DepthOfField.ResetAutoFocus(false);
+				}
+				ImGui::SameLine();
+				if (ImGui::Button("Camera Cut (Snap)"))
+				{
+					KRenderGlobal::DepthOfField.NotifyCameraCut();
+				}
+				if (!KRenderGlobal::DepthOfField.GetAutoFocusFallbackReason().empty())
+				{
+					ImGui::TextDisabled("AutoFocus: %s", KRenderGlobal::DepthOfField.GetAutoFocusFallbackReason().c_str());
+				}
+			}
 			ImGui::Checkbox("DebugDraw", &KRenderGlobal::DepthOfField.GetDebugDrawEnable());
 			ImGui::Combo("View", &KRenderGlobal::DepthOfField.GetDebugView(),
 				"Final\0Optical CoC\0Full pixel radius\0Work pixel radius\0Signed CoC\0Near CoC\0Near weight\0Near alpha\0Near result\0Base\0Near TileCoC\0");
@@ -304,7 +334,7 @@ void KRenderImGui::Run()
 			if (dofView == KDepthOfField::DV_NEAR_TILE_COC)
 				ImGui::TextUnformatted("Conservative source near CoC MAX per tile (0..1, FP16).");
 			ImGui::SliderFloat("FStop", &KRenderGlobal::DepthOfField.GetFStop(), 0.50f, 128.0f);
-			ImGui::SliderFloat("FocalLength", &KRenderGlobal::DepthOfField.GetFocalLength(), 1.0f, 5000.0f);
+			ImGui::SliderFloat("FocalLength", &KRenderGlobal::DepthOfField.GetFocalLength(), 1.0f, 50.0f);
 			ImGui::SliderFloat("FocusDistance", &KRenderGlobal::DepthOfField.GetFocusDistance(), 1.0f, 5000.0f);
 
 			ImGui::End();

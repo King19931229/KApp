@@ -254,6 +254,50 @@ ivec3 GetFaceOffset(uint face)
 	return ivec3(int((volumeDimension + 2 * borderSize) * face), 0, 0);
 }
 
+bool ClipmapFinite(vec3 value)
+{
+	return !any(isnan(value)) && !any(isinf(value));
+}
+
+bool ContainsClipmapSample(vec3 posW, uint level)
+{
+	float margin = voxel_clipmap.region_min_and_voxelsize[level].w;
+	vec3 regionMin = voxel_clipmap.region_min_and_voxelsize[level].xyz + margin;
+	vec3 regionMax = voxel_clipmap.region_max_and_extent[level].xyz - margin;
+	return all(greaterThanEqual(posW, regionMin)) && all(lessThan(posW, regionMax));
+}
+
+// A toroidal address is valid only while the world position is in this level.
+float GetAvailableClipmapLevel(vec3 posW, float desiredLevel, bool blendRegion)
+{
+	if (!ClipmapFinite(posW) || isnan(desiredLevel) || isinf(desiredLevel))
+		return -1.0;
+	desiredLevel = clamp(desiredLevel, 0.0, float(levelCount - 1));
+	uint lower = uint(floor(desiredLevel));
+	for (uint level = lower; level < levelCount; ++level)
+	{
+		if (!ContainsClipmapSample(posW, level))
+			continue;
+		if (level + 1 == levelCount || !ContainsClipmapSample(posW, level + 1))
+			return float(level);
+		if (!blendRegion)
+			return level == lower ? desiredLevel : float(level);
+		vec3 center = (voxel_clipmap.region_min_and_voxelsize[level].xyz + voxel_clipmap.region_max_and_extent[level].xyz) * 0.5;
+		float extent = voxel_clipmap.region_max_and_extent[level].w;
+		float voxelSize = voxel_clipmap.region_min_and_voxelsize[level].w;
+		float transition = clamp((distance(posW, center) - extent * 0.25) / max(extent * 0.25 - voxelSize, voxelSize), 0.0, 1.0);
+		float result = max(level == lower ? desiredLevel : float(level), float(level) + transition);
+		if (result < float(level + 1))
+			return result;
+	}
+	return -1.0;
+}
+
+float GetAvailableClipmapLevel(vec3 posW, float desiredLevel)
+{
+	return GetAvailableClipmapLevel(posW, desiredLevel, true);
+}
+
 bool InsideUpdateRegion(vec3 p, uint level)
 {
 	for (uint i = 0; i < 3; ++i)
