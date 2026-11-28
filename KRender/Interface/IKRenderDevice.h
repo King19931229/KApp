@@ -17,6 +17,10 @@ struct KRenderDeviceProperties
 	bool meshShaderSupport;
 	bool debugMarkerSupport;
 	bool r16fStorageImageSupport;
+	bool rgba16fStorageImageSupport;
+	bool rgba8UnormColorAttachmentSupport;
+	uint32_t maxColorAttachments;
+	uint32_t maxFragmentOutputAttachments;
 	uint32_t uniformBufferMaxRange;
 	uint64_t uniformBufferOffsetAlignment;
 	uint64_t storageBufferOffsetAlignment;
@@ -32,6 +36,10 @@ struct KRenderDeviceProperties
 		meshShaderSupport = false;
 		debugMarkerSupport = false;
 		r16fStorageImageSupport = false;
+		rgba16fStorageImageSupport = false;
+		rgba8UnormColorAttachmentSupport = false;
+		maxColorAttachments = 0;
+		maxFragmentOutputAttachments = 0;
 		uniformBufferMaxRange = 512;
 		uniformBufferOffsetAlignment = 8;
 		storageBufferOffsetAlignment = 8;

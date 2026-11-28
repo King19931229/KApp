@@ -32,9 +32,13 @@ bool KVulkanRenderTarget::InitFromColor(uint32_t width, uint32_t height, uint32_
 	UnInit();
 
 	VkFormat vkFormat = VK_FORMAT_UNDEFINED;
-	ASSERT_RESULT(KVulkanHelper::PixelFormatToVkFormat(format, vkFormat));
+	if (!KVulkanHelper::PixelFormatToVkFormat(format, vkFormat))
+	{
+		ASSERT_RESULT(false);
+		return false;
+	}
 
-	((KVulkanFrameBuffer*)m_FrameBuffer.get())->InitColor(
+	return ((KVulkanFrameBuffer*)m_FrameBuffer.get())->InitColor(
 		vkFormat,
 		TT_TEXTURE_2D,
 		(uint32_t)width,
@@ -42,8 +46,6 @@ bool KVulkanRenderTarget::InitFromColor(uint32_t width, uint32_t height, uint32_
 		(uint32_t)mipmaps,
 		msaaCount,
 		deferredInitialization);
-
-	return true;
 }
 
 bool KVulkanRenderTarget::InitFromStorage(uint32_t width, uint32_t height, uint32_t mipmaps, PixelFormat format, bool deferredInitialization)
@@ -51,16 +53,18 @@ bool KVulkanRenderTarget::InitFromStorage(uint32_t width, uint32_t height, uint3
 	UnInit();
 
 	VkFormat vkFormat = VK_FORMAT_UNDEFINED;
-	ASSERT_RESULT(KVulkanHelper::PixelFormatToVkFormat(format, vkFormat));
+	if (!KVulkanHelper::PixelFormatToVkFormat(format, vkFormat))
+	{
+		ASSERT_RESULT(false);
+		return false;
+	}
 
-	((KVulkanFrameBuffer*)m_FrameBuffer.get())->InitStorage2D(
+	return ((KVulkanFrameBuffer*)m_FrameBuffer.get())->InitStorage2D(
 		vkFormat,
 		(uint32_t)width,
 		(uint32_t)height,
 		(uint32_t)mipmaps,
 		deferredInitialization);
-
-	return true;
 }
 
 bool KVulkanRenderTarget::InitFromStorage3D(uint32_t width, uint32_t height, uint32_t depth, uint32_t mipmaps, PixelFormat format)

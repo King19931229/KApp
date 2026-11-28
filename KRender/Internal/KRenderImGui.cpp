@@ -249,14 +249,48 @@ void KRenderImGui::Run()
 			if (KRenderGlobal::DepthOfField.GetNearTileSupported())
 			{
 				ImGui::Checkbox("Near TileMAX", &KRenderGlobal::DepthOfField.GetNearTileEnable());
-				if (ImGui::IsItemHovered()) ImGui::SetTooltip("8x8 workgroup, 64 threads, shared-memory MAX reduction.\nSkip empty near regions; preserve the fixed kernel and coverage.");
+				if (ImGui::IsItemHovered()) ImGui::SetTooltip("8x8 workgroup, 64 threads, shared-memory MAX reduction.\nHorizontal 1x3 and Vertical 3x3 conservative culling.");
 			}
 			else
 				ImGui::TextDisabled("Near TileMAX unavailable (R16F storage)");
+			if (KRenderGlobal::DepthOfField.GetNearTileEnable() && !KRenderGlobal::DepthOfField.GetNearTileActive() && !KRenderGlobal::DepthOfField.GetNearTileFallbackReason().empty())
+			{
+				ImGui::TextDisabled("Tile fallback: %s", KRenderGlobal::DepthOfField.GetNearTileFallbackReason().c_str());
+			}
+			if (KRenderGlobal::DepthOfField.GetComputePreprocessSupported())
+			{
+				ImGui::Checkbox("Compute Preprocess", &KRenderGlobal::DepthOfField.GetUseComputePreprocess());
+				if (ImGui::IsItemHovered()) ImGui::SetTooltip("Single-pass compute preprocess; fuses Near TileMAX reduction in the same dispatch when TileMAX is enabled.");
+			}
+			else
+			{
+				ImGui::TextDisabled("Compute Preprocess unavailable (RGBA16F storage)");
+			}
+			if (KRenderGlobal::DepthOfField.GetUseComputePreprocess() && !KRenderGlobal::DepthOfField.GetComputePreprocessActive() && !KRenderGlobal::DepthOfField.GetComputePreprocessFallbackReason().empty())
+			{
+				ImGui::TextDisabled("CS fallback: %s", KRenderGlobal::DepthOfField.GetComputePreprocessFallbackReason().c_str());
+			}
+			if (KRenderGlobal::DepthOfField.GetBracketedSupported())
+			{
+				ImGui::Checkbox("Bracketing (HDR RGBA8 UNORM)", &KRenderGlobal::DepthOfField.GetBracketedEnable());
+				if (ImGui::IsItemHovered()) ImGui::SetTooltip("Non-negative HDR compression: RGBA8_UNORM intermediates + RGBA16F ColorMean (5 MRT).\nRequires non-negative linear SceneColor; signed debug views automatically fall back to FP16.");
+			}
+			else
+			{
+				ImGui::TextDisabled("Bracketing unavailable (5 MRT / RGBA8_UNORM)");
+			}
+			if (KRenderGlobal::DepthOfField.GetBracketedEnable() && !KRenderGlobal::DepthOfField.GetBracketedActive() && !KRenderGlobal::DepthOfField.GetBracketedFallbackReason().empty())
+			{
+				ImGui::TextDisabled("Bracketing fallback: %s", KRenderGlobal::DepthOfField.GetBracketedFallbackReason().c_str());
+			}
+			ImGui::Text("Active: %s | Tile %s | %s",
+				KRenderGlobal::DepthOfField.GetComputePreprocessActive() ? "CS Preprocess" : "PS Preprocess",
+				KRenderGlobal::DepthOfField.GetNearTileActive() ? "ON" : "OFF",
+				KRenderGlobal::DepthOfField.GetBracketedActive() ? "Bracketed HDR RGBA8" : "Baseline FP16");
 			ImGui::Checkbox("DebugDraw", &KRenderGlobal::DepthOfField.GetDebugDrawEnable());
 			ImGui::Combo("View", &KRenderGlobal::DepthOfField.GetDebugView(),
 				"Final\0Optical CoC\0Full pixel radius\0Work pixel radius\0Signed CoC\0Near CoC\0Near weight\0Near alpha\0Near result\0Base\0Near TileCoC\0");
-			if (KRenderGlobal::DepthOfField.GetDebugView() == KDepthOfField::DV_NEAR_TILE_COC && !KRenderGlobal::DepthOfField.GetNearTileEnable())
+			if (KRenderGlobal::DepthOfField.GetDebugView() == KDepthOfField::DV_NEAR_TILE_COC && !KRenderGlobal::DepthOfField.GetNearTileActive())
 				ImGui::TextUnformatted("Enable Near TileMAX to inspect TileCoC.");
 			const int dofView = KRenderGlobal::DepthOfField.GetDebugView();
 			if (dofView >= KDepthOfField::DV_OPTICAL_COC && dofView <= KDepthOfField::DV_SIGNED_COC)

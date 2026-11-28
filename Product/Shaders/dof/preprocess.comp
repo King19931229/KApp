@@ -1,0 +1,64 @@
+// Compute Near/Far premultiplied layer preprocess with optional fused Near TileMAX reduction.
+#include "dof/preprocess_common.h"
+#include "dof/tile_config.h"
+
+layout(local_size_x = DOF_TILE_SIZE, local_size_y = DOF_TILE_SIZE, local_size_z = 1) in;
+
+layout(binding = BINDING_TEXTURE0) uniform sampler2D gbuffer0;
+layout(binding = BINDING_TEXTURE1) uniform sampler2D sceneColor;
+layout(binding = BINDING_TEXTURE2, rgba16f) writeonly uniform image2D nearOutput;
+layout(binding = BINDING_TEXTURE3, rgba16f) writeonly uniform image2D farOutput;
+#if defined(DOF_NEAR_TILE)
+layout(binding = BINDING_TEXTURE4, r16f) writeonly uniform image2D tileOutput;
+#endif
+
+layout(binding = BINDING_OBJECT)
+uniform Object_DYN_UNIFORM
+{
+	// 对焦距离、光学直径系数、全分辨率像素半径系数、工作/全分辨率像素尺度。
+	vec4 dofParams;
+	// 参数有效标志、诊断视图、Tile 生效标志、保留。
+	vec4 dofParams2;
+} object;
+
+#if defined(DOF_NEAR_TILE)
+shared float nearMax[DOF_TILE_SIZE * DOF_TILE_SIZE];
+#endif
+
+void main()
+{
+	ivec2 workPixel = ivec2(gl_GlobalInvocationID.xy);
+	ivec2 workSize = imageSize(nearOutput);
+	bool validWorkPixel = all(lessThan(workPixel, workSize));
+
+	float localMax = 0.0;
+	if (validWorkPixel)
+	{
+		DofPreprocessResult result = DofPreprocessWorkPixel(
+			gbuffer0, sceneColor, workPixel, object.dofParams, object.dofParams2);
+		imageStore(nearOutput, workPixel, result.nearColor);
+		imageStore(farOutput, workPixel, result.farColor);
+#if defined(DOF_NEAR_TILE)
+		localMax = result.localNearMax;
+#endif
+	}
+
+#if defined(DOF_NEAR_TILE)
+	// 所有线程参与归约，越界 invocation 贡献 0，不能提前 return 导致 barrier 不一致。
+	uint index = gl_LocalInvocationIndex;
+	nearMax[index] = localMax;
+	barrier();
+	for (uint stride = DOF_TILE_SIZE * DOF_TILE_SIZE / 2; stride > 0u; stride >>= 1u)
+	{
+		if (index < stride)
+		{
+			nearMax[index] = max(nearMax[index], nearMax[index + stride]);
+		}
+		barrier();
+	}
+	if (index == 0u)
+	{
+		imageStore(tileOutput, ivec2(gl_WorkGroupID.xy), vec4(DofEncodeNearTileMax(nearMax[0])));
+	}
+#endif
+}

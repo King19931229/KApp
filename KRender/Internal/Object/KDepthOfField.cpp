@@ -10,8 +10,22 @@ KDepthOfField::KDepthOfField()
 	, m_FocalLength(1.0f)
 	, m_DebugView(DV_FINAL)
 	, m_Enable(true)
-	, m_NearTileEnable(false)
+	, m_NearTileEnable(true)
+	, m_BracketedEnable(true)
+	, m_UseComputePreprocess(true)
 	, m_NearTileSupported(false)
+	, m_ComputePreprocessSupported(false)
+	, m_BracketedSupported(false)
+	, m_NearTileReady(false)
+	, m_NearTileActive(false)
+	, m_ComputePreprocessReady(false)
+	, m_ComputePreprocessTileReady(false)
+	, m_ComputePreprocessActive(false)
+	, m_BracketedActive(false)
+	, m_LastTileAttemptFailed(false)
+	, m_LastComputeAttemptFailed(false)
+	, m_LastComputeTileAttemptFailed(false)
+	, m_LastBracketedAttemptFailed(false)
 	, m_WorkingResolution(0)
 	, m_DownsampleFactor(2)
 	, m_InputWidth(0)
@@ -19,6 +33,7 @@ KDepthOfField::KDepthOfField()
 	, m_Width(0)
 	, m_Height(0)
 	, m_NeedInitialTransition(true)
+	, m_ColorMeanNeedsInitialTransition(false)
 	, m_FinalNeedsInitialTransition(true)
 	, m_TileNeedsInitialTransition(true)
 	, m_InvalidParamsLogged(false)
@@ -27,6 +42,136 @@ KDepthOfField::KDepthOfField()
 
 KDepthOfField::~KDepthOfField()
 {
+}
+
+void KDepthOfField::QueryCapabilities()
+{
+	KRenderDeviceProperties* properties = nullptr;
+	const bool queried = KRenderGlobal::RenderDevice->QueryProperty(&properties) && properties != nullptr;
+	m_NearTileSupported = queried && properties->r16fStorageImageSupport;
+	m_ComputePreprocessSupported = queried && properties->rgba16fStorageImageSupport;
+	const bool fiveMrtSupported = queried &&
+		properties->maxColorAttachments >= 5 &&
+		properties->maxFragmentOutputAttachments >= 5;
+	m_BracketedSupported = fiveMrtSupported && properties->rgba8UnormColorAttachmentSupport;
+}
+
+bool KDepthOfField::IsSceneColorNonNegativeGuaranteed(std::string& reason) const
+{
+	const DeferredRenderDebug debugOption = KRenderGlobal::DeferredRenderer.GetDebugOption();
+	if (debugOption == DRD_NORMAL || debugOption == DRD_MOTION)
+	{
+		reason = "Signed SceneColor debug output (Normal/Motion); fallback to baseline FP16";
+		return false;
+	}
+	return true;
+}
+
+bool KDepthOfField::CanUseBracketed(std::string& reason) const
+{
+	if (!m_BracketedSupported)
+	{
+		reason = "Bracketing unavailable (requires 5 MRT and RGBA8_UNORM); fallback to baseline FP16";
+		return false;
+	}
+	if (!IsSceneColorNonNegativeGuaranteed(reason))
+	{
+		if (reason.empty())
+		{
+			reason = "SceneColor non-negative contract not satisfied; fallback to baseline FP16";
+		}
+		return false;
+	}
+	reason.clear();
+	return true;
+}
+
+bool KDepthOfField::EnsureBlurShaders(bool bracketed, bool nearTile)
+{
+	const bool async = KRenderGlobal::EnableAsyncShaderCompile;
+	auto AcquireIfNeeded = [async](const KShaderCompileEnvironment& env, const char* file, KShaderRef& shader)
+	{
+		if (!shader)
+		{
+			KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, file, env, shader, async);
+		}
+	};
+
+	KShaderCompileEnvironment env;
+	if (bracketed)
+	{
+		env.macros.push_back({ "DOF_BRACKETED", "1" });
+	}
+	if (nearTile)
+	{
+		env.macros.push_back({ "DOF_NEAR_TILE", "1" });
+		KShaderRef& hShader = bracketed ? m_NearTileBracketedHorizontalFS : m_NearTileHorizontalFS;
+		KShaderRef& vShader = bracketed ? m_NearTileBracketedVerticalFS : m_NearTileVerticalFS;
+		AcquireIfNeeded(env, "dof/horizontal.frag", hShader);
+		AcquireIfNeeded(env, "dof/vertical.frag", vShader);
+		return bool(hShader) && bool(vShader);
+	}
+
+	KShaderRef& nearH = bracketed ? m_NearBracketedHorizontalFS : m_NearHorizontalFS;
+	KShaderRef& nearV = bracketed ? m_NearBracketedVerticalFS : m_NearVerticalFS;
+	AcquireIfNeeded(env, "dof/horizontal.frag", nearH);
+	AcquireIfNeeded(env, "dof/vertical.frag", nearV);
+
+	KShaderCompileEnvironment farEnv = env;
+	farEnv.macros.push_back({ "DOF_FAR", "1" });
+	KShaderRef& farH = bracketed ? m_FarBracketedHorizontalFS : m_FarHorizontalFS;
+	KShaderRef& farV = bracketed ? m_FarBracketedVerticalFS : m_FarVerticalFS;
+	AcquireIfNeeded(farEnv, "dof/horizontal.frag", farH);
+	AcquireIfNeeded(farEnv, "dof/vertical.frag", farV);
+
+	return bool(nearH) && bool(nearV) && bool(farH) && bool(farV);
+}
+
+bool KDepthOfField::ConfigureBlurPipeline(IKPipelinePtr& pipeline, const KShaderRef& fragment,
+	IKFrameBufferPtr tex0, IKFrameBufferPtr tex1, IKFrameBufferPtr tex2, IKFrameBufferPtr tex3,
+	IKFrameBufferPtr colorMean, IKRenderPassPtr renderPass, bool dynamicWrite)
+{
+	if (!m_QuadVS || !fragment || !renderPass)
+	{
+		return false;
+	}
+	if (!pipeline)
+	{
+		KRenderGlobal::RenderDevice->CreatePipeline(pipeline);
+	}
+	pipeline->UnInit(true);
+
+	pipeline->SetVertexBinding(KRenderGlobal::QuadDataProvider.GetVertexFormat(), KRenderGlobal::QuadDataProvider.GetVertexFormatArraySize());
+	pipeline->SetShader(ST_VERTEX, *m_QuadVS);
+	pipeline->SetShader(ST_FRAGMENT, *fragment);
+
+	pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
+	pipeline->SetBlendEnable(false);
+	pipeline->SetCullMode(CM_NONE);
+	pipeline->SetFrontFace(FF_COUNTER_CLOCKWISE);
+	pipeline->SetPolygonMode(PM_FILL);
+	pipeline->SetColorWrite(true, true, true, true);
+	pipeline->SetDepthFunc(CF_ALWAYS, false, false);
+
+	IKSamplerPtr sampler = KRenderGlobal::GBuffer.GetSampler();
+	IKFrameBufferPtr textures[5] = { tex0, tex1, tex2, tex3, colorMean };
+	uint32_t bindings[5] = { SHADER_BINDING_TEXTURE0, SHADER_BINDING_TEXTURE1, SHADER_BINDING_TEXTURE2, SHADER_BINDING_TEXTURE3, SHADER_BINDING_TEXTURE4 };
+	for (uint32_t i = 0; i < 5; ++i)
+	{
+		if (textures[i])
+		{
+			pipeline->SetSampler(bindings[i], textures[i], sampler, dynamicWrite);
+		}
+	}
+	pipeline->SetConstantBuffer(CBT_CAMERA, ST_VERTEX | ST_FRAGMENT, KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_CAMERA));
+
+	if (!pipeline->Init())
+	{
+		return false;
+	}
+	IKPipelineHandlePtr handle;
+	// 提前校验着色器编译、Descriptor Layout 与多 MRT Graphics Pipeline 创建，避免延迟到 Execute 失败。
+	return pipeline->GetHandle(renderPass, handle) && bool(handle);
 }
 
 bool KDepthOfField::Init(uint32_t width, uint32_t height, float ratio)
@@ -46,43 +191,47 @@ bool KDepthOfField::Init(uint32_t width, uint32_t height, float ratio)
 		KG_LOGW(LM_RENDER, "DOF supports working ratios 0.5 and 0.25; fall back to 0.5");
 	}
 	m_WorkingResolution = m_DownsampleFactor == 4 ? 1 : 0;
-	KRenderDeviceProperties* properties = nullptr;
-	m_NearTileSupported = KRenderGlobal::RenderDevice->QueryProperty(&properties) &&
-		properties && properties->r16fStorageImageSupport;
 
-	KRenderGlobal::RenderDevice->CreateRenderTarget(m_NearColor);
-	KRenderGlobal::RenderDevice->CreateRenderTarget(m_FarColor);
-	for (IKRenderTargetPtr& intermediate : m_ComplexIntermediate)
-	{
-		KRenderGlobal::RenderDevice->CreateRenderTarget(intermediate);
-	}
+	m_NearTileReady = false;
+	m_NearTileActive = false;
+	m_ComputePreprocessReady = false;
+	m_ComputePreprocessTileReady = false;
+	m_ComputePreprocessActive = false;
+	m_BracketedActive = false;
+	m_LastTileAttemptFailed = false;
+	m_LastComputeAttemptFailed = false;
+	m_LastComputeTileAttemptFailed = false;
+	m_LastBracketedAttemptFailed = false;
+	m_NearTileFallbackReason.clear();
+	m_ComputePreprocessFallbackReason.clear();
+	m_BracketedFallbackReason.clear();
 
-	KRenderGlobal::RenderDevice->CreateRenderTarget(m_Final);
-
-	KRenderGlobal::RenderDevice->CreateRenderPass(m_PreprocessPass);
-	KRenderGlobal::RenderDevice->CreateRenderPass(m_NearHorizontalPass);
-	KRenderGlobal::RenderDevice->CreateRenderPass(m_NearVerticalPass);
-	KRenderGlobal::RenderDevice->CreateRenderPass(m_FarHorizontalPass);
-	KRenderGlobal::RenderDevice->CreateRenderPass(m_FarVerticalPass);
-	KRenderGlobal::RenderDevice->CreateRenderPass(m_CompositePass);
-
-	KRenderGlobal::RenderDevice->CreatePipeline(m_PreprocessPipeline);
-	KRenderGlobal::RenderDevice->CreatePipeline(m_NearHorizontalPipeline);
-	KRenderGlobal::RenderDevice->CreatePipeline(m_NearVerticalPipeline);
-	KRenderGlobal::RenderDevice->CreatePipeline(m_FarHorizontalPipeline);
-	KRenderGlobal::RenderDevice->CreatePipeline(m_FarVerticalPipeline);
-	KRenderGlobal::RenderDevice->CreatePipeline(m_CompositePipeline);
+	QueryCapabilities();
 
 	KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "shading/quad.vert", m_QuadVS, KRenderGlobal::EnableAsyncShaderCompile);
 	KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "dof/preprocess.frag", m_PreprocessFS, KRenderGlobal::EnableAsyncShaderCompile);
-	KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "dof/horizontal.frag", m_NearHorizontalFS, KRenderGlobal::EnableAsyncShaderCompile);
-	KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "dof/vertical.frag", m_NearVerticalFS, KRenderGlobal::EnableAsyncShaderCompile);
-
-	KShaderCompileEnvironment farEnv;
-	farEnv.macros.push_back({ "DOF_FAR", "1" });
-	KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "dof/horizontal.frag", farEnv, m_FarHorizontalFS, KRenderGlobal::EnableAsyncShaderCompile);
-	KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "dof/vertical.frag", farEnv, m_FarVerticalFS, KRenderGlobal::EnableAsyncShaderCompile);
 	KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "dof/composite.frag", m_CompositeFS, KRenderGlobal::EnableAsyncShaderCompile);
+	if (!EnsureBlurShaders(false, false))
+	{
+		return false;
+	}
+	if (!m_Final)
+	{
+		KRenderGlobal::RenderDevice->CreateRenderTarget(m_Final);
+	}
+
+	if (m_BracketedEnable && CanUseBracketed(m_BracketedFallbackReason))
+	{
+		m_BracketedActive = true;
+		if (Resize(width, height))
+		{
+			return true;
+		}
+		m_BracketedActive = false;
+		m_LastBracketedAttemptFailed = true;
+		m_BracketedFallbackReason = "Bracketing 5-MRT initialization failed; fallback to baseline FP16";
+		KG_LOGW(LM_RENDER, "%s", m_BracketedFallbackReason.c_str());
+	}
 
 	return Resize(width, height);
 }
@@ -93,15 +242,21 @@ bool KDepthOfField::UnInit()
 	ReleaseRetiredWorkingResources(true);
 	m_LastFrameFence.reset();
 	m_DebugDrawer.UnInit();
+
 	SAFE_UNINIT(m_NearTileMaxPipeline);
+	SAFE_UNINIT(m_PreprocessComputePipeline);
+	SAFE_UNINIT(m_PreprocessComputeTilePipeline);
 	SAFE_UNINIT(m_NearTileHorizontalPipeline);
 	SAFE_UNINIT(m_NearTileVerticalPipeline);
 	SAFE_UNINIT(m_NearTileCoC);
+
 	m_NearTileHorizontalFS.Release();
 	m_NearTileVerticalFS.Release();
+	m_NearTileBracketedHorizontalFS.Release();
+	m_NearTileBracketedVerticalFS.Release();
 
 	SAFE_UNINIT(m_Final);
-
+	SAFE_UNINIT(m_HorizontalColorMean);
 	SAFE_UNINIT(m_FarColor);
 	SAFE_UNINIT(m_NearColor);
 	for (IKRenderTargetPtr& intermediate : m_ComplexIntermediate)
@@ -129,157 +284,24 @@ bool KDepthOfField::UnInit()
 	m_NearVerticalFS.Release();
 	m_FarHorizontalFS.Release();
 	m_FarVerticalFS.Release();
+	m_NearBracketedHorizontalFS.Release();
+	m_NearBracketedVerticalFS.Release();
+	m_FarBracketedHorizontalFS.Release();
+	m_FarBracketedVerticalFS.Release();
 	m_CompositeFS.Release();
 
+	m_NearTileReady = false;
+	m_NearTileActive = false;
+	m_ComputePreprocessReady = false;
+	m_ComputePreprocessTileReady = false;
+	m_ComputePreprocessActive = false;
+	m_BracketedActive = false;
+	m_InputWidth = 0;
+	m_InputHeight = 0;
+	m_Width = 0;
+	m_Height = 0;
+
 	return true;
-}
-
-void KDepthOfField::InitializePipeline()
-{
-	IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_CAMERA);
-
-	{
-		IKPipelinePtr& pipeline = m_PreprocessPipeline;
-		pipeline->UnInit();
-
-		pipeline->SetVertexBinding(KRenderGlobal::QuadDataProvider.GetVertexFormat(), KRenderGlobal::QuadDataProvider.GetVertexFormatArraySize());
-		pipeline->SetShader(ST_VERTEX, *m_QuadVS);
-		pipeline->SetShader(ST_FRAGMENT, *m_PreprocessFS);
-
-		pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
-		pipeline->SetBlendEnable(false);
-		pipeline->SetCullMode(CM_NONE);
-		pipeline->SetFrontFace(FF_COUNTER_CLOCKWISE);
-		pipeline->SetPolygonMode(PM_FILL);
-		pipeline->SetColorWrite(true, true, true, true);
-		pipeline->SetDepthFunc(CF_ALWAYS, false, false);
-
-		pipeline->SetSampler(SHADER_BINDING_TEXTURE0, KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET0)->GetFrameBuffer(), KRenderGlobal::GBuffer.GetSampler(), false);
-		pipeline->SetSampler(SHADER_BINDING_TEXTURE1, KRenderGlobal::GBuffer.GetSceneColor()->GetFrameBuffer(), KRenderGlobal::GBuffer.GetSampler(), false);
-		pipeline->SetConstantBuffer(CBT_CAMERA, ST_VERTEX | ST_FRAGMENT, cameraBuffer);
-
-		pipeline->Init();
-	}
-
-	{
-		IKPipelinePtr& pipeline = m_NearHorizontalPipeline;
-		pipeline->UnInit();
-
-		pipeline->SetVertexBinding(KRenderGlobal::QuadDataProvider.GetVertexFormat(), KRenderGlobal::QuadDataProvider.GetVertexFormatArraySize());
-		pipeline->SetShader(ST_VERTEX, *m_QuadVS);
-		pipeline->SetShader(ST_FRAGMENT, *m_NearHorizontalFS);
-
-		pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
-		pipeline->SetBlendEnable(false);
-		pipeline->SetCullMode(CM_NONE);
-		pipeline->SetFrontFace(FF_COUNTER_CLOCKWISE);
-		pipeline->SetPolygonMode(PM_FILL);
-		pipeline->SetColorWrite(true, true, true, true);
-		pipeline->SetDepthFunc(CF_ALWAYS, false, false);
-
-		pipeline->SetSampler(SHADER_BINDING_TEXTURE0, m_NearColor->GetFrameBuffer(), KRenderGlobal::GBuffer.GetSampler(), false);
-		pipeline->SetConstantBuffer(CBT_CAMERA, ST_VERTEX | ST_FRAGMENT, cameraBuffer);
-
-		pipeline->Init();
-	}
-
-	{
-		IKPipelinePtr& pipeline = m_NearVerticalPipeline;
-		pipeline->UnInit();
-
-		pipeline->SetVertexBinding(KRenderGlobal::QuadDataProvider.GetVertexFormat(), KRenderGlobal::QuadDataProvider.GetVertexFormatArraySize());
-		pipeline->SetShader(ST_VERTEX, *m_QuadVS);
-		pipeline->SetShader(ST_FRAGMENT, *m_NearVerticalFS);
-
-		pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
-		pipeline->SetBlendEnable(false);
-		pipeline->SetCullMode(CM_NONE);
-		pipeline->SetFrontFace(FF_COUNTER_CLOCKWISE);
-		pipeline->SetPolygonMode(PM_FILL);
-		pipeline->SetColorWrite(true, true, true, true);
-		pipeline->SetDepthFunc(CF_ALWAYS, false, false);
-
-		pipeline->SetSampler(SHADER_BINDING_TEXTURE0, m_ComplexIntermediate[0]->GetFrameBuffer(), KRenderGlobal::GBuffer.GetSampler(), false);
-		pipeline->SetSampler(SHADER_BINDING_TEXTURE1, m_ComplexIntermediate[1]->GetFrameBuffer(), KRenderGlobal::GBuffer.GetSampler(), false);
-		pipeline->SetConstantBuffer(CBT_CAMERA, ST_VERTEX | ST_FRAGMENT, cameraBuffer);
-
-		pipeline->Init();
-	}
-
-	{
-		IKPipelinePtr& pipeline = m_FarHorizontalPipeline;
-		pipeline->UnInit();
-
-		pipeline->SetVertexBinding(KRenderGlobal::QuadDataProvider.GetVertexFormat(), KRenderGlobal::QuadDataProvider.GetVertexFormatArraySize());
-		pipeline->SetShader(ST_VERTEX, *m_QuadVS);
-		pipeline->SetShader(ST_FRAGMENT, *m_FarHorizontalFS);
-
-		pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
-		pipeline->SetBlendEnable(false);
-		pipeline->SetCullMode(CM_NONE);
-		pipeline->SetFrontFace(FF_COUNTER_CLOCKWISE);
-		pipeline->SetPolygonMode(PM_FILL);
-		pipeline->SetColorWrite(true, true, true, true);
-		pipeline->SetDepthFunc(CF_ALWAYS, false, false);
-
-		pipeline->SetSampler(SHADER_BINDING_TEXTURE0, m_FarColor->GetFrameBuffer(), KRenderGlobal::GBuffer.GetSampler(), false);
-		pipeline->SetConstantBuffer(CBT_CAMERA, ST_VERTEX | ST_FRAGMENT, cameraBuffer);
-
-		pipeline->Init();
-	}
-
-	{
-		IKPipelinePtr& pipeline = m_FarVerticalPipeline;
-		pipeline->UnInit();
-
-		pipeline->SetVertexBinding(KRenderGlobal::QuadDataProvider.GetVertexFormat(), KRenderGlobal::QuadDataProvider.GetVertexFormatArraySize());
-		pipeline->SetShader(ST_VERTEX, *m_QuadVS);
-		pipeline->SetShader(ST_FRAGMENT, *m_FarVerticalFS);
-
-		pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
-		pipeline->SetBlendEnable(false);
-		pipeline->SetCullMode(CM_NONE);
-		pipeline->SetFrontFace(FF_COUNTER_CLOCKWISE);
-		pipeline->SetPolygonMode(PM_FILL);
-		pipeline->SetColorWrite(true, true, true, true);
-		pipeline->SetDepthFunc(CF_ALWAYS, false, false);
-
-		pipeline->SetSampler(SHADER_BINDING_TEXTURE0, m_ComplexIntermediate[0]->GetFrameBuffer(), KRenderGlobal::GBuffer.GetSampler(), false);
-		pipeline->SetSampler(SHADER_BINDING_TEXTURE1, m_ComplexIntermediate[1]->GetFrameBuffer(), KRenderGlobal::GBuffer.GetSampler(), false);
-		pipeline->SetSampler(SHADER_BINDING_TEXTURE2, m_ComplexIntermediate[2]->GetFrameBuffer(), KRenderGlobal::GBuffer.GetSampler(), false);
-		pipeline->SetSampler(SHADER_BINDING_TEXTURE3, m_ComplexIntermediate[3]->GetFrameBuffer(), KRenderGlobal::GBuffer.GetSampler(), false);
-		pipeline->SetConstantBuffer(CBT_CAMERA, ST_VERTEX | ST_FRAGMENT, cameraBuffer);
-
-		pipeline->Init();
-	}
-
-	{
-		IKPipelinePtr& pipeline = m_CompositePipeline;
-		pipeline->UnInit();
-
-		pipeline->SetVertexBinding(KRenderGlobal::QuadDataProvider.GetVertexFormat(), KRenderGlobal::QuadDataProvider.GetVertexFormatArraySize());
-		pipeline->SetShader(ST_VERTEX, *m_QuadVS);
-		pipeline->SetShader(ST_FRAGMENT, *m_CompositeFS);
-
-		pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
-		pipeline->SetBlendEnable(false);
-		pipeline->SetCullMode(CM_NONE);
-		pipeline->SetFrontFace(FF_COUNTER_CLOCKWISE);
-		pipeline->SetPolygonMode(PM_FILL);
-		pipeline->SetColorWrite(true, true, true, true);
-		pipeline->SetDepthFunc(CF_ALWAYS, false, false);
-
-		pipeline->SetSampler(SHADER_BINDING_TEXTURE0, KRenderGlobal::GBuffer.GetSceneColor()->GetFrameBuffer(), KRenderGlobal::GBuffer.GetSampler(), false);
-		pipeline->SetSampler(SHADER_BINDING_TEXTURE1, KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET0)->GetFrameBuffer(), KRenderGlobal::GBuffer.GetSampler(), false);
-		pipeline->SetSampler(SHADER_BINDING_TEXTURE2, m_NearColor->GetFrameBuffer(), KRenderGlobal::GBuffer.GetSampler(), false);
-		pipeline->SetSampler(SHADER_BINDING_TEXTURE3, m_FarColor->GetFrameBuffer(), KRenderGlobal::GBuffer.GetSampler(), false);
-		// Tile 关闭时使用有效的占位采样器，诊断分支由 uniform 标志禁止访问。
-		pipeline->SetSampler(SHADER_BINDING_TEXTURE4,
-			(m_NearTileCoC ? m_NearTileCoC : m_NearColor)->GetFrameBuffer(), KRenderGlobal::GBuffer.GetSampler(), true);
-		pipeline->SetConstantBuffer(CBT_CAMERA, ST_VERTEX | ST_FRAGMENT, cameraBuffer);
-
-		pipeline->Init();
-	}
 }
 
 bool KDepthOfField::HasPendingResolutionChange() const
@@ -289,15 +311,36 @@ bool KDepthOfField::HasPendingResolutionChange() const
 
 void KDepthOfField::RetiredWorkingResources::UnInit()
 {
-	SAFE_UNINIT(tilePipeline);
+	for (auto& computePipeline : computePipelines)
+	{
+		SAFE_UNINIT(computePipeline);
+	}
+	computePipelines.clear();
 	for (auto& pipeline : pipelines)
 	{
 		// 本组独占 RenderPass 的最后使用 Fence 已完成，销毁 Handle 不应再等待整个设备。
-		if (pipeline) pipeline->UnInit(true);
+		if (pipeline)
+		{
+			pipeline->UnInit(true);
+		}
 		pipeline.reset();
 	}
-	for (auto& pass : passes) SAFE_UNINIT(pass);
-	for (auto& target : targets) SAFE_UNINIT(target);
+	pipelines.clear();
+	for (auto& pass : passes)
+	{
+		SAFE_UNINIT(pass);
+	}
+	passes.clear();
+	for (auto& target : targets)
+	{
+		SAFE_UNINIT(target);
+	}
+	targets.clear();
+	for (auto& shader : shaders)
+	{
+		shader.Release();
+	}
+	shaders.clear();
 }
 
 void KDepthOfField::ReleaseRetiredWorkingResources(bool all)
@@ -309,150 +352,747 @@ void KDepthOfField::ReleaseRetiredWorkingResources(bool all)
 			it->UnInit();
 			it = m_RetiredWorkingResources.erase(it);
 		}
-		else ++it;
-	}
-}
-
-void KDepthOfField::RetireWorkingResources()
-{
-	RetiredWorkingResources retired;
-	retired.completionFence = std::move(m_LastFrameFence);
-	// 旧描述符、Framebuffer 和 Image 必须一起保留，不能仅保留 RT 却原地 UnInit Pipeline。
-	for (IKRenderTargetPtr* target : { &m_NearColor, &m_FarColor, &m_ComplexIntermediate[0],
-		&m_ComplexIntermediate[1], &m_ComplexIntermediate[2], &m_ComplexIntermediate[3] })
-	{
-		retired.targets.push_back(std::move(*target));
-		KRenderGlobal::RenderDevice->CreateRenderTarget(*target);
-	}
-	for (IKRenderPassPtr* pass : { &m_PreprocessPass, &m_NearHorizontalPass, &m_NearVerticalPass,
-		&m_FarHorizontalPass, &m_FarVerticalPass, &m_CompositePass })
-	{
-		retired.passes.push_back(std::move(*pass));
-		KRenderGlobal::RenderDevice->CreateRenderPass(*pass);
-	}
-	for (IKPipelinePtr* pipeline : { &m_PreprocessPipeline, &m_NearHorizontalPipeline, &m_NearVerticalPipeline,
-		&m_FarHorizontalPipeline, &m_FarVerticalPipeline, &m_CompositePipeline })
-	{
-		retired.pipelines.push_back(std::move(*pipeline));
-		KRenderGlobal::RenderDevice->CreatePipeline(*pipeline);
-	}
-	if (m_NearTileCoC)
-	{
-		retired.targets.push_back(std::move(m_NearTileCoC));
-		retired.tilePipeline = std::move(m_NearTileMaxPipeline);
-		retired.pipelines.push_back(std::move(m_NearTileHorizontalPipeline));
-		retired.pipelines.push_back(std::move(m_NearTileVerticalPipeline));
-	}
-	m_RetiredWorkingResources.push_back(std::move(retired));
-	ReleaseRetiredWorkingResources();
-}
-
-bool KDepthOfField::ApplySettings()
-{
-	if (!m_NearColor || !m_InputWidth || !m_InputHeight) return false;
-	ReleaseRetiredWorkingResources();
-	m_WorkingResolution = m_WorkingResolution == 1 ? 1 : 0;
-	if (HasPendingResolutionChange())
-	{
-		const bool hadTile = bool(m_NearTileCoC);
-		RetireWorkingResources();
-		m_DownsampleFactor = m_WorkingResolution == 1 ? 4 : 2;
-		if (!Resize(m_InputWidth, m_InputHeight)) return false;
-		if (hadTile && !InitializeNearTile()) return false;
-	}
-	if (m_NearTileEnable && !m_NearTileCoC)
-	{
-		if (!InitializeNearTile())
+		else
 		{
-			m_NearTileEnable = false;
-			KG_LOGW(LM_RENDER, "Near TileMAX unavailable; use the baseline convolution");
+			++it;
+		}
+	}
+}
+
+bool KDepthOfField::RebuildWorkingResources(uint32_t width, uint32_t height, uint32_t downsampleFactor,
+	bool bracketed, bool retireCurrent, PixelFormat bracketedFormat)
+{
+	if (!width || !height || !downsampleFactor)
+	{
+		return false;
+	}
+	if (!EnsureBlurShaders(bracketed, false))
+	{
+		return false;
+	}
+
+	const uint32_t workWidth = width / downsampleFactor + (width % downsampleFactor != 0);
+	const uint32_t workHeight = height / downsampleFactor + (height % downsampleFactor != 0);
+	const bool resizeFinal = !m_Final || !m_Final->GetFrameBuffer() || !m_Final->GetFrameBuffer()->GetWidth() ||
+		width != m_InputWidth || height != m_InputHeight;
+	const PixelFormat intermediateFormat = bracketed ? bracketedFormat : PF_R16G16B16A16_FLOAT;
+
+	// 事务式在临时对象中完整构建；任一步失败即原地清理临时对象，不破坏当前活动路径。
+	RetiredWorkingResources staged;
+	auto CleanupStaged = [&]()
+	{
+		staged.UnInit();
+	};
+
+	IKRenderTargetPtr newNearColor;
+	IKRenderTargetPtr newFarColor;
+	IKRenderTargetPtr newIntermediate[4];
+	IKRenderTargetPtr newColorMean;
+
+	auto CreateColorTarget = [&](IKRenderTargetPtr& target, uint32_t w, uint32_t h, PixelFormat format) -> bool
+	{
+		KRenderGlobal::RenderDevice->CreateRenderTarget(target);
+		if (!target)
+		{
+			return false;
+		}
+		staged.targets.push_back(target);
+		// 初始布局转换放入正常帧命令，避开既有单次提交辅助函数中的 vkWaitForFences。
+		return target->InitFromColor(w, h, 1, 1, format, true);
+	};
+
+	if (!CreateColorTarget(newNearColor, workWidth, workHeight, PF_R16G16B16A16_FLOAT) ||
+		!CreateColorTarget(newFarColor, workWidth, workHeight, PF_R16G16B16A16_FLOAT))
+	{
+		CleanupStaged();
+		return false;
+	}
+	for (uint32_t i = 0; i < ARRAY_SIZE(newIntermediate); ++i)
+	{
+		if (!CreateColorTarget(newIntermediate[i], workWidth, workHeight, intermediateFormat))
+		{
+			CleanupStaged();
 			return false;
 		}
 	}
+	if (bracketed)
+	{
+		if (!CreateColorTarget(newColorMean, workWidth, workHeight, PF_R16G16B16A16_FLOAT))
+		{
+			CleanupStaged();
+			return false;
+		}
+		newColorMean->GetFrameBuffer()->SetDebugName("DOF_HorizontalColorMean");
+	}
+	if (resizeFinal)
+	{
+		// KDeferredRenderer 的 m_DrawProcessResultPipeline 长期持有 m_Final->GetFrameBuffer()（dynamicWrite=true），
+		// 且 OnSwapChainRecreate 先于 DOF 调整 DeferredRenderer；必须原地重建 m_Final，保持 IKFrameBuffer 指针稳定。
+		if (retireCurrent)
+		{
+			CleanupStaged();
+			return false;
+		}
+		m_DebugDrawer.UnInit();
+		if (!m_Final)
+		{
+			KRenderGlobal::RenderDevice->CreateRenderTarget(m_Final);
+		}
+		if (!m_Final || !m_Final->InitFromColor(width, height, 1, 1, PF_R16G16B16A16_FLOAT, true))
+		{
+			CleanupStaged();
+			return false;
+		}
+		m_Final->GetFrameBuffer()->SetDebugName("DOF_Final");
+	}
+
+	IKRenderPassPtr newPreprocessPass;
+	IKRenderPassPtr newNearHorizontalPass;
+	IKRenderPassPtr newNearVerticalPass;
+	IKRenderPassPtr newFarHorizontalPass;
+	IKRenderPassPtr newFarVerticalPass;
+	IKRenderPassPtr newCompositePass;
+
+	auto CreatePass = [&](IKRenderPassPtr& pass) -> bool
+	{
+		KRenderGlobal::RenderDevice->CreateRenderPass(pass);
+		if (!pass)
+		{
+			return false;
+		}
+		staged.passes.push_back(pass);
+		return true;
+	};
+
+	if (!CreatePass(newPreprocessPass) || !CreatePass(newNearHorizontalPass) ||
+		!CreatePass(newNearVerticalPass) || !CreatePass(newFarHorizontalPass) ||
+		!CreatePass(newFarVerticalPass) || !CreatePass(newCompositePass))
+	{
+		CleanupStaged();
+		return false;
+	}
+
+	auto SetColorSlot = [](IKRenderPassPtr& pass, uint32_t slot, IKFrameBufferPtr fb) -> bool
+	{
+		return pass->SetColorAttachment(slot, fb) &&
+			pass->SetOpColor(slot, LO_DONT_CARE, SO_STORE) &&
+			pass->SetClearColor(slot, { 0.0f, 0.0f, 0.0f, 0.0f });
+	};
+
+	bool passesOk =
+		SetColorSlot(newPreprocessPass, 0, newNearColor->GetFrameBuffer()) &&
+		SetColorSlot(newPreprocessPass, 1, newFarColor->GetFrameBuffer()) &&
+		newPreprocessPass->Init() &&
+		SetColorSlot(newNearHorizontalPass, 0, newIntermediate[0]->GetFrameBuffer()) &&
+		SetColorSlot(newNearHorizontalPass, 1, newIntermediate[1]->GetFrameBuffer()) &&
+		(!bracketed || SetColorSlot(newNearHorizontalPass, 2, newColorMean->GetFrameBuffer())) &&
+		newNearHorizontalPass->Init() &&
+		SetColorSlot(newNearVerticalPass, 0, newNearColor->GetFrameBuffer()) &&
+		newNearVerticalPass->Init();
+	if (passesOk)
+	{
+		for (uint32_t i = 0; i < ARRAY_SIZE(newIntermediate); ++i)
+		{
+			passesOk = passesOk && SetColorSlot(newFarHorizontalPass, i, newIntermediate[i]->GetFrameBuffer());
+		}
+		if (bracketed)
+		{
+			passesOk = passesOk && SetColorSlot(newFarHorizontalPass, 4, newColorMean->GetFrameBuffer());
+		}
+		passesOk = passesOk && newFarHorizontalPass->Init() &&
+			SetColorSlot(newFarVerticalPass, 0, newFarColor->GetFrameBuffer()) &&
+			newFarVerticalPass->Init() &&
+			SetColorSlot(newCompositePass, 0, m_Final->GetFrameBuffer()) &&
+			newCompositePass->Init();
+	}
+	if (!passesOk)
+	{
+		CleanupStaged();
+		return false;
+	}
+
+	IKPipelinePtr newPreprocessPipeline;
+	IKPipelinePtr newNearHorizontalPipeline;
+	IKPipelinePtr newNearVerticalPipeline;
+	IKPipelinePtr newFarHorizontalPipeline;
+	IKPipelinePtr newFarVerticalPipeline;
+	IKPipelinePtr newCompositePipeline;
+
+	auto StagePipeline = [&](IKPipelinePtr& pipeline) -> bool
+	{
+		KRenderGlobal::RenderDevice->CreatePipeline(pipeline);
+		if (!pipeline)
+		{
+			return false;
+		}
+		staged.pipelines.push_back(pipeline);
+		return true;
+	};
+
+	if (!StagePipeline(newPreprocessPipeline) || !StagePipeline(newNearHorizontalPipeline) ||
+		!StagePipeline(newNearVerticalPipeline) || !StagePipeline(newFarHorizontalPipeline) ||
+		!StagePipeline(newFarVerticalPipeline) || !StagePipeline(newCompositePipeline))
+	{
+		CleanupStaged();
+		return false;
+	}
+
+	const KShaderRef& nearHFS = bracketed ? m_NearBracketedHorizontalFS : m_NearHorizontalFS;
+	const KShaderRef& nearVFS = bracketed ? m_NearBracketedVerticalFS : m_NearVerticalFS;
+	const KShaderRef& farHFS = bracketed ? m_FarBracketedHorizontalFS : m_FarHorizontalFS;
+	const KShaderRef& farVFS = bracketed ? m_FarBracketedVerticalFS : m_FarVerticalFS;
+	IKFrameBufferPtr meanFB = bracketed ? newColorMean->GetFrameBuffer() : nullptr;
+
+	bool pipelinesOk =
+		ConfigureBlurPipeline(newPreprocessPipeline, m_PreprocessFS,
+			KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET0)->GetFrameBuffer(),
+			KRenderGlobal::GBuffer.GetSceneColor()->GetFrameBuffer(),
+			nullptr, nullptr, nullptr, newPreprocessPass, false) &&
+		ConfigureBlurPipeline(newNearHorizontalPipeline, nearHFS,
+			newNearColor->GetFrameBuffer(), nullptr, nullptr, nullptr, nullptr,
+			newNearHorizontalPass, false) &&
+		ConfigureBlurPipeline(newNearVerticalPipeline, nearVFS,
+			newIntermediate[0]->GetFrameBuffer(), newIntermediate[1]->GetFrameBuffer(),
+			nullptr, nullptr, meanFB, newNearVerticalPass, false) &&
+		ConfigureBlurPipeline(newFarHorizontalPipeline, farHFS,
+			newFarColor->GetFrameBuffer(), nullptr, nullptr, nullptr, nullptr,
+			newFarHorizontalPass, false) &&
+		ConfigureBlurPipeline(newFarVerticalPipeline, farVFS,
+			newIntermediate[0]->GetFrameBuffer(), newIntermediate[1]->GetFrameBuffer(),
+			newIntermediate[2]->GetFrameBuffer(), newIntermediate[3]->GetFrameBuffer(),
+			meanFB, newFarVerticalPass, false) &&
+		ConfigureBlurPipeline(newCompositePipeline, m_CompositeFS,
+			KRenderGlobal::GBuffer.GetSceneColor()->GetFrameBuffer(),
+			KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET0)->GetFrameBuffer(),
+			newNearColor->GetFrameBuffer(), newFarColor->GetFrameBuffer(),
+			newNearColor->GetFrameBuffer(), newCompositePass, true);
+
+	if (!pipelinesOk)
+	{
+		CleanupStaged();
+		return false;
+	}
+
+	// 新工作资源全部校验就绪，现在提交切换并安全退役/释放旧资源。
+	staged.targets.clear();
+	staged.passes.clear();
+	staged.pipelines.clear();
+
+	if (retireCurrent && m_NearColor)
+	{
+		RetiredWorkingResources retired;
+		retired.completionFence = m_LastFrameFence;
+		// 旧描述符、Framebuffer、Image 和 Compute Pipeline 一起保留到最后使用 Fence 完成。
+		for (IKRenderTargetPtr* target : { &m_NearColor, &m_FarColor, &m_ComplexIntermediate[0],
+			&m_ComplexIntermediate[1], &m_ComplexIntermediate[2], &m_ComplexIntermediate[3], &m_HorizontalColorMean,
+			&m_NearTileCoC })
+		{
+			if (*target)
+			{
+				retired.targets.push_back(std::move(*target));
+			}
+		}
+		for (IKRenderPassPtr* pass : { &m_PreprocessPass, &m_NearHorizontalPass, &m_NearVerticalPass,
+			&m_FarHorizontalPass, &m_FarVerticalPass, &m_CompositePass })
+		{
+			if (*pass)
+			{
+				retired.passes.push_back(std::move(*pass));
+			}
+		}
+		for (IKPipelinePtr* pipeline : { &m_PreprocessPipeline, &m_NearHorizontalPipeline, &m_NearVerticalPipeline,
+			&m_FarHorizontalPipeline, &m_FarVerticalPipeline, &m_CompositePipeline,
+			&m_NearTileHorizontalPipeline, &m_NearTileVerticalPipeline })
+		{
+			if (*pipeline)
+			{
+				retired.pipelines.push_back(std::move(*pipeline));
+			}
+		}
+		for (IKComputePipelinePtr* compute : { &m_NearTileMaxPipeline, &m_PreprocessComputePipeline, &m_PreprocessComputeTilePipeline })
+		{
+			if (*compute)
+			{
+				retired.computePipelines.push_back(std::move(*compute));
+			}
+		}
+
+		m_RetiredWorkingResources.push_back(std::move(retired));
+		ReleaseRetiredWorkingResources();
+	}
+	else
+	{
+		SAFE_UNINIT(m_NearTileMaxPipeline);
+		SAFE_UNINIT(m_PreprocessComputePipeline);
+		SAFE_UNINIT(m_PreprocessComputeTilePipeline);
+		SAFE_UNINIT(m_NearTileHorizontalPipeline);
+		SAFE_UNINIT(m_NearTileVerticalPipeline);
+		SAFE_UNINIT(m_NearTileCoC);
+		SAFE_UNINIT(m_PreprocessPipeline);
+		SAFE_UNINIT(m_NearHorizontalPipeline);
+		SAFE_UNINIT(m_NearVerticalPipeline);
+		SAFE_UNINIT(m_FarHorizontalPipeline);
+		SAFE_UNINIT(m_FarVerticalPipeline);
+		SAFE_UNINIT(m_CompositePipeline);
+		SAFE_UNINIT(m_PreprocessPass);
+		SAFE_UNINIT(m_NearHorizontalPass);
+		SAFE_UNINIT(m_NearVerticalPass);
+		SAFE_UNINIT(m_FarHorizontalPass);
+		SAFE_UNINIT(m_FarVerticalPass);
+		SAFE_UNINIT(m_CompositePass);
+		SAFE_UNINIT(m_HorizontalColorMean);
+		SAFE_UNINIT(m_NearColor);
+		SAFE_UNINIT(m_FarColor);
+		for (IKRenderTargetPtr& intermediate : m_ComplexIntermediate)
+		{
+			SAFE_UNINIT(intermediate);
+		}
+	}
+
+	m_NearTileReady = false;
+	m_ComputePreprocessReady = false;
+	m_ComputePreprocessTileReady = false;
+
+	m_DownsampleFactor = downsampleFactor;
+	m_InputWidth = width;
+	m_InputHeight = height;
+	m_Width = workWidth;
+	m_Height = workHeight;
+	m_BracketedActive = bracketed;
+
+	m_NearColor = std::move(newNearColor);
+	m_FarColor = std::move(newFarColor);
+	for (uint32_t i = 0; i < ARRAY_SIZE(m_ComplexIntermediate); ++i)
+	{
+		m_ComplexIntermediate[i] = std::move(newIntermediate[i]);
+	}
+	m_HorizontalColorMean = std::move(newColorMean);
+	if (resizeFinal)
+	{
+		m_FinalNeedsInitialTransition = true;
+		m_DebugDrawer.Init(m_Final->GetFrameBuffer(), 0, 0, 1, 1);
+	}
+
+	m_PreprocessPass = std::move(newPreprocessPass);
+	m_NearHorizontalPass = std::move(newNearHorizontalPass);
+	m_NearVerticalPass = std::move(newNearVerticalPass);
+	m_FarHorizontalPass = std::move(newFarHorizontalPass);
+	m_FarVerticalPass = std::move(newFarVerticalPass);
+	m_CompositePass = std::move(newCompositePass);
+
+	m_PreprocessPipeline = std::move(newPreprocessPipeline);
+	m_NearHorizontalPipeline = std::move(newNearHorizontalPipeline);
+	m_NearVerticalPipeline = std::move(newNearVerticalPipeline);
+	m_FarHorizontalPipeline = std::move(newFarHorizontalPipeline);
+	m_FarVerticalPipeline = std::move(newFarVerticalPipeline);
+	m_CompositePipeline = std::move(newCompositePipeline);
+
+	m_NeedInitialTransition = true;
+	m_ColorMeanNeedsInitialTransition = bool(m_HorizontalColorMean);
 	return true;
 }
 
 bool KDepthOfField::InitializeNearTile()
 {
-	if (!m_NearTileSupported) return false;
-	if (!m_NearTileCoC) KRenderGlobal::RenderDevice->CreateRenderTarget(m_NearTileCoC);
+	if (!m_NearTileSupported)
+	{
+		m_NearTileFallbackReason = "R16F storage/sampled image unsupported";
+		return false;
+	}
+	if (!m_NearColor || !m_NearHorizontalPass || !m_NearVerticalPass || !m_CompositePipeline)
+	{
+		m_NearTileFallbackReason = "Working DOF resources not initialized";
+		return false;
+	}
+	if (!EnsureBlurShaders(m_BracketedActive, true))
+	{
+		m_NearTileFallbackReason = "Near Tile shader acquisition failed";
+		return false;
+	}
+
+	// 事务式构建：全部成功后再提交成员变量，避免失败后残留非空 m_NearTileCoC 或半初始化管线。
+	IKRenderTargetPtr newTileCoC;
+	IKComputePipelinePtr newTileMaxPipeline;
+	IKPipelinePtr newTileHPipeline;
+	IKPipelinePtr newTileVPipeline;
+	auto Cleanup = [&]()
+	{
+		SAFE_UNINIT(newTileMaxPipeline);
+		if (newTileHPipeline)
+		{
+			newTileHPipeline->UnInit(true);
+		}
+		if (newTileVPipeline)
+		{
+			newTileVPipeline->UnInit(true);
+		}
+		SAFE_UNINIT(newTileCoC);
+	};
+
+	KRenderGlobal::RenderDevice->CreateRenderTarget(newTileCoC);
 	// 共享 Tile 尺寸由同一头文件提供给 C++ 和 GLSL，避免 CPU 分配与 Compute 分组分叉。
 	const uint32_t tileWidth = (m_Width + DOF_TILE_SIZE - 1) / DOF_TILE_SIZE;
 	const uint32_t tileHeight = (m_Height + DOF_TILE_SIZE - 1) / DOF_TILE_SIZE;
-	if (!m_NearTileCoC->InitFromStorage(tileWidth, tileHeight, 1, PF_R16_FLOAT, true)) return false;
-	m_NearTileCoC->GetFrameBuffer()->SetDebugName("DOF_NearTileCoC");
-	m_TileNeedsInitialTransition = true;
-
-	KShaderCompileEnvironment tileEnvironment;
-	tileEnvironment.macros.push_back({"DOF_NEAR_TILE", "1"});
-	KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "dof/horizontal.frag", tileEnvironment, m_NearTileHorizontalFS, KRenderGlobal::EnableAsyncShaderCompile);
-	KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "dof/vertical.frag", tileEnvironment, m_NearTileVerticalFS, KRenderGlobal::EnableAsyncShaderCompile);
-	if (!m_NearTileMaxPipeline) KRenderGlobal::RenderDevice->CreateComputePipeline(m_NearTileMaxPipeline);
-	m_NearTileMaxPipeline->UnInit();
-	m_NearTileMaxPipeline->BindSampler(SHADER_BINDING_TEXTURE0, KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET0)->GetFrameBuffer(), KRenderGlobal::GBuffer.GetSampler(), true);
-	m_NearTileMaxPipeline->BindStorageImage(SHADER_BINDING_TEXTURE1, m_NearTileCoC->GetFrameBuffer(), PF_R16_FLOAT, COMPUTE_RESOURCE_OUT, 0, true);
-	m_NearTileMaxPipeline->BindUniformBuffer(CBT_CAMERA, KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_CAMERA));
-	m_NearTileMaxPipeline->BindDynamicUniformBuffer(SHADER_BINDING_OBJECT);
-	if (!m_NearTileMaxPipeline->Init("dof/near_tile_max.comp", KShaderCompileEnvironment(), false)) return false;
-
-	auto InitializeBlur = [&](IKPipelinePtr& pipeline, const KShaderRef& fragment, bool vertical)
+	if (!newTileCoC || !newTileCoC->InitFromStorage(tileWidth, tileHeight, 1, PF_R16_FLOAT, true))
 	{
-		if (!pipeline) KRenderGlobal::RenderDevice->CreatePipeline(pipeline);
-		pipeline->UnInit();
-		pipeline->SetVertexBinding(KRenderGlobal::QuadDataProvider.GetVertexFormat(), KRenderGlobal::QuadDataProvider.GetVertexFormatArraySize());
-		pipeline->SetShader(ST_VERTEX, *m_QuadVS);
-		pipeline->SetShader(ST_FRAGMENT, *fragment);
-		pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
-		pipeline->SetBlendEnable(false);
-		pipeline->SetCullMode(CM_NONE);
-		pipeline->SetFrontFace(FF_COUNTER_CLOCKWISE);
-		pipeline->SetPolygonMode(PM_FILL);
-		pipeline->SetColorWrite(true, true, true, true);
-		pipeline->SetDepthFunc(CF_ALWAYS, false, false);
-		pipeline->SetSampler(SHADER_BINDING_TEXTURE0, (vertical ? m_ComplexIntermediate[0] : m_NearColor)->GetFrameBuffer(), KRenderGlobal::GBuffer.GetSampler(), true);
-		if (vertical) pipeline->SetSampler(SHADER_BINDING_TEXTURE1, m_ComplexIntermediate[1]->GetFrameBuffer(), KRenderGlobal::GBuffer.GetSampler(), true);
-		pipeline->SetSampler(SHADER_BINDING_TEXTURE2, m_NearTileCoC->GetFrameBuffer(), KRenderGlobal::GBuffer.GetSampler(), true);
-		pipeline->Init();
-	};
-	InitializeBlur(m_NearTileHorizontalPipeline, m_NearTileHorizontalFS, false);
-	InitializeBlur(m_NearTileVerticalPipeline, m_NearTileVerticalFS, true);
+		Cleanup();
+		m_NearTileFallbackReason = "R16F TileMAX target allocation failed";
+		return false;
+	}
+	newTileCoC->GetFrameBuffer()->SetDebugName("DOF_NearTileCoC");
+
+	KRenderGlobal::RenderDevice->CreateComputePipeline(newTileMaxPipeline);
+	if (!newTileMaxPipeline)
+	{
+		Cleanup();
+		m_NearTileFallbackReason = "TileMAX compute pipeline creation failed";
+		return false;
+	}
+	newTileMaxPipeline->BindSampler(SHADER_BINDING_TEXTURE0, KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET0)->GetFrameBuffer(), KRenderGlobal::GBuffer.GetSampler(), true);
+	newTileMaxPipeline->BindStorageImage(SHADER_BINDING_TEXTURE1, newTileCoC->GetFrameBuffer(), PF_R16_FLOAT, COMPUTE_RESOURCE_OUT, 0, true);
+	newTileMaxPipeline->BindUniformBuffer(CBT_CAMERA, KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_CAMERA));
+	newTileMaxPipeline->BindDynamicUniformBuffer(SHADER_BINDING_OBJECT);
+	if (!newTileMaxPipeline->Init("dof/near_tile_max.comp", KShaderCompileEnvironment(), false))
+	{
+		Cleanup();
+		m_NearTileFallbackReason = "TileMAX compute shader/pipeline init failed";
+		return false;
+	}
+
+	const KShaderRef& tileHFS = m_BracketedActive ? m_NearTileBracketedHorizontalFS : m_NearTileHorizontalFS;
+	const KShaderRef& tileVFS = m_BracketedActive ? m_NearTileBracketedVerticalFS : m_NearTileVerticalFS;
+	IKFrameBufferPtr meanFB = m_BracketedActive && m_HorizontalColorMean ? m_HorizontalColorMean->GetFrameBuffer() : nullptr;
+
+	if (!ConfigureBlurPipeline(newTileHPipeline, tileHFS,
+			m_NearColor->GetFrameBuffer(), nullptr, newTileCoC->GetFrameBuffer(), nullptr,
+			nullptr, m_NearHorizontalPass, true) ||
+		!ConfigureBlurPipeline(newTileVPipeline, tileVFS,
+			m_ComplexIntermediate[0]->GetFrameBuffer(), m_ComplexIntermediate[1]->GetFrameBuffer(),
+			newTileCoC->GetFrameBuffer(), nullptr, meanFB, m_NearVerticalPass, true))
+	{
+		Cleanup();
+		m_NearTileFallbackReason = "Near Tile H/V pipeline init failed";
+		return false;
+	}
+
+	if (m_NearTileCoC || m_NearTileMaxPipeline || m_NearTileHorizontalPipeline ||
+		m_NearTileVerticalPipeline || m_PreprocessComputeTilePipeline)
+	{
+		RetiredWorkingResources retired;
+		retired.completionFence = m_LastFrameFence;
+		if (m_NearTileCoC)
+		{
+			retired.targets.push_back(std::move(m_NearTileCoC));
+		}
+		if (m_NearTileMaxPipeline)
+		{
+			retired.computePipelines.push_back(std::move(m_NearTileMaxPipeline));
+		}
+		if (m_NearTileHorizontalPipeline)
+		{
+			retired.pipelines.push_back(std::move(m_NearTileHorizontalPipeline));
+		}
+		if (m_NearTileVerticalPipeline)
+		{
+			retired.pipelines.push_back(std::move(m_NearTileVerticalPipeline));
+		}
+		if (m_PreprocessComputeTilePipeline)
+		{
+			retired.computePipelines.push_back(std::move(m_PreprocessComputeTilePipeline));
+		}
+		m_ComputePreprocessTileReady = false;
+		m_RetiredWorkingResources.push_back(std::move(retired));
+		ReleaseRetiredWorkingResources();
+	}
+
+	m_NearTileCoC = std::move(newTileCoC);
+	m_NearTileMaxPipeline = std::move(newTileMaxPipeline);
+	m_NearTileHorizontalPipeline = std::move(newTileHPipeline);
+	m_NearTileVerticalPipeline = std::move(newTileVPipeline);
 	m_CompositePipeline->SetSampler(SHADER_BINDING_TEXTURE4, m_NearTileCoC->GetFrameBuffer(), KRenderGlobal::GBuffer.GetSampler(), true);
+	m_TileNeedsInitialTransition = true;
+	m_NearTileReady = true;
+	m_NearTileFallbackReason.clear();
 	return true;
+}
+
+bool KDepthOfField::EnsureComputePreprocessPipeline(bool withTile)
+{
+	if (!m_ComputePreprocessSupported)
+	{
+		m_ComputePreprocessFallbackReason = "RGBA16F color/storage/sampled image unsupported; fallback to PS";
+		return false;
+	}
+	if (!m_NearColor || !m_FarColor)
+	{
+		m_ComputePreprocessFallbackReason = "Working Near/Far targets not initialized; fallback to PS";
+		return false;
+	}
+	if (withTile && (!m_NearTileReady || !m_NearTileCoC))
+	{
+		m_ComputePreprocessFallbackReason = "Near TileMAX target not ready for fused CS; fallback to PS";
+		return false;
+	}
+	if ((!withTile && m_ComputePreprocessReady && m_PreprocessComputePipeline) ||
+		(withTile && m_ComputePreprocessTileReady && m_PreprocessComputeTilePipeline))
+	{
+		return true;
+	}
+
+	IKComputePipelinePtr newPipeline;
+	KRenderGlobal::RenderDevice->CreateComputePipeline(newPipeline);
+	if (!newPipeline)
+	{
+		m_ComputePreprocessFallbackReason = "Compute preprocess pipeline allocation failed; fallback to PS";
+		return false;
+	}
+	IKSamplerPtr sampler = KRenderGlobal::GBuffer.GetSampler();
+	newPipeline->BindSampler(SHADER_BINDING_TEXTURE0, KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET0)->GetFrameBuffer(), sampler, true);
+	newPipeline->BindSampler(SHADER_BINDING_TEXTURE1, KRenderGlobal::GBuffer.GetSceneColor()->GetFrameBuffer(), sampler, true);
+	newPipeline->BindStorageImage(SHADER_BINDING_TEXTURE2, m_NearColor->GetFrameBuffer(), PF_R16G16B16A16_FLOAT, COMPUTE_RESOURCE_OUT, 0, true);
+	newPipeline->BindStorageImage(SHADER_BINDING_TEXTURE3, m_FarColor->GetFrameBuffer(), PF_R16G16B16A16_FLOAT, COMPUTE_RESOURCE_OUT, 0, true);
+
+	KShaderCompileEnvironment env;
+	if (withTile)
+	{
+		// 关闭 Tile permutation 时不定义 DOF_NEAR_TILE，也不声明 Tile storage descriptor。
+		env.macros.push_back({ "DOF_NEAR_TILE", "1" });
+		newPipeline->BindStorageImage(SHADER_BINDING_TEXTURE4, m_NearTileCoC->GetFrameBuffer(), PF_R16_FLOAT, COMPUTE_RESOURCE_OUT, 0, true);
+	}
+	newPipeline->BindUniformBuffer(CBT_CAMERA, KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_CAMERA));
+	newPipeline->BindDynamicUniformBuffer(SHADER_BINDING_OBJECT);
+
+	if (!newPipeline->Init("dof/preprocess.comp", env, false))
+	{
+		SAFE_UNINIT(newPipeline);
+		m_ComputePreprocessFallbackReason = withTile
+			? "Fused CS Preprocess+TileMAX init failed; fallback to PS"
+			: "CS Preprocess init failed; fallback to PS";
+		return false;
+	}
+
+	IKComputePipelinePtr& targetPipeline = withTile ? m_PreprocessComputeTilePipeline : m_PreprocessComputePipeline;
+	bool& targetReady = withTile ? m_ComputePreprocessTileReady : m_ComputePreprocessReady;
+	if (targetPipeline)
+	{
+		RetiredWorkingResources retired;
+		retired.completionFence = m_LastFrameFence;
+		retired.computePipelines.push_back(std::move(targetPipeline));
+		m_RetiredWorkingResources.push_back(std::move(retired));
+		ReleaseRetiredWorkingResources();
+	}
+	targetPipeline = std::move(newPipeline);
+	targetReady = true;
+	m_ComputePreprocessFallbackReason.clear();
+	return true;
+}
+
+bool KDepthOfField::ApplySettings()
+{
+	if (!m_NearColor || !m_InputWidth || !m_InputHeight)
+	{
+		return false;
+	}
+	ReleaseRetiredWorkingResources();
+	bool allSucceeded = true;
+
+	m_WorkingResolution = m_WorkingResolution == 1 ? 1 : 0;
+	const uint32_t targetDownsample = m_WorkingResolution == 1 ? 4U : 2U;
+
+	// 1. 判定 Bracketing 目标状态、硬件能力及上游非负输入契约。
+	bool desiredBracketed = false;
+	if (!m_BracketedEnable)
+	{
+		m_LastBracketedAttemptFailed = false;
+		m_BracketedFallbackReason.clear();
+	}
+	else if (!CanUseBracketed(m_BracketedFallbackReason))
+	{
+		allSucceeded = false;
+	}
+	else if (!m_LastBracketedAttemptFailed)
+	{
+		desiredBracketed = true;
+	}
+	else
+	{
+		allSucceeded = false;
+	}
+
+	// 2. 分辨率或 Bracketing 变更需要安全帧边界重建工作 RT / Pass / Pipeline。
+	// 仅 PS/CS Preprocess 切换共用联合 usage 的 Near/Far RT，不触发重建。
+	const bool hadTile = m_NearTileReady;
+	const bool needRebuild =
+		targetDownsample != m_DownsampleFactor ||
+		desiredBracketed != m_BracketedActive;
+	if (needRebuild)
+	{
+		if (!RebuildWorkingResources(m_InputWidth, m_InputHeight, targetDownsample, desiredBracketed, true))
+		{
+			if (desiredBracketed)
+			{
+				m_LastBracketedAttemptFailed = true;
+				m_BracketedFallbackReason = "Bracketing 5-MRT initialization failed; fallback to baseline FP16";
+				KG_LOGW(LM_RENDER, "%s", m_BracketedFallbackReason.c_str());
+				allSucceeded = false;
+				// 若同时切了分辨率，则回退到非 Bracketing 完成分辨率切换。
+				if (targetDownsample != m_DownsampleFactor || m_BracketedActive)
+				{
+					if (!RebuildWorkingResources(m_InputWidth, m_InputHeight, targetDownsample, false, true))
+					{
+						return false;
+					}
+				}
+			}
+			else
+			{
+				return false;
+			}
+		}
+		else
+		{
+			m_LastBracketedAttemptFailed = false;
+			m_LastTileAttemptFailed = false;
+			m_LastComputeAttemptFailed = false;
+			m_LastComputeTileAttemptFailed = false;
+		}
+		// 若此前已启用过 Tile 资源且当前仍启用 Tile，则随新工作尺寸/Bracketing 模式一并重建。
+		if (hadTile && m_NearTileEnable && m_NearTileSupported)
+		{
+			if (!InitializeNearTile())
+			{
+				m_NearTileActive = false;
+				m_LastTileAttemptFailed = true;
+				KG_LOGW(LM_RENDER, "Near TileMAX rebuild failed (%s); use baseline convolution", m_NearTileFallbackReason.c_str());
+				allSucceeded = false;
+			}
+		}
+	}
+
+	// 3. 应用 Near TileMAX 请求状态。
+	if (!m_NearTileEnable)
+	{
+		m_NearTileActive = false;
+		m_LastTileAttemptFailed = false;
+		m_NearTileFallbackReason.clear();
+	}
+	else if (!m_NearTileSupported)
+	{
+		m_NearTileActive = false;
+		m_NearTileFallbackReason = "R16F storage/sampled image unsupported";
+		allSucceeded = false;
+	}
+	else if (m_NearTileReady)
+	{
+		m_NearTileActive = true;
+		m_NearTileFallbackReason.clear();
+	}
+	else if (!m_LastTileAttemptFailed)
+	{
+		if (InitializeNearTile())
+		{
+			m_NearTileActive = true;
+		}
+		else
+		{
+			m_NearTileActive = false;
+			m_LastTileAttemptFailed = true;
+			KG_LOGW(LM_RENDER, "Near TileMAX unavailable (%s); use the baseline convolution", m_NearTileFallbackReason.c_str());
+			allSucceeded = false;
+		}
+	}
+	else
+	{
+		m_NearTileActive = false;
+		allSucceeded = false;
+	}
+
+	// 4. 应用 Compute Preprocess 请求状态（不重分配 Near/Far RT，按需惰性构建对应 CS pipeline）。
+	if (!m_UseComputePreprocess)
+	{
+		m_ComputePreprocessActive = false;
+		m_LastComputeAttemptFailed = false;
+		m_LastComputeTileAttemptFailed = false;
+		m_ComputePreprocessFallbackReason.clear();
+	}
+	else if (!m_ComputePreprocessSupported)
+	{
+		m_ComputePreprocessActive = false;
+		m_ComputePreprocessFallbackReason = "RGBA16F color/storage/sampled image unsupported; fallback to PS";
+		allSucceeded = false;
+	}
+	else
+	{
+		const bool withTile = m_NearTileActive;
+		bool& failedFlag = withTile ? m_LastComputeTileAttemptFailed : m_LastComputeAttemptFailed;
+		const bool alreadyReady = withTile ? m_ComputePreprocessTileReady : m_ComputePreprocessReady;
+		if (alreadyReady)
+		{
+			m_ComputePreprocessActive = true;
+			m_ComputePreprocessFallbackReason.clear();
+		}
+		else if (!failedFlag)
+		{
+			if (EnsureComputePreprocessPipeline(withTile))
+			{
+				m_ComputePreprocessActive = true;
+			}
+			else
+			{
+				m_ComputePreprocessActive = false;
+				failedFlag = true;
+				KG_LOGW(LM_RENDER, "Compute Preprocess unavailable (%s)", m_ComputePreprocessFallbackReason.c_str());
+				allSucceeded = false;
+			}
+		}
+		else
+		{
+			m_ComputePreprocessActive = false;
+			allSucceeded = false;
+		}
+	}
+
+	return allSucceeded;
 }
 
 bool KDepthOfField::Reload()
 {
-	if(m_QuadVS)
-		m_QuadVS->Reload();
-	if (m_PreprocessFS)
-		m_PreprocessFS->Reload();
-	if (m_NearHorizontalFS)
-		m_NearHorizontalFS->Reload();
-	if (m_NearVerticalFS)
-		m_NearVerticalFS->Reload();
-	if (m_FarHorizontalFS)
-		m_FarHorizontalFS->Reload();
-	if (m_FarVerticalFS)
-		m_FarVerticalFS->Reload();
-	if (m_CompositeFS)
-		m_CompositeFS->Reload();
-	if (m_PreprocessPipeline)
-		m_PreprocessPipeline->Reload(false);
-	if (m_NearHorizontalPipeline)
-		m_NearHorizontalPipeline->Reload(false);
-	if (m_NearVerticalPipeline)
-		m_NearVerticalPipeline->Reload(false);
-	if (m_FarHorizontalPipeline)
-		m_FarHorizontalPipeline->Reload(false);
-	if (m_FarVerticalPipeline)
-		m_FarVerticalPipeline->Reload(false);
-	if (m_CompositePipeline)
-		m_CompositePipeline->Reload(false);
-	if (m_NearTileHorizontalFS) m_NearTileHorizontalFS->Reload();
-	if (m_NearTileVerticalFS) m_NearTileVerticalFS->Reload();
-	if (m_NearTileHorizontalPipeline) m_NearTileHorizontalPipeline->Reload(false);
-	if (m_NearTileVerticalPipeline) m_NearTileVerticalPipeline->Reload(false);
-	if (m_NearTileMaxPipeline) m_NearTileMaxPipeline->Reload();
+	for (KShaderRef* shader : {
+		&m_QuadVS, &m_PreprocessFS, &m_CompositeFS,
+		&m_NearHorizontalFS, &m_NearVerticalFS, &m_FarHorizontalFS, &m_FarVerticalFS,
+		&m_NearBracketedHorizontalFS, &m_NearBracketedVerticalFS,
+		&m_FarBracketedHorizontalFS, &m_FarBracketedVerticalFS,
+		&m_NearTileHorizontalFS, &m_NearTileVerticalFS,
+		&m_NearTileBracketedHorizontalFS, &m_NearTileBracketedVerticalFS })
+	{
+		if (*shader)
+		{
+			(*shader)->Reload();
+		}
+	}
+	for (IKPipelinePtr* pipeline : {
+		&m_PreprocessPipeline, &m_NearHorizontalPipeline, &m_NearVerticalPipeline,
+		&m_FarHorizontalPipeline, &m_FarVerticalPipeline, &m_CompositePipeline,
+		&m_NearTileHorizontalPipeline, &m_NearTileVerticalPipeline })
+	{
+		if (*pipeline)
+		{
+			(*pipeline)->Reload(false);
+		}
+	}
+	for (IKComputePipelinePtr* compute : {
+		&m_NearTileMaxPipeline, &m_PreprocessComputePipeline, &m_PreprocessComputeTilePipeline })
+	{
+		if (*compute)
+		{
+			(*compute)->Reload();
+		}
+	}
+
+	m_LastTileAttemptFailed = false;
+	m_LastComputeAttemptFailed = false;
+	m_LastComputeTileAttemptFailed = false;
+	m_LastBracketedAttemptFailed = false;
 	return true;
 }
 
@@ -464,91 +1104,51 @@ bool KDepthOfField::Resize(uint32_t width, uint32_t height)
 		KG_LOGW(LM_RENDER, "Ignore zero-sized DOF resize");
 		return false;
 	}
-	const bool resizeFinal = !m_InputWidth || !m_InputHeight || width != m_InputWidth || height != m_InputHeight ||
-		!m_Final->GetFrameBuffer()->GetWidth();
-	if (resizeFinal) m_DebugDrawer.UnInit();
 
-	m_InputWidth = width;
-	m_InputHeight = height;
+	const bool hadTileReady = m_NearTileReady;
+	const bool hadComputeActive = m_ComputePreprocessActive;
 
-	// 无加法溢出的向上取整，奇数尺寸最后一行/列仍参与预处理。
-	m_Width = width / m_DownsampleFactor + (width % m_DownsampleFactor != 0);
-	m_Height = height / m_DownsampleFactor + (height % m_DownsampleFactor != 0);
-	m_NeedInitialTransition = true;
-
-	auto InitColorTarget = [](IKRenderTargetPtr& target, uint32_t targetWidth, uint32_t targetHeight)
+	if (!RebuildWorkingResources(width, height, m_DownsampleFactor, m_BracketedActive, false))
 	{
-		target->UnInit();
-		// 初始布局转换放入正常帧命令，避开既有单次提交辅助函数中的 vkWaitForFences。
-		target->InitFromColor(targetWidth, targetHeight, 1, 1, PF_R16G16B16A16_FLOAT, true);
-	};
-
-	InitColorTarget(m_NearColor, m_Width, m_Height);
-	InitColorTarget(m_FarColor, m_Width, m_Height);
-	for (uint32_t i = 0; i < ARRAY_SIZE(m_ComplexIntermediate); ++i)
-	{
-		InitColorTarget(m_ComplexIntermediate[i], m_Width, m_Height);
+		return false;
 	}
 
-	// 切换工作比例时保留 Final，现有下游采样绑定和全分辨率图像保持稳定。
-	if (resizeFinal)
+	if (m_NearTileEnable && !m_NearTileSupported)
 	{
-		InitColorTarget(m_Final, m_InputWidth, m_InputHeight);
-		m_FinalNeedsInitialTransition = true;
+		m_NearTileActive = false;
+		m_NearTileFallbackReason = "R16F storage/sampled image unsupported";
+	}
+	else if (hadTileReady || m_NearTileEnable)
+	{
+		if (!InitializeNearTile())
+		{
+			m_NearTileActive = false;
+			m_LastTileAttemptFailed = true;
+		}
+		else
+		{
+			m_NearTileActive = m_NearTileEnable;
+		}
 	}
 
-	m_PreprocessPass->UnInit();
-	m_PreprocessPass->SetColorAttachment(0, m_NearColor->GetFrameBuffer());
-	m_PreprocessPass->SetOpColor(0, LO_DONT_CARE, SO_STORE);
-	m_PreprocessPass->SetClearColor(0, { 0.0f, 0.0f, 0.0f, 0.0f });
-	m_PreprocessPass->SetColorAttachment(1, m_FarColor->GetFrameBuffer());
-	m_PreprocessPass->SetOpColor(1, LO_DONT_CARE, SO_STORE);
-	m_PreprocessPass->SetClearColor(1, { 0.0f, 0.0f, 0.0f, 0.0f });
-	m_PreprocessPass->Init();
-
-	m_NearHorizontalPass->UnInit();
-	m_NearHorizontalPass->SetColorAttachment(0, m_ComplexIntermediate[0]->GetFrameBuffer());
-	m_NearHorizontalPass->SetOpColor(0, LO_DONT_CARE, SO_STORE);
-	m_NearHorizontalPass->SetClearColor(0, { 0.0f, 0.0f, 0.0f, 0.0f });
-	m_NearHorizontalPass->SetColorAttachment(1, m_ComplexIntermediate[1]->GetFrameBuffer());
-	m_NearHorizontalPass->SetOpColor(1, LO_DONT_CARE, SO_STORE);
-	m_NearHorizontalPass->SetClearColor(1, { 0.0f, 0.0f, 0.0f, 0.0f });
-	m_NearHorizontalPass->Init();
-
-	m_NearVerticalPass->UnInit();
-	m_NearVerticalPass->SetColorAttachment(0, m_NearColor->GetFrameBuffer());
-	m_NearVerticalPass->SetOpColor(0, LO_DONT_CARE, SO_STORE);
-	m_NearVerticalPass->SetClearColor(0, { 0.0f, 0.0f, 0.0f, 0.0f });
-	m_NearVerticalPass->Init();
-
-	m_FarHorizontalPass->UnInit();
-	for (uint32_t i = 0; i < ARRAY_SIZE(m_ComplexIntermediate); ++i)
+	if (m_UseComputePreprocess && !m_ComputePreprocessSupported)
 	{
-		m_FarHorizontalPass->SetColorAttachment(i, m_ComplexIntermediate[i]->GetFrameBuffer());
-		m_FarHorizontalPass->SetOpColor(i, LO_DONT_CARE, SO_STORE);
-		m_FarHorizontalPass->SetClearColor(i, { 0.0f, 0.0f, 0.0f, 0.0f });
+		m_ComputePreprocessActive = false;
+		m_ComputePreprocessFallbackReason = "RGBA16F color/storage/sampled image unsupported; fallback to PS";
 	}
-	m_FarHorizontalPass->Init();
-
-	m_FarVerticalPass->UnInit();
-	m_FarVerticalPass->SetColorAttachment(0, m_FarColor->GetFrameBuffer());
-	m_FarVerticalPass->SetOpColor(0, LO_DONT_CARE, SO_STORE);
-	m_FarVerticalPass->SetClearColor(0, { 0.0f, 0.0f, 0.0f, 0.0f });
-	m_FarVerticalPass->Init();
-
-	m_CompositePass->UnInit();
-	m_CompositePass->SetColorAttachment(0, m_Final->GetFrameBuffer());
-	m_CompositePass->SetOpColor(0, LO_DONT_CARE, SO_STORE);
-	m_CompositePass->SetClearColor(0, { 0.0f, 0.0f, 0.0f, 0.0f });
-	m_CompositePass->Init();
-
-	InitializePipeline();
-	if (m_NearTileCoC)
+	else if (hadComputeActive || m_UseComputePreprocess)
 	{
-		if (!InitializeNearTile()) return false;
+		if (!EnsureComputePreprocessPipeline(m_NearTileActive))
+		{
+			m_ComputePreprocessActive = false;
+			m_LastComputeTileAttemptFailed = m_NearTileActive;
+			m_LastComputeAttemptFailed = !m_NearTileActive;
+		}
+		else
+		{
+			m_ComputePreprocessActive = m_UseComputePreprocess;
+		}
 	}
-
-	if (resizeFinal) m_DebugDrawer.Init(m_Final->GetFrameBuffer(), 0, 0, 1, 1);
 
 	return true;
 }
@@ -644,7 +1244,11 @@ bool KDepthOfField::Execute(KRHICommandList& commandList)
 	objectData.dofParams = glm::vec4(validParams ? m_FocusDistance : 0.0f, opticalCoCScale, radiusScaleFull,
 		1.0f / float(m_DownsampleFactor));
 	const int debugView = m_DebugView >= DV_FINAL && m_DebugView < DV_COUNT ? m_DebugView : DV_FINAL;
-	const bool useTile = m_Enable && m_NearTileEnable && m_NearTileCoC;
+	const bool useTile = m_Enable && m_NearTileActive && m_NearTileReady && bool(m_NearTileCoC);
+	const bool useCompute = m_Enable && m_ComputePreprocessActive &&
+		(useTile ? (m_ComputePreprocessTileReady && bool(m_PreprocessComputeTilePipeline))
+		         : (m_ComputePreprocessReady && bool(m_PreprocessComputePipeline)));
+	const bool useBracketed = m_BracketedActive && bool(m_HorizontalColorMean);
 	objectData.dofParams2 = glm::vec4(m_Enable && validParams ? 1.0f : 0.0f, float(debugView), useTile ? 1.0f : 0.0f, 0.0f);
 
 	auto ToReadOnly = [&](IKRenderTargetPtr& target)
@@ -696,9 +1300,18 @@ bool KDepthOfField::Execute(KRHICommandList& commandList)
 		commandList.EndDebugMarker();
 	};
 
+	const PipelineStages sceneReadStages = useCompute
+		? (PIPELINE_STAGE_FRAGMENT_SHADER | PIPELINE_STAGE_COMPUTE_SHADER)
+		: PIPELINE_STAGE_FRAGMENT_SHADER;
+
 	commandList.BeginDebugMarker("DOF", glm::vec4(1));
-	commandList.Transition(KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET0)->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER | PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
-	commandList.Transition(KRenderGlobal::GBuffer.GetSceneColor()->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+	commandList.Transition(KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET0)->GetFrameBuffer(),
+		PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER | PIPELINE_STAGE_COMPUTE_SHADER,
+		IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+	commandList.Transition(KRenderGlobal::GBuffer.GetSceneColor()->GetFrameBuffer(),
+		PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, sceneReadStages,
+		IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+
 	auto InitializeReadOnly = [&](IKRenderTargetPtr& target)
 	{
 		commandList.Transition(target->GetFrameBuffer(), PIPELINE_STAGE_TOP_OF_PIPE, PIPELINE_STAGE_FRAGMENT_SHADER,
@@ -713,6 +1326,11 @@ bool KDepthOfField::Execute(KRHICommandList& commandList)
 			InitializeReadOnly(intermediate);
 		}
 		m_NeedInitialTransition = false;
+	}
+	if (m_HorizontalColorMean && m_ColorMeanNeedsInitialTransition)
+	{
+		InitializeReadOnly(m_HorizontalColorMean);
+		m_ColorMeanNeedsInitialTransition = false;
 	}
 	if (m_FinalNeedsInitialTransition)
 	{
@@ -730,61 +1348,121 @@ bool KDepthOfField::Execute(KRHICommandList& commandList)
 
 	if (m_Enable)
 	{
-	ToColorAttachment(m_NearColor);
-	ToColorAttachment(m_FarColor);
-	DrawPass("DOF_Preprocess", m_PreprocessPass, m_PreprocessPipeline, true);
-	ToReadOnly(m_NearColor);
-	ToReadOnly(m_FarColor);
+		const uint32_t tileGroupsX = (m_Width + DOF_TILE_SIZE - 1) / DOF_TILE_SIZE;
+		const uint32_t tileGroupsY = (m_Height + DOF_TILE_SIZE - 1) / DOF_TILE_SIZE;
 
-	if (useTile)
-	{
-		// KApp 的 Storage Image 采样描述符使用 GENERAL；同布局屏障同步 CS 写与 H/V/Composite 采样。
-		commandList.Transition(m_NearTileCoC->GetFrameBuffer(), PIPELINE_STAGE_FRAGMENT_SHADER,
-			PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_GENERAL, IMAGE_LAYOUT_GENERAL);
-		commandList.BeginDebugMarker("DOF_NearTileMAX", glm::vec4(1));
-		KDynamicConstantBufferUsage tileUsage;
-		tileUsage.binding = SHADER_BINDING_OBJECT;
-		tileUsage.range = sizeof(objectData);
-		KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, tileUsage);
-		commandList.Execute(m_NearTileMaxPipeline, (m_Width + DOF_TILE_SIZE - 1) / DOF_TILE_SIZE,
-			(m_Height + DOF_TILE_SIZE - 1) / DOF_TILE_SIZE, 1, &tileUsage);
-		commandList.EndDebugMarker();
-		commandList.Transition(m_NearTileCoC->GetFrameBuffer(), PIPELINE_STAGE_COMPUTE_SHADER,
-			PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_GENERAL, IMAGE_LAYOUT_GENERAL);
-	}
+		if (useCompute)
+		{
+			// CS Preprocess：将共享的 Near/Far 从跨帧只读布局转为 GENERAL 供 imageStore 写入。
+			commandList.Transition(m_NearColor->GetFrameBuffer(), PIPELINE_STAGE_FRAGMENT_SHADER,
+				PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_GENERAL);
+			commandList.Transition(m_FarColor->GetFrameBuffer(), PIPELINE_STAGE_FRAGMENT_SHADER,
+				PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_GENERAL);
+			if (useTile)
+			{
+				commandList.Transition(m_NearTileCoC->GetFrameBuffer(), PIPELINE_STAGE_FRAGMENT_SHADER,
+					PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_GENERAL, IMAGE_LAYOUT_GENERAL);
+			}
 
-	ToColorAttachment(m_ComplexIntermediate[0]);
-	ToColorAttachment(m_ComplexIntermediate[1]);
-	DrawPass("DOF_NearHorizontal", m_NearHorizontalPass, useTile ? m_NearTileHorizontalPipeline : m_NearHorizontalPipeline, false);
-	ToReadOnly(m_ComplexIntermediate[0]);
-	ToReadOnly(m_ComplexIntermediate[1]);
+			commandList.BeginDebugMarker(useTile ? "DOF_PreprocessCS_TileMAX" : "DOF_PreprocessCS", glm::vec4(1));
+			KDynamicConstantBufferUsage preprocessUsage;
+			preprocessUsage.binding = SHADER_BINDING_OBJECT;
+			preprocessUsage.range = sizeof(objectData);
+			KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, preprocessUsage);
+			commandList.Execute(useTile ? m_PreprocessComputeTilePipeline : m_PreprocessComputePipeline,
+				tileGroupsX, tileGroupsY, 1, &preprocessUsage);
+			commandList.EndDebugMarker();
 
-	ToColorAttachment(m_NearColor);
-	DrawPass("DOF_NearVertical", m_NearVerticalPass, useTile ? m_NearTileVerticalPipeline : m_NearVerticalPipeline, false);
-	ToReadOnly(m_NearColor);
+			// CS 写完后转回 SHADER_READ_ONLY，与后续 Graphics 采样描述符布局严格一致。
+			commandList.Transition(m_NearColor->GetFrameBuffer(), PIPELINE_STAGE_COMPUTE_SHADER,
+				PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_GENERAL, IMAGE_LAYOUT_SHADER_READ_ONLY);
+			commandList.Transition(m_FarColor->GetFrameBuffer(), PIPELINE_STAGE_COMPUTE_SHADER,
+				PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_GENERAL, IMAGE_LAYOUT_SHADER_READ_ONLY);
+			if (useTile)
+			{
+				commandList.Transition(m_NearTileCoC->GetFrameBuffer(), PIPELINE_STAGE_COMPUTE_SHADER,
+					PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_GENERAL, IMAGE_LAYOUT_GENERAL);
+			}
+		}
+		else
+		{
+			ToColorAttachment(m_NearColor);
+			ToColorAttachment(m_FarColor);
+			DrawPass("DOF_Preprocess", m_PreprocessPass, m_PreprocessPipeline, true);
+			ToReadOnly(m_NearColor);
+			ToReadOnly(m_FarColor);
 
-	// Near V 已读完前两张复数纹理，此后 Far H 可覆盖全部四张；跨帧仍回到只读布局。
-	for (IKRenderTargetPtr& intermediate : m_ComplexIntermediate)
-	{
-		ToColorAttachment(intermediate);
-	}
-	DrawPass("DOF_FarHorizontal", m_FarHorizontalPass, m_FarHorizontalPipeline, false);
-	for (IKRenderTargetPtr& intermediate : m_ComplexIntermediate)
-	{
-		ToReadOnly(intermediate);
-	}
+			if (useTile)
+			{
+				// KApp 的 Storage Image 采样描述符使用 GENERAL；同布局屏障同步 CS 写与 H/V/Composite 采样。
+				commandList.Transition(m_NearTileCoC->GetFrameBuffer(), PIPELINE_STAGE_FRAGMENT_SHADER,
+					PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_GENERAL, IMAGE_LAYOUT_GENERAL);
+				commandList.BeginDebugMarker("DOF_NearTileMAX", glm::vec4(1));
+				KDynamicConstantBufferUsage tileUsage;
+				tileUsage.binding = SHADER_BINDING_OBJECT;
+				tileUsage.range = sizeof(objectData);
+				KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, tileUsage);
+				commandList.Execute(m_NearTileMaxPipeline, tileGroupsX, tileGroupsY, 1, &tileUsage);
+				commandList.EndDebugMarker();
+				commandList.Transition(m_NearTileCoC->GetFrameBuffer(), PIPELINE_STAGE_COMPUTE_SHADER,
+					PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_GENERAL, IMAGE_LAYOUT_GENERAL);
+			}
+		}
 
-	ToColorAttachment(m_FarColor);
-	DrawPass("DOF_FarVertical", m_FarVerticalPass, m_FarVerticalPipeline, false);
-	ToReadOnly(m_FarColor);
+		ToColorAttachment(m_ComplexIntermediate[0]);
+		ToColorAttachment(m_ComplexIntermediate[1]);
+		if (useBracketed)
+		{
+			ToColorAttachment(m_HorizontalColorMean);
+		}
+		DrawPass("DOF_NearHorizontal", m_NearHorizontalPass,
+			useTile ? m_NearTileHorizontalPipeline : m_NearHorizontalPipeline, false);
+		ToReadOnly(m_ComplexIntermediate[0]);
+		ToReadOnly(m_ComplexIntermediate[1]);
+		if (useBracketed)
+		{
+			ToReadOnly(m_HorizontalColorMean);
+		}
+
+		ToColorAttachment(m_NearColor);
+		DrawPass("DOF_NearVertical", m_NearVerticalPass,
+			useTile ? m_NearTileVerticalPipeline : m_NearVerticalPipeline, false);
+		ToReadOnly(m_NearColor);
+
+		// Near V 已读完前两张复数纹理及 ColorMean，此后 Far H 可覆盖全部四张及 ColorMean；跨帧仍回到只读布局。
+		for (IKRenderTargetPtr& intermediate : m_ComplexIntermediate)
+		{
+			ToColorAttachment(intermediate);
+		}
+		if (useBracketed)
+		{
+			ToColorAttachment(m_HorizontalColorMean);
+		}
+		DrawPass("DOF_FarHorizontal", m_FarHorizontalPass, m_FarHorizontalPipeline, false);
+		for (IKRenderTargetPtr& intermediate : m_ComplexIntermediate)
+		{
+			ToReadOnly(intermediate);
+		}
+		if (useBracketed)
+		{
+			ToReadOnly(m_HorizontalColorMean);
+		}
+
+		ToColorAttachment(m_FarColor);
+		DrawPass("DOF_FarVertical", m_FarVerticalPass, m_FarVerticalPipeline, false);
+		ToReadOnly(m_FarColor);
 	}
 
 	ToColorAttachment(m_Final);
 	DrawPass("DOF_Composite", m_CompositePass, m_CompositePipeline, true);
 	ToReadOnly(m_Final);
 
-	commandList.Transition(KRenderGlobal::GBuffer.GetSceneColor()->GetFrameBuffer(), PIPELINE_STAGE_FRAGMENT_SHADER, PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_COLOR_ATTACHMENT);
-	commandList.Transition(KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET0)->GetFrameBuffer(), PIPELINE_STAGE_FRAGMENT_SHADER | PIPELINE_STAGE_COMPUTE_SHADER, PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_COLOR_ATTACHMENT);
+	commandList.Transition(KRenderGlobal::GBuffer.GetSceneColor()->GetFrameBuffer(),
+		sceneReadStages, PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT,
+		IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_COLOR_ATTACHMENT);
+	commandList.Transition(KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET0)->GetFrameBuffer(),
+		PIPELINE_STAGE_FRAGMENT_SHADER | PIPELINE_STAGE_COMPUTE_SHADER, PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT,
+		IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_COLOR_ATTACHMENT);
 	commandList.EndDebugMarker();
 
 	return true;
